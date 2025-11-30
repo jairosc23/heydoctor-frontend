@@ -1,0 +1,186 @@
+<div style="padding:25px;">
+
+  <h1 style="font-family: Montserrat; color:#078a92; font-size:28px; margin-bottom:5px;">
+    Consultas
+  </h1>
+  <p style="color:#666; margin-bottom:25px;">Historial clínico de consultas HeyDoctor</p>
+
+  <!-- BUSCADOR Y FILTROS -->
+  <div style="display:flex; gap:12px; margin-bottom:20px;">
+
+    <!-- BUSCADOR -->
+    <input 
+      id="consultSearch"
+      type="text"
+      placeholder="Buscar por paciente, tipo o motivo..."
+      onkeyup="filterConsultas()"
+      style="
+        flex:1;
+        padding:14px;
+        border:1px solid #ccc;
+        border-radius:10px;
+        font-size:15px;
+      "
+    >
+
+    <!-- SELECT ESTADO -->
+    <select id="consultStatus" onchange="filterConsultas()" 
+      style="padding:14px; border-radius:10px; border:1px solid #ccc;">
+      <option value="">Estado</option>
+      <option value="completada">Completada</option>
+      <option value="pendiente">Pendiente</option>
+      <option value="cancelada">Cancelada</option>
+    </select>
+
+  </div>
+
+  <!-- TABLA -->
+  <div style="background:white; border-radius:14px; box-shadow:0 4px 16px rgba(0,0,0,0.05); overflow:hidden;">
+    <table style="width:100%; border-collapse:collapse;">
+      <thead style="background:#f0fbfc;">
+        <tr>
+          <th style="padding:16px; text-align:left;">Paciente</th>
+          <th style="padding:16px; text-align:left;">Fecha</th>
+          <th style="padding:16px; text-align:left;">Tipo</th>
+          <th style="padding:16px; text-align:left;">Estado</th>
+          <th style="padding:16px; text-align:left;">Acciones</th>
+        </tr>
+      </thead>
+
+      <tbody id="consultasTable"></tbody>
+    </table>
+  </div>
+</div>
+
+
+<!-- MODAL DETALLE CONSULTA -->
+<div id="consultaModal"
+  style="
+    display:none; position:fixed; inset:0;
+    background:rgba(0,0,0,0.35); 
+    justify-content:center; align-items:center;
+    backdrop-filter: blur(3px);
+  ">
+  
+  <div style="
+    background:white;
+    padding:30px;
+    width:480px;
+    border-radius:14px;
+    box-shadow:0 8px 30px rgba(0,0,0,0.15);
+  ">
+    <h2 style="color:#078a92; margin-top:0;">Detalle de Consulta</h2>
+
+    <div id="consultaDetail" style="margin-top:15px; color:#444; line-height:1.6;"></div>
+
+    <button onclick="closeConsultaModal()"
+      style="width:100%; padding:14px; margin-top:25px;
+             background:#07acb5; color:white; border:none; border-radius:10px; cursor:pointer;">
+      Cerrar
+    </button>
+  </div>
+</div>
+
+
+<script type="module">
+  import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+  const supabase = createClient(
+    "https://ozxguifbufymprfzzvin.supabase.co",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im96eGd1aWZidWZ5bXByZnp6dmluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMzNDgwMjAsImV4cCI6MjA3ODkyNDAyMH0.AEiGtqpx33u-qrsgBiJ-EEa6IsDuOUAuhdUL6lme_M4"
+  );
+
+
+  // ========================
+  // CARGAR CONSULTAS
+  // ========================
+  async function loadConsultas() {
+    const { data, error } = await supabase.from("consultas")
+      .select("*, patients(full_name)");
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    const table = document.getElementById("consultasTable");
+    table.innerHTML = "";
+
+    data.forEach(c => {
+      const statusColor = 
+        c.estado === "completada" ? "#0c9c73" :
+        c.estado === "pendiente" ? "#ce9b04" :
+        "#d9534f";
+
+      table.innerHTML += `
+        <tr style="border-bottom:1px solid #eee;">
+          <td style="padding:16px;">${c.patients?.full_name || "Paciente"}</td>
+          <td style="padding:16px;">${new Date(c.fecha).toLocaleString()}</td>
+          <td style="padding:16px;">${c.tipo}</td>
+
+          <td style="padding:16px; color:${statusColor}; font-weight:600;">
+            ${c.estado}
+          </td>
+
+          <td style="padding:16px;">
+            <button onclick='verConsulta(${JSON.stringify(c).replace(/"/g, "&quot;")})'
+              style="
+                padding:8px 14px;
+                background:#07acb5;
+                border:none;
+                color:white;
+                border-radius:6px;
+                cursor:pointer;
+              ">
+              Ver
+            </button>
+          </td>
+        </tr>`;
+    });
+  }
+
+  window.onload = () => loadConsultas();
+
+
+  // ========================
+  // BUSCADOR + FILTRO ESTADO
+  // ========================
+  window.filterConsultas = function () {
+    const term = document.getElementById("consultSearch").value.toLowerCase();
+    const estado = document.getElementById("consultStatus").value;
+    const rows = document.querySelectorAll("#consultasTable tr");
+
+    rows.forEach(row => {
+      const text = row.innerText.toLowerCase();
+      const matchesSearch = text.includes(term);
+      const matchesStatus = estado === "" || text.includes(estado);
+
+      row.style.display = matchesSearch && matchesStatus ? "" : "none";
+    });
+  };
+
+
+  // ========================
+  // MODAL VER CONSULTA
+  // ========================
+  window.verConsulta = (c) => {
+    const modal = document.getElementById("consultaModal");
+    const detail = document.getElementById("consultaDetail");
+
+    detail.innerHTML = `
+      <strong>Paciente:</strong> ${c.patients?.full_name || ""}<br>
+      <strong>Fecha:</strong> ${new Date(c.fecha).toLocaleString()}<br>
+      <strong>Tipo:</strong> ${c.tipo}<br>
+      <strong>Estado:</strong> ${c.estado}<br><br>
+      <strong>Motivo:</strong><br>${c.motivo || "—"}<br><br>
+      <strong>Diagnóstico:</strong><br>${c.diagnostico || "—"}<br><br>
+      <strong>Tratamiento:</strong><br>${c.tratamiento || "—"}
+    `;
+
+    modal.style.display = "flex";
+  };
+
+  window.closeConsultaModal = () =>
+    document.getElementById("consultaModal").style.display = "none";
+
+</script>
