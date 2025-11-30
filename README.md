@@ -1,11 +1,106 @@
-## 🖼 Logos
+# HeyDoctor Frontend 🩺🚀  
+Frontend oficial del ecosistema clínico y de telemedicina **HeyDoctor** desarrollado por  
+**Dr. Jairo Santana – SAVAC MedTech LLC**.
 
-### HeyDoctor
-<img src="public/logo-heydoctor.png" width="140"/>
+Este repositorio contiene el nuevo frontend moderno, minimalista y de alto rendimiento
+construido sobre **Next.js 14**, **TypeScript** y **TailwindCSS**, diseñado para ofrecer:
 
-### SAVAC
-<img src="public/logo-savac.png" width="160"/>
+- Atención médica presencial y online  
+- Videoconsultas médicas seguras  
+- Flujo completo médico/paciente  
+- Módulo legal integrado  
+- Integración con HCConnect  
+- UI profesional, minimalista y accesible  
+
+---
+
+## 🧩 Tecnologías Principales
+
+- **Next.js 14 (App Router)**
+- **React 18**
+- **TypeScript**
+- **TailwindCSS**
+- **ESLint + Prettier**
+- **ShadCN/UI (opcional)**
+- Despliegue recomendado: **Vercel**
+
+---
+
+## 📂 Estructura del Proyecto
+
+```
+/heydoctor-frontend
+  /app
+    /page.tsx              → Landing Page
+    /patient               → Módulo Paciente
+    /doctor                → Módulo Médico
+    /video                 → Videoconsulta
+    /legal                 → Términos y Políticas
+    layout.tsx             → Layout global
+  /components              → Componentes compartidos
+  /public                  → Logos, imágenes y assets estáticos
+  /styles
+  package.json
+  README.md
+  tailwind.config.js
+```
+
+---
+
+## 📥 Migración desde archivos HTML
+
+Para portar los archivos HTML existentes a este frontend moderno:
+
+1. Copiar tus `.html` actuales dentro del directorio raíz del proyecto.  
+2. Crear una carpeta temporal:  
+   ```
+   /legacy-html
+   ```
+3. Por cada archivo HTML:
+   - Extraer **estructura**, **estilos**, **textos** y **componentes**  
+   - Convertirlo en una página Next.js (`page.tsx`)
+   - Eliminar dependencias antiguas
+4. Mover imágenes a **/public**
+5. Aplicar el diseño minimalista oficial HeyDoctor
+
+---
+
+## 📜 Scripts
+
+```
+npm install        → Instala dependencias
+npm run dev        → Ambiente de desarrollo
+npm run build      → Build de producción
+npm run start      → Servidor de producción
+```
+
+---
+
+## 🛣️ Roadmap
+
+- [x] Configuración inicial del repo  
+- [x] Migración desde HTML  
+- [ ] Crear Landing Page moderna  
+- [ ] Módulo Paciente  
+- [ ] Módulo Médico  
+- [ ] Videollamadas WebRTC  
+- [ ] Indicaciones médicas  
+- [ ] Panel administrativo  
+- [ ] Deploy en Vercel  
+- [ ] β Testing con pacientes reales  
+
+---
 
 ## 👨‍⚕️ Autor
+
 **Dr. Jairo Santana Candelo**  
-Fundador de HeyDoctor – SAVAC MedTech LLC
+Médico, Cirujano, Fundador de **HeyDoctor**  
+SAVAC MedTech LLC – USA  
+Viña del Mar – Chile  
+https://www.hcconnect.io/medical-professional-details/Jairo-Santana  
+
+---
+
+## 📝 Licencia
+
+© 2025 SAVAC MedTech LLC. Todos los derechos reservados.
