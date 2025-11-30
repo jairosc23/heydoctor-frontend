@@ -1,0 +1,268 @@
+<div style="padding:20px;">
+
+  <h1 style="font-family:Montserrat; color:#078a92;">Consultas</h1>
+  <p style="color:#555;">Historial clínico – HeyDoctor ULTRA PRO MAX</p>
+
+  <!-- FILTROS -->
+  <div style="
+      margin-top:20px; 
+      padding:15px; 
+      background:rgba(255,255,255,0.75);
+      backdrop-filter:blur(10px);
+      border-radius:12px;
+      display:flex; 
+      gap:12px;
+      box-shadow:0 4px 12px rgba(0,0,0,0.06);
+  ">
+    <input id="filter-date" type="date"
+      style="padding:10px; border:1px solid #ccc; border-radius:8px; flex:1;"
+      onchange="applyFilters()">
+
+    <select id="filter-state"
+      style="padding:10px; border:1px solid #ccc; border-radius:8px; width:160px;"
+      onchange="applyFilters()">
+      <option value="">Estado</option>
+      <option value="pendiente">Pendiente</option>
+      <option value="atendida">Atendida</option>
+      <option value="cancelada">Cancelada</option>
+    </select>
+
+    <button onclick="openNewConsultModal()"
+      style="padding:12px 18px; background:#07acb5; color:white; border:none; border-radius:10px;">
+      + Nueva Consulta
+    </button>
+  </div>
+
+  <!-- CONTENEDOR PRINCIPAL -->
+  <div style="display:flex; gap:20px; margin-top:25px;">
+    
+    <!-- TIMELINE -->
+    <div style="width:35%; max-height:70vh; overflow-y:auto; padding-right:8px;">
+      <h2 style="font-family:Montserrat; color:#078a92;">Timeline</h2>
+      
+      <div id="timeline"></div>
+    </div>
+
+    <!-- LISTA DETALLADA -->
+    <div style="width:65%;">
+      <h2 style="font-family:Montserrat; color:#078a92;">Listado clínico</h2>
+
+      <table style="width:100%; border-collapse:collapse; background:white; border-radius:10px; overflow:hidden;">
+        <thead style="background:#e8f7f8;">
+          <tr>
+            <th style="padding:14px; text-align:left;">Paciente</th>
+            <th style="padding:14px; text-align:left;">Fecha</th>
+            <th style="padding:14px; text-align:left;">Hora</th>
+            <th style="padding:14px; text-align:left;">Estado</th>
+            <th style="padding:14px; text-align:left;">Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="consultList"></tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- MODAL NUEVA CONSULTA -->
+<div id="newConsultModal"
+  style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.35); justify-content:center; align-items:center;">
+
+  <div style="background:white; padding:25px; width:420px; border-radius:12px; box-shadow:0 8px 20px rgba(0,0,0,0.15);">
+    <h2 style="color:#078a92; font-family:Montserrat;">Registrar nueva consulta</h2>
+
+    <input id="c-name" type="text" placeholder="Nombre del paciente"
+      style="width:100%; padding:12px; margin-bottom:10px; border-radius:10px; border:1px solid #ccc;">
+    <input id="c-date" type="date"
+      style="width:100%; padding:12px; margin-bottom:10px; border-radius:10px; border:1px solid #ccc;">
+    <input id="c-time" type="time"
+      style="width:100%; padding:12px; margin-bottom:10px; border-radius:10px; border:1px solid #ccc;">
+    <input id="c-motive" type="text" placeholder="Motivo de consulta"
+      style="width:100%; padding:12px; margin-bottom:10px; border-radius:10px; border:1px solid #ccc;">
+    
+    <select id="c-mode"
+      style="width:100%; padding:12px; margin-bottom:10px; border-radius:10px; border:1px solid #ccc;">
+      <option value="">Modalidad</option>
+      <option value="online">Online</option>
+      <option value="presencial">Presencial</option>
+    </select>
+
+    <select id="c-state"
+      style="width:100%; padding:12px; margin-bottom:20px; border-radius:10px; border:1px solid #ccc;">
+      <option value="">Estado</option>
+      <option value="pendiente">Pendiente</option>
+      <option value="atendida">Atendida</option>
+      <option value="cancelada">Cancelada</option>
+    </select>
+
+    <button onclick="saveConsult()"
+      style="width:100%; padding:14px; background:#07acb5; border:none; border-radius:10px; color:white;">
+      Guardar consulta
+    </button>
+
+    <button onclick="closeNewConsultModal()"
+      style="width:100%; padding:14px; background:#ccc; border:none; border-radius:10px; margin-top:10px;">
+      Cancelar
+    </button>
+  </div>
+</div>
+
+
+<!-- MODAL DETALLE CONSULTA -->
+<div id="consultDetailModal"
+  style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.35); justify-content:center; align-items:center;">
+
+  <div style="background:white; padding:25px; width:460px; border-radius:14px; box-shadow:0 8px 20px rgba(0,0,0,0.15);">
+    <h2 style="color:#078a92; font-family:Montserrat;">Detalle de Consulta</h2>
+
+    <div id="consultDetailContent"></div>
+
+    <button onclick="closeConsultDetailModal()"
+      style="width:100%; padding:14px; background:#07acb5; border:none; border-radius:10px; color:white; margin-top:20px;">
+      Cerrar
+    </button>
+  </div>
+</div>
+
+
+<script type="module">
+  import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+  const supabase = createClient(
+    "https://ozxguifbufymprfzzvin.supabase.co",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im96eGd1aWZidWZ5bXByZnp6dmluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMzNDgwMjAsImV4cCI6MjA3ODkyNDAyMH0.AEiGtqpx33u-qrsgBiJ-EEa6IsDuOUAuhdUL6lme_M4"
+  );
+
+  let allConsults = [];
+
+  async function loadConsults() {
+    const { data } = await supabase.from("consultations").select("*").order("date",{ascending:false});
+    allConsults = data || [];
+    renderTimeline();
+    renderList();
+  }
+
+  function applyFilters() {
+    renderTimeline();
+    renderList();
+  }
+
+  function renderTimeline() {
+    const timeline = document.getElementById("timeline");
+    timeline.innerHTML = "";
+
+    let filtered = filterConsults();
+
+    filtered.forEach(c => {
+      timeline.innerHTML += `
+        <div style="
+          padding:12px; 
+          margin-bottom:12px;
+          background:rgba(255,255,255,0.75); 
+          backdrop-filter:blur(10px);
+          border-radius:12px;
+          box-shadow:0 3px 10px rgba(0,0,0,0.06);
+        ">
+          <strong>⏱ ${c.time}</strong><br>
+          👤 ${c.patient_name}<br>
+          <span style="color:#078a92;">${c.date}</span>
+        </div>
+      `;
+    });
+  }
+
+  function renderList() {
+    const table = document.getElementById("consultList");
+    table.innerHTML = "";
+
+    let filtered = filterConsults();
+
+    filtered.forEach(c => {
+      table.innerHTML += `
+        <tr style="border-bottom:1px solid #eee;">
+          <td style="padding:12px;">${c.patient_name}</td>
+          <td style="padding:12px;">${c.date}</td>
+          <td style="padding:12px;">${c.time}</td>
+          <td style="padding:12px;">
+            ${renderStateBadge(c.state)}
+          </td>
+          <td style="padding:12px;">
+            <button onclick="openConsultDetail('${c.id}')"
+              style="padding:8px 12px; background:#07acb5; border:none; border-radius:8px; color:white;">
+              Ver
+            </button>
+          </td>
+        </tr>
+      `;
+    });
+  }
+
+  function renderStateBadge(state) {
+    if (state === "pendiente") return `<span style="color:#c49b00;">● Pendiente</span>`;
+    if (state === "atendida") return `<span style="color:green;">● Atendida</span>`;
+    if (state === "cancelada") return `<span style="color:red;">● Cancelada</span>`;
+    return "";
+  }
+
+  function filterConsults() {
+    const date = document.getElementById("filter-date").value;
+    const state = document.getElementById("filter-state").value;
+
+    return allConsults.filter(c => {
+      return (!date || c.date === date) &&
+             (!state || c.state === state);
+    });
+  }
+
+  window.openNewConsultModal = () => {
+    document.getElementById("newConsultModal").style.display = "flex";
+  };
+
+  window.closeNewConsultModal = () => {
+    document.getElementById("newConsultModal").style.display = "none";
+  };
+
+  async function saveConsult() {
+    const patient_name = document.getElementById("c-name").value;
+    const date = document.getElementById("c-date").value;
+    const time = document.getElementById("c-time").value;
+    const motive = document.getElementById("c-motive").value;
+    const mode = document.getElementById("c-mode").value;
+    const state = document.getElementById("c-state").value;
+
+    await supabase.from("consultations").insert({
+      patient_name, date, time, motive, mode, state
+    });
+
+    closeNewConsultModal();
+    loadConsults();
+  }
+
+  window.openConsultDetail = async (id) => {
+    const consult = allConsults.find(c => c.id == id);
+
+    document.getElementById("consultDetailContent").innerHTML = `
+      <p><strong>Paciente:</strong> ${consult.patient_name}</p>
+      <p><strong>Fecha:</strong> ${consult.date}</p>
+      <p><strong>Hora:</strong> ${consult.time}</p>
+      <p><strong>Motivo:</strong> ${consult.motive}</p>
+      <p><strong>Modalidad:</strong> ${consult.mode}</p>
+      <p><strong>Estado:</strong> ${consult.state}</p>
+
+      <h3 style="margin-top:20px; color:#078a92;">Resumen Inteligente</h3>
+      <p style="line-height:1.5; color:#555;">
+        Esta consulta corresponde a un caso clínico registrado por el Dr. Jairo Santana. 
+        El sistema HeyDoctor ha generado esta vista estructurada para facilitar el análisis clínico y la continuidad del tratamiento.
+      </p>
+    `;
+
+    document.getElementById("consultDetailModal").style.display = "flex";
+  };
+
+  window.closeConsultDetailModal = () => {
+    document.getElementById("consultDetailModal").style.display = "none";
+  };
+
+  window.onload = loadConsults;
+</script>
