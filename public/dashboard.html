@@ -1,0 +1,181 @@
+<div style="padding: 25px;">
+
+  <!-- TÍTULO -->
+  <h1 style="font-family: Montserrat; color:#078a92; margin-bottom: 5px;">
+    Dashboard Clínico
+  </h1>
+  <p style="color:#666; margin-bottom: 25px;">
+    Estado general de tu centro médico HeyDoctor
+  </p>
+
+  <!-- TARJETAS ESTADÍSTICAS -->
+  <div style="
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+  ">
+
+    <!-- CARD 1 -->
+    <div style="
+      background: white;
+      padding: 22px;
+      border-radius: 16px;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.06);
+      border-left: 6px solid #07acb5;
+    ">
+      <h3 style="color:#999; margin-bottom: 10px;">Pacientes totales</h3>
+      <p id="totalPatients" style="font-size:32px; color:#078a92; margin:0;">
+        0
+      </p>
+    </div>
+
+    <!-- CARD 2 -->
+    <div style="
+      background: white;
+      padding: 22px;
+      border-radius: 16px;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.06);
+      border-left: 6px solid #0bb38a;
+    ">
+      <h3 style="color:#999; margin-bottom: 10px;">Consultas hoy</h3>
+      <p id="todayAppointments" style="font-size:32px; color:#078a92; margin:0;">
+        0
+      </p>
+    </div>
+
+    <!-- CARD 3 -->
+    <div style="
+      background: white;
+      padding: 22px;
+      border-radius: 16px;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.06);
+      border-left: 6px solid #f2a900;
+    ">
+      <h3 style="color:#999; margin-bottom: 10px;">Ingresos del mes</h3>
+      <p style="font-size:32px; color:#078a92; margin:0;">
+        $0
+      </p>
+    </div>
+
+    <!-- CARD 4 -->
+    <div style="
+      background: white;
+      padding: 22px;
+      border-radius: 16px;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.06);
+      border-left: 6px solid #df3c3c;
+    ">
+      <h3 style="color:#999; margin-bottom: 10px;">Consultas pendientes</h3>
+      <p id="pendingAppointments" style="font-size:32px; color:#078a92; margin:0;">
+        0
+      </p>
+    </div>
+  </div>
+
+  <!-- SECCIÓN DE GRÁFICAS -->
+  <h2 style="font-family:Montserrat; margin-top:40px; color:#078a92;">
+    Actividad Clínica
+  </h2>
+
+  <div style="
+    margin-top:20px;
+    display:grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+  ">
+
+    <!-- GRAFICA PRINCIPAL -->
+    <div style="
+      background:white;
+      padding:25px;
+      border-radius:16px;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.06);
+    ">
+      <h3 style="color:#078a92; margin-bottom:15px;">Consultas por semana</h3>
+      <canvas id="chartWeekly"></canvas>
+    </div>
+
+    <!-- INDICADORES -->
+    <div style="display:flex; flex-direction:column; gap:20px;">
+
+      <div style="
+        background:white;
+        padding:20px;
+        border-radius:16px;
+        box-shadow: 0 4px 18px rgba(0,0,0,0.06);
+      ">
+        <h3 style="margin:0; color:#999;">Pacientes nuevos este mes</h3>
+        <p id="newPatients" style="margin:10px 0 0; font-size:26px; color:#078a92;">0</p>
+      </div>
+
+      <div style="
+        background:white;
+        padding:20px;
+        border-radius:16px;
+        box-shadow: 0 4px 18px rgba(0,0,0,0.06);
+      ">
+        <h3 style="margin:0; color:#999;">Reconsultas</h3>
+        <p style="margin:10px 0 0; font-size:26px; color:#078a92;">0</p>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+<!-- CHART JS -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script type="module">
+  import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+  const supabase = createClient(
+    "https://ozxguifbufymprfzzvin.supabase.co",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im96eGd1aWZidWZ5bXByZnp6dmluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMzNDgwMjAsImV4cCI6MjA3ODkyNDAyMH0.AEiGtqpx33u-qrsgBiJ-EEa6IsDuOUAuhdUL6lme_M4"
+  );
+
+  // CARGAR ESTADÍSTICAS
+  (async () => {
+    const { data: patients } = await supabase.from("patients").select("*");
+    const { data: appts } = await supabase.from("appointments").select("*");
+
+    document.getElementById("totalPatients").innerText = patients.length;
+
+    const today = new Date().toISOString().split("T")[0];
+    const todayCount = appts.filter(a => a.date === today).length;
+    document.getElementById("todayAppointments").innerText = todayCount;
+
+    const pending = appts.filter(a => !a.completed).length;
+    document.getElementById("pendingAppointments").innerText = pending;
+
+    const month = new Date().toISOString().slice(0, 7);
+    const newPatients = patients.filter(p => p.created_at?.startsWith(month)).length;
+    document.getElementById("newPatients").innerText = newPatients;
+  })();
+
+  // GRÁFICO SEMANAL DEMO (editable)
+  const ctx = document.getElementById("chartWeekly");
+  new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"],
+      datasets: [{
+        label: "Consultas",
+        data: [3, 5, 4, 6, 2, 4, 3],
+        borderColor: "#07acb5",
+        backgroundColor: "rgba(7,172,181,0.15)",
+        borderWidth: 3,
+        tension: 0.25,
+        fill: true,
+      }]
+    },
+    options: {
+      plugins: { legend: { display: false }},
+      scales: {
+        y: { beginAtZero: true },
+      }
+    }
+  });
+
+</script>
