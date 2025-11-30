@@ -1,0 +1,198 @@
+<div style="
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding:30px;
+">
+
+  <h1 style="font-family:Montserrat; color:#078a92;">
+    Firma Digital HeyDoctor
+  </h1>
+
+  <p style="color:#555; margin-bottom:20px;">
+    Firme dentro del recuadro o cargaremos su firma guardada.
+  </p>
+
+  <!-- CONTENEDOR GLASS -->
+  <div style="
+    background:rgba(255,255,255,0.7);
+    backdrop-filter:blur(14px);
+    border-radius:18px;
+    padding:20px;
+    box-shadow:0 4px 22px rgba(0,0,0,0.08);
+    width:100%;
+    max-width:520px;
+  ">
+
+    <!-- CANVAS -->
+    <canvas id="signaturePad"
+      width="500" height="200"
+      style="
+        background:white;
+        border-radius:10px;
+        border:1px solid #ddd;
+        box-shadow:inset 0 0 8px rgba(0,0,0,0.05);
+        cursor:crosshair;
+      ">
+    </canvas>
+
+    <!-- CONTROLES -->
+    <div style="display:flex; gap:10px; margin-top:15px;">
+      <button onclick="clearCanvas()"
+        style="flex:1; padding:12px; border:none; border-radius:8px;
+        background:#ccc; cursor:pointer;">
+        Limpiar
+      </button>
+
+      <button onclick="saveSignature()"
+        style="flex:1; padding:12px; border:none; border-radius:8px;
+        background:#07acb5; color:white; cursor:pointer;">
+        Guardar Firma
+      </button>
+    </div>
+
+    <!-- VISTA PREVIA GUARDADA -->
+    <div id="savedSignatureBox" style="margin-top:20px; display:none;">
+      <h3 style="font-family:Montserrat; color:#078a92;">Firma guardada</h3>
+      <img id="savedSignatureImg"
+          style="width:100%; border-radius:10px; border:1px solid #ccc;">
+    </div>
+
+  </div>
+</div>
+
+
+<!-- SUPABASE + FIRMA -->
+<script type="module">
+  import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+  const supabase = createClient(
+    "https://ozxguifbufymprfzzvin.supabase.co",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im96eGd1aWZidWZ5bXByZnp6dmluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMzNDgwMjAsImV4cCI6MjA3ODkyNDAyMH0.AEiGtqpx33u-qrsgBiJ-EEa6IsDuOUAuhdUL6lme_M4"
+  );
+
+  // =========================
+  //  CANVAS PARA FIRMAR
+  // =========================
+  const canvas = document.getElementById("signaturePad");
+  const ctx = canvas.getContext("2d");
+
+  let drawing = false;
+
+  canvas.addEventListener("mousedown", () => drawing = true);
+  canvas.addEventListener("mouseup", () => drawing = false);
+  canvas.addEventListener("mouseleave", () => drawing = false);
+
+  canvas.addEventListener("mousemove", draw);
+
+  function draw(e) {
+    if (!drawing) return;
+
+    ctx.lineWidth = 3;
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "#000";
+
+    ctx.lineTo(e.offsetX, e.offsetY);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(e.offsetX, e.offsetY);
+  }
+
+  window.clearCanvas = function () {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.beginPath();
+  };
+
+  // ============
+  // CARGAR FIRMA SI EXISTE
+  // ============
+  (async () => {
+    const user = await supabase.auth.getUser();
+    const userId = user.data.user?.id;
+
+    if (!userId) return;
+
+    const { data } = await supabase
+      .from("doctor_signature")
+      .select("*")
+      .eq("user_id", userId)
+      .single();
+
+    if (data?.signature_url) {
+      document.getElementById("savedSignatureImg").src = data.signature_url;
+      document.getElementById("savedSignatureBox").style.display = "block";
+    }
+  })();
+
+
+  // =========================
+  //  GUARDAR FIRMA
+  // =========================
+  window.saveSignature = async function () {
+    const user = await supabase.auth.getUser();
+    const userId = user.data.user?.id;
+
+    if (!userId) {
+      alert("No se encontró usuario.");
+      return;
+    }
+
+    const imageData = canvas.toDataURL("image/png");
+
+    // SUBIR A STORAGE
+    const fileName = `firma_${userId}.png`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("signatures")
+      .upload(fileName, base64ToBlob(imageData), { upsert: true });
+
+    if (uploadError) {
+      alert("Error subiendo firma.");
+      console.log(uploadError);
+      return;
+    }
+
+    // OBTENER URL PÚBLICA
+    const { data: urlData } = supabase.storage
+      .from("signatures")
+      .getPublicUrl(fileName);
+
+    const url = urlData.publicUrl;
+
+    // GUARDAR EN TABLA
+    const { error: dbError } = await supabase
+      .from("doctor_signature")
+      .upsert({
+        user_id: userId,
+        signature_url: url,
+        signature_text: "— Firma Digital HeyDoctor —",
+        metadata: { format: "png", updated: new Date().toISOString() },
+        updated_at: new Date().toISOString()
+      });
+
+    if (dbError) {
+      alert("Error guardando en base de datos.");
+      console.log(dbError);
+      return;
+    }
+
+    alert("Firma guardada correctamente ✔️");
+
+    document.getElementById("savedSignatureImg").src = url;
+    document.getElementById("savedSignatureBox").style.display = "block";
+  };
+
+  // =========================
+  //  UTILIDAD BASE64 → BLOB
+  // =========================
+  function base64ToBlob(base64) {
+    const bytes = atob(base64.split(",")[1]);
+    const buffer = new ArrayBuffer(bytes.length);
+    const arr = new Uint8Array(buffer);
+
+    for (let i = 0; i < bytes.length; i++) {
+      arr[i] = bytes.charCodeAt(i);
+    }
+    return new Blob([arr], { type: "image/png" });
+  }
+</script>
