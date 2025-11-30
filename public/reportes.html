@@ -1,0 +1,185 @@
+<div style="padding: 30px;">
+
+  <!-- TÍTULO PRINCIPAL -->
+  <h1 style="
+      font-family: Montserrat;
+      color:#08b4bd;
+      margin-bottom: 8px;
+      text-shadow: 0 0 8px rgba(8,180,189,0.4);
+    ">
+    📊 Reportes Clínicos – Holographic View
+  </h1>
+
+  <p style="color:#88a; margin-bottom: 35px;">
+    Analítica avanzada del ecosistema HeyDoctor.
+  </p>
+
+  <!-- TARJETAS HOLOGRÁFICAS -->
+  <div style="
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap:20px;
+    ">
+
+    <!-- CARD 1 -->
+    <div style="
+        background: rgba(255,255,255,0.08);
+        border:1px solid rgba(8,180,189,0.4);
+        backdrop-filter: blur(18px);
+        border-radius:18px;
+        padding:20px;
+        box-shadow:0 0 20px rgba(8,180,189,0.25);
+      ">
+      <h3 style="color:#8ecfd0; margin:0 0 10px;">Total Consultas</h3>
+      <p id="repTotalAppts" style="font-size:32px; color:white; margin:0;">0</p>
+    </div>
+
+    <!-- CARD 2 -->
+    <div style="
+        background: rgba(255,255,255,0.08);
+        border:1px solid rgba(8,180,189,0.4);
+        backdrop-filter: blur(18px);
+        border-radius:18px;
+        padding:20px;
+        box-shadow:0 0 20px rgba(8,180,189,0.25);
+      ">
+      <h3 style="color:#8ecfd0; margin:0 0 10px;">Consultas completadas</h3>
+      <p id="repCompleted" style="font-size:32px; color:white; margin:0;">0</p>
+    </div>
+
+    <!-- CARD 3 -->
+    <div style="
+        background: rgba(255,255,255,0.08);
+        border:1px solid rgba(8,180,189,0.4);
+        backdrop-filter: blur(18px);
+        border-radius:18px;
+        padding:20px;
+        box-shadow:0 0 20px rgba(8,180,189,0.25);
+      ">
+      <h3 style="color:#8ecfd0; margin:0 0 10px;">Pacientes activos</h3>
+      <p id="repActivePatients" style="font-size:32px; color:white; margin:0;">0</p>
+    </div>
+
+    <!-- CARD 4 -->
+    <div style="
+        background: rgba(255,255,255,0.08);
+        border:1px solid rgba(8,180,189,0.4);
+        backdrop-filter: blur(18px);
+        border-radius:18px;
+        padding:20px;
+        box-shadow:0 0 20px rgba(8,180,189,0.25);
+      ">
+      <h3 style="color:#8ecfd0; margin:0 0 10px;">Ingresos estimados</h3>
+      <p id="repIncome" style="font-size:32px; color:white; margin:0;">$0</p>
+    </div>
+
+  </div>
+
+  <!-- GRAFICOS -->
+  <h2 style="
+      margin-top:40px;
+      font-family:Montserrat;
+      color:#08b4bd;
+      text-shadow: 0 0 6px rgba(8,180,189,0.4);
+    ">
+    🔷 Analítica Avanzada
+  </h2>
+
+  <div style="
+      margin-top:20px;
+      display:grid;
+      grid-template-columns: 2fr 1fr;
+      gap:25px;
+    ">
+
+    <!-- GRÁFICO 1 -->
+    <div style="
+        background: rgba(255,255,255,0.1);
+        border-radius:20px;
+        padding:25px;
+        border:1px solid rgba(8,180,189,0.25);
+        box-shadow:0 0 25px rgba(8,180,189,0.2);
+        backdrop-filter: blur(16px);
+      ">
+      <h3 style="color:#8ecfd0; margin-bottom:15px;">Consultas por Mes</h3>
+      <canvas id="chartMonthly"></canvas>
+    </div>
+
+    <!-- GRÁFICO 2 -->
+    <div style="
+        background: rgba(255,255,255,0.1);
+        border-radius:20px;
+        padding:25px;
+        border:1px solid rgba(8,180,189,0.25);
+        box-shadow:0 0 25px rgba(8,180,189,0.2);
+        backdrop-filter: blur(16px);
+      ">
+      <h3 style="color:#8ecfd0; margin-bottom:15px;">Tipo de Consultas</h3>
+      <canvas id="chartTypes"></canvas>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- LIBRERÍA -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- SCRIPT -->
+<script type="module">
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const supabase = createClient(
+  "https://ozxguifbufymprfzzvin.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im96eGd1aWZidWZ5bXByZnp6dmluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMzNDgwMjAsImV4cCI6MjA3ODkyNDAyMH0.AEiGtqpx33u-qrsgBiJ-EEa6IsDuOUAuhdUL6lme_M4"
+);
+
+// ======== CARGA DE DATOS ========
+(async () => {
+  const { data: appts } = await supabase.from("appointments").select("*");
+  const { data: patients } = await supabase.from("patients").select("*");
+
+  document.getElementById("repTotalAppts").innerText = appts.length;
+  document.getElementById("repCompleted").innerText = appts.filter(a => a.completed).length;
+  document.getElementById("repActivePatients").innerText = patients.length;
+
+  // Ingresos estimados (ejemplo: $15.000 por consulta)
+  document.getElementById("repIncome").innerText = "$" + (appts.length * 15000);
+})();
+
+// ======== GRÁFICO MENSUAL ========
+new Chart(document.getElementById("chartMonthly"), {
+  type: "line",
+  data: {
+    labels: ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"],
+    datasets: [{
+      label: "Consultas",
+      data: [12, 15, 19, 22, 30, 25, 28, 32, 29, 26, 20, 18],
+      borderColor: "#08b4bd",
+      backgroundColor: "rgba(8,180,189,0.25)",
+      borderWidth: 3,
+      tension: 0.3,
+      fill: true,
+    }]
+  },
+  options: { plugins:{ legend:{ display:false } } }
+});
+
+// ======== GRÁFICO TIPOS ========
+new Chart(document.getElementById("chartTypes"), {
+  type: "doughnut",
+  data: {
+    labels: ["Presencial", "Online", "Estética"],
+    datasets: [{
+      data: [45, 32, 23],
+      backgroundColor: [
+        "rgba(8,180,189,0.9)",
+        "rgba(58,208,212,0.9)",
+        "rgba(148,248,255,0.9)"
+      ],
+      borderColor: "rgba(255,255,255,0.3)",
+      borderWidth: 2,
+    }]
+  }
+});
+</script>
