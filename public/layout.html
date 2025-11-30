@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Panel – HeyDoctor</title>
+
+  <!-- Fuentes -->
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600&family=Open+Sans&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      margin: 0;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+      background: #f3f7f9;
+      font-family: 'Open Sans', sans-serif;
+    }
+
+    /* === SIDEBAR === */
+    .sidebar {
+      width: 260px;
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(12px);
+      box-shadow: 4px 0 20px rgba(0,0,0,0.05);
+      padding: 30px 20px;
+      border-right: 1px solid rgba(0,0,0,0.05);
+      position: fixed;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sidebar h2 {
+      color: #078a92;
+      font-family: Montserrat;
+      margin-bottom: 30px;
+      font-size: 22px;
+      text-align: center;
+    }
+
+    .menu-item {
+      padding: 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-bottom: 12px;
+      transition: 0.15s;
+      font-size: 15px;
+    }
+
+    .menu-item:hover {
+      background: #e5f7f8;
+    }
+
+    /* === TOPBAR === */
+    .topbar {
+      height: 70px;
+      background: white;
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+      position: fixed;
+      left: 260px;
+      right: 0;
+      top: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 25px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    .topbar-title {
+      font-family: Montserrat;
+      font-size: 20px;
+      color: #078a92;
+      font-weight: 600;
+    }
+
+    .avatar {
+      width: 42px;
+      height: 42px;
+      background: #07acb5;
+      border-radius: 50%;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.12);
+    }
+
+    /* === CONTENIDO === */
+    #content {
+      position: absolute;
+      left: 260px;
+      top: 70px;
+      right: 0;
+      bottom: 0;
+      overflow-y: auto;
+      padding: 30px;
+      background: #f3f7f9;
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <h2>HeyDoctor</h2>
+
+    <div class="menu-item" onclick="go('dashboard')">Dashboard</div>
+    <div class="menu-item" onclick="go('pacientes')">Pacientes</div>
+    <div class="menu-item" onclick="go('consultas')">Consultas</div>
+    <div class="menu-item" onclick="go('agenda')">Agenda</div>
+    <div class="menu-item" onclick="go('reportes')">Reportes</div>
+    <div class="menu-item" onclick="go('facturacion')">Facturación</div>
+    <div class="menu-item" onclick="go('config')">Configuración</div>
+
+    <div class="menu-item" style="margin-top:auto; color:red;" onclick="logout()">
+      Cerrar sesión
+    </div>
+  </div>
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-title" id="topbar-title">Dashboard</div>
+    <div class="avatar"></div>
+  </div>
+
+  <!-- CONTENIDO PRINCIPAL -->
+  <div id="content">
+    <h1>Bienvenido al Panel HeyDoctor</h1>
+    <p>Este contenido cambiará dinámicamente según la sección seleccionada.</p>
+  </div>
+
+<script>
+async function go(section) {
+  document.getElementById("topbar-title").innerText =
+    section.charAt(0).toUpperCase() + section.slice(1);
+
+  const html = await fetch(`${section}.html`).then(res => res.text());
+  document.getElementById("content").innerHTML = html;
+}
+
+function logout() {
+  window.location.href = "/login.html";
+}
+</script>
+
+</body>
+</html>
