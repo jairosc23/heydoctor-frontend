@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HeyDoctor</title>
+
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="/icon-192.png" />
+
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&family=Open+Sans&display=swap" rel="stylesheet" />
+
+  <style>
+    body { margin:0; background:#f9fafb; font-family:'Open Sans'; }
+    .hero { text-align:center; padding:60px 20px; }
+    .hero h1 { color:#078a92; font-size:2.4rem; font-family:'Montserrat'; }
+    .btn {
+      display:inline-block; padding:14px 22px;
+      background:#078a92; color:white; border-radius:10px;
+      text-decoration:none; font-size:1.1rem; margin-top:12px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <section class="hero">
+    <img src="./logo-heydoctor.png" width="140" style="margin-bottom:30px;" />
+
+    <h1>Bienvenido a HeyDoctor</h1>
+    <p>Atención médica online y presencial en Viña del Mar.</p>
+
+    <a href="./login.html" class="btn">Ingresar</a>
+  </section>
+
+  <script>
+    // Limpia cualquier SW viejo
+    if ('serviceWorker' in navigator)
+      navigator.serviceWorker.getRegistrations().then(r => r.forEach(x => x.unregister()));
+  </script>
+
+</body>
+</html>
