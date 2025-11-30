@@ -1,5 +1,5 @@
 # HeyDoctor Frontend 🩺🚀  
-Frontend oficial del ecosistema clínico y de telemedicina **HeyDoctor** desarrollado por  
+Frontend oficial del ecosistema clínico y de telemedicina **HeyDoctor**, desarrollado por  
 **Dr. Jairo Santana – SAVAC MedTech LLC**.
 
 Este repositorio contiene el nuevo frontend moderno, minimalista y de alto rendimiento
@@ -9,7 +9,7 @@ construido sobre **Next.js 14**, **TypeScript** y **TailwindCSS**, diseñado par
 - Videoconsultas médicas seguras  
 - Flujo completo médico/paciente  
 - Módulo legal integrado  
-- Integración con HCConnect  
+- Integración futura con la App HeyDoctor (próxima etapa)  
 - UI profesional, minimalista y accesible  
 
 ---
@@ -22,7 +22,7 @@ construido sobre **Next.js 14**, **TypeScript** y **TailwindCSS**, diseñado par
 - **TailwindCSS**
 - **ESLint + Prettier**
 - **ShadCN/UI (opcional)**
-- Despliegue recomendado: **Vercel**
+- Deploy recomendado: **Vercel**
 
 ---
 
@@ -57,9 +57,8 @@ Para portar los archivos HTML existentes a este frontend moderno:
    /legacy-html
    ```
 3. Por cada archivo HTML:
-   - Extraer **estructura**, **estilos**, **textos** y **componentes**  
-   - Convertirlo en una página Next.js (`page.tsx`)
-   - Eliminar dependencias antiguas
+   - Extraer estructura, estilos, textos y componentes  
+   - Convertirlo en página Next.js (`page.tsx`)
 4. Mover imágenes a **/public**
 5. Aplicar el diseño minimalista oficial HeyDoctor
 
@@ -86,7 +85,7 @@ npm run start      → Servidor de producción
 - [ ] Videollamadas WebRTC  
 - [ ] Indicaciones médicas  
 - [ ] Panel administrativo  
-- [ ] Deploy en Vercel  
+- [ ] Integración App HeyDoctor  
 - [ ] β Testing con pacientes reales  
 
 ---
@@ -97,7 +96,6 @@ npm run start      → Servidor de producción
 Médico, Cirujano, Fundador de **HeyDoctor**  
 SAVAC MedTech LLC – USA  
 Viña del Mar – Chile  
-https://www.hcconnect.io/medical-professional-details/Jairo-Santana  
 
 ---
 
