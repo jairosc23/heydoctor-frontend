@@ -1,0 +1,31 @@
+{
+  "name": "heydoctor-frontend",
+  "version": "1.0.0",
+  "description": "Frontend oficial del ecosistema clínico y de telemedicina **HeyDoctor**, desarrollado por   **Dr. Jairo Santana – SAVAC MedTech LLC**.",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite public --host --open",
+    "build": "vite build public",
+    "preview": "vite preview public --host --open",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jairosc23/heydoctor-frontend.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/jairosc23/heydoctor-frontend/issues"
+  },
+  "homepage": "https://github.com/jairosc23/heydoctor-frontend#readme",
+  "private": true,
+  "dependencies": {
+    "plyr": "^3.8.4"
+  },
+  "devDependencies": {
+    "vite": "^7.0.0"
+  }
+}

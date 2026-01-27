@@ -68,9 +68,9 @@ Para portar los archivos HTML existentes a este frontend moderno:
 
 ```
 npm install        → Instala dependencias
-npm run dev        → Ambiente de desarrollo
-npm run build      → Build de producción
-npm run start      → Servidor de producción
+npm run dev        → Ejecuta el frontend (sirve /public en local)
+npm run build      → Build estático
+npm run preview    → Previsualiza el build estático
 ```
 
 ---
