@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "vite public --host --open",
-    "build": "vite build public",
+    "build": "npx vite build public",
     "preview": "vite preview public --host --open",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
