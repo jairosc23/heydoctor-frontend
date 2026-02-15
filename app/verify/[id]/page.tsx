@@ -3,7 +3,7 @@
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { API_URL } from "@/lib/api";
+import { API_URL } from "../../../lib/api";
 
 interface VerifyResult {
   valid: boolean;
