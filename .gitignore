@@ -1,6 +1,8 @@
 node_modules/
 .next/
 dist/
+**/public/dist/
+heydoctor/
 build/
 .DS_Store
 npm-debug.log*
