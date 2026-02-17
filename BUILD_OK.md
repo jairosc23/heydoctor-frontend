@@ -1,38 +1,24 @@
 # Build OK ✓
 
-## Resumen
+El proyecto **heydoctor-frontend** está listo para deploy en Vercel.
 
-El build local de Next.js se completó correctamente.
+## Dependencias TypeScript (devDependencies)
 
-**Fecha:** Generado tras `npm run build`
-
-### Dependencias TypeScript (devDependencies)
-
-- `typescript` ^5.0.0
-- `@types/react` ^18.2.0
+- `typescript` ^5.9.3
+- `@types/react` ^18.3.28
 - `@types/react-dom` ^18.2.0
-- `@types/node` ^20.0.0
+- `@types/node` ^20.19.33
 
-### Rutas generadas
+## Verificación
 
-| Ruta | Tipo |
-|------|------|
-| `/` | Static |
-| `/login` | Static |
-| `/dashboard` | Static |
-| `/panel` | Static |
-| `/panel/pacientes` | Static |
-| `/panel/consultas` | Static |
-| `/panel/agenda` | Static |
-| `/panel/reportes` | Static |
-| `/panel/facturacion` | Static |
-| `/panel/config` | Static |
-| `/doctors/[id]` | Dynamic |
-| `/verify/[id]` | Dynamic |
+- ✓ `npm run build` completado sin errores
+- ✓ Compilación exitosa
+- ✓ Linting y tipos válidos
+- ✓ 13 páginas generadas
 
-### Estado
+## Deploy en Vercel
 
-✓ Compilación exitosa  
-✓ Linting y tipos válidos  
-✓ 13 páginas generadas  
-✓ First Load JS: ~87.3 kB compartido
+1. Conectar repositorio `jairosc23/heydoctor-frontend`
+2. Root Directory: vacío
+3. Variable de entorno: `NEXT_PUBLIC_API_URL` = URL del backend
+4. El build se ejecutará automáticamente en cada push a `main`
