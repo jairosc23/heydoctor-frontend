@@ -1,4 +1,4 @@
-import PanelLayout from "../../components/PanelLayout";
+import PanelLayout from "@/components/PanelLayout";
 
 export default function PanelRootLayout({
   children,
