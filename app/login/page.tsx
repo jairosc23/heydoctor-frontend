@@ -1,16 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { login } from "@/lib/api";
+import { Suspense } from "react";
+import { authLogin } from "@/lib/auth-client";
+import { saveSession } from "@/lib/auth";
 
-export default function LoginPage() {
+function LoginContent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const rawRedirect = searchParams.get("redirect") || "/dashboard";
+  const redirect = rawRedirect.startsWith("/") && !rawRedirect.startsWith("//")
+    ? rawRedirect
+    : "/dashboard";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -24,15 +31,16 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const data = await login(email.trim(), password);
+      const { user } = await authLogin(email.trim(), password);
 
-      if (typeof window !== "undefined") {
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("user", JSON.stringify(data.user));
-        localStorage.setItem("logged", "yes");
-      }
+      saveSession({
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      });
 
-      router.push("/dashboard");
+      router.push(redirect);
     } catch (err) {
       const msg =
         err instanceof Error
@@ -157,7 +165,24 @@ export default function LoginPage() {
             {error}
           </div>
         )}
+        <p style={{ color: "rgba(255,255,255,0.7)", marginTop: 16, fontSize: 14 }}>
+          ¿No tienes cuenta?{" "}
+          <Link
+            href="/register"
+            style={{ color: "#00d4ce", textDecoration: "none", fontWeight: 600 }}
+          >
+            Registrarse
+          </Link>
+        </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginContent />
+    </Suspense>
   );
 }

@@ -1,34 +1,35 @@
-export const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+import { getAccessToken } from "./auth-client";
+import { API_URL, getApiBase } from "./api-base";
 
-export interface LoginResponse {
-  token: string;
-  user: { id: number; email: string; name: string };
-}
+export { API_URL, getApiBase };
 
-export async function login(
-  email: string,
-  password: string
-): Promise<LoginResponse> {
-  const res = await fetch(`${API_URL}/auth/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
+/**
+ * fetch centralizado con Bearer (in-memory) y credentials: include (HttpOnly cookies).
+ */
+export async function fetchWithAuth(
+  path: string,
+  init: RequestInit = {}
+): Promise<Response> {
+  const base = getApiBase();
+  const url = path.startsWith("http")
+    ? path
+    : `${base}${path.startsWith("/") ? path : `/${path}`}`;
 
-  const text = await res.text();
-  let data: LoginResponse & { error?: string };
-  try {
-    data = text ? JSON.parse(text) : {};
-  } catch {
-    throw new Error(
-      "El servidor no respondió correctamente. Verifica que la URL del backend esté configurada (NEXT_PUBLIC_API_URL)."
-    );
+  const headers = new Headers(init.headers);
+  const method = (init.method ?? "GET").toUpperCase();
+  if (
+    !headers.has("Content-Type") &&
+    init.body !== undefined &&
+    method !== "GET" &&
+    method !== "HEAD"
+  ) {
+    headers.set("Content-Type", "application/json");
   }
 
-  if (!res.ok) {
-    throw new Error(data.error || "Error al iniciar sesión");
+  const token = getAccessToken();
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
   }
 
-  return data as LoginResponse;
+  return fetch(url, { ...init, headers, credentials: "include" });
 }

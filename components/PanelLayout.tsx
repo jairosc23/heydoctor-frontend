@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
+import { getAccessToken, authLogout } from "@/lib/auth-client";
 
 const MENU = [
   { label: "Dashboard", href: "/dashboard" },
@@ -12,6 +13,7 @@ const MENU = [
   { label: "Reportes", href: "/panel/reportes" },
   { label: "Facturación", href: "/panel/facturacion" },
   { label: "Configuración", href: "/panel/config" },
+  { label: "Admin", href: "/panel/admin" },
 ];
 
 const TITLES: Record<string, string> = {
@@ -22,6 +24,7 @@ const TITLES: Record<string, string> = {
   "/panel/reportes": "Reportes",
   "/panel/facturacion": "Facturación",
   "/panel/config": "Configuración",
+  "/panel/admin": "Admin",
   "/panel": "Panel",
 };
 
@@ -46,8 +49,8 @@ export default function PanelLayout({
 
   useEffect(() => {
     const logged = typeof window !== "undefined" && localStorage.getItem("logged") === "yes";
-    const token = typeof window !== "undefined" && localStorage.getItem("token");
-    if (!logged || !token) {
+    const hasToken = !!getAccessToken();
+    if (!logged && !hasToken) {
       router.push("/login");
     }
   }, [router]);
@@ -61,12 +64,7 @@ export default function PanelLayout({
   }
 
   function handleLogout() {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      localStorage.removeItem("logged");
-    }
-    router.push("/login");
+    authLogout().then(() => router.push("/login"));
   }
 
   return (
