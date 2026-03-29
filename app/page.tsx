@@ -57,6 +57,27 @@ const TRUST_ITEMS = [
   },
 ];
 
+const TESTIMONIALS = [
+  {
+    name: "Dra. Carolina Méndez",
+    role: "Dermatóloga, Santiago",
+    text: "HeyDoctor transformó mi consulta. Puedo atender pacientes desde cualquier lugar con la misma calidad que en presencial.",
+    stars: 5,
+  },
+  {
+    name: "Roberto Campos",
+    role: "Paciente",
+    text: "Conseguí una consulta con un especialista en 15 minutos. El proceso fue rápido, seguro y profesional.",
+    stars: 5,
+  },
+  {
+    name: "Dr. Andrés Silva",
+    role: "Medicina General, Medellín",
+    text: "La integración con IA para notas clínicas me ahorra horas de trabajo. El soporte legal está impecable.",
+    stars: 5,
+  },
+];
+
 export default function LandingPage() {
   return (
     <div
@@ -100,7 +121,31 @@ export default function LandingPage() {
           >
             HeyDoctor
           </span>
-          <div style={{ display: "flex", gap: 12 }}>
+          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+            <Link
+              href="/consultar"
+              style={{
+                padding: "8px 16px",
+                fontSize: 14,
+                fontWeight: 600,
+                color: TEXT_MUTED,
+                textDecoration: "none",
+              }}
+            >
+              Consultar
+            </Link>
+            <Link
+              href="/for-doctors/apply"
+              style={{
+                padding: "8px 16px",
+                fontSize: 14,
+                fontWeight: 600,
+                color: TEXT_MUTED,
+                textDecoration: "none",
+              }}
+            >
+              Para Médicos
+            </Link>
             <Link
               href="/login"
               style={{
@@ -119,7 +164,7 @@ export default function LandingPage() {
               Iniciar Sesión
             </Link>
             <Link
-              href="/login"
+              href="/consultar"
               style={{
                 padding: "8px 20px",
                 fontSize: 14,
@@ -131,7 +176,7 @@ export default function LandingPage() {
                 background: BRAND,
               }}
             >
-              Empezar Gratis
+              Consultar Ahora
             </Link>
           </div>
         </div>
@@ -606,37 +651,145 @@ export default function LandingPage() {
           Crea tu cuenta gratis en 30 segundos. Sin tarjeta de crédito.
           Upgrade a PRO cuando estés listo.
         </p>
-        <Link
-          href="/login"
-          style={{
-            display: "inline-block",
-            padding: "14px 40px",
-            fontSize: 16,
-            fontFamily: FONT_HEADING,
-            fontWeight: 700,
-            color: BRAND_DARK,
-            textDecoration: "none",
-            borderRadius: 10,
-            background: "#fff",
-            boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
-          }}
-        >
-          Crear Cuenta Gratis
-        </Link>
+        <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
+          <Link
+            href="/consultar"
+            style={{
+              display: "inline-block",
+              padding: "14px 40px",
+              fontSize: 16,
+              fontFamily: FONT_HEADING,
+              fontWeight: 700,
+              color: BRAND_DARK,
+              textDecoration: "none",
+              borderRadius: 10,
+              background: "#fff",
+              boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+            }}
+          >
+            Consultar Ahora
+          </Link>
+          <Link
+            href="/for-doctors/apply"
+            style={{
+              display: "inline-block",
+              padding: "14px 40px",
+              fontSize: 16,
+              fontFamily: FONT_HEADING,
+              fontWeight: 700,
+              color: "#fff",
+              textDecoration: "none",
+              borderRadius: 10,
+              border: "2px solid rgba(255,255,255,0.4)",
+              background: "transparent",
+            }}
+          >
+            Soy Médico
+          </Link>
+        </div>
+      </section>
+
+      {/* ── TESTIMONIALS ── */}
+      <section style={{ padding: "80px 24px", background: BG_ALT }}>
+        <div style={{ maxWidth: 1120, margin: "0 auto", textAlign: "center" }}>
+          <h2
+            style={{
+              fontFamily: FONT_HEADING,
+              fontSize: "clamp(24px, 3vw, 36px)",
+              fontWeight: 700,
+              color: TEXT,
+              marginBottom: 40,
+            }}
+          >
+            Lo que dicen nuestros usuarios
+          </h2>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+              gap: 24,
+            }}
+          >
+            {TESTIMONIALS.map((t, i) => (
+              <div
+                key={i}
+                style={{
+                  background: BG,
+                  borderRadius: 12,
+                  padding: 24,
+                  border: `1px solid ${BORDER}`,
+                  textAlign: "left",
+                }}
+              >
+                <div style={{ display: "flex", gap: 4, marginBottom: 12 }}>
+                  {Array.from({ length: t.stars }).map((_, si) => (
+                    <span key={si} style={{ color: "#f59e0b", fontSize: 16 }}>
+                      &#9733;
+                    </span>
+                  ))}
+                </div>
+                <p
+                  style={{
+                    color: "#334155",
+                    fontSize: 15,
+                    lineHeight: 1.6,
+                    margin: "0 0 16px",
+                    fontStyle: "italic",
+                  }}
+                >
+                  &ldquo;{t.text}&rdquo;
+                </p>
+                <div>
+                  <p style={{ margin: 0, fontWeight: 600, fontSize: 14, color: TEXT }}>
+                    {t.name}
+                  </p>
+                  <p style={{ margin: 0, fontSize: 13, color: TEXT_MUTED }}>
+                    {t.role}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
 
       {/* ── FOOTER ── */}
       <footer
         style={{
-          padding: "32px 24px",
-          textAlign: "center",
+          padding: "40px 24px",
           borderTop: `1px solid ${BORDER}`,
           background: BG,
         }}
       >
-        <p style={{ color: TEXT_MUTED, fontSize: 13 }}>
-          © {new Date().getFullYear()} HeyDoctor. Todos los derechos reservados.
-        </p>
+        <div
+          style={{
+            maxWidth: 1120,
+            margin: "0 auto",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: 16,
+          }}
+        >
+          <p style={{ color: TEXT_MUTED, fontSize: 13, margin: 0 }}>
+            &copy; {new Date().getFullYear()} HeyDoctor. Todos los derechos reservados.
+          </p>
+          <div style={{ display: "flex", gap: 20 }}>
+            <Link href="/terms" style={{ color: TEXT_MUTED, fontSize: 13, textDecoration: "none" }}>
+              Términos
+            </Link>
+            <Link href="/privacy" style={{ color: TEXT_MUTED, fontSize: 13, textDecoration: "none" }}>
+              Privacidad
+            </Link>
+            <Link href="/for-doctors/apply" style={{ color: TEXT_MUTED, fontSize: 13, textDecoration: "none" }}>
+              Para Médicos
+            </Link>
+            <Link href="/consultar" style={{ color: TEXT_MUTED, fontSize: 13, textDecoration: "none" }}>
+              Consultar
+            </Link>
+          </div>
+        </div>
       </footer>
     </div>
   );

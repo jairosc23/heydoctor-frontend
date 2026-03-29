@@ -1,4 +1,4 @@
-import { apiGet } from "../api-client";
+import { apiGet, apiPost } from "../api-client";
 
 const BASE = "/patients";
 
@@ -73,5 +73,15 @@ export async function fetchPatients(filters?: PatientFilters): Promise<{
   const raw = await apiGet<unknown>(`${BASE}${q}`);
   const data = unwrapList(raw);
   return { data, total: data.length };
+}
+
+export interface CreatePatientDto {
+  name: string;
+  email: string;
+}
+
+export async function createPatient(dto: CreatePatientDto): Promise<PatientRow> {
+  const raw = await apiPost<Record<string, unknown>>(BASE, dto);
+  return normalizePatient(raw);
 }
 

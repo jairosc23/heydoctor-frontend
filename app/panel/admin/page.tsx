@@ -1,6 +1,7 @@
 "use client";
 
 import MetricsDashboard from "@/components/admin/MetricsDashboard";
+import DoctorApplicationsManager from "@/components/admin/DoctorApplicationsManager";
 
 export default function AdminPage() {
   return (
@@ -18,6 +19,10 @@ export default function AdminPage() {
       </h1>
 
       <MetricsDashboard />
+
+      <div style={{ marginTop: 32 }}>
+        <DoctorApplicationsManager />
+      </div>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { apiGet, apiPost } from "../api-client";
+import { apiGet, apiPatch, apiPost } from "../api-client";
 
 const BASE = "/consultations";
 
@@ -40,6 +40,8 @@ export interface NestConsultation {
   /** Snapshot legal al crear la consulta (solo lectura en UI). */
   consentVersion?: string | null;
   consentGivenAt?: string | null;
+  doctorSignature?: string | null;
+  signedAt?: string | null;
   patient?: NestPatientRef;
 }
 
@@ -87,6 +89,36 @@ export interface ConsultationAiPayload {
   suggestedDiagnosis: string[] | null;
   improvedNotes: string | null;
   generatedAt: string | null;
+}
+
+export interface UpdateConsultationDto {
+  diagnosis?: string;
+  treatment?: string;
+  notes?: string;
+  status?: string;
+}
+
+export async function updateConsultation(
+  id: string,
+  dto: UpdateConsultationDto
+): Promise<NestConsultation> {
+  return apiPatch<NestConsultation>(`${BASE}/${id}`, dto);
+}
+
+export async function signConsultation(
+  id: string,
+  signature: string
+): Promise<NestConsultation> {
+  return apiPost<NestConsultation>(`${BASE}/${id}/sign`, { signature });
+}
+
+export async function startCall(
+  id: string
+): Promise<{ ok: boolean; consultationId: string }> {
+  return apiPost<{ ok: boolean; consultationId: string }>(
+    `${BASE}/${id}/start-call`,
+    {}
+  );
 }
 
 export async function fetchConsultationAi(

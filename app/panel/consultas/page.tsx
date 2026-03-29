@@ -393,17 +393,27 @@ function ConsultasContent() {
                 return (
                   <li
                     key={c.id}
+                    onClick={() => router.push(`/panel/consultas/${c.id}`)}
                     style={{
                       padding: "12px 16px",
                       background: "white",
                       marginBottom: 8,
                       borderRadius: 8,
                       boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+                      cursor: "pointer",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
                     }}
                   >
-                    {patientLabel}{" "}
-                    · {when ? new Date(when).toLocaleDateString() : "—"} ·{" "}
-                    {c.status ?? "—"}
+                    <span>
+                      {patientLabel}{" "}
+                      · {when ? new Date(when).toLocaleDateString() : "—"} ·{" "}
+                      {c.status ?? "—"}
+                    </span>
+                    <span style={{ color: "#078a92", fontSize: 13 }}>
+                      Ver detalle →
+                    </span>
                   </li>
                 );
               })}

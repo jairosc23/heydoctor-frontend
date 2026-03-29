@@ -148,7 +148,15 @@ export function ConsentModal({
             }}
           />
           <span style={{ fontSize: 14, fontWeight: 600, color: "#1e293b" }}>
-            I accept telemedicine consultation
+            Acepto el{" "}
+            <a
+              href="/telemedicine-consent"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: "#078a92", textDecoration: "underline" }}
+            >
+              consentimiento informado de telemedicina
+            </a>
           </span>
         </label>
 
