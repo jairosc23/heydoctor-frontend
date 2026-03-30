@@ -40,6 +40,7 @@ export default function RegisterPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim(), password }),
+        credentials: "include",
       });
 
       const text = await res.text();

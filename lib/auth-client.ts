@@ -1,9 +1,6 @@
 /**
- * Auth client — production-grade session management.
- *
- * Access token: module-level variable (never persisted).
- * Refresh token: HttpOnly cookie managed by the backend (invisible to JS).
- * Session cookie: non-sensitive "active" flag for Next.js middleware routing.
+ * Auth client — access token en memoria; refresh HttpOnly en el dominio del API.
+ * Cookie de primer partido `heydoctor_session` la gestiona /api/auth/session (ver lib/services/auth.ts).
  */
 
 import { getApiBase } from "./api-base";
@@ -24,28 +21,18 @@ export function setAccessToken(token: string | null): void {
   _accessToken = token;
 }
 
-// ── Session cookie (non-sensitive marker for middleware) ─────────
-
-const SESSION_COOKIE = "session";
-const SESSION_MAX_AGE = 60 * 60 * 24 * 7;
-
-function setSessionCookie(): void {
-  if (typeof document === "undefined") return;
-  const secure = window.location.protocol === "https:" ? ";Secure" : "";
-  document.cookie = `${SESSION_COOKIE}=active;path=/;max-age=${SESSION_MAX_AGE};SameSite=Lax${secure}`;
-}
-
-function clearSessionCookie(): void {
-  if (typeof document === "undefined") return;
-  document.cookie = `${SESSION_COOKIE}=;path=/;max-age=0`;
+async function clearFirstPartySessionCookie(): Promise<void> {
+  if (typeof window === "undefined") return;
+  await fetch("/api/auth/session", {
+    method: "DELETE",
+    credentials: "include",
+  }).catch(() => {});
 }
 
 // ── Refresh token flow ──────────────────────────────────────────
 
 /**
- * Refreshes the access token via the HttpOnly refresh_token cookie.
- * Uses a lock to prevent concurrent refresh calls (e.g. multiple 401s).
- * Enforces a cooldown to prevent rapid retry loops after failure.
+ * Refreshes the access token via the HttpOnly refresh_token cookie (API origin).
  */
 export async function refreshAccessToken(): Promise<string | null> {
   if (Date.now() - _lastRefreshFailedAt < REFRESH_COOLDOWN_MS) {
@@ -72,7 +59,7 @@ async function _doRefresh(): Promise<string | null> {
     if (!res.ok) {
       _accessToken = null;
       _lastRefreshFailedAt = Date.now();
-      clearSessionCookie();
+      await clearFirstPartySessionCookie();
       return null;
     }
 
@@ -80,8 +67,12 @@ async function _doRefresh(): Promise<string | null> {
     _accessToken = data.access_token ?? null;
 
     if (_accessToken) {
-      setSessionCookie();
       _lastRefreshFailedAt = 0;
+      await fetch("/api/auth/session", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${_accessToken}` },
+        credentials: "include",
+      }).catch(() => {});
     }
 
     return _accessToken;
@@ -94,7 +85,6 @@ async function _doRefresh(): Promise<string | null> {
 
 /**
  * Ensures an access token is available (refreshes if needed).
- * Returns null if no valid session exists.
  */
 export async function ensureAccessToken(): Promise<string | null> {
   if (_accessToken) return _accessToken;
@@ -134,22 +124,25 @@ export async function authLogin(
   }
 
   if (!res.ok) {
-    throw new Error(
-      (data.message as string) ||
-        (data.error as string) ||
-        "Error al iniciar sesión"
-    );
+    const raw =
+      (data.message as string | string[] | undefined) ??
+      (data.error as string | undefined);
+    const msg = Array.isArray(raw) ? raw.join(", ") : raw;
+    throw new Error(msg || "Error al iniciar sesión");
   }
 
   const token =
-    (data.access_token as string) ??
-    (data.jwt as string) ??
-    (data.token as string) ??
+    (data.access_token as string | undefined) ??
+    (data.jwt as string | undefined) ??
+    (data.token as string | undefined) ??
     "";
+
+  if (!token) {
+    throw new Error("Respuesta de login sin access_token");
+  }
 
   _accessToken = token;
   _lastRefreshFailedAt = 0;
-  setSessionCookie();
 
   const u = (data.user ?? {}) as Record<string, unknown>;
   const fromNames = [u.firstName, u.lastName].filter(Boolean).join(" ").trim();
@@ -185,11 +178,5 @@ export async function authLogout(): Promise<void> {
 
   _accessToken = null;
   _lastRefreshFailedAt = 0;
-  clearSessionCookie();
-
-  if (typeof window !== "undefined") {
-    localStorage.removeItem("user");
-    localStorage.removeItem("logged");
-    localStorage.removeItem("token");
-  }
+  await clearFirstPartySessionCookie();
 }

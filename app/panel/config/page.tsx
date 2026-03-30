@@ -1,22 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { getSessionUser } from "@/lib/auth";
+import { useAuth } from "@/lib/context/AuthContext";
 
 const BRAND = "#078a92";
 
 export default function ConfigPage() {
-  const [user, setUser] = useState<{
-    email?: string;
-    name?: string;
-    role?: string;
-    plan?: string;
-  } | null>(null);
-
-  useEffect(() => {
-    const u = getSessionUser();
-    if (u) setUser(u);
-  }, []);
+  const { user } = useAuth();
+  const displayName = user?.email ? user.email.split("@")[0] : undefined;
 
   return (
     <div style={{ padding: 25 }}>
@@ -64,7 +54,7 @@ export default function ConfigPage() {
                 Email
               </label>
               <p style={{ margin: 0, fontSize: 14, color: "#333" }}>
-                {user?.email || "—"}
+                {user?.email ?? "—"}
               </p>
             </div>
             <div>
@@ -72,7 +62,7 @@ export default function ConfigPage() {
                 Nombre
               </label>
               <p style={{ margin: 0, fontSize: 14, color: "#333" }}>
-                {user?.name || "—"}
+                {displayName || "—"}
               </p>
             </div>
             <div>

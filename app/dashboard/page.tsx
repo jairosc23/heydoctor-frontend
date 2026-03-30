@@ -2,10 +2,8 @@
 
 import { useEffect, useState } from "react";
 import PanelLayout from "@/components/PanelLayout";
-import { getSessionUser, updateSessionUser } from "@/lib/auth";
-import { fetchCurrentUser } from "@/lib/services/auth-session";
+import { useAuth } from "@/lib/context/AuthContext";
 import { fetchPatients, fetchConsultations } from "@/lib/services";
-import { silentCatch } from "@/lib/handle-error";
 
 const BRAND = "#078a92";
 
@@ -16,27 +14,11 @@ interface DashboardStats {
 }
 
 export default function DashboardPage() {
-  const [plan, setPlan] = useState<"free" | "pro" | null>(null);
+  const { user } = useAuth();
+  const plan = user?.plan ?? null;
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
   const [statsError, setStatsError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const cached = getSessionUser();
-    if (cached?.plan) setPlan(cached.plan);
-
-    let cancelled = false;
-    fetchCurrentUser()
-      .then((me) => {
-        if (cancelled) return;
-        setPlan(me.plan);
-        updateSessionUser({ plan: me.plan });
-      })
-      .catch(silentCatch("fetchCurrentUser"));
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   useEffect(() => {
     let cancelled = false;

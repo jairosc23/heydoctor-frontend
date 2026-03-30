@@ -11,3 +11,4 @@ export * from "./search";
 export * from "./cdss";
 export * from "./metrics";
 export * from "./auth-session";
+export * from "./auth";

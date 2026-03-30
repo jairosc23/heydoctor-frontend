@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 
+const SESSION_COOKIE = "heydoctor_session";
+
 const PROTECTED_PATHS = [
   "/dashboard",
   "/panel",
+  "/consultas",
+  "/patients",
   "/payment-success",
   "/teleconsulta",
   "/doctors",
@@ -44,9 +48,9 @@ function addSecurityHeaders(response: NextResponse): NextResponse {
 }
 
 /**
- * Route protection via lightweight "session" cookie.
- * The session cookie is a non-sensitive marker set by auth-client.ts after login.
- * Real authentication is enforced by the backend (Bearer token + HttpOnly refresh cookie).
+ * Cookie de primer partido: solo se establece vía POST /api/auth/session
+ * tras validar el Bearer contra el backend. Así el middleware puede proteger rutas
+ * aunque refresh_token viva en el dominio API (cross-origin).
  */
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -59,7 +63,7 @@ export function middleware(request: NextRequest) {
     return addSecurityHeaders(NextResponse.next());
   }
 
-  const hasSession = request.cookies.get("session")?.value === "active";
+  const hasSession = request.cookies.get(SESSION_COOKIE)?.value === "1";
 
   if (isProtected(pathname) && !hasSession) {
     const loginUrl = new URL("/login", request.url);
@@ -69,7 +73,7 @@ export function middleware(request: NextRequest) {
 
   if (pathname === "/login" && hasSession) {
     return addSecurityHeaders(
-      NextResponse.redirect(new URL("/dashboard", request.url))
+      NextResponse.redirect(new URL("/panel", request.url))
     );
   }
 

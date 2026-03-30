@@ -1,11 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Suspense } from "react";
-import { authLogin } from "@/lib/auth-client";
-import { saveSession } from "@/lib/auth";
+import { useAuth } from "@/lib/context/AuthContext";
 
 function LoginContent() {
   const [email, setEmail] = useState("");
@@ -14,10 +12,13 @@ function LoginContent() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const rawRedirect = searchParams.get("redirect") || "/dashboard";
-  const redirect = rawRedirect.startsWith("/") && !rawRedirect.startsWith("//")
-    ? rawRedirect
-    : "/dashboard";
+  const { login } = useAuth();
+
+  const rawRedirect = searchParams.get("redirect") || "/panel";
+  const redirect =
+    rawRedirect.startsWith("/") && !rawRedirect.startsWith("//")
+      ? rawRedirect
+      : "/panel";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -31,21 +32,12 @@ function LoginContent() {
     setLoading(true);
 
     try {
-      const { user } = await authLogin(email.trim(), password);
-
-      saveSession({
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-      });
-
+      await login(email.trim(), password);
       router.push(redirect);
+      router.refresh();
     } catch (err) {
       const msg =
-        err instanceof Error
-          ? err.message
-          : "Usuario o contraseña incorrectos";
+        err instanceof Error ? err.message : "Usuario o contraseña incorrectos";
       if (
         msg.includes("Failed to fetch") ||
         msg.includes("fetch") ||
@@ -54,6 +46,8 @@ function LoginContent() {
         setError(
           "No se pudo conectar con el servidor. Verifica tu conexión y que NEXT_PUBLIC_API_URL esté configurada."
         );
+      } else if (msg.toLowerCase().includes("unauthorized") || msg.includes("401")) {
+        setError("Credenciales incorrectas o sesión no válida.");
       } else {
         setError(msg);
       }
@@ -103,6 +97,7 @@ function LoginContent() {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Email"
             disabled={loading}
+            autoComplete="username"
             style={{
               width: "100%",
               padding: 14,
@@ -121,6 +116,7 @@ function LoginContent() {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Contraseña"
             disabled={loading}
+            autoComplete="current-password"
             style={{
               width: "100%",
               padding: 14,

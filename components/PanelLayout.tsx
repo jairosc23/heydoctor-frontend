@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { getAccessToken, authLogout } from "@/lib/auth-client";
+import { useAuth } from "@/lib/context/AuthContext";
 
 const MENU = [
   { label: "Dashboard", href: "/dashboard" },
@@ -38,6 +38,7 @@ export default function PanelLayout({
   const pathname = usePathname();
   const displayTitle = title ?? TITLES[pathname || ""] ?? "Panel";
   const router = useRouter();
+  const { loading, isAuthenticated, logout, user } = useAuth();
   const [dark, setDark] = useState(false);
 
   useEffect(() => {
@@ -48,12 +49,10 @@ export default function PanelLayout({
   }, []);
 
   useEffect(() => {
-    const logged = typeof window !== "undefined" && localStorage.getItem("logged") === "yes";
-    const hasToken = !!getAccessToken();
-    if (!logged && !hasToken) {
+    if (!loading && !isAuthenticated) {
       router.push("/login");
     }
-  }, [router]);
+  }, [loading, isAuthenticated, router]);
 
   function toggleTheme() {
     setDark((d) => !d);
@@ -63,8 +62,10 @@ export default function PanelLayout({
     }
   }
 
-  function handleLogout() {
-    authLogout().then(() => router.push("/login"));
+  async function handleLogout() {
+    await logout();
+    router.push("/login");
+    router.refresh();
   }
 
   return (
@@ -122,7 +123,8 @@ export default function PanelLayout({
           </Link>
         ))}
         <button
-          onClick={handleLogout}
+          type="button"
+          onClick={() => void handleLogout()}
           style={{
             marginTop: "auto",
             padding: 14,
@@ -165,7 +167,11 @@ export default function PanelLayout({
           {displayTitle}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+          <span style={{ fontSize: 13, color: "#555", maxWidth: 220 }}>
+            {user?.email}
+          </span>
           <button
+            type="button"
             onClick={toggleTheme}
             style={{
               cursor: "pointer",

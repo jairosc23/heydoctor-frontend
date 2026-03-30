@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { updateSessionUser } from "@/lib/auth";
+import { useAuth } from "@/lib/context/AuthContext";
 import { fetchCurrentUser } from "@/lib/services/auth-session";
 
 const BRAND = "#078a92";
@@ -19,6 +19,7 @@ function sleep(ms: number) {
 
 export default function PaymentSuccessPage() {
   const [state, setState] = useState<SyncState>("syncing");
+  const { refreshUser } = useAuth();
 
   useEffect(() => {
     let cancelled = false;
@@ -30,13 +31,7 @@ export default function PaymentSuccessPage() {
 
           if (cancelled) return;
 
-          updateSessionUser({
-            id: me.id,
-            email: me.email,
-            role: me.role,
-            clinicId: me.clinicId,
-            plan: me.plan,
-          });
+          await refreshUser();
 
           if (me.plan === "pro") {
             setState("ready");
@@ -61,7 +56,7 @@ export default function PaymentSuccessPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [refreshUser]);
 
   if (state === "syncing") {
     return (
