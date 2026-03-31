@@ -13,6 +13,27 @@ let _lastRefreshFailedAt = 0;
 
 const REFRESH_COOLDOWN_MS = 3_000;
 
+type RefreshStateListener = (isRefreshing: boolean) => void;
+const refreshStateListeners = new Set<RefreshStateListener>();
+
+/** Suscripción para overlay de “revalidando sesión” (AuthProvider). */
+export function subscribeRefreshState(
+  listener: RefreshStateListener
+): () => void {
+  refreshStateListeners.add(listener);
+  return () => refreshStateListeners.delete(listener);
+}
+
+function emitRefreshState(isRefreshing: boolean): void {
+  refreshStateListeners.forEach((l) => {
+    try {
+      l(isRefreshing);
+    } catch {
+      /* noop */
+    }
+  });
+}
+
 export function getAccessToken(): string | null {
   return _accessToken;
 }
@@ -50,6 +71,7 @@ export async function refreshAccessToken(): Promise<string | null> {
 }
 
 async function _doRefresh(): Promise<string | null> {
+  emitRefreshState(true);
   try {
     const res = await fetch(`${getApiBase()}/auth/refresh`, {
       method: "POST",
@@ -80,6 +102,8 @@ async function _doRefresh(): Promise<string | null> {
     _accessToken = null;
     _lastRefreshFailedAt = Date.now();
     return null;
+  } finally {
+    emitRefreshState(false);
   }
 }
 

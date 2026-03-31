@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { API_URL } from "@/lib/api-base";
+import {
+  extractBearerToken,
+  getJwtRemainingSeconds,
+} from "@/lib/auth/jwt-utils";
 
 const SESSION_COOKIE = "heydoctor_session";
 /** Opaque flag: set only after backend GET /auth/me succeeds with the same Bearer. */
@@ -11,21 +15,25 @@ function apiOrigin(): string {
 
 /**
  * POST: validate Bearer against backend /auth/me; set first-party HttpOnly cookie for middleware.
+ * maxAge del cookie alineado al `exp` del access_token (mínimo 60s).
  * DELETE: clear cookie (logout UX on this origin).
  */
 export async function POST(req: NextRequest) {
   const auth = req.headers.get("authorization");
-  if (!auth?.startsWith("Bearer ")) {
+  const token = extractBearerToken(auth);
+  if (!token) {
     return NextResponse.json({ ok: false }, { status: 401 });
   }
 
   const me = await fetch(`${apiOrigin()}/auth/me`, {
-    headers: { Authorization: auth },
+    headers: { Authorization: `Bearer ${token}` },
   });
 
   if (!me.ok) {
     return NextResponse.json({ ok: false }, { status: 401 });
   }
+
+  const maxAge = getJwtRemainingSeconds(token);
 
   const res = NextResponse.json({ ok: true });
   const secure = process.env.NODE_ENV === "production";
@@ -34,7 +42,7 @@ export async function POST(req: NextRequest) {
     path: "/",
     sameSite: "lax",
     secure,
-    maxAge: 60 * 60 * 24 * 7,
+    maxAge,
   });
   return res;
 }

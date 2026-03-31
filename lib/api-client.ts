@@ -1,13 +1,9 @@
 /**
- * Cliente HTTP sobre fetchWithAuth: JSON, 401 → auto-refresh → retry.
+ * Cliente HTTP sobre fetchWithAuth: JSON; 401 + refresh ya resuelto en fetchWithAuth.
  */
 
 import { fetchWithAuth } from "./api";
-import {
-  getAccessToken,
-  refreshAccessToken,
-  authLogout,
-} from "./auth-client";
+import { getAccessToken, refreshAccessToken } from "./auth-client";
 
 export class ApiError extends Error {
   constructor(
@@ -48,22 +44,14 @@ export async function apiFetch<T = unknown>(
     await refreshAccessToken();
   }
 
-  let res = await fetchWithAuth(path, options);
-
-  if (res.status === 401) {
-    const newToken = await refreshAccessToken();
-    if (newToken) {
-      res = await fetchWithAuth(path, options);
-      if (res.status !== 401) {
-        return parseResponse<T>(res);
-      }
+  let res: Response;
+  try {
+    res = await fetchWithAuth(path, options);
+  } catch (err) {
+    if (err instanceof Error && err.message === "SESSION_EXPIRED") {
+      throw new ApiError("Sesión expirada", 401);
     }
-
-    await authLogout();
-    if (typeof window !== "undefined") {
-      window.location.href = "/login";
-    }
-    throw new ApiError("No autorizado", 401);
+    throw err;
   }
 
   return parseResponse<T>(res);
