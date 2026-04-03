@@ -21,3 +21,9 @@ body {
 .animate-spin {
   animation: spin 1s linear infinite;
 }
+
+/* Landing: accesibilidad teclado en botón WhatsApp */
+.whatsapp-cta-button:focus-visible {
+  outline: 3px solid #14532d;
+  outline-offset: 4px;
+}

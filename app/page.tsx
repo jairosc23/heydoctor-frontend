@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { WhatsAppPatientCTA } from "@/components/WhatsAppPatientCTA";
+import { getWhatsAppBookingUrl } from "@/lib/whatsapp-url";
 
 const BRAND = "#078a92";
 const BRAND_DARK = "#05636b";
@@ -79,6 +81,8 @@ const TESTIMONIALS = [
 ];
 
 export default function LandingPage() {
+  const whatsAppUrl = getWhatsAppBookingUrl();
+
   return (
     <div
       style={{
@@ -268,6 +272,8 @@ export default function LandingPage() {
           </a>
         </div>
       </section>
+
+      {whatsAppUrl ? <WhatsAppPatientCTA url={whatsAppUrl} /> : null}
 
       {/* ── FEATURES ── */}
       <section
