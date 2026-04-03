@@ -130,7 +130,12 @@ export async function authLogin(
   email: string,
   password: string
 ): Promise<AuthLoginResult> {
-  const res = await fetch(`${getApiBase()}/auth/login`, {
+  const loginUrl = `${getApiBase()}/auth/login`;
+  if (process.env.NODE_ENV === "development") {
+    console.log("LOGIN URL:", loginUrl);
+  }
+
+  const res = await fetch(loginUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
