@@ -1,19 +1,24 @@
 /**
- * Base del backend con sufijo `/api` (prefijo global de Nest).
- * Acepta `NEXT_PUBLIC_API_URL` como solo origen (`https://host`) o ya con `/api`.
+ * Origen del backend (sin `/api` final).
+ * - Añade `https://` si falta el esquema (evita fetch relativo → 404 en Next).
+ * - Quita un sufijo `/api` si ya venía en la variable.
  */
-function normalizeApiBaseUrl(input: string): string {
-  const trimmed = input.replace(/\/+$/, "");
-  if (trimmed.endsWith("/api")) {
-    return trimmed;
+export function getBackendOrigin(): string {
+  let s = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001")
+    .trim()
+    .replace(/\/+$/, "");
+  if (!s) s = "http://localhost:3001";
+  if (!/^https?:\/\//i.test(s)) {
+    s = `https://${s}`;
   }
-  return `${trimmed}/api`;
+  if (/\/api$/i.test(s)) {
+    s = s.replace(/\/api$/i, "");
+  }
+  return s.replace(/\/+$/, "");
 }
 
-export const API_URL = normalizeApiBaseUrl(
-  process.env.NEXT_PUBLIC_API_URL ||
-    "http://localhost:3001",
-);
+/** Base con prefijo `/api` (Nest global prefix). */
+export const API_URL = `${getBackendOrigin()}/api`;
 
 export function getApiBase(): string {
   return API_URL;

@@ -3,7 +3,7 @@
  * Cookie de primer partido `heydoctor_session` la gestiona /api/auth/session (ver lib/services/auth.ts).
  */
 
-import { getApiBase } from "./api-base";
+import { getApiBase, getBackendOrigin } from "./api-base";
 
 // ── In-memory access token ──────────────────────────────────────
 
@@ -130,27 +130,29 @@ export async function authLogin(
   email: string,
   password: string
 ): Promise<AuthLoginResult> {
-  const loginUrl = `${getApiBase()}/auth/login`;
-  if (process.env.NODE_ENV === "development") {
-    console.log("LOGIN URL:", loginUrl);
-  }
+  const url = `${getBackendOrigin()}/api/auth/login`;
+  console.log("LOGIN URL:", url);
+  console.log("LOGIN BODY:", { email, password });
 
-  const res = await fetch(loginUrl, {
+  const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
     credentials: "include",
   });
 
-  const text = await res.text();
-  let data: Record<string, unknown>;
+  console.log("LOGIN STATUS:", res.status);
+
+  let data: Record<string, unknown> = {};
   try {
-    data = text ? (JSON.parse(text) as Record<string, unknown>) : {};
+    data = (await res.json()) as Record<string, unknown>;
   } catch {
     throw new Error(
       "El servidor no respondió correctamente. Verifica NEXT_PUBLIC_API_URL."
     );
   }
+
+  console.log("LOGIN RESPONSE:", data);
 
   if (!res.ok) {
     const raw =
