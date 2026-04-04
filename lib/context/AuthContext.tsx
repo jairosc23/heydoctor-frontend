@@ -40,7 +40,8 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  /** Sin hidratación al mount: no refresh ni getMe al cargar (evita carreras con login). */
+  const [loading, setLoading] = useState(false);
   const [sessionRevalidating, setSessionRevalidating] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
@@ -49,12 +50,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return subscribeRefreshState(setSessionRevalidating);
   }, []);
 
+  /**
+   * Perfil desde el API. Si pasas `accessToken` (p. ej. recién devuelto por login), no toca refresh ni memoria previa.
+   * Sin token explícito: memoria actual o una llamada a refresh (flujo normal post-carga de página, ej. payment-success).
+   */
   const refreshUser = useCallback(async (accessTokenFromLogin?: string) => {
     try {
       const explicit = accessTokenFromLogin?.trim();
       if (!explicit) {
         if (!getAccessToken()) {
           await refreshAccessToken();
+        }
+        if (!getAccessToken()) {
+          setUser(null);
+          await clearMiddlewareSession();
+          return;
         }
       }
       const me = await getMe(explicit || undefined);
@@ -66,40 +76,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      try {
-        if (!getAccessToken()) {
-          await refreshAccessToken();
-        }
-        const me = await getMe();
-        if (!cancelled) {
-          setUser(me);
-          await syncMiddlewareSession();
-        }
-      } catch {
-        if (!cancelled) {
-          setUser(null);
-          await clearMiddlewareSession();
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   /**
-   * Si venimos del middleware (`?redirect=`) pero el refresh aún es válido,
-   * volver a la ruta pedida sin quedar bloqueados en /login.
+   * Tras login exitoso: `?redirect=` → ir al destino sin depender de estado async global previo.
    */
   useEffect(() => {
     if (
-      loading ||
       !user ||
       pathname !== "/login" ||
       typeof window === "undefined"
@@ -114,34 +95,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const target =
       raw && raw.startsWith("/") && !raw.startsWith("//") ? raw : "/panel";
     router.replace(target);
-  }, [loading, user, pathname, router]);
+  }, [user, pathname, router]);
 
-  const login = useCallback(
-    async (email: string, password: string) => {
-      let accessToken: string;
-      try {
-        const result = await loginRequest(email, password);
-        accessToken = result.accessToken?.trim() ?? "";
-        if (!accessToken) {
-          throw new Error("Login no devolvió access_token.");
-        }
-      } catch (e) {
-        await clearMiddlewareSession();
-        throw e;
+  const login = useCallback(async (email: string, password: string) => {
+    let accessToken: string;
+    try {
+      const result = await loginRequest(email, password);
+      accessToken = result.accessToken?.trim() ?? "";
+      if (!accessToken) {
+        throw new Error("Login no devolvió access_token.");
       }
-      try {
-        await refreshUser(accessToken);
-      } catch (e) {
-        await clearMiddlewareSession();
-        setAccessToken(null);
-        const detail = e instanceof Error ? e.message : String(e);
-        throw new Error(
-          `Inicio de sesión correcto, pero falló cargar el perfil (GET /api/auth/me): ${detail}`,
-        );
-      }
-    },
-    [refreshUser]
-  );
+    } catch (e) {
+      await clearMiddlewareSession();
+      throw e;
+    }
+    try {
+      const me = await getMe(accessToken);
+      setUser(me);
+      await syncMiddlewareSession();
+    } catch (e) {
+      await clearMiddlewareSession();
+      setAccessToken(null);
+      const detail = e instanceof Error ? e.message : String(e);
+      throw new Error(
+        `Inicio de sesión correcto, pero falló cargar el perfil (GET /api/auth/me): ${detail}`,
+      );
+    }
+  }, []);
 
   const logout = useCallback(async () => {
     await logoutRequest();

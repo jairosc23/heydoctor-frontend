@@ -38,8 +38,13 @@ export default function PanelLayout({
   const pathname = usePathname();
   const displayTitle = title ?? TITLES[pathname || ""] ?? "Panel";
   const router = useRouter();
-  const { loading, isAuthenticated, logout, user } = useAuth();
+  const { isAuthenticated, logout, user, refreshUser } = useAuth();
   const [dark, setDark] = useState(false);
+  /**
+   * Al entrar al shell del panel (no en AuthProvider global): intentar `refreshUser` una vez por montaje.
+   * Si ya hubo login en memoria, solo confirma perfil; si hay refresh cookie, rehidrata sin carrera con login.
+   */
+  const [panelSessionChecked, setPanelSessionChecked] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined" && localStorage.getItem("theme") === "dark") {
@@ -49,10 +54,24 @@ export default function PanelLayout({
   }, []);
 
   useEffect(() => {
-    if (!loading && !isAuthenticated) {
+    let cancelled = false;
+    (async () => {
+      try {
+        await refreshUser();
+      } finally {
+        if (!cancelled) setPanelSessionChecked(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshUser]);
+
+  useEffect(() => {
+    if (panelSessionChecked && !isAuthenticated) {
       router.push("/login");
     }
-  }, [loading, isAuthenticated, router]);
+  }, [panelSessionChecked, isAuthenticated, router]);
 
   function toggleTheme() {
     setDark((d) => !d);
