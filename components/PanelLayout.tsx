@@ -41,8 +41,8 @@ export default function PanelLayout({
   const { isAuthenticated, logout, user, refreshUser } = useAuth();
   const [dark, setDark] = useState(false);
   /**
-   * Al entrar al shell del panel (no en AuthProvider global): intentar `refreshUser` una vez por montaje.
-   * Si ya hubo login en memoria, solo confirma perfil; si hay refresh cookie, rehidrata sin carrera con login.
+   * Hidratación solo si falta `user` (p. ej. recarga con cookie). Tras login, `user` ya viene del flujo
+   * determinista → no se llama `refreshUser` ni se duplica GET /me.
    */
   const [panelSessionChecked, setPanelSessionChecked] = useState(false);
 
@@ -54,18 +54,14 @@ export default function PanelLayout({
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        await refreshUser();
-      } finally {
-        if (!cancelled) setPanelSessionChecked(true);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [refreshUser]);
+    if (user) {
+      setPanelSessionChecked(true);
+      return;
+    }
+    if (!panelSessionChecked) {
+      void refreshUser().finally(() => setPanelSessionChecked(true));
+    }
+  }, [user, panelSessionChecked, refreshUser]);
 
   useEffect(() => {
     if (panelSessionChecked && !isAuthenticated) {
