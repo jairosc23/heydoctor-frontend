@@ -1,6 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
+import { parseJwtPayload } from "@/lib/auth/jwt-utils";
 
 const SESSION_COOKIE = "heydoctor_session";
+
+/**
+ * Sesión SSR válida sin llamar al backend: presencia + exp del JWT en cookie.
+ * Valor legacy `"1"`: se acepta mientras el navegador no haya expirado maxAge.
+ * No se verifica firma aquí (fuente de verdad sigue siendo el API).
+ */
+function isSsrSessionValid(cookieValue: string | undefined): boolean {
+  if (!cookieValue) {
+    return false;
+  }
+  if (cookieValue === "1") {
+    return true;
+  }
+  const payload = parseJwtPayload(cookieValue);
+  if (!payload?.exp || typeof payload.exp !== "number") {
+    return false;
+  }
+  return payload.exp * 1000 > Date.now();
+}
 
 const PROTECTED_PATHS = [
   "/dashboard",
@@ -48,9 +68,8 @@ function addSecurityHeaders(response: NextResponse): NextResponse {
 }
 
 /**
- * Cookie de primer partido: solo se establece vía POST /api/auth/session
- * tras validar el Bearer contra el backend. Así el middleware puede proteger rutas
- * aunque refresh_token viva en el dominio API (cross-origin).
+ * Cookie de primer partido: POST /api/auth/session valida Bearer en Nest y fija JWT HttpOnly.
+ * Aquí solo comprobamos exp localmente (sin fetch al backend).
  */
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -63,7 +82,8 @@ export function middleware(request: NextRequest) {
     return addSecurityHeaders(NextResponse.next());
   }
 
-  const hasSession = request.cookies.get(SESSION_COOKIE)?.value === "1";
+  const sessionCookie = request.cookies.get(SESSION_COOKIE)?.value;
+  const hasSession = isSsrSessionValid(sessionCookie);
 
   if (isProtected(pathname) && !hasSession) {
     const loginUrl = new URL("/login", request.url);

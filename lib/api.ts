@@ -101,6 +101,7 @@ export async function fetchWithAuth(
     bearerOverride = "";
     const newToken = await refreshAccessToken();
     // Solo un segundo intento si el refresh devolvió token (evita bucles inútiles).
+    // refreshAccessToken ya actualiza la cookie SSR (setFirstPartySessionFromAccessToken).
     if (newToken) {
       res = await doFetch();
     }

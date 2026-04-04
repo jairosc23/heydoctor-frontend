@@ -6,13 +6,12 @@ import {
 } from "@/lib/auth/jwt-utils";
 
 const SESSION_COOKIE = "heydoctor_session";
-/** Opaque flag: set only after backend GET /auth/me succeeds with the same Bearer. */
-const SESSION_VALUE = "1";
 
 /**
- * POST: validate Bearer contra GET /api/auth/me del Nest; set cookie HttpOnly para middleware.
- * maxAge del cookie alineado al `exp` del access_token (mínimo 60s).
- * DELETE: clear cookie (logout UX on this origin).
+ * POST: valida Bearer contra GET /api/auth/me del Nest; set cookie HttpOnly.
+ * Valor = access JWT (solo exp legible en middleware Edge; firma sigue validándose en API).
+ * maxAge alineado al `exp` del token (mín. 60s).
+ * DELETE: borra cookie.
  */
 export async function POST(req: NextRequest) {
   const auth = req.headers.get("authorization");
@@ -38,7 +37,7 @@ export async function POST(req: NextRequest) {
 
   const res = NextResponse.json({ ok: true });
   const secure = process.env.NODE_ENV === "production";
-  res.cookies.set(SESSION_COOKIE, SESSION_VALUE, {
+  res.cookies.set(SESSION_COOKIE, token, {
     httpOnly: true,
     path: "/",
     sameSite: "lax",

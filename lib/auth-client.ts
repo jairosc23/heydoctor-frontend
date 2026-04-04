@@ -6,6 +6,7 @@
 import { invalidateJwtPayloadCache } from "./auth-token";
 import { emitAuthTelemetry } from "./auth-telemetry";
 import { getApiBase, getBackendOrigin } from "./api-base";
+import { setFirstPartySessionFromAccessToken } from "./first-party-session-cookie";
 
 // ── In-memory access token ──────────────────────────────────────
 
@@ -157,11 +158,7 @@ async function _doRefresh(): Promise<string | null> {
 
     if (_accessToken) {
       _lastRefreshFailedAt = 0;
-      await fetch("/api/auth/session", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${_accessToken}` },
-        credentials: "include",
-      }).catch(() => {});
+      await setFirstPartySessionFromAccessToken(_accessToken);
       broadcastAuthMessage("token-refreshed");
     }
 

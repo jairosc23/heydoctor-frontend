@@ -10,6 +10,7 @@ import {
   getAccessToken,
 } from "../auth-client";
 import { ApiError, apiGet } from "../api-client";
+import { setFirstPartySessionFromAccessToken } from "../first-party-session-cookie";
 
 export type AuthUser = {
   id: string;
@@ -36,22 +37,7 @@ export type LoginResult = {
  * Nunca llames al dominio del API Nest: `/api/auth/session` solo existe en este frontend.
  */
 export async function syncMiddlewareSession(accessToken: string): Promise<void> {
-  if (typeof window === "undefined") return;
-  const token = accessToken.trim();
-  if (!token) return;
-
-  const res = await fetch("/api/auth/session", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${token}` },
-    credentials: "include",
-  });
-
-  if (!res.ok && process.env.NODE_ENV === "development") {
-    console.warn(
-      "[syncMiddlewareSession] POST /api/auth/session",
-      res.status,
-    );
-  }
+  await setFirstPartySessionFromAccessToken(accessToken);
 }
 
 export async function clearMiddlewareSession(): Promise<void> {
