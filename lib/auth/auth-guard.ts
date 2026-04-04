@@ -3,6 +3,7 @@
  */
 
 import { authLogout } from "@/lib/auth-client";
+import { emitAuthTelemetry } from "@/lib/auth-telemetry";
 
 let redirectInFlight = false;
 
@@ -20,6 +21,8 @@ export async function handleAuthError(
   } catch {
     /* authLogout ya limpia estado local aunque falle el fetch */
   }
+
+  emitAuthTelemetry("unauthorized", { redirect });
 
   if (redirect && typeof window !== "undefined" && !redirectInFlight) {
     redirectInFlight = true;

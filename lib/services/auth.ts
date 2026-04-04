@@ -31,16 +31,27 @@ export type LoginResult = {
   accessToken: string;
 };
 
-/** Sincroniza cookie HttpOnly de primer partido (middleware) tras validar Bearer en el backend. */
-export async function syncMiddlewareSession(): Promise<void> {
+/**
+ * Sincroniza cookie HttpOnly `heydoctor_session` en el **origen Next** (ruta relativa).
+ * Nunca llames al dominio del API Nest: `/api/auth/session` solo existe en este frontend.
+ */
+export async function syncMiddlewareSession(accessToken: string): Promise<void> {
   if (typeof window === "undefined") return;
-  const token = getAccessToken();
+  const token = accessToken.trim();
   if (!token) return;
-  await fetch("/api/auth/session", {
+
+  const res = await fetch("/api/auth/session", {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
     credentials: "include",
-  }).catch(() => {});
+  });
+
+  if (!res.ok && process.env.NODE_ENV === "development") {
+    console.warn(
+      "[syncMiddlewareSession] POST /api/auth/session",
+      res.status,
+    );
+  }
 }
 
 export async function clearMiddlewareSession(): Promise<void> {
@@ -56,7 +67,6 @@ export async function login(
   password: string
 ): Promise<LoginResult> {
   const result = await authLoginClient(email, password);
-  await syncMiddlewareSession();
   return { user: result.user, accessToken: result.accessToken };
 }
 
@@ -88,7 +98,9 @@ export async function getMe(accessToken?: string): Promise<AuthUser> {
   }
 }
 
-/** Útil tras registro/login manual si ya hay token en memoria. */
+/** Útil si ya hay token en memoria (mismo flujo que login, sin segundo argumento opcional). */
 export async function primeSessionFromAccessToken(): Promise<void> {
-  await syncMiddlewareSession();
+  const t = getAccessToken()?.trim();
+  if (!t) return;
+  await syncMiddlewareSession(t);
 }

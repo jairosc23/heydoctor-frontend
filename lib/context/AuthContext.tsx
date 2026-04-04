@@ -32,8 +32,8 @@ type AuthContextValue = {
   sessionRevalidating: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  /** Tras login pasar el `accessToken` devuelto para el primer GET /me sin depender solo de memoria. */
-  refreshUser: (accessTokenFromLogin?: string) => Promise<void>;
+  /** Opcional: Bearer recién emitido para el primer GET /me sin depender solo de refresh/memoria. */
+  refreshUser: (explicitAccessToken?: string) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -50,31 +50,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return subscribeRefreshState(setSessionRevalidating);
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onSessionCleared = () => setUser(null);
+    window.addEventListener("heydoctor:session-cleared", onSessionCleared);
+    return () =>
+      window.removeEventListener("heydoctor:session-cleared", onSessionCleared);
+  }, []);
+
+  const clearSession = useCallback(async () => {
+    setUser(null);
+    setAccessToken(null);
+    await clearMiddlewareSession();
+  }, []);
+
   /**
-   * Perfil desde el API. Si pasas `accessToken` (p. ej. recién devuelto por login), no toca refresh ni memoria previa.
-   * Sin token explícito: memoria actual o una llamada a refresh (flujo normal post-carga de página, ej. payment-success).
+   * Perfil desde el API. Con Bearer explícito (p. ej. token recién emitido) se evita depender solo de refresh implícito.
+   * Sin token: memoria o silent refresh; si no hay sesión, limpia estado.
    */
-  const refreshUser = useCallback(async (accessTokenFromLogin?: string) => {
-    try {
-      const explicit = accessTokenFromLogin?.trim();
-      if (!explicit) {
-        if (!getAccessToken()) {
-          await refreshAccessToken();
+  const refreshUser = useCallback(
+    async (explicitToken?: string) => {
+      try {
+        let token = explicitToken?.trim();
+        if (!token) {
+          let mem = getAccessToken()?.trim();
+          if (!mem) {
+            const refreshed = await refreshAccessToken();
+            if (!refreshed) {
+              await clearSession();
+              return;
+            }
+            mem = getAccessToken()?.trim() ?? refreshed.trim();
+          }
+          token = mem ?? "";
         }
-        if (!getAccessToken()) {
-          setUser(null);
-          await clearMiddlewareSession();
+        if (!token) {
+          await clearSession();
           return;
         }
+        const me = await getMe(token);
+        setUser(me);
+        await syncMiddlewareSession(token);
+      } catch {
+        await clearSession();
       }
-      const me = await getMe(explicit || undefined);
-      setUser(me);
-      await syncMiddlewareSession();
-    } catch {
-      setUser(null);
-      await clearMiddlewareSession();
-    }
-  }, []);
+    },
+    [clearSession],
+  );
 
   /**
    * Tras login exitoso: `?redirect=` → ir al destino sin depender de estado async global previo.
@@ -112,7 +134,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const me = await getMe(accessToken);
       setUser(me);
-      await syncMiddlewareSession();
+      await syncMiddlewareSession(accessToken);
     } catch (e) {
       await clearMiddlewareSession();
       setAccessToken(null);

@@ -2,6 +2,7 @@ import {
   getAccessToken,
   refreshAccessToken,
 } from "./auth-client";
+import { isTokenExpiringSoon } from "./auth-token";
 import { handleAuthError } from "./auth/auth-guard";
 import { getApiBase } from "./api-base";
 
@@ -39,6 +40,20 @@ export async function fetchWithAuth(
 ): Promise<Response> {
   const url = buildAuthUrl(path);
   let bearerOverride = ctx?.bearerToken?.trim() ?? "";
+
+  const isRefreshEndpoint = isAuthRefreshRequest(url);
+  if (
+    !isRefreshEndpoint &&
+    typeof window !== "undefined"
+  ) {
+    const candidate = (
+      bearerOverride || getAccessToken()?.trim() || ""
+    ).trim();
+    if (candidate && isTokenExpiringSoon(candidate)) {
+      await refreshAccessToken();
+      bearerOverride = "";
+    }
+  }
 
   const buildHeaders = (): Headers => {
     const current = (bearerOverride || getAccessToken()?.trim() || "").trim();
@@ -85,6 +100,7 @@ export async function fetchWithAuth(
   ) {
     bearerOverride = "";
     const newToken = await refreshAccessToken();
+    // Solo un segundo intento si el refresh devolvió token (evita bucles inútiles).
     if (newToken) {
       res = await doFetch();
     }

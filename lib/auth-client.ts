@@ -3,6 +3,8 @@
  * Cookie de primer partido `heydoctor_session` la gestiona /api/auth/session (ver lib/services/auth.ts).
  */
 
+import { invalidateJwtPayloadCache } from "./auth-token";
+import { emitAuthTelemetry } from "./auth-telemetry";
 import { getApiBase, getBackendOrigin } from "./api-base";
 
 // ── In-memory access token ──────────────────────────────────────
@@ -12,13 +14,14 @@ let _refreshPromise: Promise<string | null> | null = null;
 let _lastRefreshFailedAt = 0;
 
 const REFRESH_COOLDOWN_MS = 3_000;
+const AUTH_TAB_CHANNEL = "heydoctor-auth-v1";
 
 type RefreshStateListener = (isRefreshing: boolean) => void;
 const refreshStateListeners = new Set<RefreshStateListener>();
 
 /** Suscripción para overlay de “revalidando sesión” (AuthProvider). */
 export function subscribeRefreshState(
-  listener: RefreshStateListener
+  listener: RefreshStateListener,
 ): () => void {
   refreshStateListeners.add(listener);
   return () => refreshStateListeners.delete(listener);
@@ -39,7 +42,66 @@ export function getAccessToken(): string | null {
 }
 
 export function setAccessToken(token: string | null): void {
+  if (_accessToken !== token) {
+    invalidateJwtPayloadCache();
+  }
   _accessToken = token;
+}
+
+function getTabId(): string {
+  if (typeof sessionStorage === "undefined") return "no-ss";
+  try {
+    const k = "heydoctor_tab_id";
+    let id = sessionStorage.getItem(k);
+    if (!id) {
+      id = crypto.randomUUID();
+      sessionStorage.setItem(k, id);
+    }
+    return id;
+  } catch {
+    return "unknown-tab";
+  }
+}
+
+function broadcastAuthMessage(
+  type: "logout" | "token-refreshed",
+): void {
+  if (typeof BroadcastChannel === "undefined") return;
+  try {
+    const ch = new BroadcastChannel(AUTH_TAB_CHANNEL);
+    ch.postMessage({ type, from: getTabId() });
+    ch.close();
+  } catch {
+    /* noop */
+  }
+}
+
+let remoteRefreshCooldownUntil = 0;
+
+function attachMultiTabAuthSync(): void {
+  if (typeof window === "undefined" || typeof BroadcastChannel === "undefined") {
+    return;
+  }
+  const ch = new BroadcastChannel(AUTH_TAB_CHANNEL);
+  ch.onmessage = (ev: MessageEvent<{ type?: string; from?: string }>) => {
+    const { type, from } = ev.data ?? {};
+    if (!type || from === getTabId()) return;
+
+    if (type === "logout") {
+      void (async () => {
+        await authLogout({ skipRemote: true, skipBroadcast: true });
+        window.dispatchEvent(new CustomEvent("heydoctor:session-cleared"));
+      })();
+      return;
+    }
+
+    if (type === "token-refreshed") {
+      const now = Date.now();
+      if (now < remoteRefreshCooldownUntil) return;
+      remoteRefreshCooldownUntil = now + 1_500;
+      void refreshAccessToken();
+    }
+  };
 }
 
 async function clearFirstPartySessionCookie(): Promise<void> {
@@ -71,7 +133,6 @@ export async function refreshAccessToken(): Promise<string | null> {
 }
 
 async function _doRefresh(): Promise<string | null> {
-  /** Captura para no pisar un token escritos por login concurrente al fallar refresh. */
   const accessTokenSnapshot = _accessToken;
   emitRefreshState(true);
   try {
@@ -82,8 +143,9 @@ async function _doRefresh(): Promise<string | null> {
 
     if (!res.ok) {
       _lastRefreshFailedAt = Date.now();
+      emitAuthTelemetry("refresh_fail", { status: res.status });
       if (_accessToken === accessTokenSnapshot) {
-        _accessToken = null;
+        setAccessToken(null);
       }
       await clearFirstPartySessionCookie();
       return null;
@@ -91,7 +153,7 @@ async function _doRefresh(): Promise<string | null> {
 
     const data = (await res.json()) as { access_token?: string };
     const next = (data.access_token ?? "").trim();
-    _accessToken = next || null;
+    setAccessToken(next || null);
 
     if (_accessToken) {
       _lastRefreshFailedAt = 0;
@@ -100,13 +162,15 @@ async function _doRefresh(): Promise<string | null> {
         headers: { Authorization: `Bearer ${_accessToken}` },
         credentials: "include",
       }).catch(() => {});
+      broadcastAuthMessage("token-refreshed");
     }
 
     return _accessToken;
   } catch {
     _lastRefreshFailedAt = Date.now();
+    emitAuthTelemetry("refresh_fail", { status: 0 });
     if (_accessToken === accessTokenSnapshot) {
-      _accessToken = null;
+      setAccessToken(null);
     }
     return null;
   } finally {
@@ -125,7 +189,6 @@ export async function ensureAccessToken(): Promise<string | null> {
 // ── Login ───────────────────────────────────────────────────────
 
 export interface AuthLoginResult {
-  /** Mismo valor guardado en memoria (`_accessToken`); devolver explícito para el primer `getMe` tras login. */
   accessToken: string;
   user: {
     id: string;
@@ -144,7 +207,6 @@ function normalizeBackendMessage(field: unknown): string | undefined {
   return String(field);
 }
 
-/** Mensaje útil a partir del cuerpo JSON Nest u otros (login). */
 function loginFailureMessage(
   res: Response,
   data: Record<string, unknown>,
@@ -160,7 +222,7 @@ function loginFailureMessage(
 
 export async function authLogin(
   email: string,
-  password: string
+  password: string,
 ): Promise<AuthLoginResult> {
   const url = `${getBackendOrigin()}/api/auth/login`;
 
@@ -175,6 +237,7 @@ export async function authLogin(
   try {
     data = (await res.json()) as Record<string, unknown>;
   } catch {
+    emitAuthTelemetry("login_fail", { status: res.status, parseError: true });
     throw new Error(
       `La respuesta no era JSON (${res.status} ${res.statusText}). ` +
         "Comprueba NEXT_PUBLIC_API_URL (ej. https://heydoctor-backend-pro-production.up.railway.app) " +
@@ -183,6 +246,7 @@ export async function authLogin(
   }
 
   if (!res.ok) {
+    emitAuthTelemetry("login_fail", { status: res.status });
     throw new Error(loginFailureMessage(res, data));
   }
 
@@ -194,10 +258,11 @@ export async function authLogin(
   const token = typeof raw === "string" ? raw.trim() : "";
 
   if (!token) {
+    emitAuthTelemetry("login_fail", { status: res.status, reason: "no_token" });
     throw new Error("Respuesta de login sin access_token");
   }
 
-  _accessToken = token;
+  setAccessToken(token);
   _lastRefreshFailedAt = 0;
 
   const u = (data.user ?? {}) as Record<string, unknown>;
@@ -205,10 +270,13 @@ export async function authLogin(
   const fallback = fromNames || (u.email as string) || "";
   const name = (u.name as string) ?? fallback;
 
+  const userId = String(u.id ?? "");
+  emitAuthTelemetry("login_success", { userId });
+
   return {
     accessToken: token,
     user: {
-      id: String(u.id ?? ""),
+      id: userId,
       email: (u.email as string) ?? "",
       name,
       role: u.role as string | undefined,
@@ -216,24 +284,37 @@ export async function authLogin(
   };
 }
 
-// ── Logout ──────────────────────────────────────────────────────
+export type AuthLogoutOptions = {
+  /** No llama POST /auth/logout (p. ej. otra pestaña ya revocó). */
+  skipRemote?: boolean;
+  /** No broadcast a otras pestañas (evita bucles). */
+  skipBroadcast?: boolean;
+};
 
-export async function authLogout(): Promise<void> {
-  try {
-    const headers: Record<string, string> = {};
-    if (_accessToken) {
-      headers["Authorization"] = `Bearer ${_accessToken}`;
-    }
-    await fetch(`${getApiBase()}/auth/logout`, {
-      method: "POST",
-      credentials: "include",
-      headers,
-    });
-  } catch {
-    // Always clear local state even if API call fails
+export async function authLogout(options?: AuthLogoutOptions): Promise<void> {
+  if (!options?.skipBroadcast) {
+    broadcastAuthMessage("logout");
   }
 
-  _accessToken = null;
+  try {
+    if (!options?.skipRemote) {
+      const headers: Record<string, string> = {};
+      if (_accessToken) {
+        headers["Authorization"] = `Bearer ${_accessToken}`;
+      }
+      await fetch(`${getApiBase()}/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+        headers,
+      });
+    }
+  } catch {
+    /* authLogout ya limpia estado local aunque falle el fetch */
+  }
+
+  setAccessToken(null);
   _lastRefreshFailedAt = 0;
   await clearFirstPartySessionCookie();
 }
+
+attachMultiTabAuthSync();
