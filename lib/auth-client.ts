@@ -125,6 +125,8 @@ export async function ensureAccessToken(): Promise<string | null> {
 // ── Login ───────────────────────────────────────────────────────
 
 export interface AuthLoginResult {
+  /** Mismo valor guardado en memoria (`_accessToken`); devolver explícito para el primer `getMe` tras login. */
+  accessToken: string;
   user: {
     id: string;
     email: string;
@@ -204,6 +206,7 @@ export async function authLogin(
   const name = (u.name as string) ?? fallback;
 
   return {
+    accessToken: token,
     user: {
       id: String(u.id ?? ""),
       email: (u.email as string) ?? "",

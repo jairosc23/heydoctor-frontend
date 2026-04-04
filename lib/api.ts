@@ -23,18 +23,25 @@ function isAuthRefreshRequest(url: string): boolean {
   }
 }
 
+export type FetchWithAuthContext = {
+  /** Si se pasa (p. ej. recién emitido en login), se usa para Authorization antes que `getAccessToken()`. */
+  bearerToken?: string;
+};
+
 /**
  * fetch con Bearer + credentials; en cliente ante 401 intenta refresh y reintenta una vez.
  * Si sigue 401 → handleAuthError (logout + redirect).
  */
 export async function fetchWithAuth(
   path: string,
-  init: RequestInit = {}
+  init: RequestInit = {},
+  ctx?: FetchWithAuthContext,
 ): Promise<Response> {
   const url = buildAuthUrl(path);
+  let bearerOverride = ctx?.bearerToken?.trim() ?? "";
 
   const buildHeaders = (): Headers => {
-    const current = getAccessToken()?.trim() ?? "";
+    const current = (bearerOverride || getAccessToken()?.trim() || "").trim();
     if (process.env.NODE_ENV === "development") {
       console.log(
         "TOKEN EN FETCH:",
@@ -76,6 +83,7 @@ export async function fetchWithAuth(
     typeof window !== "undefined" &&
     !isAuthRefreshRequest(url)
   ) {
+    bearerOverride = "";
     const newToken = await refreshAccessToken();
     if (newToken) {
       res = await doFetch();

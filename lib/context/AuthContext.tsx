@@ -32,7 +32,8 @@ type AuthContextValue = {
   sessionRevalidating: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  refreshUser: () => Promise<void>;
+  /** Tras login pasar el `accessToken` devuelto para el primer GET /me sin depender solo de memoria. */
+  refreshUser: (accessTokenFromLogin?: string) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -48,12 +49,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return subscribeRefreshState(setSessionRevalidating);
   }, []);
 
-  const refreshUser = useCallback(async () => {
+  const refreshUser = useCallback(async (accessTokenFromLogin?: string) => {
     try {
-      if (!getAccessToken()) {
-        await refreshAccessToken();
+      const explicit = accessTokenFromLogin?.trim();
+      if (!explicit) {
+        if (!getAccessToken()) {
+          await refreshAccessToken();
+        }
       }
-      const me = await getMe();
+      const me = await getMe(explicit || undefined);
       setUser(me);
       await syncMiddlewareSession();
     } catch {
@@ -114,19 +118,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(
     async (email: string, password: string) => {
+      let accessToken: string;
       try {
-        await loginRequest(email, password);
-        if (!getAccessToken()?.trim()) {
-          throw new Error(
-            "Login completó pero no hay access_token en memoria para Bearer.",
-          );
+        const result = await loginRequest(email, password);
+        accessToken = result.accessToken?.trim() ?? "";
+        if (!accessToken) {
+          throw new Error("Login no devolvió access_token.");
         }
       } catch (e) {
         await clearMiddlewareSession();
         throw e;
       }
       try {
-        await refreshUser();
+        await refreshUser(accessToken);
       } catch (e) {
         await clearMiddlewareSession();
         setAccessToken(null);

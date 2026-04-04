@@ -26,6 +26,11 @@ export type LoginResultUser = {
   role?: string;
 };
 
+export type LoginResult = {
+  user: LoginResultUser;
+  accessToken: string;
+};
+
 /** Sincroniza cookie HttpOnly de primer partido (middleware) tras validar Bearer en el backend. */
 export async function syncMiddlewareSession(): Promise<void> {
   if (typeof window === "undefined") return;
@@ -49,10 +54,10 @@ export async function clearMiddlewareSession(): Promise<void> {
 export async function login(
   email: string,
   password: string
-): Promise<{ user: LoginResultUser }> {
+): Promise<LoginResult> {
   const result = await authLoginClient(email, password);
   await syncMiddlewareSession();
-  return result;
+  return { user: result.user, accessToken: result.accessToken };
 }
 
 export async function logout(): Promise<void> {
@@ -60,12 +65,15 @@ export async function logout(): Promise<void> {
   await clearMiddlewareSession();
 }
 
-export async function getMe(): Promise<AuthUser> {
+/** @param accessToken Token explícito (p. ej. recién devuelto por login); si omites, se usa memoria/refresh. */
+export async function getMe(accessToken?: string): Promise<AuthUser> {
   const meUrl = getAuthMeUrl();
+  const auth = accessToken?.trim()
+    ? { bearerToken: accessToken.trim() }
+    : undefined;
 
   try {
-    // Solo apiGet → apiFetch → fetchWithAuth (Bearer obligatorio; nunca fetch directo).
-    return await apiGet<AuthUser>(meUrl);
+    return await apiGet<AuthUser>(meUrl, auth);
   } catch (err) {
     if (err instanceof ApiError) {
       const hint =

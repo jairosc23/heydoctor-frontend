@@ -2,8 +2,11 @@
  * Cliente HTTP sobre fetchWithAuth: JSON; 401 + refresh ya resuelto en fetchWithAuth.
  */
 
-import { fetchWithAuth } from "./api";
+import { fetchWithAuth, type FetchWithAuthContext } from "./api";
 import { getAccessToken, refreshAccessToken } from "./auth-client";
+
+/** Bearer explícito (p. ej. token recién devuelto por login). */
+export type ApiAuthOptions = FetchWithAuthContext;
 
 export class ApiError extends Error {
   constructor(
@@ -47,21 +50,29 @@ async function parseResponse<T>(res: Response): Promise<T> {
 
 export async function apiFetch<T = unknown>(
   path: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  auth?: ApiAuthOptions,
 ): Promise<T> {
-  if (!getAccessToken()) {
-    await refreshAccessToken();
-  }
-  if (!getAccessToken()) {
-    throw new ApiError(
-      "Sin access_token: no se puede autenticar la petición al API (Bearer). Inicia sesión de nuevo.",
-      401,
-    );
+  const explicit = auth?.bearerToken?.trim();
+  if (!explicit) {
+    if (!getAccessToken()) {
+      await refreshAccessToken();
+    }
+    if (!getAccessToken()) {
+      throw new ApiError(
+        "Sin access_token: no se puede autenticar la petición al API (Bearer). Inicia sesión de nuevo.",
+        401,
+      );
+    }
   }
 
   let res: Response;
   try {
-    res = await fetchWithAuth(path, options);
+    res = await fetchWithAuth(
+      path,
+      options,
+      explicit ? { bearerToken: explicit } : undefined,
+    );
   } catch (err) {
     if (err instanceof Error && err.message === "SESSION_EXPIRED") {
       throw new ApiError("Sesión expirada", 401);
@@ -72,8 +83,11 @@ export async function apiFetch<T = unknown>(
   return parseResponse<T>(res);
 }
 
-export async function apiGet<T = unknown>(path: string): Promise<T> {
-  return apiFetch<T>(path, { method: "GET" });
+export async function apiGet<T = unknown>(
+  path: string,
+  auth?: ApiAuthOptions,
+): Promise<T> {
+  return apiFetch<T>(path, { method: "GET" }, auth);
 }
 
 export async function apiPost<T = unknown>(
