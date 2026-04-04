@@ -116,6 +116,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async (email: string, password: string) => {
       try {
         await loginRequest(email, password);
+        if (!getAccessToken()?.trim()) {
+          throw new Error(
+            "Login completó pero no hay access_token en memoria para Bearer.",
+          );
+        }
       } catch (e) {
         await clearMiddlewareSession();
         throw e;

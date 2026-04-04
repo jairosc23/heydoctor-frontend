@@ -34,6 +34,17 @@ export async function fetchWithAuth(
   const url = buildAuthUrl(path);
 
   const buildHeaders = (): Headers => {
+    const current = getAccessToken()?.trim() ?? "";
+    if (process.env.NODE_ENV === "development") {
+      console.log(
+        "TOKEN EN FETCH:",
+        current ? `${current.slice(0, 12)}…(${current.length})` : null,
+      );
+    }
+    if (!current) {
+      throw new Error("No access token available");
+    }
+
     const headers = new Headers(init.headers);
     const method = (init.method ?? "GET").toUpperCase();
     if (!headers.has("Accept")) {
@@ -47,10 +58,7 @@ export async function fetchWithAuth(
     ) {
       headers.set("Content-Type", "application/json");
     }
-    const token = getAccessToken();
-    if (token) {
-      headers.set("Authorization", `Bearer ${token}`);
-    }
+    headers.set("Authorization", `Bearer ${current}`);
     return headers;
   };
 

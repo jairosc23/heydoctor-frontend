@@ -71,6 +71,8 @@ export async function refreshAccessToken(): Promise<string | null> {
 }
 
 async function _doRefresh(): Promise<string | null> {
+  /** Captura para no pisar un token escritos por login concurrente al fallar refresh. */
+  const accessTokenSnapshot = _accessToken;
   emitRefreshState(true);
   try {
     const res = await fetch(`${getApiBase()}/auth/refresh`, {
@@ -79,14 +81,17 @@ async function _doRefresh(): Promise<string | null> {
     });
 
     if (!res.ok) {
-      _accessToken = null;
       _lastRefreshFailedAt = Date.now();
+      if (_accessToken === accessTokenSnapshot) {
+        _accessToken = null;
+      }
       await clearFirstPartySessionCookie();
       return null;
     }
 
     const data = (await res.json()) as { access_token?: string };
-    _accessToken = data.access_token ?? null;
+    const next = (data.access_token ?? "").trim();
+    _accessToken = next || null;
 
     if (_accessToken) {
       _lastRefreshFailedAt = 0;
@@ -99,8 +104,10 @@ async function _doRefresh(): Promise<string | null> {
 
     return _accessToken;
   } catch {
-    _accessToken = null;
     _lastRefreshFailedAt = Date.now();
+    if (_accessToken === accessTokenSnapshot) {
+      _accessToken = null;
+    }
     return null;
   } finally {
     emitRefreshState(false);
@@ -177,11 +184,12 @@ export async function authLogin(
     throw new Error(loginFailureMessage(res, data));
   }
 
-  const token =
+  const raw =
     (data.access_token as string | undefined) ??
     (data.jwt as string | undefined) ??
     (data.token as string | undefined) ??
     "";
+  const token = typeof raw === "string" ? raw.trim() : "";
 
   if (!token) {
     throw new Error("Respuesta de login sin access_token");

@@ -8,7 +8,6 @@ import {
   authLogin as authLoginClient,
   authLogout as authLogoutClient,
   getAccessToken,
-  refreshAccessToken,
 } from "../auth-client";
 import { ApiError, apiGet } from "../api-client";
 
@@ -62,19 +61,10 @@ export async function logout(): Promise<void> {
 }
 
 export async function getMe(): Promise<AuthUser> {
-  if (!getAccessToken()) {
-    await refreshAccessToken();
-  }
-  if (!getAccessToken()) {
-    throw new Error(
-      "No hay access_token para /auth/me: inicia sesión o revisa la cookie refresh en el dominio del API.",
-    );
-  }
-
   const meUrl = getAuthMeUrl();
 
   try {
-    // URL absoluta + Bearer vía fetchWithAuth/apiFetch (no depende solo de cookies).
+    // Solo apiGet → apiFetch → fetchWithAuth (Bearer obligatorio; nunca fetch directo).
     return await apiGet<AuthUser>(meUrl);
   } catch (err) {
     if (err instanceof ApiError) {
