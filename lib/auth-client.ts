@@ -126,13 +126,34 @@ export interface AuthLoginResult {
   };
 }
 
+function normalizeBackendMessage(field: unknown): string | undefined {
+  if (field == null) return undefined;
+  if (Array.isArray(field)) {
+    return field.map((x) => String(x)).filter(Boolean).join(", ");
+  }
+  if (typeof field === "string") return field;
+  return String(field);
+}
+
+/** Mensaje útil a partir del cuerpo JSON Nest u otros (login). */
+function loginFailureMessage(
+  res: Response,
+  data: Record<string, unknown>,
+): string {
+  const fromBody =
+    normalizeBackendMessage(data.message) ??
+    normalizeBackendMessage(data.error);
+  if (fromBody) {
+    return `${fromBody} [HTTP ${res.status}]`;
+  }
+  return `HTTP ${res.status} ${res.statusText || "Error"}`.trim();
+}
+
 export async function authLogin(
   email: string,
   password: string
 ): Promise<AuthLoginResult> {
   const url = `${getBackendOrigin()}/api/auth/login`;
-  console.log("LOGIN URL:", url);
-  console.log("LOGIN BODY:", { email, password });
 
   const res = await fetch(url, {
     method: "POST",
@@ -141,25 +162,19 @@ export async function authLogin(
     credentials: "include",
   });
 
-  console.log("LOGIN STATUS:", res.status);
-
   let data: Record<string, unknown> = {};
   try {
     data = (await res.json()) as Record<string, unknown>;
   } catch {
     throw new Error(
-      "El servidor no respondió correctamente. Verifica NEXT_PUBLIC_API_URL."
+      `La respuesta no era JSON (${res.status} ${res.statusText}). ` +
+        "Comprueba NEXT_PUBLIC_API_URL (ej. https://heydoctor-backend-pro-production.up.railway.app) " +
+        "y que el login use POST /api/auth/login contra el API Nest.",
     );
   }
 
-  console.log("LOGIN RESPONSE:", data);
-
   if (!res.ok) {
-    const raw =
-      (data.message as string | string[] | undefined) ??
-      (data.error as string | undefined);
-    const msg = Array.isArray(raw) ? raw.join(", ") : raw;
-    throw new Error(msg || "Error al iniciar sesión");
+    throw new Error(loginFailureMessage(res, data));
   }
 
   const token =

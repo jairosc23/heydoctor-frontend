@@ -1,7 +1,8 @@
 /**
  * Origen del backend (sin `/api` final).
+ * - Producción típica: `https://heydoctor-backend-pro-production.up.railway.app`
  * - Añade `https://` si falta el esquema (evita fetch relativo → 404 en Next).
- * - Quita un sufijo `/api` si ya venía en la variable.
+ * - Quita un sufijo `/api` si ya venía en la variable (evita `/api/api/...`).
  */
 export function getBackendOrigin(): string {
   let s = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001")

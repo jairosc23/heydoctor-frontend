@@ -22,6 +22,7 @@ import {
   refreshAccessToken,
   getAccessToken,
   subscribeRefreshState,
+  setAccessToken,
 } from "@/lib/auth-client";
 
 type AuthContextValue = {
@@ -115,10 +116,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async (email: string, password: string) => {
       try {
         await loginRequest(email, password);
-        await refreshUser();
       } catch (e) {
         await clearMiddlewareSession();
         throw e;
+      }
+      try {
+        await refreshUser();
+      } catch (e) {
+        await clearMiddlewareSession();
+        setAccessToken(null);
+        const detail = e instanceof Error ? e.message : String(e);
+        throw new Error(
+          `Inicio de sesión correcto, pero falló cargar el perfil (GET /api/auth/me): ${detail}`,
+        );
       }
     },
     [refreshUser]

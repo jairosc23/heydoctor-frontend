@@ -26,11 +26,20 @@ async function parseResponse<T>(res: Response): Promise<T> {
   }
 
   if (!res.ok) {
-    const msg =
-      (data as { message?: string })?.message ??
-      (data as { error?: string })?.error ??
-      `Error ${res.status}: ${res.statusText}`;
-    throw new ApiError(String(msg), res.status, data);
+    const raw =
+      (data as { message?: unknown })?.message ??
+      (data as { error?: unknown })?.error;
+    let msg: string;
+    if (Array.isArray(raw)) {
+      msg = raw.map(String).filter(Boolean).join(", ");
+    } else if (typeof raw === "string") {
+      msg = raw;
+    } else if (raw != null) {
+      msg = String(raw);
+    } else {
+      msg = `Error ${res.status}: ${res.statusText}`;
+    }
+    throw new ApiError(msg, res.status, data);
   }
 
   return data as T;
