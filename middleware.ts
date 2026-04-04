@@ -1,25 +1,46 @@
 import { NextRequest, NextResponse } from "next/server";
-import { parseJwtPayload } from "@/lib/auth/jwt-utils";
+import {
+  parseJwtPayload,
+  type JwtPayloadClaims,
+} from "@/lib/auth/jwt-utils";
 
 const SESSION_COOKIE = "heydoctor_session";
+/** Tolerancia de reloj (cliente vs Edge): no tratar como expirado si falta < skew. */
+const SSR_SESSION_CLOCK_SKEW_MS = 5_000;
 
 /**
- * Sesión SSR válida sin llamar al backend: presencia + exp del JWT en cookie.
- * Valor legacy `"1"`: se acepta mientras el navegador no haya expirado maxAge.
- * No se verifica firma aquí (fuente de verdad sigue siendo el API).
+ * Sesión SSR sin llamar al backend: estructura mínima del JWT (exp obligatorio) o cookie legacy.
+ * No se verifica firma (fuente de verdad sigue siendo el API).
  */
 function isSsrSessionValid(cookieValue: string | undefined): boolean {
-  if (!cookieValue) {
-    return false;
-  }
-  if (cookieValue === "1") {
+  const token = cookieValue;
+
+  if (token === "1") {
     return true;
   }
-  const payload = parseJwtPayload(cookieValue);
-  if (!payload?.exp || typeof payload.exp !== "number") {
+
+  if (!token) {
     return false;
   }
-  return payload.exp * 1000 > Date.now();
+
+  let payload: JwtPayloadClaims | null;
+  try {
+    payload = parseJwtPayload(token);
+  } catch {
+    return false;
+  }
+
+  if (payload == null || payload.exp == null || typeof payload.exp !== "number") {
+    return false;
+  }
+
+  const now = Date.now();
+  const expMs = payload.exp * 1000;
+  if (expMs < now - SSR_SESSION_CLOCK_SKEW_MS) {
+    return false;
+  }
+
+  return true;
 }
 
 const PROTECTED_PATHS = [
