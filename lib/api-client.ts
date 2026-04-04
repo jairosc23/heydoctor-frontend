@@ -52,6 +52,12 @@ export async function apiFetch<T = unknown>(
   if (!getAccessToken()) {
     await refreshAccessToken();
   }
+  if (!getAccessToken()) {
+    throw new ApiError(
+      "Sin access_token: no se puede autenticar la petición al API (Bearer). Inicia sesión de nuevo.",
+      401,
+    );
+  }
 
   let res: Response;
   try {

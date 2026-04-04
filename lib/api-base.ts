@@ -18,9 +18,15 @@ export function getBackendOrigin(): string {
   return s.replace(/\/+$/, "");
 }
 
-/** Base con prefijo `/api` (Nest global prefix). */
-export const API_URL = `${getBackendOrigin()}/api`;
-
+/**
+ * Base con prefijo `/api` (Nest). Se recalcula en cada llamada para usar siempre
+ * la `NEXT_PUBLIC_API_URL` vigente (evita base congelada en el primer import del módulo).
+ */
 export function getApiBase(): string {
-  return API_URL;
+  return `${getBackendOrigin()}/api`;
+}
+
+/** URL absoluta GET /api/auth/me (Jwt: Authorization Bearer obligatorio). */
+export function getAuthMeUrl(): string {
+  return `${getBackendOrigin()}/api/auth/me`;
 }

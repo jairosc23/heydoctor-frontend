@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { API_URL } from "@/lib/api-base";
+import { getAuthMeUrl } from "@/lib/api-base";
 import {
   extractBearerToken,
   getJwtRemainingSeconds,
@@ -9,12 +9,8 @@ const SESSION_COOKIE = "heydoctor_session";
 /** Opaque flag: set only after backend GET /auth/me succeeds with the same Bearer. */
 const SESSION_VALUE = "1";
 
-function apiOrigin(): string {
-  return API_URL.replace(/\/$/, "");
-}
-
 /**
- * POST: validate Bearer against backend /auth/me; set first-party HttpOnly cookie for middleware.
+ * POST: validate Bearer contra GET /api/auth/me del Nest; set cookie HttpOnly para middleware.
  * maxAge del cookie alineado al `exp` del access_token (mínimo 60s).
  * DELETE: clear cookie (logout UX on this origin).
  */
@@ -25,8 +21,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false }, { status: 401 });
   }
 
-  const me = await fetch(`${apiOrigin()}/auth/me`, {
-    headers: { Authorization: `Bearer ${token}` },
+  const meUrl = getAuthMeUrl();
+  const me = await fetch(meUrl, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+    },
   });
 
   if (!me.ok) {

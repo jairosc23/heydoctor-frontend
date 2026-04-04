@@ -3,9 +3,9 @@ import {
   refreshAccessToken,
 } from "./auth-client";
 import { handleAuthError } from "./auth/auth-guard";
-import { API_URL, getApiBase } from "./api-base";
+import { getApiBase } from "./api-base";
 
-export { API_URL, getApiBase };
+export { getApiBase };
 
 function buildAuthUrl(path: string): string {
   const base = getApiBase();
@@ -36,6 +36,9 @@ export async function fetchWithAuth(
   const buildHeaders = (): Headers => {
     const headers = new Headers(init.headers);
     const method = (init.method ?? "GET").toUpperCase();
+    if (!headers.has("Accept")) {
+      headers.set("Accept", "application/json");
+    }
     if (
       !headers.has("Content-Type") &&
       init.body !== undefined &&

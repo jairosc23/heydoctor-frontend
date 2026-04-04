@@ -1,3 +1,4 @@
+import { getAuthMeUrl } from "../api-base";
 import { apiGet } from "../api-client";
 
 export interface CurrentUserResponse {
@@ -9,5 +10,5 @@ export interface CurrentUserResponse {
 }
 
 export async function fetchCurrentUser(): Promise<CurrentUserResponse> {
-  return apiGet<CurrentUserResponse>("/auth/me");
+  return apiGet<CurrentUserResponse>(getAuthMeUrl());
 }

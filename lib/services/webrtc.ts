@@ -1,15 +1,19 @@
 /**
  * ICE servers for WebRTC (TURN/STUN).
- * Uses NEXT_PUBLIC_ICE_SERVERS_URL or falls back to API_URL/webrtc/ice-servers.
+ * Uses NEXT_PUBLIC_ICE_SERVERS_URL or falls back to {getApiBase()}/webrtc/ice-servers.
  */
 
-import { fetchWithAuth, API_URL } from "../api";
+import { fetchWithAuth, getApiBase } from "../api";
 
-const ICE_URL =
-  (typeof process !== "undefined" &&
-    (process as { env?: { NEXT_PUBLIC_ICE_SERVERS_URL?: string } }).env
-      ?.NEXT_PUBLIC_ICE_SERVERS_URL) ||
-  `${API_URL.replace(/\/$/, "")}/webrtc/ice-servers`;
+function resolveIceServersUrl(): string {
+  const fromEnv =
+    typeof process !== "undefined"
+      ? (process as { env?: { NEXT_PUBLIC_ICE_SERVERS_URL?: string } }).env
+          ?.NEXT_PUBLIC_ICE_SERVERS_URL?.trim()
+      : undefined;
+  if (fromEnv) return fromEnv;
+  return `${getApiBase().replace(/\/$/, "")}/webrtc/ice-servers`;
+}
 
 export interface RTCIceServer {
   urls: string | string[];
@@ -23,7 +27,7 @@ const FALLBACK_SERVERS: RTCIceServer[] = [
 
 export async function fetchIceServers(): Promise<RTCIceServer[]> {
   try {
-    const res = await fetchWithAuth(ICE_URL);
+    const res = await fetchWithAuth(resolveIceServersUrl());
     if (!res.ok) return FALLBACK_SERVERS;
     const data = (await res.json()) as { iceServers?: RTCIceServer[] };
     return data?.iceServers?.length ? data.iceServers : FALLBACK_SERVERS;

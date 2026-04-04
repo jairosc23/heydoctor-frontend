@@ -3,14 +3,14 @@
  * El access_token permanece solo en memoria (vía auth-client).
  */
 
-import { getApiBase } from "../api-base";
+import { getAuthMeUrl } from "../api-base";
 import {
   authLogin as authLoginClient,
   authLogout as authLogoutClient,
   getAccessToken,
   refreshAccessToken,
 } from "../auth-client";
-import { apiGet } from "../api-client";
+import { ApiError, apiGet } from "../api-client";
 
 export type AuthUser = {
   id: string;
@@ -65,7 +65,29 @@ export async function getMe(): Promise<AuthUser> {
   if (!getAccessToken()) {
     await refreshAccessToken();
   }
-  return apiGet<AuthUser>("/auth/me");
+  if (!getAccessToken()) {
+    throw new Error(
+      "No hay access_token para /auth/me: inicia sesión o revisa la cookie refresh en el dominio del API.",
+    );
+  }
+
+  const meUrl = getAuthMeUrl();
+
+  try {
+    // URL absoluta + Bearer vía fetchWithAuth/apiFetch (no depende solo de cookies).
+    return await apiGet<AuthUser>(meUrl);
+  } catch (err) {
+    if (err instanceof ApiError) {
+      const hint =
+        err.status === 404
+          ? ` Revisa NEXT_PUBLIC_API_URL y que el backend exponga GET /api/auth/me. URL usada: ${meUrl} (header Authorization Bearer obligatorio).`
+          : err.status === 401
+            ? " El token puede ser inválido o estar ausente en la petición."
+            : "";
+      throw new ApiError(`${err.message.trim()}${hint}`, err.status, err.body);
+    }
+    throw err;
+  }
 }
 
 /** Útil tras registro/login manual si ya hay token en memoria. */
