@@ -24,7 +24,8 @@ export default function HeyDoctorLogo({
         height={size}
         priority={priority}
         className={cn(
-          "object-contain transition-transform duration-300 hover:scale-105 drop-shadow-lg",
+          "object-contain transition-all duration-500 ease-out hover:scale-105 drop-shadow-lg",
+          "opacity-0 animate-[fadeIn_0.6s_ease-out_forwards]",
         )}
       />
     </span>
