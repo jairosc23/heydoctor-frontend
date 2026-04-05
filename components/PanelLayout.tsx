@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/context/AuthContext";
 import HeyDoctorLogo from "@/components/ui/HeyDoctorLogo";
+import { cn } from "@/lib/utils";
 
 const MENU = [
   { label: "Dashboard", href: "/dashboard" },
@@ -41,10 +42,6 @@ export default function PanelLayout({
   const router = useRouter();
   const { isAuthenticated, logout, user, refreshUser } = useAuth();
   const [dark, setDark] = useState(false);
-  /**
-   * Hidratación solo si falta `user` (p. ej. recarga con cookie). Tras login, `user` ya viene del flujo
-   * determinista → no se llama `refreshUser` ni se duplica GET /me.
-   */
   const [panelSessionChecked, setPanelSessionChecked] = useState(false);
 
   useEffect(() => {
@@ -85,42 +82,13 @@ export default function PanelLayout({
   }
 
   return (
-    <div
-      style={{
-        display: "flex",
-        minHeight: "100vh",
-        overflow: "hidden",
-        background: "#eef4f7",
-        fontFamily: "Open Sans",
-      }}
-    >
-      <aside
-        style={{
-          width: 260,
-          background: "rgba(255,255,255,0.9)",
-          backdropFilter: "blur(16px)",
-          borderRight: "1px solid rgba(0,0,0,0.05)",
-          position: "fixed",
-          top: 0,
-          bottom: 0,
-          left: 0,
-          display: "flex",
-          flexDirection: "column",
-          padding: "30px 20px",
-          boxShadow: "4px 0 30px rgba(0,0,0,0.1)",
-        }}
-      >
-        <div className="flex flex-col items-center mb-9">
+    <div className="flex min-h-screen overflow-hidden bg-[#eef4f7] font-sans">
+      <aside className="fixed bottom-0 left-0 top-0 z-40 flex h-screen w-64 flex-col border-r border-gray-100 bg-white p-4 shadow-soft">
+        <div className="mb-8 flex flex-col items-center">
           <HeyDoctorLogo size={56} className="mx-auto mb-2" />
           <h2
-            style={{
-              fontFamily: "Montserrat",
-              color: "#078a92",
-              fontSize: 18,
-              margin: 0,
-              textAlign: "center",
-              fontWeight: 600,
-            }}
+            className="m-0 text-center text-lg font-semibold text-primary"
+            style={{ fontFamily: "Montserrat, sans-serif" }}
           >
             HeyDoctor
           </h2>
@@ -129,15 +97,10 @@ export default function PanelLayout({
           <Link
             key={item.href}
             href={item.href}
-            style={{
-              padding: 14,
-              marginBottom: 12,
-              borderRadius: 10,
-              textDecoration: "none",
-              fontSize: 15,
-              background: pathname === item.href ? "#dff7f8" : "rgba(255,255,255,0.4)",
-              color: "#333",
-            }}
+            className={cn(
+              "mb-2 rounded-xl px-4 py-2 text-[15px] font-medium text-gray-700 no-underline transition-all duration-200 hover:bg-gray-50",
+              pathname === item.href && "bg-primaryLight text-primary",
+            )}
           >
             {item.label}
           </Link>
@@ -145,92 +108,45 @@ export default function PanelLayout({
         <button
           type="button"
           onClick={() => void handleLogout()}
-          style={{
-            marginTop: "auto",
-            padding: 14,
-            borderRadius: 10,
-            border: "none",
-            background: "rgba(255,255,255,0.4)",
-            color: "red",
-            cursor: "pointer",
-            fontSize: 15,
-            textAlign: "left",
-          }}
+          className="mt-auto rounded-xl border-0 bg-gray-50 px-4 py-2 text-left text-[15px] text-red-600 transition-all duration-200 hover:bg-red-50"
         >
           Cerrar sesión
         </button>
       </aside>
-      <header
-        style={{
-          height: 70,
-          background: "rgba(255,255,255,0.8)",
-          backdropFilter: "blur(10px)",
-          borderBottom: "1px solid rgba(0,0,0,0.07)",
-          position: "fixed",
-          left: 260,
-          right: 0,
-          top: 0,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "0 25px",
-        }}
-      >
-        <div className="flex items-center gap-6 min-w-0 flex-1">
-          <div className="flex items-center gap-2 shrink-0">
+      <header className="fixed left-64 right-0 top-0 z-30 flex h-16 items-center justify-between border-b border-gray-100 bg-white/80 px-6 backdrop-blur-md">
+        <div className="flex min-w-0 flex-1 items-center gap-6">
+          <div className="flex shrink-0 items-center gap-2">
             <HeyDoctorLogo size={36} />
             <span
-              className="font-semibold text-lg"
-              style={{ fontFamily: "Montserrat", color: "#078a92" }}
+              className="text-lg font-semibold text-primary"
+              style={{ fontFamily: "Montserrat, sans-serif" }}
             >
               HeyDoctor
             </span>
           </div>
           <span
-            className="font-semibold text-lg text-slate-600 truncate border-l border-slate-200 pl-6"
-            style={{ fontFamily: "Montserrat" }}
+            className="truncate border-l border-gray-200 pl-6 text-lg font-semibold text-slate-600"
+            style={{ fontFamily: "Montserrat, sans-serif" }}
           >
             {displayTitle}
           </span>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-          <span style={{ fontSize: 13, color: "#555", maxWidth: 220 }}>
-            {user?.email}
-          </span>
+        <div className="flex items-center gap-5">
+          <span className="max-w-[220px] truncate text-xs text-gray-600">{user?.email}</span>
           <button
             type="button"
             onClick={toggleTheme}
-            style={{
-              cursor: "pointer",
-              fontSize: 22,
-              background: "none",
-              border: "none",
-            }}
+            className="border-0 bg-transparent p-0 text-[22px] transition-all duration-200 hover:scale-105"
           >
             {dark ? "☀️" : "🌙"}
           </button>
           <div
-            style={{
-              width: 45,
-              height: 45,
-              background: "#07acb5",
-              borderRadius: "50%",
-            }}
+            className="h-11 w-11 shrink-0 rounded-full bg-primaryMid transition-all duration-200"
+            aria-hidden
           />
         </div>
       </header>
-      <main
-        style={{
-          position: "absolute",
-          left: 260,
-          top: 70,
-          right: 0,
-          bottom: 0,
-          overflowY: "auto",
-          padding: 35,
-          background: "#eef4f7",
-        }}
-      >
+      <main className="absolute bottom-0 left-64 right-0 top-16 overflow-y-auto bg-[#eef4f7] p-8">
         {children}
       </main>
     </div>

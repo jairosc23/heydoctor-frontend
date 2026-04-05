@@ -2,10 +2,9 @@
 
 import { useEffect, useState } from "react";
 import PanelLayout from "@/components/PanelLayout";
+import DashboardCard from "@/components/ui/DashboardCard";
 import { useAuth } from "@/lib/context/AuthContext";
 import { fetchPatients, fetchConsultations } from "@/lib/services";
-
-const BRAND = "#078a92";
 
 interface DashboardStats {
   totalPatients: number;
@@ -49,7 +48,7 @@ export default function DashboardPage() {
       .catch((err) => {
         if (!cancelled)
           setStatsError(
-            err instanceof Error ? err.message : "Error cargando datos"
+            err instanceof Error ? err.message : "Error cargando datos",
           );
       })
       .finally(() => {
@@ -81,44 +80,24 @@ export default function DashboardPage() {
 
   return (
     <PanelLayout title="Dashboard">
-      <div style={{ padding: 25 }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "flex-start",
-            justifyContent: "space-between",
-            flexWrap: "wrap",
-            gap: 16,
-            marginBottom: 25,
-          }}
-        >
+      <div className="space-y-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1
-              style={{
-                fontFamily: "Montserrat",
-                color: BRAND,
-                marginBottom: 5,
-              }}
+              className="mb-1 text-2xl font-bold text-primary"
+              style={{ fontFamily: "Montserrat, sans-serif" }}
             >
               Dashboard Clínico
             </h1>
-            <p style={{ color: "#666", margin: 0 }}>
+            <p className="m-0 text-gray-600">
               Estado general de tu centro médico HeyDoctor
             </p>
           </div>
 
           {plan === "pro" && (
             <span
-              style={{
-                padding: "8px 18px",
-                fontSize: 13,
-                fontFamily: "Montserrat",
-                fontWeight: 700,
-                color: BRAND,
-                background: "#dff7f8",
-                borderRadius: 8,
-                letterSpacing: "0.04em",
-              }}
+              className="rounded-lg bg-primaryLight px-4 py-2 text-xs font-bold tracking-wide text-primary"
+              style={{ fontFamily: "Montserrat, sans-serif" }}
             >
               PRO
             </span>
@@ -126,59 +105,29 @@ export default function DashboardPage() {
         </div>
 
         {statsError && (
-          <div
-            style={{
-              padding: "12px 16px",
-              background: "#fef2f2",
-              border: "1px solid #fecaca",
-              borderRadius: 10,
-              color: "#991b1b",
-              fontSize: 14,
-              marginBottom: 20,
-            }}
-          >
+          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
             {statsError}
           </div>
         )}
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-            gap: 20,
-          }}
-        >
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
           {cards.map((card) => (
-            <div
+            <DashboardCard
               key={card.label}
-              style={{
-                background: "white",
-                padding: 22,
-                borderRadius: 16,
-                boxShadow: "0 4px 18px rgba(0,0,0,0.06)",
-                borderLeft: `6px solid ${card.color}`,
-              }}
-            >
-              <h3 style={{ color: "#999", marginBottom: 10 }}>{card.label}</h3>
-              <p style={{ fontSize: 32, color: BRAND, margin: 0 }}>
-                {statsLoading ? "…" : card.value}
-              </p>
-            </div>
+              title={card.label}
+              value={statsLoading ? "…" : card.value}
+              accentColor={card.color}
+            />
           ))}
         </div>
 
         <h2
-          style={{
-            fontFamily: "Montserrat",
-            marginTop: 40,
-            color: BRAND,
-          }}
+          className="mt-10 text-xl font-bold text-primary"
+          style={{ fontFamily: "Montserrat, sans-serif" }}
         >
           Actividad Clínica
         </h2>
-        <p style={{ marginTop: 20, color: "#666" }}>
-          Bienvenido al panel principal de HeyDoctor.
-        </p>
+        <p className="text-gray-600">Bienvenido al panel principal de HeyDoctor.</p>
       </div>
     </PanelLayout>
   );

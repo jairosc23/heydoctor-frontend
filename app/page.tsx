@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { WhatsAppPatientCTA } from "@/components/WhatsAppPatientCTA";
 import HeyDoctorLogo from "@/components/ui/HeyDoctorLogo";
+import Container from "@/components/ui/Container";
+import Button from "@/components/ui/Button";
 import { getWhatsAppBookingUrl } from "@/lib/whatsapp-url";
 
 const BRAND = "#078a92";
@@ -94,165 +96,82 @@ export default function LandingPage() {
       }}
     >
       {/* ── NAV ── */}
-      <nav className="sticky top-0 z-50 border-b border-gray-100 bg-white/80 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-[1120px] items-center justify-between px-6">
+      <header className="sticky top-0 z-50 border-b border-gray-100 bg-white/80 backdrop-blur-md">
+        <Container className="flex h-16 items-center justify-between">
           <Link
             href="/"
             className="flex items-center gap-2 no-underline"
             style={{ fontFamily: FONT_HEADING, color: BRAND }}
           >
             <HeyDoctorLogo size={36} priority />
-            <span className="text-lg font-semibold tracking-tight">HeyDoctor</span>
+            <span className="text-lg font-semibold">HeyDoctor</span>
           </Link>
-          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          <div className="flex items-center gap-3">
             <Link
               href="/consultar"
-              style={{
-                padding: "8px 16px",
-                fontSize: 14,
-                fontWeight: 600,
-                color: TEXT_MUTED,
-                textDecoration: "none",
-              }}
+              className="rounded-lg px-4 py-2 text-sm font-semibold text-gray-600 no-underline transition-all duration-200 hover:bg-gray-50"
             >
               Consultar
             </Link>
             <Link
               href="/for-doctors/apply"
-              style={{
-                padding: "8px 16px",
-                fontSize: 14,
-                fontWeight: 600,
-                color: TEXT_MUTED,
-                textDecoration: "none",
-              }}
+              className="rounded-lg px-4 py-2 text-sm font-semibold text-gray-600 no-underline transition-all duration-200 hover:bg-gray-50"
             >
               Para Médicos
             </Link>
             <Link
               href="/login"
-              style={{
-                padding: "8px 20px",
-                fontSize: 14,
-                fontFamily: FONT_HEADING,
-                fontWeight: 600,
-                color: TEXT,
-                textDecoration: "none",
-                borderRadius: 8,
-                border: `1px solid ${BORDER}`,
-                background: BG,
-                transition: "background 0.15s",
-              }}
+              className="rounded-lg border border-gray-200 bg-white px-5 py-2 text-sm font-semibold text-gray-900 no-underline transition-all duration-200 hover:bg-gray-50"
+              style={{ fontFamily: FONT_HEADING }}
             >
               Iniciar Sesión
             </Link>
             <Link
               href="/consultar"
-              style={{
-                padding: "8px 20px",
-                fontSize: 14,
-                fontFamily: FONT_HEADING,
-                fontWeight: 600,
-                color: "#fff",
-                textDecoration: "none",
-                borderRadius: 8,
-                background: BRAND,
-              }}
+              className="rounded-xl bg-gradient-to-r from-primaryMid to-primary px-5 py-2 text-sm font-semibold text-white no-underline shadow-soft transition-all duration-200 hover:scale-105 hover:shadow-premium"
+              style={{ fontFamily: FONT_HEADING }}
             >
               Consultar Ahora
             </Link>
           </div>
-        </div>
-      </nav>
+        </Container>
+      </header>
 
       {/* ── HERO ── */}
-      <section
-        style={{
-          maxWidth: 1120,
-          margin: "0 auto",
-          padding: "100px 24px 80px",
-          textAlign: "center",
-        }}
-      >
-        <div className="mb-6 flex w-full justify-center items-center">
-          <HeyDoctorLogo size={88} priority />
-        </div>
-        <div
-          style={{
-            display: "inline-block",
-            padding: "6px 16px",
-            borderRadius: 20,
-            background: BRAND_LIGHT,
-            color: BRAND_DARK,
-            fontSize: 13,
-            fontWeight: 600,
-            marginBottom: 24,
-            letterSpacing: "0.02em",
-          }}
-        >
-          Plataforma clínica de nueva generación
-        </div>
-        <h1
-          style={{
-            fontFamily: FONT_HEADING,
-            fontSize: "clamp(36px, 5vw, 60px)",
-            fontWeight: 700,
-            lineHeight: 1.1,
-            color: TEXT,
-            marginBottom: 20,
-            letterSpacing: "-0.03em",
-          }}
-        >
-          El workspace clínico
-          <br />
-          <span style={{ color: BRAND }}>potenciado por IA</span>
-        </h1>
-        <p
-          style={{
-            fontSize: 18,
-            color: TEXT_MUTED,
-            maxWidth: 560,
-            margin: "0 auto 40px",
-            lineHeight: 1.7,
-          }}
-        >
-          Consultas, telemedicina, inteligencia artificial y cumplimiento legal
-          en una sola plataforma diseñada para profesionales de salud.
-        </p>
-        <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
-          <Link
-            href="/login"
-            style={{
-              padding: "14px 32px",
-              fontSize: 16,
-              fontFamily: FONT_HEADING,
-              fontWeight: 700,
-              color: "#fff",
-              textDecoration: "none",
-              borderRadius: 10,
-              background: BRAND,
-              boxShadow: `0 4px 16px ${BRAND}40`,
-            }}
-          >
-            Empezar Gratis
-          </Link>
-          <a
-            href="#pricing"
-            style={{
-              padding: "14px 32px",
-              fontSize: 16,
-              fontFamily: FONT_HEADING,
-              fontWeight: 700,
-              color: TEXT,
-              textDecoration: "none",
-              borderRadius: 10,
-              border: `1px solid ${BORDER}`,
-              background: BG,
-            }}
-          >
-            Ver Plan PRO
-          </a>
-        </div>
+      <section className="py-20">
+        <Container>
+          <div className="flex flex-col items-center text-center">
+            <div className="mb-6 flex w-full justify-center">
+              <HeyDoctorLogo size={88} priority />
+            </div>
+            <span className="mb-6 inline-block rounded-full bg-primaryLight px-4 py-1.5 text-sm font-semibold tracking-wide text-primaryMid">
+              Plataforma clínica de nueva generación
+            </span>
+            <h1
+              className="mb-5 max-w-4xl font-bold leading-[1.1] tracking-tight text-gray-900"
+              style={{
+                fontFamily: FONT_HEADING,
+                fontSize: "clamp(36px, 5vw, 60px)",
+              }}
+            >
+              El workspace clínico
+              <br />
+              <span className="text-primary">potenciado por IA</span>
+            </h1>
+            <p className="mb-10 max-w-xl text-lg leading-relaxed text-gray-600">
+              Consultas, telemedicina, inteligencia artificial y cumplimiento legal
+              en una sola plataforma diseñada para profesionales de salud.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-4">
+              <Button href="/login" variant="primary" className="text-base min-w-[180px]">
+                Empezar Gratis
+              </Button>
+              <Button href="#pricing" variant="secondary" className="text-base min-w-[180px]">
+                Ver Plan PRO
+              </Button>
+            </div>
+          </div>
+        </Container>
       </section>
 
       {whatsAppUrl ? <WhatsAppPatientCTA url={whatsAppUrl} /> : null}

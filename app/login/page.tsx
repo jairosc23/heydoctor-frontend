@@ -5,6 +5,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/context/AuthContext";
 import HeyDoctorLogo from "@/components/ui/HeyDoctorLogo";
+import Card from "@/components/ui/Card";
+import Input from "@/components/ui/Input";
+import Button from "@/components/ui/Button";
 
 function LoginContent() {
   const [email, setEmail] = useState("");
@@ -45,7 +48,7 @@ function LoginContent() {
         msg.includes("NetworkError")
       ) {
         setError(
-          "No se pudo conectar con el servidor. Verifica tu conexión y que NEXT_PUBLIC_API_URL esté configurada."
+          "No se pudo conectar con el servidor. Verifica tu conexión y que NEXT_PUBLIC_API_URL esté configurada.",
         );
       } else if (msg.toLowerCase().includes("unauthorized") || msg.includes("401")) {
         setError("Credenciales incorrectas o sesión no válida.");
@@ -58,124 +61,48 @@ function LoginContent() {
   }
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "linear-gradient(135deg, #022c2c, #05636b, #078a92)",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        padding: 20,
-      }}
-    >
-      <div
-        style={{
-          background: "rgba(255,255,255,0.12)",
-          padding: 40,
-          width: "100%",
-          maxWidth: 350,
-          borderRadius: 20,
-          backdropFilter: "blur(14px)",
-          boxShadow: "0 0 40px rgba(0,0,0,0.25)",
-          textAlign: "center",
-          border: "1px solid rgba(255,255,255,0.2)",
-        }}
-      >
-        <HeyDoctorLogo
-          size={96}
-          className="mx-auto mb-6 drop-shadow-xl"
-        />
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primaryDark via-primaryMid to-primary px-4 py-12">
+      <Card className="w-full max-w-md text-center shadow-premium">
+        <HeyDoctorLogo size={96} className="mx-auto mb-6 drop-shadow-xl" />
         <h2
-          style={{
-            color: "white",
-            fontFamily: "Montserrat",
-            fontSize: 28,
-            marginBottom: 20,
-          }}
+          className="mb-5 text-[28px] font-bold text-gray-900"
+          style={{ fontFamily: "Montserrat, sans-serif" }}
         >
           Acceso Médico
         </h2>
-        <form onSubmit={handleSubmit}>
-          <input
+        <form onSubmit={handleSubmit} className="text-left">
+          <Input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Email"
             disabled={loading}
             autoComplete="username"
-            style={{
-              width: "100%",
-              padding: 14,
-              borderRadius: 10,
-              border: "none",
-              marginBottom: 12,
-              fontSize: 15,
-              outline: "none",
-              background: "rgba(255,255,255,0.15)",
-              color: "white",
-            }}
+            className="mb-3"
           />
-          <input
+          <Input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Contraseña"
             disabled={loading}
             autoComplete="current-password"
-            style={{
-              width: "100%",
-              padding: 14,
-              borderRadius: 10,
-              border: "none",
-              marginBottom: 12,
-              fontSize: 15,
-              outline: "none",
-              background: "rgba(255,255,255,0.15)",
-              color: "white",
-            }}
+            className="mb-4"
           />
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              width: "100%",
-              padding: 14,
-              marginTop: 5,
-              background: "#00d4ce",
-              color: "#003033",
-              border: "none",
-              fontSize: 17,
-              borderRadius: 10,
-              cursor: loading ? "not-allowed" : "pointer",
-              fontFamily: "Montserrat",
-              fontWeight: "bold",
-            }}
-          >
+          <Button type="submit" variant="primary" disabled={loading} className="w-full">
             {loading ? "Ingresando…" : "Ingresar"}
-          </button>
+          </Button>
         </form>
         {error && (
-          <div
-            style={{
-              color: "#ffdada",
-              marginTop: 12,
-              fontSize: 14,
-              minHeight: 20,
-            }}
-          >
-            {error}
-          </div>
+          <div className="mt-3 min-h-[20px] text-center text-sm text-red-600">{error}</div>
         )}
-        <p style={{ color: "rgba(255,255,255,0.7)", marginTop: 16, fontSize: 14 }}>
+        <p className="mt-4 text-sm text-gray-600">
           ¿No tienes cuenta?{" "}
-          <Link
-            href="/register"
-            style={{ color: "#00d4ce", textDecoration: "none", fontWeight: 600 }}
-          >
+          <Link href="/register" className="font-semibold text-primary no-underline hover:underline">
             Registrarse
           </Link>
         </p>
-      </div>
+      </Card>
     </div>
   );
 }
