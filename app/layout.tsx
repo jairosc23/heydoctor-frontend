@@ -6,6 +6,12 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "HeyDoctor",
   description: "Atención médica online y presencial",
+  icons: {
+    icon: "/logo-heydoctor.png",
+  },
+  openGraph: {
+    images: ["/logo-heydoctor.png"],
+  },
 };
 
 export default function RootLayout({
