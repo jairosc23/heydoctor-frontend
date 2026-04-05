@@ -21,17 +21,15 @@ export function getBackendOrigin(): string {
 /**
  * Base con prefijo `/api` (Nest). Se recalcula en cada llamada para usar siempre
  * la `NEXT_PUBLIC_API_URL` vigente (evita base congelada en el primer import del módulo).
+ *
+ * Resultado típico producción: `https://…railway.app/api` (un solo `/api`, sin slash final).
  */
 export function getApiBase(): string {
-  return `${getBackendOrigin()}/api`;
-}
-
-/** URL absoluta POST /api/auth/login (body JSON: email, password). */
-export function getAuthLoginUrl(): string {
-  return `${getApiBase()}/auth/login`;
+  const origin = getBackendOrigin().replace(/\/+$/, "");
+  return `${origin}/api`.replace(/([^:]\/)\/+/g, "$1");
 }
 
 /** URL absoluta GET /api/auth/me (Jwt: Authorization Bearer obligatorio). */
 export function getAuthMeUrl(): string {
-  return `${getBackendOrigin()}/api/auth/me`;
+  return `${getApiBase()}/auth/me`;
 }
