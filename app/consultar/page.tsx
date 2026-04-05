@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import HeyDoctorLogo from "@/components/ui/HeyDoctorLogo";
 import { useRouter } from "next/navigation";
 import {
   fetchPublicDoctors,
@@ -42,19 +43,29 @@ export default function ConsultarPage() {
 
   return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #f0fdfa 0%, #ecfdf5 100%)" }}>
-      <nav style={{ padding: "16px 32px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <Link href="/" style={{ fontFamily: "Montserrat", fontWeight: 700, fontSize: 22, color: TEAL, textDecoration: "none" }}>
-          HeyDoctor
-        </Link>
-        <div style={{ display: "flex", gap: 16 }}>
-          <Link href="/login" style={{ color: TEAL, fontWeight: 600, textDecoration: "none" }}>
-            Ya tengo cuenta
+      <nav className="sticky top-0 z-50 border-b border-gray-100 bg-white/80 backdrop-blur-md">
+        <div className="mx-auto flex h-16 max-w-[1120px] items-center justify-between px-6">
+          <Link
+            href="/"
+            className="flex items-center gap-2 no-underline"
+            style={{ fontFamily: "Montserrat", color: TEAL }}
+          >
+            <HeyDoctorLogo size={36} priority />
+            <span className="text-lg font-semibold tracking-tight">HeyDoctor</span>
           </Link>
+          <div className="flex items-center gap-4">
+            <Link href="/login" className="font-semibold no-underline hover:underline" style={{ color: TEAL }}>
+              Ya tengo cuenta
+            </Link>
+          </div>
         </div>
       </nav>
 
       <div style={{ maxWidth: 640, margin: "0 auto", padding: "32px 24px 80px" }}>
         <div style={{ textAlign: "center", marginBottom: 32 }}>
+          <div className="mb-6 flex w-full justify-center items-center">
+            <HeyDoctorLogo size={72} priority />
+          </div>
           <h1 style={{ fontFamily: "Montserrat", color: TEAL, fontSize: 36, marginBottom: 12 }}>
             Consulta médica online
           </h1>

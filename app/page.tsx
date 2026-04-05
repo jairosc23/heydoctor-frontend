@@ -94,48 +94,15 @@ export default function LandingPage() {
       }}
     >
       {/* ── NAV ── */}
-      <nav
-        style={{
-          position: "sticky",
-          top: 0,
-          zIndex: 50,
-          background: "rgba(255,255,255,0.85)",
-          backdropFilter: "blur(12px)",
-          borderBottom: `1px solid ${BORDER}`,
-          padding: "0 24px",
-        }}
-      >
-        <div
-          style={{
-            maxWidth: 1120,
-            margin: "0 auto",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            height: 64,
-          }}
-        >
+      <nav className="sticky top-0 z-50 border-b border-gray-100 bg-white/80 backdrop-blur-md">
+        <div className="mx-auto flex h-16 max-w-[1120px] items-center justify-between px-6">
           <Link
             href="/"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              textDecoration: "none",
-            }}
+            className="flex items-center gap-2 no-underline"
+            style={{ fontFamily: FONT_HEADING, color: BRAND }}
           >
-            <HeyDoctorLogo size={44} priority className="mr-2" />
-            <span
-              style={{
-                fontFamily: FONT_HEADING,
-                fontWeight: 700,
-                fontSize: 22,
-                color: BRAND,
-                letterSpacing: "-0.02em",
-              }}
-            >
-              HeyDoctor
-            </span>
+            <HeyDoctorLogo size={36} priority />
+            <span className="text-lg font-semibold tracking-tight">HeyDoctor</span>
           </Link>
           <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
             <Link
@@ -207,7 +174,7 @@ export default function LandingPage() {
           textAlign: "center",
         }}
       >
-        <div className="flex justify-center items-center mb-6">
+        <div className="mb-6 flex w-full justify-center items-center">
           <HeyDoctorLogo size={88} priority />
         </div>
         <div

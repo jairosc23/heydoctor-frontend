@@ -12,7 +12,7 @@ export default function HeyDoctorLogo({
 }) {
   return (
     <span
-      className={cn("inline-block leading-none", className)}
+      className={cn("inline-flex shrink-0 justify-center leading-none", className)}
       style={{
         filter: "drop-shadow(0 10px 25px rgba(0, 150, 136, 0.25))",
       }}
