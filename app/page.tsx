@@ -207,11 +207,9 @@ export default function LandingPage() {
           textAlign: "center",
         }}
       >
-        <HeyDoctorLogo
-          size={88}
-          priority
-          className="mx-auto mb-6 drop-shadow-lg"
-        />
+        <div className="flex justify-center items-center mb-6">
+          <HeyDoctorLogo size={88} priority />
+        </div>
         <div
           style={{
             display: "inline-block",
