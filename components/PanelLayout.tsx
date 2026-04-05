@@ -111,7 +111,7 @@ export default function PanelLayout({
         }}
       >
         <div className="flex flex-col items-center gap-2 mb-9">
-          <HeyDoctorLogo size={48} />
+          <HeyDoctorLogo size={36} />
           <h2
             style={{
               fontFamily: "Montserrat",

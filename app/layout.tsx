@@ -4,12 +4,31 @@ import { Providers } from "@/components/Providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ?? "https://heydoctor.health",
+  ),
+
   title: "HeyDoctor",
   description: "Atención médica online y presencial",
+
   icons: {
     icon: "/logo-heydoctor.png",
   },
+
   openGraph: {
+    title: "HeyDoctor",
+    description: "Atención médica online y presencial",
+    url: "https://heydoctor.health",
+    siteName: "HeyDoctor",
+    images: ["/logo-heydoctor.png"],
+    locale: "es_CL",
+    type: "website",
+  },
+
+  twitter: {
+    card: "summary_large_image",
+    title: "HeyDoctor",
+    description: "Atención médica online y presencial",
     images: ["/logo-heydoctor.png"],
   },
 };
