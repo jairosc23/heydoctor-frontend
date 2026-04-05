@@ -124,7 +124,7 @@ export default function LandingPage() {
               textDecoration: "none",
             }}
           >
-            <HeyDoctorLogo size={40} priority />
+            <HeyDoctorLogo size={44} priority className="mr-2" />
             <span
               style={{
                 fontFamily: FONT_HEADING,
@@ -207,7 +207,11 @@ export default function LandingPage() {
           textAlign: "center",
         }}
       >
-        <HeyDoctorLogo size={72} priority className="mx-auto mb-6" />
+        <HeyDoctorLogo
+          size={88}
+          priority
+          className="mx-auto mb-6 drop-shadow-lg"
+        />
         <div
           style={{
             display: "inline-block",

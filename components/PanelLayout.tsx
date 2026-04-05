@@ -110,8 +110,8 @@ export default function PanelLayout({
           boxShadow: "4px 0 30px rgba(0,0,0,0.1)",
         }}
       >
-        <div className="flex flex-col items-center gap-2 mb-9">
-          <HeyDoctorLogo size={36} />
+        <div className="flex flex-col items-center mb-9">
+          <HeyDoctorLogo size={56} className="mx-auto mb-2" />
           <h2
             style={{
               fontFamily: "Montserrat",

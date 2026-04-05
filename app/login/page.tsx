@@ -81,9 +81,10 @@ function LoginContent() {
           border: "1px solid rgba(255,255,255,0.2)",
         }}
       >
-        <div className="flex justify-center mb-6">
-          <HeyDoctorLogo size={80} priority />
-        </div>
+        <HeyDoctorLogo
+          size={96}
+          className="mx-auto mb-6 drop-shadow-xl"
+        />
         <h2
           style={{
             color: "white",
