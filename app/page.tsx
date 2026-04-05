@@ -3,16 +3,10 @@ import { WhatsAppPatientCTA } from "@/components/WhatsAppPatientCTA";
 import HeyDoctorLogo from "@/components/ui/HeyDoctorLogo";
 import Container from "@/components/ui/Container";
 import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
 import { getWhatsAppBookingUrl } from "@/lib/whatsapp-url";
 
 const BRAND = "#078a92";
-const BRAND_DARK = "#05636b";
-const BRAND_LIGHT = "#dff7f8";
-const TEXT = "#1a1a1a";
-const TEXT_MUTED = "#6b7280";
-const BG = "#ffffff";
-const BG_ALT = "#f8fafb";
-const BORDER = "#e5e7eb";
 const FONT_HEADING = "Montserrat, sans-serif";
 
 const FEATURES = [
@@ -87,14 +81,7 @@ export default function LandingPage() {
   const whatsAppUrl = getWhatsAppBookingUrl();
 
   return (
-    <div
-      style={{
-        fontFamily: "Open Sans, sans-serif",
-        color: TEXT,
-        background: BG,
-        overflowX: "hidden",
-      }}
-    >
+    <div className="min-h-screen overflow-x-hidden bg-white font-sans text-gray-900">
       {/* ── NAV ── */}
       <header className="sticky top-0 z-50 border-b border-gray-100 bg-white/80 backdrop-blur-md">
         <Container className="flex h-16 items-center justify-between">
@@ -119,20 +106,12 @@ export default function LandingPage() {
             >
               Para Médicos
             </Link>
-            <Link
-              href="/login"
-              className="rounded-lg border border-gray-200 bg-white px-5 py-2 text-sm font-semibold text-gray-900 no-underline transition-all duration-200 hover:bg-gray-50"
-              style={{ fontFamily: FONT_HEADING }}
-            >
+            <Button href="/login" variant="secondary" className="px-5 py-2 text-sm font-[family-name:Montserrat,sans-serif]">
               Iniciar Sesión
-            </Link>
-            <Link
-              href="/consultar"
-              className="rounded-xl bg-gradient-to-r from-primaryMid to-primary px-5 py-2 text-sm font-semibold text-white no-underline shadow-soft transition-all duration-200 hover:scale-105 hover:shadow-premium"
-              style={{ fontFamily: FONT_HEADING }}
-            >
+            </Button>
+            <Button href="/consultar" variant="primary" className="px-5 py-2 text-sm font-[family-name:Montserrat,sans-serif]">
               Consultar Ahora
-            </Link>
+            </Button>
           </div>
         </Container>
       </header>
@@ -162,11 +141,11 @@ export default function LandingPage() {
               Consultas, telemedicina, inteligencia artificial y cumplimiento legal
               en una sola plataforma diseñada para profesionales de salud.
             </p>
-            <div className="flex flex-wrap items-center justify-center gap-4">
-              <Button href="/login" variant="primary" className="text-base min-w-[180px]">
+            <div className="flex flex-wrap items-center justify-center gap-6">
+              <Button href="/login" variant="primary" className="min-w-[180px] text-base">
                 Empezar Gratis
               </Button>
-              <Button href="#pricing" variant="secondary" className="text-base min-w-[180px]">
+              <Button href="#pricing" variant="secondary" className="min-w-[180px] text-base">
                 Ver Plan PRO
               </Button>
             </div>
@@ -177,148 +156,64 @@ export default function LandingPage() {
       {whatsAppUrl ? <WhatsAppPatientCTA url={whatsAppUrl} /> : null}
 
       {/* ── FEATURES ── */}
-      <section
-        style={{
-          background: BG_ALT,
-          padding: "80px 24px",
-        }}
-      >
-        <div style={{ maxWidth: 1120, margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: 56 }}>
+      <section className="bg-gray-50 py-20">
+        <Container>
+          <div className="mb-12 text-center">
             <h2
-              style={{
-                fontFamily: FONT_HEADING,
-                fontSize: 32,
-                fontWeight: 700,
-                color: TEXT,
-                marginBottom: 12,
-                letterSpacing: "-0.02em",
-              }}
+              className="mb-3 text-3xl font-bold tracking-tight text-gray-900"
+              style={{ fontFamily: FONT_HEADING }}
             >
               Todo lo que necesitas
             </h2>
-            <p style={{ color: TEXT_MUTED, fontSize: 16, maxWidth: 480, margin: "0 auto" }}>
+            <p className="mx-auto max-w-xl text-gray-600">
               Herramientas clínicas modernas que antes requerían múltiples sistemas.
             </p>
           </div>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-              gap: 24,
-            }}
-          >
+          <div className="grid gap-6 md:grid-cols-3">
             {FEATURES.map((f) => (
-              <div
-                key={f.title}
-                style={{
-                  background: BG,
-                  borderRadius: 14,
-                  padding: "32px 28px",
-                  border: `1px solid ${BORDER}`,
-                  transition: "box-shadow 0.2s",
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: 32,
-                    marginBottom: 16,
-                    width: 56,
-                    height: 56,
-                    borderRadius: 12,
-                    background: BRAND_LIGHT,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
+              <Card key={f.title} className="flex h-full flex-col text-left">
+                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-primaryLight text-2xl">
                   {f.icon}
                 </div>
                 <h3
-                  style={{
-                    fontFamily: FONT_HEADING,
-                    fontSize: 18,
-                    fontWeight: 700,
-                    color: TEXT,
-                    marginBottom: 8,
-                  }}
+                  className="mb-2 text-lg font-bold text-gray-900"
+                  style={{ fontFamily: FONT_HEADING }}
                 >
                   {f.title}
                 </h3>
-                <p style={{ color: TEXT_MUTED, fontSize: 14, lineHeight: 1.65 }}>
-                  {f.description}
-                </p>
-              </div>
+                <p className="text-sm leading-relaxed text-gray-600">{f.description}</p>
+              </Card>
             ))}
           </div>
-        </div>
+        </Container>
       </section>
 
       {/* ── PRICING ── */}
-      <section id="pricing" style={{ padding: "80px 24px", background: BG }}>
-        <div style={{ maxWidth: 880, margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: 56 }}>
+      <section id="pricing" className="bg-white py-20">
+        <Container className="max-w-4xl">
+          <div className="mb-12 text-center">
             <h2
-              style={{
-                fontFamily: FONT_HEADING,
-                fontSize: 32,
-                fontWeight: 700,
-                color: TEXT,
-                marginBottom: 12,
-                letterSpacing: "-0.02em",
-              }}
+              className="mb-3 text-3xl font-bold tracking-tight text-gray-900"
+              style={{ fontFamily: FONT_HEADING }}
             >
               Planes simples, sin sorpresas
             </h2>
-            <p style={{ color: TEXT_MUTED, fontSize: 16 }}>
-              Empieza gratis. Upgrade cuando lo necesites.
-            </p>
+            <p className="text-gray-600">Empieza gratis. Upgrade cuando lo necesites.</p>
           </div>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-              gap: 24,
-              alignItems: "start",
-            }}
-          >
-            {/* FREE */}
-            <div
-              style={{
-                border: `1px solid ${BORDER}`,
-                borderRadius: 16,
-                padding: "40px 32px",
-                background: BG,
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: TEXT_MUTED,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.06em",
-                  marginBottom: 8,
-                }}
-              >
+          <div className="mx-auto grid max-w-4xl gap-6 md:grid-cols-2">
+            <Card className="flex flex-col">
+              <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
                 Free
               </div>
               <div
-                style={{
-                  fontFamily: FONT_HEADING,
-                  fontSize: 40,
-                  fontWeight: 700,
-                  color: TEXT,
-                  marginBottom: 4,
-                }}
+                className="mb-1 text-4xl font-bold text-gray-900"
+                style={{ fontFamily: FONT_HEADING }}
               >
                 $0
               </div>
-              <p style={{ color: TEXT_MUTED, fontSize: 14, marginBottom: 28 }}>
-                Para siempre. Sin tarjeta de crédito.
-              </p>
-              <ul style={{ listStyle: "none", padding: 0, margin: "0 0 32px" }}>
+              <p className="mb-6 text-sm text-gray-600">Para siempre. Sin tarjeta de crédito.</p>
+              <ul className="mb-8 flex-1 list-none space-y-0 divide-y divide-gray-100 border-t border-gray-100 p-0">
                 {[
                   "Consultas básicas",
                   "Gestión de pacientes",
@@ -327,97 +222,39 @@ export default function LandingPage() {
                 ].map((item) => (
                   <li
                     key={item}
-                    style={{
-                      padding: "8px 0",
-                      fontSize: 14,
-                      color: TEXT,
-                      borderBottom: `1px solid ${BORDER}`,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 10,
-                    }}
+                    className="flex items-center gap-2.5 py-2 text-sm text-gray-800"
                   >
-                    <span style={{ color: BRAND, fontWeight: 700 }}>✓</span>
+                    <span className="font-bold text-primary">✓</span>
                     {item}
                   </li>
                 ))}
               </ul>
-              <Link
-                href="/login"
-                style={{
-                  display: "block",
-                  textAlign: "center",
-                  padding: "12px 0",
-                  borderRadius: 10,
-                  border: `1px solid ${BORDER}`,
-                  color: TEXT,
-                  textDecoration: "none",
-                  fontFamily: FONT_HEADING,
-                  fontWeight: 600,
-                  fontSize: 15,
-                }}
-              >
+              <Button href="/login" variant="secondary" className="w-full">
                 Empezar Gratis
-              </Link>
-            </div>
+              </Button>
+            </Card>
 
-            {/* PRO */}
-            <div
-              style={{
-                border: `2px solid ${BRAND}`,
-                borderRadius: 16,
-                padding: "40px 32px",
-                background: BG,
-                position: "relative",
-              }}
-            >
+            <Card className="relative flex flex-col border-2 border-primary pt-8 shadow-premium">
               <div
-                style={{
-                  position: "absolute",
-                  top: -13,
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  background: BRAND,
-                  color: "#fff",
-                  padding: "4px 16px",
-                  borderRadius: 20,
-                  fontSize: 12,
-                  fontWeight: 700,
-                  fontFamily: FONT_HEADING,
-                  letterSpacing: "0.04em",
-                }}
+                className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary px-4 py-1 text-xs font-bold uppercase tracking-wide text-white"
+                style={{ fontFamily: FONT_HEADING }}
               >
-                RECOMENDADO
+                Recomendado
               </div>
-              <div
-                style={{
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: BRAND,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.06em",
-                  marginBottom: 8,
-                }}
-              >
+              <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-primary">
                 Pro
               </div>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 4 }}>
+              <div className="mb-1 flex items-baseline gap-1">
                 <span
-                  style={{
-                    fontFamily: FONT_HEADING,
-                    fontSize: 40,
-                    fontWeight: 700,
-                    color: TEXT,
-                  }}
+                  className="text-4xl font-bold text-gray-900"
+                  style={{ fontFamily: FONT_HEADING }}
                 >
                   $49
                 </span>
-                <span style={{ color: TEXT_MUTED, fontSize: 14 }}>/mes</span>
+                <span className="text-sm text-gray-500">/mes</span>
               </div>
-              <p style={{ color: TEXT_MUTED, fontSize: 14, marginBottom: 28 }}>
-                Todo incluido. Cancela cuando quieras.
-              </p>
-              <ul style={{ listStyle: "none", padding: 0, margin: "0 0 32px" }}>
+              <p className="mb-6 text-sm text-gray-600">Todo incluido. Cancela cuando quieras.</p>
+              <ul className="mb-8 flex-1 list-none space-y-0 divide-y divide-gray-100 border-t border-gray-100 p-0">
                 {[
                   "Todo lo del plan Free",
                   "Asistente IA Clínico",
@@ -429,274 +266,143 @@ export default function LandingPage() {
                 ].map((item) => (
                   <li
                     key={item}
-                    style={{
-                      padding: "8px 0",
-                      fontSize: 14,
-                      color: TEXT,
-                      borderBottom: `1px solid ${BORDER}`,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 10,
-                    }}
+                    className="flex items-center gap-2.5 py-2 text-sm text-gray-800"
                   >
-                    <span style={{ color: BRAND, fontWeight: 700 }}>✓</span>
+                    <span className="font-bold text-primary">✓</span>
                     {item}
                   </li>
                 ))}
               </ul>
-              <Link
-                href="/login"
-                style={{
-                  display: "block",
-                  textAlign: "center",
-                  padding: "12px 0",
-                  borderRadius: 10,
-                  background: BRAND,
-                  color: "#fff",
-                  textDecoration: "none",
-                  fontFamily: FONT_HEADING,
-                  fontWeight: 700,
-                  fontSize: 15,
-                  boxShadow: `0 4px 16px ${BRAND}40`,
-                }}
-              >
+              <Button href="/login" variant="primary" className="w-full">
                 Upgrade a PRO
-              </Link>
-            </div>
+              </Button>
+            </Card>
           </div>
-        </div>
+        </Container>
       </section>
 
       {/* ── TRUST ── */}
-      <section style={{ background: BG_ALT, padding: "80px 24px" }}>
-        <div style={{ maxWidth: 1120, margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: 56 }}>
+      <section className="bg-gray-50 py-20">
+        <Container>
+          <div className="mb-12 text-center">
             <h2
-              style={{
-                fontFamily: FONT_HEADING,
-                fontSize: 32,
-                fontWeight: 700,
-                color: TEXT,
-                marginBottom: 12,
-                letterSpacing: "-0.02em",
-              }}
+              className="mb-3 text-3xl font-bold tracking-tight text-gray-900"
+              style={{ fontFamily: FONT_HEADING }}
             >
               Construido para la confianza
             </h2>
-            <p style={{ color: TEXT_MUTED, fontSize: 16, maxWidth: 480, margin: "0 auto" }}>
+            <p className="mx-auto max-w-xl text-gray-600">
               Seguridad, trazabilidad y cumplimiento normativo desde el día uno.
             </p>
           </div>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-              gap: 24,
-            }}
-          >
+          <div className="grid gap-6 md:grid-cols-3">
             {TRUST_ITEMS.map((t) => (
-              <div
-                key={t.title}
-                style={{
-                  textAlign: "center",
-                  padding: "36px 28px",
-                  background: BG,
-                  borderRadius: 14,
-                  border: `1px solid ${BORDER}`,
-                }}
-              >
-                <div style={{ fontSize: 36, marginBottom: 16 }}>{t.icon}</div>
+              <Card key={t.title} className="text-center">
+                <div className="mb-4 text-4xl">{t.icon}</div>
                 <h3
-                  style={{
-                    fontFamily: FONT_HEADING,
-                    fontSize: 18,
-                    fontWeight: 700,
-                    color: TEXT,
-                    marginBottom: 8,
-                  }}
+                  className="mb-2 text-lg font-bold text-gray-900"
+                  style={{ fontFamily: FONT_HEADING }}
                 >
                   {t.title}
                 </h3>
-                <p style={{ color: TEXT_MUTED, fontSize: 14, lineHeight: 1.65 }}>
-                  {t.description}
-                </p>
-              </div>
+                <p className="text-sm leading-relaxed text-gray-600">{t.description}</p>
+              </Card>
             ))}
           </div>
-        </div>
+        </Container>
       </section>
 
       {/* ── FINAL CTA ── */}
-      <section
-        style={{
-          padding: "80px 24px",
-          background: `linear-gradient(135deg, ${BRAND_DARK}, ${BRAND})`,
-          textAlign: "center",
-        }}
-      >
-        <h2
-          style={{
-            fontFamily: FONT_HEADING,
-            fontSize: "clamp(28px, 4vw, 40px)",
-            fontWeight: 700,
-            color: "#fff",
-            marginBottom: 16,
-            letterSpacing: "-0.02em",
-          }}
-        >
-          Empieza a usar HeyDoctor hoy
-        </h2>
-        <p
-          style={{
-            color: "rgba(255,255,255,0.8)",
-            fontSize: 16,
-            maxWidth: 480,
-            margin: "0 auto 36px",
-            lineHeight: 1.7,
-          }}
-        >
-          Crea tu cuenta gratis en 30 segundos. Sin tarjeta de crédito.
-          Upgrade a PRO cuando estés listo.
-        </p>
-        <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
-          <Link
-            href="/consultar"
+      <section className="bg-gradient-to-br from-primaryDark via-primaryMid to-primary py-20 text-center">
+        <Container>
+          <h2
+            className="mb-4 font-bold text-white"
             style={{
-              display: "inline-block",
-              padding: "14px 40px",
-              fontSize: 16,
               fontFamily: FONT_HEADING,
-              fontWeight: 700,
-              color: BRAND_DARK,
-              textDecoration: "none",
-              borderRadius: 10,
-              background: "#fff",
-              boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+              fontSize: "clamp(28px, 4vw, 40px)",
             }}
           >
-            Consultar Ahora
-          </Link>
-          <Link
-            href="/for-doctors/apply"
-            style={{
-              display: "inline-block",
-              padding: "14px 40px",
-              fontSize: 16,
-              fontFamily: FONT_HEADING,
-              fontWeight: 700,
-              color: "#fff",
-              textDecoration: "none",
-              borderRadius: 10,
-              border: "2px solid rgba(255,255,255,0.4)",
-              background: "transparent",
-            }}
-          >
-            Soy Médico
-          </Link>
-        </div>
+            Empieza a usar HeyDoctor hoy
+          </h2>
+          <p className="mx-auto mb-10 max-w-xl text-base leading-relaxed text-white/80">
+            Crea tu cuenta gratis en 30 segundos. Sin tarjeta de crédito.
+            Upgrade a PRO cuando estés listo.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-6">
+            <Button
+              href="/consultar"
+              variant="secondary"
+              className="min-w-[200px] border-0 bg-white font-[family-name:Montserrat,sans-serif] text-gray-900 shadow-premium hover:bg-gray-100"
+            >
+              Consultar Ahora
+            </Button>
+            <Button
+              href="/for-doctors/apply"
+              variant="secondary"
+              className="min-w-[200px] border-2 border-white/40 bg-transparent font-[family-name:Montserrat,sans-serif] text-white hover:bg-white/10"
+            >
+              Soy Médico
+            </Button>
+          </div>
+        </Container>
       </section>
 
       {/* ── TESTIMONIALS ── */}
-      <section style={{ padding: "80px 24px", background: BG_ALT }}>
-        <div style={{ maxWidth: 1120, margin: "0 auto", textAlign: "center" }}>
+      <section className="bg-gray-50 py-20">
+        <Container>
           <h2
-            style={{
-              fontFamily: FONT_HEADING,
-              fontSize: "clamp(24px, 3vw, 36px)",
-              fontWeight: 700,
-              color: TEXT,
-              marginBottom: 40,
-            }}
+            className="mb-12 text-center text-3xl font-bold text-gray-900"
+            style={{ fontFamily: FONT_HEADING }}
           >
             Lo que dicen nuestros usuarios
           </h2>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-              gap: 24,
-            }}
-          >
+          <div className="grid gap-6 md:grid-cols-3">
             {TESTIMONIALS.map((t, i) => (
-              <div
-                key={i}
-                style={{
-                  background: BG,
-                  borderRadius: 12,
-                  padding: 24,
-                  border: `1px solid ${BORDER}`,
-                  textAlign: "left",
-                }}
-              >
-                <div style={{ display: "flex", gap: 4, marginBottom: 12 }}>
+              <Card key={i} className="text-left">
+                <div className="mb-3 flex gap-1">
                   {Array.from({ length: t.stars }).map((_, si) => (
-                    <span key={si} style={{ color: "#f59e0b", fontSize: 16 }}>
+                    <span key={si} className="text-base text-amber-500">
                       &#9733;
                     </span>
                   ))}
                 </div>
-                <p
-                  style={{
-                    color: "#334155",
-                    fontSize: 15,
-                    lineHeight: 1.6,
-                    margin: "0 0 16px",
-                    fontStyle: "italic",
-                  }}
-                >
+                <p className="mb-4 text-sm italic leading-relaxed text-slate-700">
                   &ldquo;{t.text}&rdquo;
                 </p>
                 <div>
-                  <p style={{ margin: 0, fontWeight: 600, fontSize: 14, color: TEXT }}>
-                    {t.name}
-                  </p>
-                  <p style={{ margin: 0, fontSize: 13, color: TEXT_MUTED }}>
-                    {t.role}
-                  </p>
+                  <p className="m-0 text-sm font-semibold text-gray-900">{t.name}</p>
+                  <p className="m-0 text-xs text-gray-600">{t.role}</p>
                 </div>
-              </div>
+              </Card>
             ))}
           </div>
-        </div>
+        </Container>
       </section>
 
       {/* ── FOOTER ── */}
-      <footer
-        style={{
-          padding: "40px 24px",
-          borderTop: `1px solid ${BORDER}`,
-          background: BG,
-        }}
-      >
-        <div
-          style={{
-            maxWidth: 1120,
-            margin: "0 auto",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: 16,
-          }}
-        >
-          <p style={{ color: TEXT_MUTED, fontSize: 13, margin: 0 }}>
+      <footer className="border-t border-gray-200 bg-white py-10">
+        <Container className="flex flex-wrap items-center justify-between gap-4">
+          <p className="m-0 text-sm text-gray-500">
             &copy; {new Date().getFullYear()} HeyDoctor. Todos los derechos reservados.
           </p>
-          <div style={{ display: "flex", gap: 20 }}>
-            <Link href="/terms" style={{ color: TEXT_MUTED, fontSize: 13, textDecoration: "none" }}>
+          <div className="flex flex-wrap gap-6">
+            <Link href="/terms" className="text-sm text-gray-500 no-underline hover:text-primary">
               Términos
             </Link>
-            <Link href="/privacy" style={{ color: TEXT_MUTED, fontSize: 13, textDecoration: "none" }}>
+            <Link href="/privacy" className="text-sm text-gray-500 no-underline hover:text-primary">
               Privacidad
             </Link>
-            <Link href="/for-doctors/apply" style={{ color: TEXT_MUTED, fontSize: 13, textDecoration: "none" }}>
+            <Link
+              href="/for-doctors/apply"
+              className="text-sm text-gray-500 no-underline hover:text-primary"
+            >
               Para Médicos
             </Link>
-            <Link href="/consultar" style={{ color: TEXT_MUTED, fontSize: 13, textDecoration: "none" }}>
+            <Link href="/consultar" className="text-sm text-gray-500 no-underline hover:text-primary">
               Consultar
             </Link>
           </div>
-        </div>
+        </Container>
       </footer>
     </div>
   );
