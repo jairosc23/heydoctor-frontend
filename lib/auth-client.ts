@@ -5,7 +5,7 @@
 
 import { invalidateJwtPayloadCache } from "./auth-token";
 import { emitAuthTelemetry } from "./auth-telemetry";
-import { getApiBase, getBackendOrigin } from "./api-base";
+import { getApiBase, getAuthLoginUrl } from "./api-base";
 import { setFirstPartySessionFromAccessToken } from "./first-party-session-cookie";
 
 // ── In-memory access token ──────────────────────────────────────
@@ -221,7 +221,7 @@ export async function authLogin(
   email: string,
   password: string,
 ): Promise<AuthLoginResult> {
-  const url = `${getBackendOrigin()}/api/auth/login`;
+  const url = getAuthLoginUrl();
 
   const res = await fetch(url, {
     method: "POST",

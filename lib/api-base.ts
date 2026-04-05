@@ -26,6 +26,11 @@ export function getApiBase(): string {
   return `${getBackendOrigin()}/api`;
 }
 
+/** URL absoluta POST /api/auth/login (body JSON: email, password). */
+export function getAuthLoginUrl(): string {
+  return `${getApiBase()}/auth/login`;
+}
+
 /** URL absoluta GET /api/auth/me (Jwt: Authorization Bearer obligatorio). */
 export function getAuthMeUrl(): string {
   return `${getBackendOrigin()}/api/auth/me`;
