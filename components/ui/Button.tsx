@@ -18,6 +18,9 @@ type ButtonOwnProps = {
   variant?: ButtonVariant;
   className?: string;
   href?: string;
+  /** Solo aplica cuando hay `href` (p. ej. enlaces externos `target="_blank"`). */
+  target?: React.HTMLAttributeAnchorTarget;
+  rel?: string;
 };
 
 export type ButtonProps = ButtonOwnProps &
@@ -28,6 +31,8 @@ export default function Button({
   variant = "primary",
   className,
   href,
+  target,
+  rel,
   type = "button",
   disabled,
   ...props
@@ -36,7 +41,7 @@ export default function Button({
 
   if (href && !disabled) {
     return (
-      <Link href={href} className={cls}>
+      <Link href={href} className={cls} target={target} rel={rel}>
         {children}
       </Link>
     );
