@@ -66,14 +66,10 @@ export function WhatsAppPatientCTA({ url }: WhatsAppPatientCTAProps) {
           </p>
           <WhatsAppButton href={url} />
         </div>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            padding: "8px 0",
-          }}
-        >
-          <WhatsAppQR url={url} />
+        <div className="flex justify-center py-2">
+          <div className="p-3 bg-white rounded-xl shadow-md">
+            <WhatsAppQR url={url} />
+          </div>
         </div>
       </div>
     </section>

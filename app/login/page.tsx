@@ -4,6 +4,7 @@ import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/context/AuthContext";
+import HeyDoctorLogo from "@/components/ui/HeyDoctorLogo";
 
 function LoginContent() {
   const [email, setEmail] = useState("");
@@ -80,6 +81,9 @@ function LoginContent() {
           border: "1px solid rgba(255,255,255,0.2)",
         }}
       >
+        <div className="flex justify-center mb-6">
+          <HeyDoctorLogo size={80} priority />
+        </div>
         <h2
           style={{
             color: "white",

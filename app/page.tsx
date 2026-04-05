@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { WhatsAppPatientCTA } from "@/components/WhatsAppPatientCTA";
+import HeyDoctorLogo from "@/components/ui/HeyDoctorLogo";
 import { getWhatsAppBookingUrl } from "@/lib/whatsapp-url";
 
 const BRAND = "#078a92";
@@ -114,17 +115,28 @@ export default function LandingPage() {
             height: 64,
           }}
         >
-          <span
+          <Link
+            href="/"
             style={{
-              fontFamily: FONT_HEADING,
-              fontWeight: 700,
-              fontSize: 22,
-              color: BRAND,
-              letterSpacing: "-0.02em",
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              textDecoration: "none",
             }}
           >
-            HeyDoctor
-          </span>
+            <HeyDoctorLogo size={40} priority />
+            <span
+              style={{
+                fontFamily: FONT_HEADING,
+                fontWeight: 700,
+                fontSize: 22,
+                color: BRAND,
+                letterSpacing: "-0.02em",
+              }}
+            >
+              HeyDoctor
+            </span>
+          </Link>
           <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
             <Link
               href="/consultar"
@@ -195,6 +207,9 @@ export default function LandingPage() {
           textAlign: "center",
         }}
       >
+        <div className="flex justify-center mb-6">
+          <HeyDoctorLogo size={72} priority />
+        </div>
         <div
           style={{
             display: "inline-block",

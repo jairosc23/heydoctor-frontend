@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/context/AuthContext";
+import HeyDoctorLogo from "@/components/ui/HeyDoctorLogo";
 
 const MENU = [
   { label: "Dashboard", href: "/dashboard" },
@@ -109,17 +110,21 @@ export default function PanelLayout({
           boxShadow: "4px 0 30px rgba(0,0,0,0.1)",
         }}
       >
-        <h2
-          style={{
-            fontFamily: "Montserrat",
-            color: "#078a92",
-            fontSize: 24,
-            marginBottom: 35,
-            textAlign: "center",
-          }}
-        >
-          HeyDoctor
-        </h2>
+        <div className="flex flex-col items-center gap-2 mb-9">
+          <HeyDoctorLogo size={48} />
+          <h2
+            style={{
+              fontFamily: "Montserrat",
+              color: "#078a92",
+              fontSize: 18,
+              margin: 0,
+              textAlign: "center",
+              fontWeight: 600,
+            }}
+          >
+            HeyDoctor
+          </h2>
+        </div>
         {MENU.map((item) => (
           <Link
             key={item.href}
@@ -171,15 +176,22 @@ export default function PanelLayout({
           padding: "0 25px",
         }}
       >
-        <div
-          style={{
-            fontFamily: "Montserrat",
-            fontSize: 22,
-            color: "#078a92",
-            fontWeight: 600,
-          }}
-        >
-          {displayTitle}
+        <div className="flex items-center gap-6 min-w-0 flex-1">
+          <div className="flex items-center gap-2 shrink-0">
+            <HeyDoctorLogo size={36} />
+            <span
+              className="font-semibold text-lg"
+              style={{ fontFamily: "Montserrat", color: "#078a92" }}
+            >
+              HeyDoctor
+            </span>
+          </div>
+          <span
+            className="font-semibold text-lg text-slate-600 truncate border-l border-slate-200 pl-6"
+            style={{ fontFamily: "Montserrat" }}
+          >
+            {displayTitle}
+          </span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
           <span style={{ fontSize: 13, color: "#555", maxWidth: 220 }}>
