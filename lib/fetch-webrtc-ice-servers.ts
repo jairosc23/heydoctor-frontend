@@ -1,6 +1,8 @@
 /**
- * Fetches ephemeral ICE servers (STUN/TURN) from the Nest API.
- * TURN credentials must never be static in the client bundle.
+ * Fetches ICE servers (STUN + multi-region TURN) from the Nest API.
+ * TURN credentials are ephemeral (HMAC) or static per env — never baked into the bundle.
+ * The browser's ICE agent selects reachable candidates (latency / connectivity); listing
+ * several regional relays (e.g. SCL, GRU, BOG) improves resilience without client-side ordering logic.
  */
 
 export type IceServersResponse = {

@@ -17,6 +17,7 @@ import {
   AiInsightsPanel,
   LiveAiNoteSuggestions,
   ConsultationConsentCard,
+  ConsultationAssistPanel,
 } from "@/components/clinical";
 
 function ConsultasContent() {
@@ -353,7 +354,8 @@ function ConsultasContent() {
               diagnosisCode={diagnosisCode || clinicalDiagnosisText || undefined}
             />
           </div>
-          <div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            <ConsultationAssistPanel initialNotes={clinicalNotes} />
             <AiInsightsPanel
               patientId={patientId}
               consultationId={consultationId}

@@ -10,5 +10,7 @@ export * from "./appointments";
 export * from "./search";
 export * from "./cdss";
 export * from "./metrics";
+export * from "./webrtc-metrics";
+export * from "./consultation-assist";
 export * from "./auth-session";
 export * from "./auth";

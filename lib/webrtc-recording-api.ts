@@ -3,6 +3,8 @@ export type RecordingApiInput = {
   accessToken: string;
   consultationId: string;
   userConsent: boolean;
+  /** Si false, la política indica que no se exige consentimiento explícito (por defecto true). */
+  consentRequired?: boolean;
 };
 
 export async function requestRecordingStart(
@@ -22,6 +24,7 @@ export async function requestRecordingStart(
     body: JSON.stringify({
       consultationId: input.consultationId,
       userConsent: input.userConsent,
+      consentRequired: input.consentRequired !== false,
     }),
   });
   if (!res.ok) {
@@ -47,6 +50,7 @@ export async function requestRecordingStop(
     body: JSON.stringify({
       consultationId: input.consultationId,
       userConsent: input.userConsent,
+      consentRequired: input.consentRequired !== false,
     }),
   });
   if (!res.ok) {

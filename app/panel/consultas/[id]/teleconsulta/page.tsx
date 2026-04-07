@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useConsultation } from "@/context/ConsultationContext";
 import { fetchConsultation } from "@/lib/services";
+import { CallQualityDashboard } from "@/components/CallQualityDashboard";
 import { TeleconsultaVideoSession } from "@/components/webrtc/TeleconsultaVideoSession";
 
 export default function TeleconsultaPanelPage() {
@@ -58,7 +59,7 @@ export default function TeleconsultaPanelPage() {
   }
 
   return (
-    <div style={{ padding: 20, height: "calc(100vh - 100px)" }}>
+    <div style={{ padding: 20, minHeight: "calc(100vh - 100px)" }}>
       <div
         style={{
           marginBottom: 16,
@@ -74,12 +75,24 @@ export default function TeleconsultaPanelPage() {
           ← Volver a consulta
         </Link>
       </div>
-      <TeleconsultaVideoSession
-        roomId={consultationId}
-        consultationId={consultationId}
-        isDoctor={!!doctorId}
-        onEndCall={() => router.push("/panel/consultas")}
-      />
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "minmax(0, 1fr) minmax(260px, 320px)",
+          gap: 16,
+          alignItems: "start",
+        }}
+      >
+        <div style={{ minHeight: 360 }}>
+          <TeleconsultaVideoSession
+            roomId={consultationId}
+            consultationId={consultationId}
+            isDoctor={!!doctorId}
+            onEndCall={() => router.push("/panel/consultas")}
+          />
+        </div>
+        <CallQualityDashboard consultationId={consultationId} />
+      </div>
     </div>
   );
 }
