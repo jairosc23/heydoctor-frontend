@@ -2,10 +2,12 @@ import { apiGet, apiPatch, apiPost } from "../api-client";
 
 const BASE = "/consultations";
 
-/** Crear consulta en Nest: solo patientId + reason. */
+/** Crear consulta en Nest: patientId + chiefComplaint (alias `reason` por compatibilidad). */
 export interface CreateConsultationDto {
   patientId: string;
-  reason: string;
+  chiefComplaint?: string;
+  /** @deprecated usar chiefComplaint */
+  reason?: string;
 }
 
 export interface ConsultationFilters {
@@ -30,8 +32,12 @@ export interface NestConsultation {
   patientId?: string;
   clinicId?: string;
   doctorId?: string;
+  chiefComplaint?: string | null;
+  /** @deprecated backend usa chiefComplaint */
   reason?: string;
   diagnosis?: string | null;
+  treatmentPlan?: string | null;
+  /** @deprecated backend usa treatmentPlan */
   treatment?: string | null;
   notes?: string | null;
   status?: string;
@@ -45,12 +51,21 @@ export interface NestConsultation {
   patient?: NestPatientRef;
 }
 
-function unwrapList(raw: unknown): NestConsultation[] {
+function unwrapListWithTotal(raw: unknown): {
+  data: NestConsultation[];
+  total: number;
+} {
   if (Array.isArray(raw)) {
-    return raw as NestConsultation[];
+    const data = raw as NestConsultation[];
+    return { data, total: data.length };
   }
-  const w = raw as { data?: NestConsultation[] };
-  return Array.isArray(w?.data) ? w.data : [];
+  const w = raw as { data?: NestConsultation[]; total?: number };
+  if (Array.isArray(w?.data)) {
+    const total =
+      typeof w.total === "number" ? w.total : w.data.length;
+    return { data: w.data, total };
+  }
+  return { data: [], total: 0 };
 }
 
 export async function fetchConsultations(
@@ -59,7 +74,6 @@ export async function fetchConsultations(
   const params = new URLSearchParams();
   if (filters?.patientId) params.set("patientId", filters.patientId);
   if (filters?.doctorId) params.set("doctorId", filters.doctorId);
-  if (filters?.clinicId) params.set("clinicId", filters.clinicId);
   if (filters?.status) params.set("status", filters.status);
   if (filters?.from) params.set("from", filters.from);
   if (filters?.to) params.set("to", filters.to);
@@ -67,8 +81,7 @@ export async function fetchConsultations(
   if (filters?.offset != null) params.set("offset", String(filters.offset));
   const q = params.toString() ? `?${params}` : "";
   const raw = await apiGet<unknown>(`${BASE}${q}`);
-  const data = unwrapList(raw);
-  return { data, total: data.length };
+  return unwrapListWithTotal(raw);
 }
 
 export async function fetchConsultation(id: string): Promise<NestConsultation> {
@@ -80,7 +93,14 @@ export async function fetchConsultation(id: string): Promise<NestConsultation> {
 }
 
 export async function createConsultation(dto: CreateConsultationDto) {
-  return apiPost<NestConsultation>(BASE, dto);
+  const chiefComplaint =
+    dto.chiefComplaint?.trim() ||
+    dto.reason?.trim() ||
+    "";
+  return apiPost<NestConsultation>(BASE, {
+    patientId: dto.patientId,
+    chiefComplaint,
+  });
 }
 
 /** Respuesta de GET /consultations/:id/ai */
@@ -92,7 +112,11 @@ export interface ConsultationAiPayload {
 }
 
 export interface UpdateConsultationDto {
+  chiefComplaint?: string;
+  symptoms?: string;
   diagnosis?: string;
+  treatmentPlan?: string;
+  /** @deprecated usar treatmentPlan */
   treatment?: string;
   notes?: string;
   status?: string;
@@ -102,7 +126,15 @@ export async function updateConsultation(
   id: string,
   dto: UpdateConsultationDto
 ): Promise<NestConsultation> {
-  return apiPatch<NestConsultation>(`${BASE}/${id}`, dto);
+  const body: Record<string, unknown> = {};
+  if (dto.chiefComplaint !== undefined) body.chiefComplaint = dto.chiefComplaint;
+  if (dto.symptoms !== undefined) body.symptoms = dto.symptoms;
+  if (dto.diagnosis !== undefined) body.diagnosis = dto.diagnosis;
+  if (dto.notes !== undefined) body.notes = dto.notes;
+  if (dto.status !== undefined) body.status = dto.status;
+  const plan = dto.treatmentPlan ?? dto.treatment;
+  if (plan !== undefined) body.treatmentPlan = plan;
+  return apiPatch<NestConsultation>(`${BASE}/${id}`, body);
 }
 
 export async function signConsultation(

@@ -114,7 +114,7 @@ export function ConsultationProvider({
       try {
         const res = await createConsultation({
           patientId: pid,
-          reason: DEFAULT_CONSULTATION_REASON,
+          chiefComplaint: DEFAULT_CONSULTATION_REASON,
         });
         const cid = res?.id ?? null;
         if (cid) {

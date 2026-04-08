@@ -69,7 +69,7 @@ export default function ConsultationDetailPage() {
       setConsultation(c);
       setNotes(c.notes ?? "");
       setDiagnosis(c.diagnosis ?? "");
-      setTreatment(c.treatment ?? "");
+      setTreatment(c.treatmentPlan ?? c.treatment ?? "");
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Error al cargar consulta"
@@ -98,7 +98,7 @@ export default function ConsultationDetailPage() {
       const updated = await updateConsultation(id, {
         notes: notes.trim() || undefined,
         diagnosis: diagnosis.trim() || undefined,
-        treatment: treatment.trim() || undefined,
+        treatmentPlan: treatment.trim() || undefined,
       });
       setConsultation(updated);
       setSaveMsg("Guardado correctamente");

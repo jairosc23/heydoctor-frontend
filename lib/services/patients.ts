@@ -48,17 +48,26 @@ function normalizePatient(p: Record<string, unknown>): PatientRow {
   };
 }
 
-function unwrapList(raw: unknown): PatientRow[] {
+function unwrapListWithTotal(raw: unknown): {
+  data: PatientRow[];
+  total: number;
+} {
   if (Array.isArray(raw)) {
-    return raw.map((x) => normalizePatient(x as Record<string, unknown>));
-  }
-  const wrapped = raw as { data?: unknown[] };
-  if (Array.isArray(wrapped?.data)) {
-    return wrapped.data.map((x) =>
+    const data = raw.map((x) =>
       normalizePatient(x as Record<string, unknown>)
     );
+    return { data, total: data.length };
   }
-  return [];
+  const wrapped = raw as { data?: unknown[]; total?: number };
+  if (Array.isArray(wrapped?.data)) {
+    const data = wrapped.data.map((x) =>
+      normalizePatient(x as Record<string, unknown>)
+    );
+    const total =
+      typeof wrapped.total === "number" ? wrapped.total : data.length;
+    return { data, total };
+  }
+  return { data: [], total: 0 };
 }
 
 export async function fetchPatients(filters?: PatientFilters): Promise<{
@@ -71,8 +80,7 @@ export async function fetchPatients(filters?: PatientFilters): Promise<{
   if (filters?.offset != null) params.set("offset", String(filters.offset));
   const q = params.toString() ? `?${params}` : "";
   const raw = await apiGet<unknown>(`${BASE}${q}`);
-  const data = unwrapList(raw);
-  return { data, total: data.length };
+  return unwrapListWithTotal(raw);
 }
 
 export interface CreatePatientDto {

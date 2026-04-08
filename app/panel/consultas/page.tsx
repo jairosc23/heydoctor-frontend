@@ -1,6 +1,7 @@
 "use client";
 
 import React, { Suspense, useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useConsultation } from "@/context/ConsultationContext";
 import {
@@ -41,7 +42,17 @@ function ConsultasContent() {
 
   const [patients, setPatients] = useState<PatientRow[]>([]);
   const [consultations, setConsultations] = useState<unknown[]>([]);
-  const [loading, setLoading] = useState(true);
+
+  const patientsQuery = useQuery({
+    queryKey: ["patients", "panel-consultas", 100],
+    queryFn: () => fetchPatients({ limit: 100 }),
+  });
+  const consultationsQuery = useQuery({
+    queryKey: ["consultations", "panel-consultas", 20],
+    queryFn: () => fetchConsultations({ limit: 20 }),
+  });
+
+  const loading = patientsQuery.isPending || consultationsQuery.isPending;
   const [starting, setStarting] = useState(false);
   const [diagnosisCode, setDiagnosisCode] = useState("");
   const [consentGivenAt, setConsentGivenAt] = useState<string | null | undefined>(
@@ -58,23 +69,29 @@ function ConsultasContent() {
     }
   }, [patientIdParam, patientId, setPatient]);
 
-  // Load patients for selector
   useEffect(() => {
-    fetchPatients({ limit: 100 })
-      .then(({ data }) =>
-        setPatients(Array.isArray(data) ? (data as PatientRow[]) : [])
-      )
-      .catch(() => setPatients([]));
-  }, []);
+    if (patientsQuery.data?.data) {
+      setPatients(
+        Array.isArray(patientsQuery.data.data)
+          ? (patientsQuery.data.data as PatientRow[])
+          : []
+      );
+    } else if (patientsQuery.isError) {
+      setPatients([]);
+    }
+  }, [patientsQuery.data, patientsQuery.isError]);
 
-  // Load consultations (Nest: lista filtrada por clínica del JWT)
   useEffect(() => {
-    setLoading(true);
-    fetchConsultations({ limit: 20 })
-      .then(({ data }) => setConsultations(Array.isArray(data) ? data : []))
-      .catch(() => setConsultations([]))
-      .finally(() => setLoading(false));
-  }, []);
+    if (consultationsQuery.data?.data) {
+      setConsultations(
+        Array.isArray(consultationsQuery.data.data)
+          ? consultationsQuery.data.data
+          : []
+      );
+    } else if (consultationsQuery.isError) {
+      setConsultations([]);
+    }
+  }, [consultationsQuery.data, consultationsQuery.isError]);
 
   useEffect(() => {
     if (!consultationId) {
