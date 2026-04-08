@@ -41,17 +41,28 @@ function LoginContent() {
       router.refresh();
     } catch (err) {
       const msg =
-        err instanceof Error ? err.message : "Usuario o contraseña incorrectos";
+        err instanceof Error ? err.message : "Error desconocido al iniciar sesión.";
+      const lower = msg.toLowerCase();
+
       if (
-        msg.includes("Failed to fetch") ||
-        msg.includes("fetch") ||
-        msg.includes("NetworkError")
+        lower.includes("error de red") ||
+        lower.includes("failed to fetch") ||
+        lower.includes("networkerror") ||
+        lower.includes("network request failed") ||
+        lower.includes("load failed")
       ) {
         setError(
-          "No se pudo conectar con el servidor. Verifica tu conexión y que NEXT_PUBLIC_API_URL esté configurada.",
+          msg.startsWith("Error de red")
+            ? msg
+            : "Error de red: no se pudo contactar el API. Revisa conexión, NEXT_PUBLIC_API_URL, CORS con credenciales en el backend y CSP connect-src (pro-api / dominio del API).",
         );
-      } else if (msg.toLowerCase().includes("unauthorized") || msg.includes("401")) {
-        setError("Credenciales incorrectas o sesión no válida.");
+      } else if (
+        lower.includes("401") ||
+        lower.includes("unauthorized") ||
+        lower.includes("no autorizado") ||
+        lower.includes("credenciales incorrectas")
+      ) {
+        setError(msg.includes("401") || msg.length < 280 ? msg : "Credenciales incorrectas o sesión no válida.");
       } else {
         setError(msg);
       }

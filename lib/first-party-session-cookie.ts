@@ -1,6 +1,6 @@
 /**
- * POST relativo a `/api/auth/session` (solo origen Next).
- * Usado tras login, refresh y cualquier nuevo access_token en cliente.
+ * POST relativo a `/api/auth/session` — **ruta del propio Next.js** (Route Handler), no del Nest.
+ * El handler del frontend llama a GET `${NEXT_PUBLIC_API_URL}/api/auth/me` en el servidor.
  */
 
 export async function setFirstPartySessionFromAccessToken(

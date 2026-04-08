@@ -60,6 +60,34 @@ function isProtected(pathname: string): boolean {
   );
 }
 
+/**
+ * Permite fetch/WebSocket al API (p. ej. pro-api.heydoctor.health) además de Railway legacy.
+ * NEXT_PUBLIC_API_URL se inyecta en build; si falta, siguen valiendo los wildcards.
+ */
+function connectSrcDirective(): string {
+  const parts = [
+    "'self'",
+    "https://*.railway.app",
+    "wss://*.railway.app",
+    "https://*.heydoctor.health",
+    "wss://*.heydoctor.health",
+  ];
+  const raw = process.env.NEXT_PUBLIC_API_URL?.trim();
+  if (raw) {
+    try {
+      const normalized = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+      const u = new URL(normalized.replace(/\/api\/?$/i, ""));
+      parts.push(u.origin);
+      if (u.protocol === "https:") {
+        parts.push(`wss://${u.host}`);
+      }
+    } catch {
+      /* URL inválida en env: se ignoran entradas extra */
+    }
+  }
+  return parts.join(" ");
+}
+
 const CSP_DIRECTIVES = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline'",
@@ -67,7 +95,7 @@ const CSP_DIRECTIVES = [
   "font-src 'self' https://fonts.gstatic.com",
   "img-src 'self' data: blob:",
   "media-src 'self' blob:",
-  "connect-src 'self' https://*.railway.app wss://*.railway.app",
+  `connect-src ${connectSrcDirective()}`,
   "frame-src 'none'",
   "object-src 'none'",
   "base-uri 'self'",

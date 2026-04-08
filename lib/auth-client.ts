@@ -223,15 +223,29 @@ export async function authLogin(
 ): Promise<AuthLoginResult> {
   const base = getApiBase();
   const url = `${base}/auth/login`;
-  console.log("🔥 API BASE:", base);
-  console.log("🔥 LOGIN URL:", url);
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-    credentials: "include",
-  });
+  if (process.env.NODE_ENV === "development") {
+    console.log("API URL:", process.env.NEXT_PUBLIC_API_URL);
+  }
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+      credentials: "include",
+    });
+  } catch (cause) {
+    emitAuthTelemetry("login_fail", { status: 0, network: true });
+    const detail =
+      cause instanceof Error ? cause.message : String(cause);
+    throw new Error(
+      `Error de red al contactar el API (POST /api/auth/login). ` +
+        `Revisa CORS con credenciales en el backend, la política CSP connect-src del frontend y NEXT_PUBLIC_API_URL. ` +
+        `URL usada: ${url}. Detalle: ${detail}`,
+    );
+  }
 
   let data: Record<string, unknown> = {};
   try {
@@ -239,15 +253,21 @@ export async function authLogin(
   } catch {
     emitAuthTelemetry("login_fail", { status: res.status, parseError: true });
     throw new Error(
-      `La respuesta no era JSON (${res.status} ${res.statusText}). ` +
-        "Comprueba NEXT_PUBLIC_API_URL (ej. https://heydoctor-backend-pro-production.up.railway.app) " +
-        "y que el login use POST /api/auth/login contra el API Nest.",
+      `Respuesta no JSON (${res.status} ${res.statusText}). ` +
+        `Confirma que NEXT_PUBLIC_API_URL apunta al Nest (p. ej. https://pro-api.heydoctor.health) y expone POST /api/auth/login.`,
     );
   }
 
   if (!res.ok) {
     emitAuthTelemetry("login_fail", { status: res.status });
-    throw new Error(loginFailureMessage(res, data));
+    const msg = loginFailureMessage(res, data);
+    if (res.status === 401) {
+      throw new Error(`Credenciales incorrectas o sesión no válida. ${msg}`);
+    }
+    if (res.status >= 500) {
+      throw new Error(`Error del servidor (${res.status}). ${msg}`);
+    }
+    throw new Error(msg);
   }
 
   const raw =
