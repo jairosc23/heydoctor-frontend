@@ -60,9 +60,13 @@ function isProtected(pathname: string): boolean {
   );
 }
 
+/** API producción HeyDoctor — fetch (REST) y WebSocket (Socket.IO); explícito además de wildcards. */
+const HEYDOCTOR_PRO_API_ORIGIN = "https://pro-api.heydoctor.health";
+const HEYDOCTOR_PRO_API_WS = "wss://pro-api.heydoctor.health";
+
 /**
- * Permite fetch/WebSocket al API (p. ej. pro-api.heydoctor.health) además de Railway legacy.
- * NEXT_PUBLIC_API_URL se inyecta en build; si falta, siguen valiendo los wildcards.
+ * connect-src estricto pero completo: mismo origen, Railway legacy, subdominios *.heydoctor.health,
+ * y host de API producción siempre presente (no depende solo de NEXT_PUBLIC_API_URL en build).
  */
 function connectSrcDirective(): string {
   const parts = [
@@ -71,16 +75,18 @@ function connectSrcDirective(): string {
     "wss://*.railway.app",
     "https://*.heydoctor.health",
     "wss://*.heydoctor.health",
+    HEYDOCTOR_PRO_API_ORIGIN,
+    HEYDOCTOR_PRO_API_WS,
   ];
   const raw = process.env.NEXT_PUBLIC_API_URL?.trim();
   if (raw) {
     try {
       const normalized = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
       const u = new URL(normalized.replace(/\/api\/?$/i, ""));
-      parts.push(u.origin);
-      if (u.protocol === "https:") {
-        parts.push(`wss://${u.host}`);
-      }
+      const origin = u.origin;
+      const wss = u.protocol === "https:" ? `wss://${u.host}` : "";
+      if (origin && !parts.includes(origin)) parts.push(origin);
+      if (wss && !parts.includes(wss)) parts.push(wss);
     } catch {
       /* URL inválida en env: se ignoran entradas extra */
     }
