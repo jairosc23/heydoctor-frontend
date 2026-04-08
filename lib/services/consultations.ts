@@ -2,6 +2,17 @@ import { apiGet, apiPatch, apiPost } from "../api-client";
 
 const BASE = "/consultations";
 
+function appendQueryParam(
+  params: URLSearchParams,
+  key: string,
+  value: string | number | undefined | null
+): void {
+  if (value === undefined || value === null) return;
+  const s = typeof value === "number" ? String(value) : value.trim();
+  if (s === "") return;
+  params.set(key, s);
+}
+
 /** Crear consulta en Nest: patientId + chiefComplaint (alias `reason` por compatibilidad). */
 export interface CreateConsultationDto {
   patientId: string;
@@ -13,10 +24,11 @@ export interface CreateConsultationDto {
 export interface ConsultationFilters {
   patientId?: string;
   doctorId?: string;
-  clinicId?: string;
   status?: string;
   from?: string;
   to?: string;
+  search?: string;
+  page?: number;
   limit?: number;
   offset?: number;
 }
@@ -72,13 +84,15 @@ export async function fetchConsultations(
   filters?: ConsultationFilters
 ): Promise<{ data: NestConsultation[]; total: number }> {
   const params = new URLSearchParams();
-  if (filters?.patientId) params.set("patientId", filters.patientId);
-  if (filters?.doctorId) params.set("doctorId", filters.doctorId);
-  if (filters?.status) params.set("status", filters.status);
-  if (filters?.from) params.set("from", filters.from);
-  if (filters?.to) params.set("to", filters.to);
-  if (filters?.limit != null) params.set("limit", String(filters.limit));
-  if (filters?.offset != null) params.set("offset", String(filters.offset));
+  appendQueryParam(params, "patientId", filters?.patientId);
+  appendQueryParam(params, "doctorId", filters?.doctorId);
+  appendQueryParam(params, "status", filters?.status);
+  appendQueryParam(params, "from", filters?.from);
+  appendQueryParam(params, "to", filters?.to);
+  appendQueryParam(params, "search", filters?.search);
+  appendQueryParam(params, "page", filters?.page);
+  appendQueryParam(params, "limit", filters?.limit);
+  appendQueryParam(params, "offset", filters?.offset);
   const q = params.toString() ? `?${params}` : "";
   const raw = await apiGet<unknown>(`${BASE}${q}`);
   return unwrapListWithTotal(raw);

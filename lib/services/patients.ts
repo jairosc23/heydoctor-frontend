@@ -2,8 +2,20 @@ import { apiGet, apiPost } from "../api-client";
 
 const BASE = "/patients";
 
+function appendQueryParam(
+  params: URLSearchParams,
+  key: string,
+  value: string | number | undefined | null
+): void {
+  if (value === undefined || value === null) return;
+  const s = typeof value === "number" ? String(value) : value.trim();
+  if (s === "") return;
+  params.set(key, s);
+}
+
 export interface PatientFilters {
   search?: string;
+  page?: number;
   limit?: number;
   offset?: number;
 }
@@ -75,9 +87,10 @@ export async function fetchPatients(filters?: PatientFilters): Promise<{
   total: number;
 }> {
   const params = new URLSearchParams();
-  if (filters?.search) params.set("search", filters.search);
-  if (filters?.limit != null) params.set("limit", String(filters.limit));
-  if (filters?.offset != null) params.set("offset", String(filters.offset));
+  appendQueryParam(params, "search", filters?.search);
+  appendQueryParam(params, "page", filters?.page);
+  appendQueryParam(params, "limit", filters?.limit);
+  appendQueryParam(params, "offset", filters?.offset);
   const q = params.toString() ? `?${params}` : "";
   const raw = await apiGet<unknown>(`${BASE}${q}`);
   return unwrapListWithTotal(raw);
