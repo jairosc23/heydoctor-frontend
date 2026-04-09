@@ -32,7 +32,7 @@ type AuthContextValue = {
   sessionRevalidating: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  /** Opcional: Bearer recién emitido para el primer GET /me sin depender solo de refresh/memoria. */
+  /** Recarga perfil con cookies; `explicitAccessToken` opcional sincroniza memoria + cookie middleware Next. */
   refreshUser: (explicitAccessToken?: string) => Promise<void>;
 };
 
@@ -64,33 +64,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await clearMiddlewareSession();
   }, []);
 
-  /**
-   * Perfil desde el API. Con Bearer explícito (p. ej. token recién emitido) se evita depender solo de refresh implícito.
-   * Sin token: memoria o silent refresh; si no hay sesión, limpia estado.
-   */
   const refreshUser = useCallback(
     async (explicitToken?: string) => {
       try {
-        let token = explicitToken?.trim();
-        if (!token) {
-          let mem = getAccessToken()?.trim();
-          if (!mem) {
-            const refreshed = await refreshAccessToken();
-            if (!refreshed) {
-              await clearSession();
-              return;
-            }
-            mem = getAccessToken()?.trim() ?? refreshed.trim();
-          }
-          token = mem ?? "";
+        const t0 = explicitToken?.trim();
+        if (t0) {
+          setAccessToken(t0);
+        } else {
+          await refreshAccessToken();
         }
-        if (!token) {
-          await clearSession();
-          return;
-        }
-        const me = await getMe(token);
+        const me = await getMe();
         setUser(me);
-        await syncMiddlewareSession(token);
+        const t = getAccessToken()?.trim();
+        if (t) {
+          await syncMiddlewareSession(t);
+        }
       } catch {
         await clearSession();
       }
@@ -132,7 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw e;
     }
     try {
-      const me = await getMe(accessToken);
+      const me = await getMe();
       setUser(me);
       await syncMiddlewareSession(accessToken);
     } catch (e) {

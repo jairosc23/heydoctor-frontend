@@ -297,7 +297,6 @@ export type UseTelemedicineCallOptions = {
   consultationId: string;
   /** Emite la oferta inicial y, por defecto, los ICE restart (evita glare en 1:1). */
   isInitiator: boolean;
-  accessToken: string;
   /** Origen del API, p.ej. https://xxx.up.railway.app */
   backendOrigin: string;
   /** Socket.IO path if no estándar (Nest default: /socket.io) */
@@ -342,7 +341,6 @@ export function useTelemedicineCall(
   const {
     consultationId,
     isInitiator,
-    accessToken,
     backendOrigin,
     socketPath = '/socket.io',
     externalSocket = null,
@@ -690,24 +688,22 @@ export function useTelemedicineCall(
     async (userConsent: boolean) => {
       await requestRecordingStart({
         backendOrigin,
-        accessToken,
         consultationId,
         userConsent,
       });
     },
-    [accessToken, backendOrigin, consultationId],
+    [backendOrigin, consultationId],
   );
 
   const stopRecording = useCallback(
     async (userConsent: boolean) => {
       await requestRecordingStop({
         backendOrigin,
-        accessToken,
         consultationId,
         userConsent,
       });
     },
-    [accessToken, backendOrigin, consultationId],
+    [backendOrigin, consultationId],
   );
 
   const startCall = useCallback(async () => {
@@ -721,7 +717,7 @@ export function useTelemedicineCall(
       socket = io(`${origin}/webrtc`, {
         path: socketPath,
         transports: ['websocket', 'polling'],
-        auth: { token: accessToken },
+        withCredentials: true,
         autoConnect: true,
       });
       ownSocketRef.current = true;
@@ -743,7 +739,6 @@ export function useTelemedicineCall(
     const iceServers = await fetchWebrtcIceServers({
       backendOrigin,
       consultationId,
-      accessToken,
     });
 
     const pc = new RTCPeerConnection(createProRtcConfiguration(iceServers));
@@ -862,7 +857,6 @@ export function useTelemedicineCall(
               metricsSamplesRef.current = 0;
               void sendCallMetrics({
                 backendOrigin,
-                accessToken,
                 consultationId,
                 rtt: snap.roundTripTime,
                 packetsLost: snap.packetsLost,
@@ -895,7 +889,6 @@ export function useTelemedicineCall(
       }
     }
   }, [
-    accessToken,
     attachSignalingHandlers,
     backendOrigin,
     consultationId,

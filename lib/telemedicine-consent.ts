@@ -32,14 +32,12 @@ export type TelemedicineConsentStatus = {
 /**
  * Estado del consentimiento según el servidor (versión legal vigente en backend).
  */
-export async function getTelemedicineConsentStatus(
-  accessToken: string
-): Promise<TelemedicineConsentStatus> {
+export async function getTelemedicineConsentStatus(): Promise<TelemedicineConsentStatus> {
   const base = getApiBase();
   const res = await fetch(`${base}/consents/telemedicine/status`, {
     method: "GET",
     headers: {
-      Authorization: `Bearer ${accessToken}`,
+      Accept: "application/json",
     },
     credentials: "include",
   });
@@ -65,14 +63,12 @@ async function readApiErrorMessage(res: Response): Promise<string> {
  * Persiste el consentimiento en el servidor (auditoría legal).
  * Usar el mismo JWT que para el resto de la sesión (p. ej. token de query en teleconsulta).
  */
-export async function postTelemedicineConsent(
-  accessToken: string
-): Promise<TelemedicineConsentRecord> {
+export async function postTelemedicineConsent(): Promise<TelemedicineConsentRecord> {
   const base = getApiBase();
   const res = await fetch(`${base}/consents/telemedicine`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${accessToken}`,
+      Accept: "application/json",
     },
     credentials: "include",
   });

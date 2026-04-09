@@ -29,7 +29,7 @@ export function getApiBase(): string {
   return `${origin}/api`.replace(/([^:]\/)\/+/g, "$1");
 }
 
-/** URL absoluta GET /api/auth/me (Jwt: Authorization Bearer obligatorio). */
+/** URL absoluta GET /api/auth/me (JWT en cookie HttpOnly `heydoctor_session`). */
 export function getAuthMeUrl(): string {
   return `${getApiBase()}/auth/me`;
 }

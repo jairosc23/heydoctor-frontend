@@ -1,6 +1,5 @@
 export type SendCallMetricsInput = {
   backendOrigin: string;
-  accessToken: string;
   consultationId: string;
   rtt?: number;
   packetsLost?: number;
@@ -17,7 +16,6 @@ export async function sendCallMetrics(
 ): Promise<void> {
   const {
     backendOrigin,
-    accessToken,
     consultationId,
     rtt,
     packetsLost,
@@ -38,7 +36,6 @@ export async function sendCallMetrics(
   const res = await fetch(url.toString(), {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
       Accept: 'application/json',
     },

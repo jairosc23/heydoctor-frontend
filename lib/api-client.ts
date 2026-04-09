@@ -3,9 +3,8 @@
  */
 
 import { fetchWithAuth, type FetchWithAuthContext } from "./api";
-import { getAccessToken, refreshAccessToken } from "./auth-client";
 
-/** Bearer explícito (p. ej. token recién devuelto por login). */
+/** @deprecated Mantenido por compatibilidad de firmas; no envía Bearer al API. */
 export type ApiAuthOptions = FetchWithAuthContext;
 
 export class ApiError extends Error {
@@ -53,26 +52,9 @@ export async function apiFetch<T = unknown>(
   options: RequestInit = {},
   auth?: ApiAuthOptions,
 ): Promise<T> {
-  const explicit = auth?.bearerToken?.trim();
-  if (!explicit) {
-    if (!getAccessToken()) {
-      await refreshAccessToken();
-    }
-    if (!getAccessToken()) {
-      throw new ApiError(
-        "Sin access_token: no se puede autenticar la petición al API (Bearer). Inicia sesión de nuevo.",
-        401,
-      );
-    }
-  }
-
   let res: Response;
   try {
-    res = await fetchWithAuth(
-      path,
-      options,
-      explicit ? { bearerToken: explicit } : undefined,
-    );
+    res = await fetchWithAuth(path, options, auth);
   } catch (err) {
     if (err instanceof Error && err.message === "SESSION_EXPIRED") {
       throw new ApiError("Sesión expirada", 401);

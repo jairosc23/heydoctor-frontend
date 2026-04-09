@@ -1,6 +1,5 @@
 export type RecordingApiInput = {
   backendOrigin: string;
-  accessToken: string;
   consultationId: string;
   userConsent: boolean;
   /** Si false, la política indica que no se exige consentimiento explícito (por defecto true). */
@@ -17,7 +16,6 @@ export async function requestRecordingStart(
   const res = await fetch(url.toString(), {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${input.accessToken}`,
       'Content-Type': 'application/json',
     },
     credentials: 'include',
@@ -43,7 +41,6 @@ export async function requestRecordingStop(
   const res = await fetch(url.toString(), {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${input.accessToken}`,
       'Content-Type': 'application/json',
     },
     credentials: 'include',

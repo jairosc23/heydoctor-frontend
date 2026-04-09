@@ -1,8 +1,4 @@
-import {
-  getAccessToken,
-  refreshAccessToken,
-} from "./auth-client";
-import { isTokenExpiringSoon } from "./auth-token";
+import { refreshAccessToken } from "./auth-client";
 import { handleAuthError } from "./auth/auth-guard";
 import { getApiBase } from "./api-base";
 
@@ -25,48 +21,23 @@ function isAuthRefreshRequest(url: string): boolean {
 }
 
 export type FetchWithAuthContext = {
-  /** Si se pasa (p. ej. recién emitido en login), se usa para Authorization antes que `getAccessToken()`. */
+  /** @deprecated La sesión va en cookies HttpOnly; este campo se ignora. */
   bearerToken?: string;
 };
 
 /**
- * fetch con Bearer + credentials; en cliente ante 401 intenta refresh y reintenta una vez.
- * Si sigue 401 → handleAuthError (logout + redirect).
+ * Peticiones al API Nest con `credentials: 'include'` (cookies `heydoctor_session` / `refresh_token`).
+ * Ante 401 (salvo en /auth/refresh) intenta refresh y reintenta una vez.
  */
 export async function fetchWithAuth(
   path: string,
   init: RequestInit = {},
-  ctx?: FetchWithAuthContext,
+  _ctx?: FetchWithAuthContext,
 ): Promise<Response> {
   const url = buildAuthUrl(path);
-  let bearerOverride = ctx?.bearerToken?.trim() ?? "";
-
   const isRefreshEndpoint = isAuthRefreshRequest(url);
-  if (
-    !isRefreshEndpoint &&
-    typeof window !== "undefined"
-  ) {
-    const candidate = (
-      bearerOverride || getAccessToken()?.trim() || ""
-    ).trim();
-    if (candidate && isTokenExpiringSoon(candidate)) {
-      await refreshAccessToken();
-      bearerOverride = "";
-    }
-  }
 
   const buildHeaders = (): Headers => {
-    const current = (bearerOverride || getAccessToken()?.trim() || "").trim();
-    if (process.env.NODE_ENV === "development") {
-      console.log(
-        "TOKEN EN FETCH:",
-        current ? `${current.slice(0, 12)}…(${current.length})` : null,
-      );
-    }
-    if (!current) {
-      throw new Error("No access token available");
-    }
-
     const headers = new Headers(init.headers);
     const method = (init.method ?? "GET").toUpperCase();
     if (!headers.has("Accept")) {
@@ -80,7 +51,6 @@ export async function fetchWithAuth(
     ) {
       headers.set("Content-Type", "application/json");
     }
-    headers.set("Authorization", `Bearer ${current}`);
     return headers;
   };
 
@@ -96,12 +66,9 @@ export async function fetchWithAuth(
   if (
     res.status === 401 &&
     typeof window !== "undefined" &&
-    !isAuthRefreshRequest(url)
+    !isRefreshEndpoint
   ) {
-    bearerOverride = "";
     const newToken = await refreshAccessToken();
-    // Solo un segundo intento si el refresh devolvió token (evita bucles inútiles).
-    // refreshAccessToken ya actualiza la cookie SSR (setFirstPartySessionFromAccessToken).
     if (newToken) {
       res = await doFetch();
     }

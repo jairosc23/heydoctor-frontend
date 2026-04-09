@@ -1,6 +1,6 @@
 /**
- * Auth contra el backend Nest (JWT + refresh HttpOnly en el dominio API).
- * El access_token permanece solo en memoria (vía auth-client).
+ * Auth contra el backend Nest: cookies HttpOnly en el dominio API (`heydoctor_session`, `refresh_token`).
+ * Tras login, el `access_token` del JSON puede guardarse en memoria para sincronizar la sesión middleware de Next.
  */
 
 import { getAuthMeUrl } from "../api-base";
@@ -61,22 +61,19 @@ export async function logout(): Promise<void> {
   await clearMiddlewareSession();
 }
 
-/** @param accessToken Token explícito (p. ej. recién devuelto por login); si omites, se usa memoria/refresh. */
-export async function getMe(accessToken?: string): Promise<AuthUser> {
+/** Perfil vía cookie `heydoctor_session` (credentials: include). */
+export async function getMe(_accessToken?: string): Promise<AuthUser> {
   const meUrl = getAuthMeUrl();
-  const auth = accessToken?.trim()
-    ? { bearerToken: accessToken.trim() }
-    : undefined;
 
   try {
-    return await apiGet<AuthUser>(meUrl, auth);
+    return await apiGet<AuthUser>(meUrl);
   } catch (err) {
     if (err instanceof ApiError) {
       const hint =
         err.status === 404
-          ? ` Revisa NEXT_PUBLIC_API_URL y que el backend exponga GET /api/auth/me. URL usada: ${meUrl} (header Authorization Bearer obligatorio).`
+          ? ` Revisa NEXT_PUBLIC_API_URL y que el backend exponga GET /api/auth/me. URL usada: ${meUrl}.`
           : err.status === 401
-            ? " El token puede ser inválido o estar ausente en la petición."
+            ? " Sesión no válida o cookies no enviadas (CORS / SameSite)."
             : "";
       throw new ApiError(`${err.message.trim()}${hint}`, err.status, err.body);
     }

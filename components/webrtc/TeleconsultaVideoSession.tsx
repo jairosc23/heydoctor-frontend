@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { ConsentModal } from "@/components/ConsentModal";
 import { VideoCall } from "@/components/VideoCall";
-import { ensureAccessToken } from "@/lib/auth-client";
+import { refreshAccessToken, setAccessToken } from "@/lib/auth-client";
 import {
   getTelemedicineConsentStatus,
   postTelemedicineConsent,
@@ -14,7 +14,10 @@ export interface TeleconsultaVideoSessionProps {
   /** Mismo valor que consultationId — sala WebRTC / signaling */
   roomId: string;
   consultationId: string;
-  /** Token de acceso paciente (?access_token=) si aplica */
+  /**
+   * Token opcional (?access_token=): se guarda en memoria para flujos legacy;
+   * las peticiones al API Nest usan cookies HttpOnly (`heydoctor_session`).
+   */
   accessToken?: string;
   isDoctor?: boolean;
   onEndCall: () => void;
@@ -31,7 +34,6 @@ export function TeleconsultaVideoSession({
   onEndCall,
 }: TeleconsultaVideoSessionProps) {
   const [authReady, setAuthReady] = useState(false);
-  const [authToken, setAuthToken] = useState("");
   const [consentLoading, setConsentLoading] = useState(true);
   const [consentBootstrapError, setConsentBootstrapError] = useState<
     string | null
@@ -43,22 +45,23 @@ export function TeleconsultaVideoSession({
 
   useEffect(() => {
     let cancelled = false;
-    const resolve = async () => {
-      const prop = accessToken?.trim();
-      if (prop) return prop;
-      return (await ensureAccessToken()) ?? "";
-    };
-    resolve().then((t) => {
+    void (async () => {
+      const p = accessToken?.trim();
+      if (p) {
+        setAccessToken(p);
+      }
+      await refreshAccessToken().catch(() => {});
       if (!cancelled) {
-        setAuthToken(t);
         setAuthReady(true);
       }
-    });
-    return () => { cancelled = true; };
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [accessToken]);
 
   useEffect(() => {
-    if (!authReady || !authToken) return;
+    if (!authReady) return;
 
     let cancelled = false;
 
@@ -66,7 +69,7 @@ export function TeleconsultaVideoSession({
       setConsentLoading(true);
       setConsentBootstrapError(null);
       try {
-        const status = await getTelemedicineConsentStatus(authToken);
+        const status = await getTelemedicineConsentStatus();
         if (cancelled) return;
         setHasConsent(status.hasConsent);
         setTelemedicineConsent(status.hasConsent);
@@ -86,23 +89,12 @@ export function TeleconsultaVideoSession({
     return () => {
       cancelled = true;
     };
-  }, [authReady, authToken, consentRetryKey]);
+  }, [authReady, consentRetryKey]);
 
   if (!authReady) {
     return (
       <div style={{ padding: 24, color: "#64748b", textAlign: "center" }}>
         Preparando sesión…
-      </div>
-    );
-  }
-
-  if (!authToken) {
-    return (
-      <div style={{ padding: 24, color: "#b91c1c" }}>
-        <p>No hay sesión. Inicia sesión para usar la videollamada.</p>
-        <button type="button" onClick={onEndCall} style={{ marginTop: 12 }}>
-          Volver
-        </button>
       </div>
     );
   }
@@ -166,7 +158,7 @@ export function TeleconsultaVideoSession({
           setConsentError(null);
           setConsentSubmitting(true);
           try {
-            await postTelemedicineConsent(authToken);
+            await postTelemedicineConsent();
             setTelemedicineConsent(true);
             setHasConsent(true);
           } catch (e) {
@@ -187,7 +179,6 @@ export function TeleconsultaVideoSession({
   return (
     <VideoCall
       consultationId={roomId || consultationId}
-      authToken={authToken}
       onEndCall={onEndCall}
     />
   );

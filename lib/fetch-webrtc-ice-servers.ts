@@ -1,8 +1,6 @@
 /**
  * Fetches ICE servers (STUN + multi-region TURN) from the Nest API.
- * TURN credentials are ephemeral (HMAC) or static per env — never baked into the bundle.
- * The browser's ICE agent selects reachable candidates (latency / connectivity); listing
- * several regional relays (e.g. SCL, GRU, BOG) improves resilience without client-side ordering logic.
+ * Auth: cookie `heydoctor_session` (credentials: 'include').
  */
 
 export type IceServersResponse = {
@@ -12,16 +10,14 @@ export type IceServersResponse = {
 export async function fetchWebrtcIceServers(params: {
   backendOrigin: string;
   consultationId: string;
-  accessToken: string;
 }): Promise<RTCIceServer[]> {
-  const { backendOrigin, consultationId, accessToken } = params;
+  const { backendOrigin, consultationId } = params;
   const url = new URL('/api/webrtc/ice-servers', backendOrigin.replace(/\/$/, ''));
   url.searchParams.set('consultationId', consultationId);
 
   const res = await fetch(url.toString(), {
     method: 'GET',
     headers: {
-      Authorization: `Bearer ${accessToken}`,
       Accept: 'application/json',
     },
     credentials: 'include',

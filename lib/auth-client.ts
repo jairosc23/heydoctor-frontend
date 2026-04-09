@@ -318,14 +318,9 @@ export async function authLogout(options?: AuthLogoutOptions): Promise<void> {
 
   try {
     if (!options?.skipRemote) {
-      const headers: Record<string, string> = {};
-      if (_accessToken) {
-        headers["Authorization"] = `Bearer ${_accessToken}`;
-      }
       await fetch(`${getApiBase()}/auth/logout`, {
         method: "POST",
         credentials: "include",
-        headers,
       });
     }
   } catch {

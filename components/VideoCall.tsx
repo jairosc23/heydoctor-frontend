@@ -15,7 +15,6 @@ import { useTelemedicineCall } from "@/hooks/useTelemedicineCall";
 
 export type VideoCallProps = {
   consultationId: string;
-  authToken: string;
   onEndCall: () => void;
   /**
    * Quien emite oferta tras `peer-joined`. Por defecto `true` para ambos lados:
@@ -56,7 +55,6 @@ export const VideoCall = forwardRef<
 >(function VideoCall(
   {
     consultationId,
-    authToken,
     onEndCall,
     isInitiator = true,
     enableCallRecording = false,
@@ -89,7 +87,6 @@ export const VideoCall = forwardRef<
   } = useTelemedicineCall({
     consultationId,
     isInitiator,
-    accessToken: authToken,
     backendOrigin: getBackendOrigin(),
     socketPath: "/socket.io",
     onError: (message) => setError(message),
@@ -229,9 +226,9 @@ export const VideoCall = forwardRef<
       cancelled = true;
       endCall();
     };
-    // Solo reiniciar sesión cuando cambia consulta o token.
+    // Solo reiniciar sesión cuando cambia la consulta.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- startCall/endCall dependen de muchos refs internos del hook
-  }, [consultationId, authToken]);
+  }, [consultationId]);
 
   useEffect(() => {
     localStreamRef.current = localStream;
