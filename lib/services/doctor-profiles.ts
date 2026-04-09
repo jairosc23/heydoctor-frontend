@@ -1,3 +1,4 @@
+import { apiPost } from "../api-client";
 import { getApiBase } from "../api-base";
 
 export interface DoctorProfile {
@@ -55,13 +56,5 @@ export async function submitDoctorRating(
   slug: string,
   data: { patientName: string; rating: number; comment?: string; consultationId?: string }
 ): Promise<DoctorRating> {
-  const base = getApiBase();
-  const res = await fetch(`${base}/doctors/${slug}/ratings`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-    credentials: "include",
-  });
-  if (!res.ok) throw new Error("Error al enviar valoración");
-  return res.json() as Promise<DoctorRating>;
+  return apiPost<DoctorRating>(`/doctors/${slug}/ratings`, data);
 }

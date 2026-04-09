@@ -2,8 +2,9 @@
 
 import { MagicLinkSessionBootstrap } from "@/components/MagicLinkSessionBootstrap";
 import { AuthProvider } from "@/lib/context/AuthContext";
+import { ensureCsrfToken } from "@/lib/csrf";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 function createQueryClient() {
   return new QueryClient({
@@ -20,6 +21,11 @@ function createQueryClient() {
 
 export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(createQueryClient);
+
+  useEffect(() => {
+    void ensureCsrfToken().catch(() => {});
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>

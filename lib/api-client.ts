@@ -31,6 +31,17 @@ async function parseResponse<T>(res: Response): Promise<T> {
     const raw =
       (data as { message?: unknown })?.message ??
       (data as { error?: unknown })?.error;
+    if (
+      res.status === 403 &&
+      (raw === "Invalid CSRF token" ||
+        (typeof raw === "string" && raw.includes("CSRF")))
+    ) {
+      throw new ApiError(
+        "Token de seguridad no válido o caducado. Recarga la página e inténtalo de nuevo.",
+        403,
+        data
+      );
+    }
     let msg: string;
     if (Array.isArray(raw)) {
       msg = raw.map(String).filter(Boolean).join(", ");

@@ -7,6 +7,7 @@ import { invalidateJwtPayloadCache } from "./auth-token";
 import { emitAuthTelemetry } from "./auth-telemetry";
 import { getApiBase } from "./api-base";
 import { setFirstPartySessionFromAccessToken } from "./first-party-session-cookie";
+import { ensureCsrfToken, getCsrfTokenSync, setCsrfToken } from "./csrf";
 
 // ── In-memory access token ──────────────────────────────────────
 
@@ -137,9 +138,12 @@ async function _doRefresh(): Promise<string | null> {
   const accessTokenSnapshot = _accessToken;
   emitRefreshState(true);
   try {
+    await ensureCsrfToken();
+    const csrf = getCsrfTokenSync();
     const res = await fetch(`${getApiBase()}/auth/refresh`, {
       method: "POST",
       credentials: "include",
+      headers: csrf ? { "X-CSRF-Token": csrf } : undefined,
     });
 
     if (!res.ok) {
@@ -152,7 +156,13 @@ async function _doRefresh(): Promise<string | null> {
       return null;
     }
 
-    const data = (await res.json()) as { access_token?: string };
+    const data = (await res.json()) as {
+      access_token?: string;
+      csrfToken?: string;
+    };
+    if (typeof data.csrfToken === "string" && data.csrfToken.trim()) {
+      setCsrfToken(data.csrfToken);
+    }
     const next = (data.access_token ?? "").trim();
     setAccessToken(next || null);
 
@@ -282,6 +292,11 @@ export async function authLogin(
     throw new Error("Respuesta de login sin access_token");
   }
 
+  const csrfTok = data["csrfToken"];
+  if (typeof csrfTok === "string" && csrfTok.trim()) {
+    setCsrfToken(csrfTok);
+  }
+
   setAccessToken(token);
   _lastRefreshFailedAt = 0;
 
@@ -318,9 +333,12 @@ export async function authLogout(options?: AuthLogoutOptions): Promise<void> {
 
   try {
     if (!options?.skipRemote) {
+      await ensureCsrfToken();
+      const csrf = getCsrfTokenSync();
       await fetch(`${getApiBase()}/auth/logout`, {
         method: "POST",
         credentials: "include",
+        headers: csrf ? { "X-CSRF-Token": csrf } : undefined,
       });
     }
   } catch {
@@ -329,6 +347,7 @@ export async function authLogout(options?: AuthLogoutOptions): Promise<void> {
 
   setAccessToken(null);
   _lastRefreshFailedAt = 0;
+  setCsrfToken(null);
   await clearFirstPartySessionCookie();
 }
 

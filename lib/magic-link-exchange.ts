@@ -6,6 +6,7 @@
 import { setAccessToken } from "@/lib/auth-client";
 import { getApiBase } from "@/lib/api-base";
 import { setFirstPartySessionFromAccessToken } from "@/lib/first-party-session-cookie";
+import { setCsrfToken } from "@/lib/csrf";
 
 export async function exchangeMagicLinkToken(token: string): Promise<void> {
   const trimmed = token.trim();
@@ -39,7 +40,14 @@ export async function exchangeMagicLinkToken(token: string): Promise<void> {
     throw new Error(detail || `Magic link ${res.status}`);
   }
 
-  const data = (await res.json()) as { access_token?: string };
+  const data = (await res.json()) as {
+    access_token?: string;
+    csrfToken?: string;
+  };
+  const csrf = data.csrfToken?.trim();
+  if (csrf) {
+    setCsrfToken(csrf);
+  }
   const at = data.access_token?.trim();
   if (at) {
     setAccessToken(at);

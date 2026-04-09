@@ -1,3 +1,4 @@
+import { fetchWithAuth } from "./api";
 import { getApiBase } from "./api-base";
 
 /**
@@ -64,13 +65,11 @@ async function readApiErrorMessage(res: Response): Promise<string> {
  * Usar el mismo JWT que para el resto de la sesión (p. ej. token de query en teleconsulta).
  */
 export async function postTelemedicineConsent(): Promise<TelemedicineConsentRecord> {
-  const base = getApiBase();
-  const res = await fetch(`${base}/consents/telemedicine`, {
+  const res = await fetchWithAuth("/consents/telemedicine", {
     method: "POST",
     headers: {
       Accept: "application/json",
     },
-    credentials: "include",
   });
   if (!res.ok) {
     throw new Error(await readApiErrorMessage(res));

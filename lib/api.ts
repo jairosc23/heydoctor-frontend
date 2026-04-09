@@ -1,6 +1,7 @@
 import { refreshAccessToken } from "./auth-client";
 import { handleAuthError } from "./auth/auth-guard";
 import { getApiBase } from "./api-base";
+import { ensureCsrfToken } from "./csrf";
 
 export { getApiBase };
 
@@ -37,7 +38,7 @@ export async function fetchWithAuth(
   const url = buildAuthUrl(path);
   const isRefreshEndpoint = isAuthRefreshRequest(url);
 
-  const buildHeaders = (): Headers => {
+  const buildHeaders = async (): Promise<Headers> => {
     const headers = new Headers(init.headers);
     const method = (init.method ?? "GET").toUpperCase();
     if (!headers.has("Accept")) {
@@ -51,13 +52,23 @@ export async function fetchWithAuth(
     ) {
       headers.set("Content-Type", "application/json");
     }
+    if (
+      (method === "POST" ||
+        method === "PUT" ||
+        method === "PATCH" ||
+        method === "DELETE") &&
+      !headers.has("X-CSRF-Token")
+    ) {
+      const t = await ensureCsrfToken();
+      headers.set("X-CSRF-Token", t);
+    }
     return headers;
   };
 
-  const doFetch = (): Promise<Response> =>
+  const doFetch = async (): Promise<Response> =>
     fetch(url, {
       ...init,
-      headers: buildHeaders(),
+      headers: await buildHeaders(),
       credentials: "include",
     });
 

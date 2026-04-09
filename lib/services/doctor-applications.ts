@@ -1,5 +1,4 @@
 import { apiGet, apiPatch, apiPost } from "../api-client";
-import { getApiBase } from "../api-base";
 
 export interface DoctorApplicationDto {
   name: string;
@@ -26,19 +25,7 @@ export interface DoctorApplication {
 export async function submitDoctorApplication(
   dto: DoctorApplicationDto
 ): Promise<DoctorApplication> {
-  const base = getApiBase();
-  const res = await fetch(`${base}/doctor-applications`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(dto),
-  });
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw new Error(
-      (data as { message?: string }).message || "Error al enviar solicitud"
-    );
-  }
-  return res.json() as Promise<DoctorApplication>;
+  return apiPost<DoctorApplication>("/doctor-applications", dto);
 }
 
 export async function fetchDoctorApplications(
