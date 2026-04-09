@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, Suspense } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useConsultation } from "@/context/ConsultationContext";
 import { fetchConsultation } from "@/lib/services";
@@ -10,9 +10,7 @@ import { TeleconsultaVideoSession } from "@/components/webrtc/TeleconsultaVideoS
 function TeleconsultaDeepLinkContent() {
   const params = useParams();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const consultationId = params?.consultationId as string;
-  const accessToken = searchParams.get("access_token") || "";
   const { doctorId, patientId } = useConsultation();
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
@@ -97,7 +95,6 @@ function TeleconsultaDeepLinkContent() {
         <TeleconsultaVideoSession
           roomId={consultationId}
           consultationId={consultationId}
-          accessToken={accessToken || undefined}
           isDoctor={!!doctorId}
           onEndCall={() => router.push("/panel/consultas")}
         />

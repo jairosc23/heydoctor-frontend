@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { ConsentModal } from "@/components/ConsentModal";
 import { VideoCall } from "@/components/VideoCall";
-import { refreshAccessToken, setAccessToken } from "@/lib/auth-client";
+import { refreshAccessToken } from "@/lib/auth-client";
 import {
   getTelemedicineConsentStatus,
   postTelemedicineConsent,
@@ -14,25 +15,21 @@ export interface TeleconsultaVideoSessionProps {
   /** Mismo valor que consultationId — sala WebRTC / signaling */
   roomId: string;
   consultationId: string;
-  /**
-   * Token opcional (?access_token=): se guarda en memoria para flujos legacy;
-   * las peticiones al API Nest usan cookies HttpOnly (`heydoctor_session`).
-   */
-  accessToken?: string;
   isDoctor?: boolean;
   onEndCall: () => void;
 }
 
 /**
  * Sesión de videollamada vía signaling Nest (`/webrtc`) y {@link VideoCall}.
- * El consentimiento se confirma con el backend (`GET`/`POST` consents); `localStorage` solo refleja caché.
+ * El canje de `?access_token=` lo gestiona {@link MagicLinkSessionBootstrap} a nivel de app.
  */
 export function TeleconsultaVideoSession({
   roomId,
   consultationId,
-  accessToken,
   onEndCall,
 }: TeleconsultaVideoSessionProps) {
+  const searchParams = useSearchParams();
+  const accessTokenPending = !!searchParams.get("access_token")?.trim();
   const [authReady, setAuthReady] = useState(false);
   const [consentLoading, setConsentLoading] = useState(true);
   const [consentBootstrapError, setConsentBootstrapError] = useState<
@@ -44,12 +41,12 @@ export function TeleconsultaVideoSession({
   const [consentError, setConsentError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (accessTokenPending) {
+      setAuthReady(false);
+      return;
+    }
     let cancelled = false;
     void (async () => {
-      const p = accessToken?.trim();
-      if (p) {
-        setAccessToken(p);
-      }
       await refreshAccessToken().catch(() => {});
       if (!cancelled) {
         setAuthReady(true);
@@ -58,7 +55,7 @@ export function TeleconsultaVideoSession({
     return () => {
       cancelled = true;
     };
-  }, [accessToken]);
+  }, [accessTokenPending]);
 
   useEffect(() => {
     if (!authReady) return;
