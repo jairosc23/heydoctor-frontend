@@ -240,9 +240,13 @@ export async function authLogin(
 
   let res: Response;
   try {
+    // URL absoluta al API (`…/api/auth/login`), no relativa: `credentials: 'include'` envía/recibe cookies del host del backend.
     res = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
       body: JSON.stringify({ email, password }),
       credentials: "include",
     });
