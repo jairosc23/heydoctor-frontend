@@ -1,6 +1,6 @@
 /**
- * Auth contra el backend Nest: cookies HttpOnly en el dominio API (`heydoctor_session`, `refresh_token`).
- * Tras login, el `access_token` del JSON puede guardarse en memoria para sincronizar la sesión middleware de Next.
+ * Auth: `login` y `getMe` ejecutan fetch en el **navegador** hacia el Nest (`credentials: 'include'`).
+ * `syncMiddlewareSession` solo POST al propio Next (`/api/auth/session`) para la cookie de primer partido del middleware.
  */
 
 import { getAuthMeUrl } from "../api-base";

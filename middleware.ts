@@ -123,8 +123,8 @@ function addSecurityHeaders(response: NextResponse): NextResponse {
 }
 
 /**
- * Cookie de primer partido: POST /api/auth/session valida Bearer en Nest y fija JWT HttpOnly.
- * Aquí solo comprobamos exp localmente (sin fetch al backend).
+ * Cookie de primer partido: el cliente POST `/api/auth/session` con Bearer tras login en el Nest.
+ * El handler solo valida forma/exp del JWT; aquí comprobamos `exp` localmente (sin fetch al backend).
  */
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;

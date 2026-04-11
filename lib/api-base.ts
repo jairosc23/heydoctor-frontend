@@ -33,3 +33,11 @@ export function getApiBase(): string {
 export function getAuthMeUrl(): string {
   return `${getApiBase()}/auth/me`;
 }
+
+/**
+ * URL absoluta POST /api/auth/login (solo navegador → Nest; nunca vía Route Handler).
+ * Con `NEXT_PUBLIC_API_URL=https://pro-api.heydoctor.health` → `https://pro-api.heydoctor.health/api/auth/login`.
+ */
+export function getAuthLoginUrl(): string {
+  return `${getApiBase()}/auth/login`;
+}

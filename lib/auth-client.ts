@@ -1,11 +1,12 @@
 /**
- * Auth client — access token en memoria; refresh HttpOnly en el dominio del API.
- * Cookie de primer partido `heydoctor_session` la gestiona /api/auth/session (ver lib/services/auth.ts).
+ * Auth client — login/register/refresh/logout van **directo del navegador al Nest** (`getApiBase()`…)
+ * con `credentials: 'include'` (cookies HttpOnly en el dominio del API).
+ * El token en memoria sincroniza cookie de **primer partido** en Vercel vía POST `/api/auth/session` (solo Bearer → cookie; ver `app/api/auth/session/route.ts`).
  */
 
 import { invalidateJwtPayloadCache } from "./auth-token";
 import { emitAuthTelemetry } from "./auth-telemetry";
-import { getApiBase } from "./api-base";
+import { getApiBase, getAuthLoginUrl } from "./api-base";
 import { setFirstPartySessionFromAccessToken } from "./first-party-session-cookie";
 import { ensureCsrfToken, getCsrfTokenSync, setCsrfToken } from "./csrf";
 
@@ -231,16 +232,14 @@ export async function authLogin(
   email: string,
   password: string,
 ): Promise<AuthLoginResult> {
-  const base = getApiBase();
-  const url = `${base}/auth/login`;
+  const url = getAuthLoginUrl();
 
   if (process.env.NODE_ENV === "development") {
-    console.log("API URL:", process.env.NEXT_PUBLIC_API_URL);
+    console.log("[auth] POST login URL:", url);
   }
 
   let res: Response;
   try {
-    // URL absoluta al API (`…/api/auth/login`), no relativa: `credentials: 'include'` envía/recibe cookies del host del backend.
     res = await fetch(url, {
       method: "POST",
       headers: {

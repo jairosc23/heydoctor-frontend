@@ -1,16 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthMeUrl } from "@/lib/api-base";
 import {
   extractBearerToken,
   getJwtRemainingSeconds,
+  parseJwtPayload,
 } from "@/lib/auth/jwt-utils";
 
 const SESSION_COOKIE = "heydoctor_session";
+/** Misma tolerancia que middleware: no rechazar token recién emitido por desfase de reloj. */
+const SESSION_CLOCK_SKEW_MS = 5_000;
 
 /**
- * POST: valida Bearer contra GET /api/auth/me del Nest; set cookie HttpOnly.
- * Valor = access JWT (solo exp legible en middleware Edge; firma sigue validándose en API).
- * maxAge alineado al `exp` del token (mín. 60s).
+ * POST: recibe Bearer (JWT ya emitido por el Nest tras login en el cliente); valida forma y `exp` localmente
+ * y fija cookie HttpOnly en el origen Next (middleware). **No** llama al backend (sin proxy login/sesión).
+ * La firma y autorización siguen validándose en el API en cada petición con `credentials: 'include'`.
  * DELETE: borra cookie.
  */
 export async function POST(req: NextRequest) {
@@ -20,16 +22,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false }, { status: 401 });
   }
 
-  const meUrl = getAuthMeUrl();
-  const me = await fetch(meUrl, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: "application/json",
-    },
-  });
-
-  if (!me.ok) {
+  const payload = parseJwtPayload(token);
+  const exp = payload?.exp;
+  if (typeof exp !== "number") {
+    return NextResponse.json({ ok: false }, { status: 401 });
+  }
+  const expMs = exp * 1000;
+  if (expMs < Date.now() - SESSION_CLOCK_SKEW_MS) {
     return NextResponse.json({ ok: false }, { status: 401 });
   }
 

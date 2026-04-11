@@ -1,6 +1,7 @@
 /**
- * POST relativo a `/api/auth/session` — **ruta del propio Next.js** (Route Handler), no del Nest.
- * El handler del frontend llama a GET `${NEXT_PUBLIC_API_URL}/api/auth/me` en el servidor.
+ * POST relativo a `/api/auth/session` — Route Handler de Next (mismo origen que el front).
+ * Solo fija cookie HttpOnly en Vercel a partir del Bearer que el **cliente** obtuvo del Nest;
+ * no reenvía el login ni llama al API desde el servidor.
  */
 
 export async function setFirstPartySessionFromAccessToken(
