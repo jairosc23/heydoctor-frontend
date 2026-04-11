@@ -1,6 +1,6 @@
 /**
- * Auth: `login` y `getMe` ejecutan fetch en el **navegador** hacia el Nest (`credentials: 'include'`).
- * `syncMiddlewareSession` solo POST al propio Next (`/api/auth/session`) para la cookie de primer partido del middleware.
+ * Auth: login al Nest con `credentials: 'include'`; access JWT en memoria + Bearer en peticiones autenticadas.
+ * Cookie HttpOnly en el API: solo `refresh_token`. `syncMiddlewareSession` fija cookie en el origen Next para el middleware.
  */
 
 import { getAuthMeUrl } from "../api-base";
@@ -61,7 +61,7 @@ export async function logout(): Promise<void> {
   await clearMiddlewareSession();
 }
 
-/** Perfil vía cookie `heydoctor_session` (credentials: include). */
+/** Perfil: GET al Nest con Bearer (memoria) y `credentials: 'include'` (refresh). */
 export async function getMe(_accessToken?: string): Promise<AuthUser> {
   const meUrl = getAuthMeUrl();
 

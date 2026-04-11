@@ -1,7 +1,7 @@
 /**
- * Auth client — login/register/refresh/logout van **directo del navegador al Nest** (`getApiBase()`…)
- * con `credentials: 'include'` (cookies HttpOnly en el dominio del API).
- * El token en memoria sincroniza cookie de **primer partido** en Vercel vía POST `/api/auth/session` (solo Bearer → cookie; ver `app/api/auth/session/route.ts`).
+ * Auth client — login/register/refresh/logout **directo del navegador al Nest** con `credentials: 'include'`.
+ * En el API: cookie HttpOnly solo `refresh_token`; el access JWT va en memoria y en `Authorization: Bearer` (vía `fetchWithAuth`).
+ * Cookie de primer partido en Vercel: POST `/api/auth/session` con Bearer para el middleware de Next.
  */
 
 import { invalidateJwtPayloadCache } from "./auth-token";

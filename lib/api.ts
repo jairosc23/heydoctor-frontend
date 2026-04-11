@@ -1,4 +1,4 @@
-import { refreshAccessToken } from "./auth-client";
+import { getAccessToken, refreshAccessToken } from "./auth-client";
 import { handleAuthError } from "./auth/auth-guard";
 import { getApiBase } from "./api-base";
 import { ensureCsrfToken } from "./csrf";
@@ -22,13 +22,13 @@ function isAuthRefreshRequest(url: string): boolean {
 }
 
 export type FetchWithAuthContext = {
-  /** @deprecated La sesión va en cookies HttpOnly; este campo se ignora. */
+  /** @deprecated Usar token en memoria vía getAccessToken; este campo se ignora. */
   bearerToken?: string;
 };
 
 /**
- * Peticiones al API Nest con `credentials: 'include'` (cookies `heydoctor_session` / `refresh_token`).
- * Ante 401 (salvo en /auth/refresh) intenta refresh y reintenta una vez.
+ * Peticiones al API Nest: `credentials: 'include'` (cookie `refresh_token`) y, si hay token en memoria,
+ * `Authorization: Bearer` (access JWT tras login/refresh). Ante 401 (salvo /auth/refresh) intenta refresh y reintenta.
  */
 export async function fetchWithAuth(
   path: string,
@@ -61,6 +61,10 @@ export async function fetchWithAuth(
     ) {
       const t = await ensureCsrfToken();
       headers.set("X-CSRF-Token", t);
+    }
+    const bearer = getAccessToken()?.trim();
+    if (bearer && !headers.has("Authorization")) {
+      headers.set("Authorization", `Bearer ${bearer}`);
     }
     return headers;
   };

@@ -8,6 +8,7 @@ import {
 import { fetchWebrtcIceServers } from '@/lib/fetch-webrtc-ice-servers';
 import { requestRecordingStart, requestRecordingStop } from '@/lib/webrtc-recording-api';
 import { sendCallMetrics } from '@/lib/send-webrtc-metrics';
+import { ensureAccessToken } from '@/lib/auth-client';
 import type { Socket } from 'socket.io-client';
 import { io } from 'socket.io-client';
 
@@ -713,12 +714,18 @@ export function useTelemedicineCall(
 
     let socket = externalSocket ?? null;
     if (!socket) {
+      const accessToken = await ensureAccessToken();
+      if (!accessToken?.trim()) {
+        onError?.('Inicia sesión para usar la videollamada.');
+        return;
+      }
       const origin = backendOrigin.replace(/\/$/, '');
       socket = io(`${origin}/webrtc`, {
         path: socketPath,
         transports: ['websocket', 'polling'],
         withCredentials: true,
         autoConnect: true,
+        auth: { token: accessToken },
       });
       ownSocketRef.current = true;
     } else {
