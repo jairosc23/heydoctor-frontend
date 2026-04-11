@@ -4,7 +4,7 @@
 
 import { fetchWithAuth, type FetchWithAuthContext } from "./api";
 
-/** @deprecated Mantenido por compatibilidad de firmas; no envía Bearer al API. */
+/** @deprecated Mantenido por compatibilidad de firmas; el Bearer sale de getAccessToken en fetchWithAuth. */
 export type ApiAuthOptions = FetchWithAuthContext;
 
 export class ApiError extends Error {

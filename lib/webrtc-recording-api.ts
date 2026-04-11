@@ -1,3 +1,5 @@
+import { fetchWithAuth } from './api';
+
 export type RecordingApiInput = {
   backendOrigin: string;
   consultationId: string;
@@ -12,13 +14,9 @@ export async function requestRecordingStart(
   const url = new URL(
     '/api/webrtc/recording/start',
     input.backendOrigin.replace(/\/$/, ''),
-  );
-  const res = await fetch(url.toString(), {
+  ).toString();
+  const res = await fetchWithAuth(url, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include',
     body: JSON.stringify({
       consultationId: input.consultationId,
       userConsent: input.userConsent,
@@ -37,13 +35,9 @@ export async function requestRecordingStop(
   const url = new URL(
     '/api/webrtc/recording/stop',
     input.backendOrigin.replace(/\/$/, ''),
-  );
-  const res = await fetch(url.toString(), {
+  ).toString();
+  const res = await fetchWithAuth(url, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include',
     body: JSON.stringify({
       consultationId: input.consultationId,
       userConsent: input.userConsent,

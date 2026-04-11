@@ -1,5 +1,5 @@
+import { fetchWithAuth } from "../api";
 import { apiPost } from "../api-client";
-import { getApiBase } from "../api-base";
 
 export interface DoctorProfile {
   id: string;
@@ -30,8 +30,7 @@ export interface RatingsResponse {
 }
 
 async function publicGet<T>(path: string): Promise<T> {
-  const base = getApiBase();
-  const res = await fetch(`${base}${path}`, { credentials: "include" });
+  const res = await fetchWithAuth(path, { method: "GET" });
   if (!res.ok) throw new Error("Error al cargar datos");
   return res.json() as Promise<T>;
 }

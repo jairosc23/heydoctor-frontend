@@ -1,5 +1,4 @@
-import { fetchWithAuth } from "./api";
-import { getApiBase } from "./api-base";
+import { apiGet, apiPost } from "./api-client";
 
 /**
  * Consentimiento para consulta por videollamada (telemedicina).
@@ -34,30 +33,7 @@ export type TelemedicineConsentStatus = {
  * Estado del consentimiento según el servidor (versión legal vigente en backend).
  */
 export async function getTelemedicineConsentStatus(): Promise<TelemedicineConsentStatus> {
-  const base = getApiBase();
-  const res = await fetch(`${base}/consents/telemedicine/status`, {
-    method: "GET",
-    headers: {
-      Accept: "application/json",
-    },
-    credentials: "include",
-  });
-  if (!res.ok) {
-    throw new Error(await readApiErrorMessage(res));
-  }
-  return (await res.json()) as TelemedicineConsentStatus;
-}
-
-async function readApiErrorMessage(res: Response): Promise<string> {
-  const text = await res.text();
-  try {
-    const j = JSON.parse(text) as { message?: string | string[] };
-    if (Array.isArray(j.message)) return j.message.join(", ");
-    if (typeof j.message === "string") return j.message;
-  } catch {
-    /* ignore */
-  }
-  return text.trim() || `Error ${res.status}`;
+  return apiGet<TelemedicineConsentStatus>("/consents/telemedicine/status");
 }
 
 /**
@@ -65,16 +41,7 @@ async function readApiErrorMessage(res: Response): Promise<string> {
  * Usar el mismo JWT que para el resto de la sesión (p. ej. token de query en teleconsulta).
  */
 export async function postTelemedicineConsent(): Promise<TelemedicineConsentRecord> {
-  const res = await fetchWithAuth("/consents/telemedicine", {
-    method: "POST",
-    headers: {
-      Accept: "application/json",
-    },
-  });
-  if (!res.ok) {
-    throw new Error(await readApiErrorMessage(res));
-  }
-  return (await res.json()) as TelemedicineConsentRecord;
+  return apiPost<TelemedicineConsentRecord>("/consents/telemedicine", {});
 }
 
 /**

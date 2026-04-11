@@ -1,3 +1,5 @@
+import { fetchWithAuth } from './api';
+
 export type SendCallMetricsInput = {
   backendOrigin: string;
   consultationId: string;
@@ -24,7 +26,7 @@ export async function sendCallMetrics(
     packetLossRatio,
   } = input;
 
-  const url = new URL('/api/webrtc/metrics', backendOrigin.replace(/\/$/, ''));
+  const url = new URL('/api/webrtc/metrics', backendOrigin.replace(/\/$/, '')).toString();
 
   const body: Record<string, unknown> = { consultationId };
   if (rtt !== undefined) body.rtt = rtt;
@@ -33,13 +35,8 @@ export async function sendCallMetrics(
   if (jitter !== undefined && !Number.isNaN(jitter)) body.jitter = jitter;
   if (packetLossRatio !== undefined) body.packetLossRatio = packetLossRatio;
 
-  const res = await fetch(url.toString(), {
+  const res = await fetchWithAuth(url, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    },
-    credentials: 'include',
     body: JSON.stringify(body),
   });
 

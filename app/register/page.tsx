@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { getApiBase } from "@/lib/api";
+import { ApiError, apiPost } from "@/lib/api-client";
 
 export default function RegisterPage() {
   const [email, setEmail] = useState("");
@@ -36,34 +36,16 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const res = await fetch(`${getApiBase()}/auth/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim(), password }),
-        credentials: "include",
-      });
-
-      const text = await res.text();
-      let data: Record<string, unknown> = {};
-      try {
-        data = text ? (JSON.parse(text) as Record<string, unknown>) : {};
-      } catch {
-        throw new Error("El servidor no respondió correctamente.");
-      }
-
-      if (!res.ok) {
-        const msg =
-          (data.message as string) ||
-          (data.error as string) ||
-          "Error al registrarse";
-        throw new Error(Array.isArray(msg) ? msg.join(", ") : msg);
-      }
-
+      await apiPost("/auth/register", { email: email.trim(), password });
       setSuccess(true);
       setTimeout(() => router.push("/login"), 2000);
     } catch (err) {
       const msg =
-        err instanceof Error ? err.message : "Error al registrarse";
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : "Error al registrarse";
       if (
         msg.includes("Failed to fetch") ||
         msg.includes("NetworkError")

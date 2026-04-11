@@ -1,7 +1,8 @@
 /**
- * Fetches ICE servers (STUN + multi-region TURN) from the Nest API.
- * Auth: cookie `heydoctor_session` (credentials: 'include').
+ * ICE servers (STUN/TURN) desde el Nest. Auth: Bearer + refresh cookie vía {@link fetchWithAuth}.
  */
+
+import { fetchWithAuth } from './api';
 
 export type IceServersResponse = {
   iceServers: RTCIceServer[];
@@ -15,12 +16,8 @@ export async function fetchWebrtcIceServers(params: {
   const url = new URL('/api/webrtc/ice-servers', backendOrigin.replace(/\/$/, ''));
   url.searchParams.set('consultationId', consultationId);
 
-  const res = await fetch(url.toString(), {
+  const res = await fetchWithAuth(url.toString(), {
     method: 'GET',
-    headers: {
-      Accept: 'application/json',
-    },
-    credentials: 'include',
   });
 
   if (!res.ok) {

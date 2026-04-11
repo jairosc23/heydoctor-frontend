@@ -1,10 +1,10 @@
 /**
- * Canje de ?access_token= contra el Nest: POST /api/auth/magic-link con credentials.
- * El API fija `heydoctor_session` y `refresh_token` en su dominio (cross-origin).
+ * Canje de ?access_token= contra el Nest: POST /api/auth/magic-link (fetchWithAuth vía apiPost).
+ * El API fija `refresh_token` y devuelve access JWT en JSON (cross-origin).
  */
 
 import { setAccessToken } from "@/lib/auth-client";
-import { getApiBase } from "@/lib/api-base";
+import { apiPost } from "@/lib/api-client";
 import { setFirstPartySessionFromAccessToken } from "@/lib/first-party-session-cookie";
 import { setCsrfToken } from "@/lib/csrf";
 
@@ -14,36 +14,11 @@ export async function exchangeMagicLinkToken(token: string): Promise<void> {
     throw new Error("Token vacío");
   }
 
-  const base = getApiBase();
-  const res = await fetch(`${base}/auth/magic-link`, {
-    method: "POST",
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
-    body: JSON.stringify({ token: trimmed }),
-  });
-
-  if (!res.ok) {
-    let detail = res.statusText;
-    try {
-      const j = (await res.json()) as { message?: string | string[] };
-      if (Array.isArray(j.message)) {
-        detail = j.message.join(", ");
-      } else if (typeof j.message === "string") {
-        detail = j.message;
-      }
-    } catch {
-      /* ignore */
-    }
-    throw new Error(detail || `Magic link ${res.status}`);
-  }
-
-  const data = (await res.json()) as {
+  const data = await apiPost<{
     access_token?: string;
     csrfToken?: string;
-  };
+  }>("/auth/magic-link", { token: trimmed });
+
   const csrf = data.csrfToken?.trim();
   if (csrf) {
     setCsrfToken(csrf);
