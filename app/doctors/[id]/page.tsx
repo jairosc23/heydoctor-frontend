@@ -3,7 +3,7 @@
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { apiGet } from "@/lib/api-client";
+import { heydoctorApi } from "@/lib/heydoctor-api";
 
 export default function DoctorPage() {
   const params = useParams();
@@ -17,7 +17,7 @@ export default function DoctorPage() {
   const [unavailable, setUnavailable] = useState(false);
 
   useEffect(() => {
-    apiGet<{ name?: string; specialty?: string; registration?: string }>("/clinics/me")
+    heydoctorApi.get<{ name?: string; specialty?: string; registration?: string }>("/clinics/me")
       .then((res) => {
         const d = (res as { data?: { doctor?: { user?: { firstName?: string; lastName?: string }; speciality?: string; licenseNumber?: string } } })?.data?.doctor;
         if (d) {

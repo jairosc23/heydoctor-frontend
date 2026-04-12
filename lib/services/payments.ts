@@ -1,4 +1,4 @@
-import { apiPost } from "../api-client";
+import { heydoctorApi } from "../heydoctor-api";
 
 export interface PaymentSession {
   paymentId: string;
@@ -8,7 +8,7 @@ export interface PaymentSession {
 export async function createPaymentSession(
   consultationId: string
 ): Promise<PaymentSession> {
-  return apiPost<PaymentSession>("/payku/create-payment-session", {
+  return heydoctorApi.post<PaymentSession>("/payku/create-payment-session", {
     consultationId,
   });
 }

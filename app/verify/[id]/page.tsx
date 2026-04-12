@@ -3,7 +3,7 @@
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { apiGet } from "@/lib/api-client";
+import { heydoctorApi } from "@/lib/heydoctor-api";
 
 interface VerifyResult {
   valid: boolean;
@@ -26,7 +26,7 @@ export default function VerifyPage() {
 
   useEffect(() => {
     if (!id) return;
-    apiGet<VerifyResult>(`/verify/${id}`)
+    heydoctorApi.get<VerifyResult>(`/verify/${id}`)
       .then((data) => setResult(data))
       .catch((e) => {
         if ((e as { status?: number }).status === 404) {

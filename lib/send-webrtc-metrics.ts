@@ -1,4 +1,4 @@
-import { fetchWithAuth } from './api';
+import { fetchWithAuth } from './heydoctor-api';
 
 export type SendCallMetricsInput = {
   backendOrigin: string;

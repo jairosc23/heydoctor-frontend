@@ -1,16 +1,17 @@
 /**
  * Auth client — login/register/refresh/logout **directo del navegador al Nest** con `credentials: 'include'`.
- * En el API: cookie HttpOnly solo `refresh_token`; el access JWT va en memoria y en `Authorization: Bearer` (vía `fetchWithAuth`).
+ * Access JWT: memoria + `localStorage` (`heydoctor_access_token`) + `Authorization: Bearer` (vía `fetchWithAuth`).
+ * Cookie HttpOnly en el API: `refresh_token` cuando aplica.
  * Cookie de primer partido en Vercel: POST `/api/auth/session` con Bearer para el middleware de Next.
  */
 
 import { invalidateJwtPayloadCache } from "./auth-token";
+import { HEYDOCTOR_ACCESS_TOKEN_STORAGE_KEY } from "./heydoctor-auth-constants";
 import { emitAuthTelemetry } from "./auth-telemetry";
 import { getApiBase, getAuthLoginUrl } from "./api-base";
 import { setFirstPartySessionFromAccessToken } from "./first-party-session-cookie";
-import { ensureCsrfToken, getCsrfTokenSync, setCsrfToken } from "./csrf";
 
-// ── In-memory access token ──────────────────────────────────────
+// ── In-memory access token (+ localStorage para recargar pestaña) ───────────
 
 let _accessToken: string | null = null;
 let _refreshPromise: Promise<string | null> | null = null;
@@ -40,7 +41,37 @@ function emitRefreshState(isRefreshing: boolean): void {
   });
 }
 
+function readStoredAccessToken(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const s = localStorage.getItem(HEYDOCTOR_ACCESS_TOKEN_STORAGE_KEY)?.trim();
+    return s || null;
+  } catch {
+    return null;
+  }
+}
+
+function persistAccessToken(token: string | null): void {
+  if (typeof window === "undefined") return;
+  try {
+    if (token) {
+      localStorage.setItem(HEYDOCTOR_ACCESS_TOKEN_STORAGE_KEY, token);
+    } else {
+      localStorage.removeItem(HEYDOCTOR_ACCESS_TOKEN_STORAGE_KEY);
+    }
+  } catch {
+    /* noop */
+  }
+}
+
 export function getAccessToken(): string | null {
+  if (_accessToken?.trim()) {
+    return _accessToken;
+  }
+  const fromStore = readStoredAccessToken();
+  if (fromStore) {
+    _accessToken = fromStore;
+  }
   return _accessToken;
 }
 
@@ -48,7 +79,8 @@ export function setAccessToken(token: string | null): void {
   if (_accessToken !== token) {
     invalidateJwtPayloadCache();
   }
-  _accessToken = token;
+  _accessToken = token?.trim() ? token.trim() : null;
+  persistAccessToken(_accessToken);
 }
 
 function getTabId(): string {
@@ -139,12 +171,10 @@ async function _doRefresh(): Promise<string | null> {
   const accessTokenSnapshot = _accessToken;
   emitRefreshState(true);
   try {
-    await ensureCsrfToken();
-    const csrf = getCsrfTokenSync();
     const res = await fetch(`${getApiBase()}/auth/refresh`, {
       method: "POST",
       credentials: "include",
-      headers: csrf ? { "X-CSRF-Token": csrf } : undefined,
+      headers: { Accept: "application/json" },
     });
 
     if (!res.ok) {
@@ -159,11 +189,7 @@ async function _doRefresh(): Promise<string | null> {
 
     const data = (await res.json()) as {
       access_token?: string;
-      csrfToken?: string;
     };
-    if (typeof data.csrfToken === "string" && data.csrfToken.trim()) {
-      setCsrfToken(data.csrfToken);
-    }
     const next = (data.access_token ?? "").trim();
     setAccessToken(next || null);
 
@@ -255,7 +281,7 @@ export async function authLogin(
       cause instanceof Error ? cause.message : String(cause);
     throw new Error(
       `Error de red al contactar el API (POST /api/auth/login). ` +
-        `Revisa CORS con credenciales en el backend, la política CSP connect-src del frontend y NEXT_PUBLIC_API_URL. ` +
+        `Revisa CORS con credenciales en el backend, la política CSP connect-src del frontend y NEXT_PUBLIC_HEYDOCTOR_API_URL / NEXT_PUBLIC_API_URL. ` +
         `URL usada: ${url}. Detalle: ${detail}`,
     );
   }
@@ -267,7 +293,7 @@ export async function authLogin(
     emitAuthTelemetry("login_fail", { status: res.status, parseError: true });
     throw new Error(
       `Respuesta no JSON (${res.status} ${res.statusText}). ` +
-        `Confirma que NEXT_PUBLIC_API_URL apunta al Nest (p. ej. https://pro-api.heydoctor.health) y expone POST /api/auth/login.`,
+        `Confirma que NEXT_PUBLIC_HEYDOCTOR_API_URL o NEXT_PUBLIC_API_URL apunta al Nest (p. ej. https://pro-api.heydoctor.health) y expone POST /api/auth/login.`,
     );
   }
 
@@ -293,11 +319,6 @@ export async function authLogin(
   if (!token) {
     emitAuthTelemetry("login_fail", { status: res.status, reason: "no_token" });
     throw new Error("Respuesta de login sin access_token");
-  }
-
-  const csrfTok = data["csrfToken"];
-  if (typeof csrfTok === "string" && csrfTok.trim()) {
-    setCsrfToken(csrfTok);
   }
 
   setAccessToken(token);
@@ -336,12 +357,10 @@ export async function authLogout(options?: AuthLogoutOptions): Promise<void> {
 
   try {
     if (!options?.skipRemote) {
-      await ensureCsrfToken();
-      const csrf = getCsrfTokenSync();
       await fetch(`${getApiBase()}/auth/logout`, {
         method: "POST",
         credentials: "include",
-        headers: csrf ? { "X-CSRF-Token": csrf } : undefined,
+        headers: { Accept: "application/json" },
       });
     }
   } catch {
@@ -350,7 +369,6 @@ export async function authLogout(options?: AuthLogoutOptions): Promise<void> {
 
   setAccessToken(null);
   _lastRefreshFailedAt = 0;
-  setCsrfToken(null);
   await clearFirstPartySessionCookie();
 }
 

@@ -2,7 +2,7 @@
  * ICE servers (STUN/TURN) desde el Nest. Auth: Bearer + refresh cookie vía {@link fetchWithAuth}.
  */
 
-import { fetchWithAuth } from './api';
+import { fetchWithAuth } from './heydoctor-api';
 
 export type IceServersResponse = {
   iceServers: RTCIceServer[];

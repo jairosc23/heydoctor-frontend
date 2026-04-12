@@ -1,4 +1,4 @@
-import { apiPost } from "../api-client";
+import { heydoctorApi } from "../heydoctor-api";
 
 export type ConsultationAssistRequest = {
   chiefComplaint?: string;
@@ -16,7 +16,7 @@ export type ConsultationAssistResponse = {
 export function requestConsultationAssist(
   body: ConsultationAssistRequest
 ): Promise<ConsultationAssistResponse> {
-  return apiPost<ConsultationAssistResponse>(
+  return heydoctorApi.post<ConsultationAssistResponse>(
     "/ai/consultation-assist",
     body
   );

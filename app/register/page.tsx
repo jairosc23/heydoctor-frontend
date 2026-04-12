@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ApiError, apiPost } from "@/lib/api-client";
+import { ApiError, heydoctorApi } from "@/lib/heydoctor-api";
 
 export default function RegisterPage() {
   const [email, setEmail] = useState("");
@@ -36,7 +36,7 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      await apiPost("/auth/register", { email: email.trim(), password });
+      await heydoctorApi.post("/auth/register", { email: email.trim(), password });
       setSuccess(true);
       setTimeout(() => router.push("/login"), 2000);
     } catch (err) {

@@ -1,4 +1,4 @@
-import { apiGet } from "../api-client";
+import { heydoctorApi } from "../heydoctor-api";
 
 export type WebrtcMetricsSummary = {
   consultationId: string;
@@ -22,7 +22,7 @@ export function fetchWebrtcMetricsSummary(
   consultationId: string
 ): Promise<WebrtcMetricsSummary> {
   const q = new URLSearchParams({ consultationId });
-  return apiGet<WebrtcMetricsSummary>(
+  return heydoctorApi.get<WebrtcMetricsSummary>(
     `/webrtc/metrics/summary?${q.toString()}`
   );
 }

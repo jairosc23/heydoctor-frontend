@@ -1,10 +1,10 @@
-import { apiPostOrFallback } from "../api-client";
+import { heydoctorApi } from "../heydoctor-api";
 
 export async function evaluateCdss(
   symptoms: string[],
   context?: Record<string, unknown>
 ) {
-  return apiPostOrFallback<{
+  return heydoctorApi.postOrFallback<{
     suggested_diagnoses?: Array<{
       code?: string;
       description?: string;

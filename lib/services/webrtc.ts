@@ -3,7 +3,7 @@
  * Uses NEXT_PUBLIC_ICE_SERVERS_URL or falls back to {getApiBase()}/webrtc/ice-servers.
  */
 
-import { fetchWithAuth, getApiBase } from "../api";
+import { fetchWithAuth, getApiBase } from "../heydoctor-api";
 
 function resolveIceServersUrl(): string {
   const fromEnv =

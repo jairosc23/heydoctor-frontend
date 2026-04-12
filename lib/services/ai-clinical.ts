@@ -1,4 +1,4 @@
-import { apiPost } from "../api-client";
+import { heydoctorApi } from "../heydoctor-api";
 
 export type ConsultationSummaryRequest = {
   reason: string;
@@ -22,5 +22,5 @@ export async function postConsultationSummary(
   body: ConsultationSummaryRequest,
   signal?: AbortSignal
 ): Promise<ConsultationSummaryResponse> {
-  return apiPost<ConsultationSummaryResponse>(PATH, body, signal);
+  return heydoctorApi.post<ConsultationSummaryResponse>(PATH, body, signal);
 }

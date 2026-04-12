@@ -1,4 +1,4 @@
-import { apiGet, apiPost } from "./api-client";
+import { heydoctorApi } from "./heydoctor-api";
 
 /**
  * Consentimiento para consulta por videollamada (telemedicina).
@@ -33,7 +33,7 @@ export type TelemedicineConsentStatus = {
  * Estado del consentimiento según el servidor (versión legal vigente en backend).
  */
 export async function getTelemedicineConsentStatus(): Promise<TelemedicineConsentStatus> {
-  return apiGet<TelemedicineConsentStatus>("/consents/telemedicine/status");
+  return heydoctorApi.get<TelemedicineConsentStatus>("/consents/telemedicine/status");
 }
 
 /**
@@ -41,7 +41,7 @@ export async function getTelemedicineConsentStatus(): Promise<TelemedicineConsen
  * Usar el mismo JWT que para el resto de la sesión (p. ej. token de query en teleconsulta).
  */
 export async function postTelemedicineConsent(): Promise<TelemedicineConsentRecord> {
-  return apiPost<TelemedicineConsentRecord>("/consents/telemedicine", {});
+  return heydoctorApi.post<TelemedicineConsentRecord>("/consents/telemedicine", {});
 }
 
 /**

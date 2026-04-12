@@ -1,4 +1,4 @@
-import { apiGetOrFallback, apiPostOrFallback } from "../api-client";
+import { heydoctorApi } from "../heydoctor-api";
 
 const BASE = "/lab-orders";
 
@@ -14,7 +14,7 @@ export interface CreateLabOrderDto {
 }
 
 export async function fetchLabOrdersByPatient(patientId: string) {
-  const res = await apiGetOrFallback<{ data: unknown[] }>(
+  const res = await heydoctorApi.getOrFallback<{ data: unknown[] }>(
     `${BASE}/patient/${patientId}`,
     { data: [] }
   );
@@ -22,7 +22,7 @@ export async function fetchLabOrdersByPatient(patientId: string) {
 }
 
 export async function suggestLabTests(q: string) {
-  const res = await apiGetOrFallback<{ data?: string[] }>(
+  const res = await heydoctorApi.getOrFallback<{ data?: string[] }>(
     `${BASE}/suggest-tests?q=${encodeURIComponent(q)}`,
     { data: [] }
   );
@@ -30,5 +30,5 @@ export async function suggestLabTests(q: string) {
 }
 
 export async function createLabOrder(dto: CreateLabOrderDto) {
-  return apiPostOrFallback<{ data: unknown }>(BASE, dto, { data: null });
+  return heydoctorApi.postOrFallback<{ data: unknown }>(BASE, dto, { data: null });
 }

@@ -1,4 +1,4 @@
-import { apiGetOrFallback } from "../api-client";
+import { heydoctorApi } from "../heydoctor-api";
 
 const BASE = "/appointments";
 const EMPTY = { data: [] as unknown[], total: 0 };
@@ -23,5 +23,5 @@ export async function fetchAppointments(filters?: AppointmentFilters) {
   if (filters?.limit != null) params.set("limit", String(filters.limit));
   if (filters?.offset != null) params.set("offset", String(filters.offset));
   const q = params.toString() ? `?${params}` : "";
-  return apiGetOrFallback<{ data: unknown[]; total: number }>(`${BASE}${q}`, EMPTY);
+  return heydoctorApi.getOrFallback<{ data: unknown[]; total: number }>(`${BASE}${q}`, EMPTY);
 }

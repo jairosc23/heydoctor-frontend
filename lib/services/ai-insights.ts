@@ -1,4 +1,4 @@
-import { apiGetOrFallback, apiPostOrFallback } from "../api-client";
+import { heydoctorApi } from "../heydoctor-api";
 
 const BASE = "/ai-insights";
 
@@ -14,7 +14,7 @@ export async function fetchAiInsightsByPatient(
   patientId: string,
   limit = 10
 ) {
-  const res = await apiGetOrFallback<{ data?: unknown[] }>(
+  const res = await heydoctorApi.getOrFallback<{ data?: unknown[] }>(
     `${BASE}/patient/${patientId}?limit=${limit}`,
     { data: [] }
   );
@@ -22,7 +22,7 @@ export async function fetchAiInsightsByPatient(
 }
 
 export async function generateAiInsights(dto: GenerateInsightsDto) {
-  return apiPostOrFallback<{ data?: unknown }>(
+  return heydoctorApi.postOrFallback<{ data?: unknown }>(
     `${BASE}/generate`,
     dto,
     { data: null }

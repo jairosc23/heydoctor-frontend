@@ -1,11 +1,16 @@
 /**
  * Origen del backend (sin `/api` final).
- * - Producción: `https://pro-api.heydoctor.health` (NEXT_PUBLIC_API_URL) u otro host Nest.
+ * - Preferir `NEXT_PUBLIC_HEYDOCTOR_API_URL` (p. ej. https://pro-api.heydoctor.health).
+ * - Alternativa: `NEXT_PUBLIC_API_URL`.
  * - Añade `https://` si falta el esquema (evita fetch relativo → 404 en Next).
  * - Quita un sufijo `/api` si ya venía en la variable (evita `/api/api/...`).
  */
 export function getBackendOrigin(): string {
-  let s = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001")
+  let s = (
+    process.env.NEXT_PUBLIC_HEYDOCTOR_API_URL ||
+    process.env.NEXT_PUBLIC_API_URL ||
+    "http://localhost:3001"
+  )
     .trim()
     .replace(/\/+$/, "");
   if (!s) s = "http://localhost:3001";
@@ -36,7 +41,7 @@ export function getAuthMeUrl(): string {
 
 /**
  * URL absoluta POST /api/auth/login (solo navegador → Nest; nunca vía Route Handler).
- * Con `NEXT_PUBLIC_API_URL=https://pro-api.heydoctor.health` → `https://pro-api.heydoctor.health/api/auth/login`.
+ * Con `NEXT_PUBLIC_HEYDOCTOR_API_URL=https://pro-api.heydoctor.health` → …/api/auth/login.
  */
 export function getAuthLoginUrl(): string {
   return `${getApiBase()}/auth/login`;

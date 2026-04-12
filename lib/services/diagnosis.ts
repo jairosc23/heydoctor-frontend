@@ -1,4 +1,4 @@
-import { apiPost } from "../api-client";
+import { heydoctorApi } from "../heydoctor-api";
 
 const BASE = "/diagnosis";
 
@@ -14,6 +14,6 @@ export interface CreateDiagnosisDto {
 }
 
 export async function createDiagnosis(dto: CreateDiagnosisDto) {
-  const res = await apiPost<{ data: unknown }>(BASE, dto);
+  const res = await heydoctorApi.post<{ data: unknown }>(BASE, dto);
   return res;
 }

@@ -1,7 +1,6 @@
 import { getAccessToken, refreshAccessToken } from "./auth-client";
 import { handleAuthError } from "./auth/auth-guard";
 import { getApiBase } from "./api-base";
-import { ensureCsrfToken } from "./csrf";
 
 export { getApiBase };
 
@@ -51,16 +50,6 @@ export async function fetchWithAuth(
       method !== "HEAD"
     ) {
       headers.set("Content-Type", "application/json");
-    }
-    if (
-      (method === "POST" ||
-        method === "PUT" ||
-        method === "PATCH" ||
-        method === "DELETE") &&
-      !headers.has("X-CSRF-Token")
-    ) {
-      const t = await ensureCsrfToken();
-      headers.set("X-CSRF-Token", t);
     }
     const bearer = getAccessToken()?.trim();
     if (bearer && !headers.has("Authorization")) {

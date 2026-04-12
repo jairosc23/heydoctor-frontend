@@ -1,4 +1,4 @@
-import { apiGet, apiPost } from "../api-client";
+import { heydoctorApi } from "../heydoctor-api";
 
 const BASE = "/patients";
 
@@ -92,7 +92,7 @@ export async function fetchPatients(filters?: PatientFilters): Promise<{
   appendQueryParam(params, "limit", filters?.limit);
   appendQueryParam(params, "offset", filters?.offset);
   const q = params.toString() ? `?${params}` : "";
-  const raw = await apiGet<unknown>(`${BASE}${q}`);
+  const raw = await heydoctorApi.get<unknown>(`${BASE}${q}`);
   return unwrapListWithTotal(raw);
 }
 
@@ -102,7 +102,7 @@ export interface CreatePatientDto {
 }
 
 export async function createPatient(dto: CreatePatientDto): Promise<PatientRow> {
-  const raw = await apiPost<Record<string, unknown>>(BASE, dto);
+  const raw = await heydoctorApi.post<Record<string, unknown>>(BASE, dto);
   return normalizePatient(raw);
 }
 

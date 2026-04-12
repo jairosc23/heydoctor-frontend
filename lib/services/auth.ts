@@ -9,7 +9,7 @@ import {
   authLogout as authLogoutClient,
   getAccessToken,
 } from "../auth-client";
-import { ApiError, apiGet } from "../api-client";
+import { ApiError, heydoctorApi } from "../heydoctor-api";
 import { setFirstPartySessionFromAccessToken } from "../first-party-session-cookie";
 
 export type AuthUser = {
@@ -66,12 +66,12 @@ export async function getMe(_accessToken?: string): Promise<AuthUser> {
   const meUrl = getAuthMeUrl();
 
   try {
-    return await apiGet<AuthUser>(meUrl);
+    return await heydoctorApi.get<AuthUser>(meUrl);
   } catch (err) {
     if (err instanceof ApiError) {
       const hint =
         err.status === 404
-          ? ` Revisa NEXT_PUBLIC_API_URL y que el backend exponga GET /api/auth/me. URL usada: ${meUrl}.`
+          ? ` Revisa NEXT_PUBLIC_HEYDOCTOR_API_URL / NEXT_PUBLIC_API_URL y que el backend exponga GET /api/auth/me. URL usada: ${meUrl}.`
           : err.status === 401
             ? " Sesión no válida o cookies no enviadas (CORS / SameSite)."
             : "";

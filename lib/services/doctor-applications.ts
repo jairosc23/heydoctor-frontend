@@ -1,4 +1,4 @@
-import { apiGet, apiPatch, apiPost } from "../api-client";
+import { heydoctorApi } from "../heydoctor-api";
 
 export interface DoctorApplicationDto {
   name: string;
@@ -25,14 +25,14 @@ export interface DoctorApplication {
 export async function submitDoctorApplication(
   dto: DoctorApplicationDto
 ): Promise<DoctorApplication> {
-  return apiPost<DoctorApplication>("/doctor-applications", dto);
+  return heydoctorApi.post<DoctorApplication>("/doctor-applications", dto);
 }
 
 export async function fetchDoctorApplications(
   status?: string
 ): Promise<DoctorApplication[]> {
   const q = status ? `?status=${status}` : "";
-  return apiGet<DoctorApplication[]>(`/doctor-applications${q}`);
+  return heydoctorApi.get<DoctorApplication[]>(`/doctor-applications${q}`);
 }
 
 export async function reviewDoctorApplication(
@@ -40,7 +40,7 @@ export async function reviewDoctorApplication(
   decision: "approved" | "rejected",
   rejectionReason?: string
 ): Promise<DoctorApplication> {
-  return apiPatch<DoctorApplication>(`/doctor-applications/${id}/review`, {
+  return heydoctorApi.patch<DoctorApplication>(`/doctor-applications/${id}/review`, {
     status: decision,
     rejectionReason,
   });

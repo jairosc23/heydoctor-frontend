@@ -1,4 +1,4 @@
-import { apiGet, apiPatch, apiPost } from "../api-client";
+import { heydoctorApi } from "../heydoctor-api";
 
 const BASE = "/consultations";
 
@@ -94,12 +94,12 @@ export async function fetchConsultations(
   appendQueryParam(params, "limit", filters?.limit);
   appendQueryParam(params, "offset", filters?.offset);
   const q = params.toString() ? `?${params}` : "";
-  const raw = await apiGet<unknown>(`${BASE}${q}`);
+  const raw = await heydoctorApi.get<unknown>(`${BASE}${q}`);
   return unwrapListWithTotal(raw);
 }
 
 export async function fetchConsultation(id: string): Promise<NestConsultation> {
-  const raw = await apiGet<NestConsultation | { data: NestConsultation }>(
+  const raw = await heydoctorApi.get<NestConsultation | { data: NestConsultation }>(
     `${BASE}/${id}`
   );
   const w = raw as { data?: NestConsultation };
@@ -111,7 +111,7 @@ export async function createConsultation(dto: CreateConsultationDto) {
     dto.chiefComplaint?.trim() ||
     dto.reason?.trim() ||
     "";
-  return apiPost<NestConsultation>(BASE, {
+  return heydoctorApi.post<NestConsultation>(BASE, {
     patientId: dto.patientId,
     chiefComplaint,
   });
@@ -148,20 +148,20 @@ export async function updateConsultation(
   if (dto.status !== undefined) body.status = dto.status;
   const plan = dto.treatmentPlan ?? dto.treatment;
   if (plan !== undefined) body.treatmentPlan = plan;
-  return apiPatch<NestConsultation>(`${BASE}/${id}`, body);
+  return heydoctorApi.patch<NestConsultation>(`${BASE}/${id}`, body);
 }
 
 export async function signConsultation(
   id: string,
   signature: string
 ): Promise<NestConsultation> {
-  return apiPost<NestConsultation>(`${BASE}/${id}/sign`, { signature });
+  return heydoctorApi.post<NestConsultation>(`${BASE}/${id}/sign`, { signature });
 }
 
 export async function startCall(
   id: string
 ): Promise<{ ok: boolean; consultationId: string }> {
-  return apiPost<{ ok: boolean; consultationId: string }>(
+  return heydoctorApi.post<{ ok: boolean; consultationId: string }>(
     `${BASE}/${id}/start-call`,
     {}
   );
@@ -170,5 +170,5 @@ export async function startCall(
 export async function fetchConsultationAi(
   consultationId: string
 ): Promise<ConsultationAiPayload> {
-  return apiGet<ConsultationAiPayload>(`${BASE}/${consultationId}/ai`);
+  return heydoctorApi.get<ConsultationAiPayload>(`${BASE}/${consultationId}/ai`);
 }

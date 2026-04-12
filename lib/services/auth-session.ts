@@ -1,5 +1,5 @@
 import { getAuthMeUrl } from "../api-base";
-import { apiGet } from "../api-client";
+import { heydoctorApi } from "../heydoctor-api";
 
 export interface CurrentUserResponse {
   id: string;
@@ -10,5 +10,5 @@ export interface CurrentUserResponse {
 }
 
 export async function fetchCurrentUser(): Promise<CurrentUserResponse> {
-  return apiGet<CurrentUserResponse>(getAuthMeUrl());
+  return heydoctorApi.get<CurrentUserResponse>(getAuthMeUrl());
 }

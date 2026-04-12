@@ -1,5 +1,4 @@
-import { fetchWithAuth } from "../api";
-import { apiPost } from "../api-client";
+import { fetchWithAuth, heydoctorApi } from "../heydoctor-api";
 
 export interface DoctorProfile {
   id: string;
@@ -55,5 +54,5 @@ export async function submitDoctorRating(
   slug: string,
   data: { patientName: string; rating: number; comment?: string; consultationId?: string }
 ): Promise<DoctorRating> {
-  return apiPost<DoctorRating>(`/doctors/${slug}/ratings`, data);
+  return heydoctorApi.post<DoctorRating>(`/doctors/${slug}/ratings`, data);
 }

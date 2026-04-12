@@ -1,4 +1,4 @@
-import { apiGet } from "../api-client";
+import { heydoctorApi } from "../heydoctor-api";
 
 export interface RollingMetrics {
   upgrades7d: number;
@@ -9,5 +9,5 @@ export interface RollingMetrics {
 }
 
 export async function fetchRollingMetrics(): Promise<RollingMetrics> {
-  return apiGet<RollingMetrics>("/metrics/rolling");
+  return heydoctorApi.get<RollingMetrics>("/metrics/rolling");
 }
