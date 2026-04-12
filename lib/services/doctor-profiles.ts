@@ -1,4 +1,4 @@
-import { fetchWithAuth, heydoctorApi } from "../heydoctor-api";
+import { heydoctorApi } from "../heydoctor-api";
 
 export interface DoctorProfile {
   id: string;
@@ -29,9 +29,11 @@ export interface RatingsResponse {
 }
 
 async function publicGet<T>(path: string): Promise<T> {
-  const res = await fetchWithAuth(path, { method: "GET" });
-  if (!res.ok) throw new Error("Error al cargar datos");
-  return res.json() as Promise<T>;
+  try {
+    return await heydoctorApi.get<T>(path);
+  } catch {
+    throw new Error("Error al cargar datos");
+  }
 }
 
 export async function fetchPublicDoctors(): Promise<DoctorProfile[]> {

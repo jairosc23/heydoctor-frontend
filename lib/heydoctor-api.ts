@@ -14,7 +14,9 @@ import {
   apiPatch,
   apiPost,
   apiPostOrFallback,
+  fetchWithAuth,
   type ApiAuthOptions,
+  type FetchWithAuthContext,
 } from "./api-client";
 import { getAccessToken } from "./auth-client";
 import { HEYDOCTOR_ACCESS_TOKEN_STORAGE_KEY } from "./heydoctor-auth-constants";
@@ -25,8 +27,7 @@ export {
   getAuthMeUrl,
   getBackendOrigin,
 } from "./api-base";
-export { fetchWithAuth, type FetchWithAuthContext } from "./api";
-export { ApiError, type ApiAuthOptions };
+export { fetchWithAuth, type FetchWithAuthContext, ApiError, type ApiAuthOptions };
 
 export { HEYDOCTOR_ACCESS_TOKEN_STORAGE_KEY };
 

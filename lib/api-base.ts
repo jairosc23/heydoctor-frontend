@@ -1,7 +1,7 @@
 /**
  * Origen del backend (sin `/api` final).
- * - Preferir `NEXT_PUBLIC_HEYDOCTOR_API_URL` (p. ej. https://pro-api.heydoctor.health).
- * - Alternativa: `NEXT_PUBLIC_API_URL`.
+ * - Producción: `NEXT_PUBLIC_HEYDOCTOR_API_URL` (p. ej. https://pro-api.heydoctor.health).
+ * - Solo si falta: `NEXT_PUBLIC_API_URL` (compat. legado).
  * - Añade `https://` si falta el esquema (evita fetch relativo → 404 en Next).
  * - Quita un sufijo `/api` si ya venía en la variable (evita `/api/api/...`).
  */
@@ -25,7 +25,7 @@ export function getBackendOrigin(): string {
 
 /**
  * Base con prefijo `/api` (Nest). Se recalcula en cada llamada para usar siempre
- * la `NEXT_PUBLIC_API_URL` vigente (evita base congelada en el primer import del módulo).
+ * `NEXT_PUBLIC_HEYDOCTOR_API_URL` (o `NEXT_PUBLIC_API_URL` en legado).
  *
  * Resultado típico producción: `https://…railway.app/api` (un solo `/api`, sin slash final).
  */
