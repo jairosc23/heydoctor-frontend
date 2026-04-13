@@ -36,7 +36,11 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      await heydoctorApi.post("/auth/register", { email: email.trim(), password });
+      await heydoctorApi.post(
+        "/auth/register",
+        { email: email.trim().toLowerCase(), password },
+        { requireAuth: false },
+      );
       setSuccess(true);
       setTimeout(() => router.push("/login"), 2000);
     } catch (err) {

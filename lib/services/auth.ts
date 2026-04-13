@@ -8,6 +8,7 @@ import {
   authLogin as authLoginClient,
   authLogout as authLogoutClient,
   getAccessToken,
+  setAccessToken,
 } from "../auth-client";
 import { ApiError, heydoctorApi } from "../heydoctor-api";
 import { setFirstPartySessionFromAccessToken } from "../first-party-session-cookie";
@@ -61,8 +62,12 @@ export async function logout(): Promise<void> {
   await clearMiddlewareSession();
 }
 
-/** Perfil: GET al Nest con Bearer (memoria) y `credentials: 'include'` (refresh). */
-export async function getMe(_accessToken?: string): Promise<AuthUser> {
+/** Perfil: GET al Nest con Bearer (`heydoctor_access_token`) y `credentials: 'include'` (refresh). */
+export async function getMe(accessToken?: string): Promise<AuthUser> {
+  const t = accessToken?.trim();
+  if (t) {
+    setAccessToken(t);
+  }
   const meUrl = getAuthMeUrl();
 
   try {

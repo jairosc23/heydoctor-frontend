@@ -30,7 +30,7 @@ export interface RatingsResponse {
 
 async function publicGet<T>(path: string): Promise<T> {
   try {
-    return await heydoctorApi.get<T>(path);
+    return await heydoctorApi.get<T>(path, { requireAuth: false });
   } catch {
     throw new Error("Error al cargar datos");
   }

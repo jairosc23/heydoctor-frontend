@@ -120,7 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw e;
     }
     try {
-      const me = await getMe();
+      const me = await getMe(accessToken);
       setUser(me);
       await syncMiddlewareSession(accessToken);
     } catch (e) {

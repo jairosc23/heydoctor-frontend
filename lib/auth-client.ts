@@ -264,6 +264,13 @@ export async function authLogin(
     console.log("[auth] POST login URL:", url);
   }
 
+  const normalizedEmail = email.trim().toLowerCase();
+  /** Cuerpo estricto: solo `email` y `password` (Nest POST /api/auth/login). */
+  const loginBody: { email: string; password: string } = {
+    email: normalizedEmail,
+    password,
+  };
+
   let res: Response;
   try {
     res = await fetch(url, {
@@ -272,7 +279,7 @@ export async function authLogin(
         "Content-Type": "application/json",
         Accept: "application/json",
       },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify(loginBody),
       credentials: "include",
     });
   } catch (cause) {

@@ -25,7 +25,9 @@ export interface DoctorApplication {
 export async function submitDoctorApplication(
   dto: DoctorApplicationDto
 ): Promise<DoctorApplication> {
-  return heydoctorApi.post<DoctorApplication>("/doctor-applications", dto);
+  return heydoctorApi.post<DoctorApplication>("/doctor-applications", dto, {
+    requireAuth: false,
+  });
 }
 
 export async function fetchDoctorApplications(

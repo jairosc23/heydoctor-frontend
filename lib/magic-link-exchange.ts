@@ -14,7 +14,7 @@ export async function exchangeMagicLinkToken(token: string): Promise<void> {
 
   const data = await heydoctorApi.post<{
     access_token?: string;
-  }>("/auth/magic-link", { token: trimmed });
+  }>("/auth/magic-link", { token: trimmed }, { requireAuth: false });
 
   const at = data.access_token?.trim();
   if (at) {

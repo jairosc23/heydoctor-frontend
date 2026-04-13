@@ -26,7 +26,7 @@ export default function VerifyPage() {
 
   useEffect(() => {
     if (!id) return;
-    heydoctorApi.get<VerifyResult>(`/verify/${id}`)
+    heydoctorApi.get<VerifyResult>(`/verify/${id}`, { requireAuth: false })
       .then((data) => setResult(data))
       .catch((e) => {
         if ((e as { status?: number }).status === 404) {
