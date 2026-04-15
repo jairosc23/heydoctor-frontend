@@ -2,7 +2,7 @@
  * Auth client — login/register/refresh/logout **directo del navegador al Nest** con `credentials: 'include'`.
  * Access JWT: memoria + `localStorage` (`heydoctor_access_token`) + `Authorization: Bearer` (vía `fetchWithAuth`).
  * Cookie HttpOnly en el API: `refresh_token` cuando aplica.
- * Cookie de primer partido en Vercel: POST `/api/auth/session` con Bearer para el middleware de Next.
+ * Cookie de primer partido en Vercel: POST `/api/auth/session` con Bearer para el proxy de Next.
  */
 
 import { invalidateJwtPayloadCache } from "./auth-token";

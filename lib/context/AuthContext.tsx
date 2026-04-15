@@ -32,7 +32,7 @@ type AuthContextValue = {
   sessionRevalidating: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  /** Recarga perfil con cookies; `explicitAccessToken` opcional sincroniza memoria + cookie middleware Next. */
+  /** Recarga perfil con cookies; `explicitAccessToken` opcional sincroniza memoria + cookie proxy Next. */
   refreshUser: (explicitAccessToken?: string) => Promise<void>;
 };
 

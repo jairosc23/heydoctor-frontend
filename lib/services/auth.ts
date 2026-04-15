@@ -1,6 +1,6 @@
 /**
  * Auth: login al Nest con `credentials: 'include'`; access JWT en memoria + Bearer en peticiones autenticadas.
- * Cookie HttpOnly en el API: solo `refresh_token`. `syncMiddlewareSession` fija cookie en el origen Next para el middleware.
+ * Cookie HttpOnly en el API: solo `refresh_token`. `syncMiddlewareSession` fija cookie en el origen Next para el proxy.
  */
 
 import { getAuthMeUrl } from "../api-base";

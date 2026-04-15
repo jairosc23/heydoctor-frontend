@@ -6,12 +6,12 @@ import {
 } from "@/lib/auth/jwt-utils";
 
 const SESSION_COOKIE = "heydoctor_session";
-/** Misma tolerancia que middleware: no rechazar token recién emitido por desfase de reloj. */
+/** Misma tolerancia que el proxy: no rechazar token recién emitido por desfase de reloj. */
 const SESSION_CLOCK_SKEW_MS = 5_000;
 
 /**
  * POST: recibe Bearer (JWT ya emitido por el Nest tras login en el cliente); valida forma y `exp` localmente
- * y fija cookie HttpOnly en el origen Next (middleware). **No** llama al backend (sin proxy login/sesión).
+ * y fija cookie HttpOnly en el origen Next (proxy). **No** llama al backend (sin proxy login/sesión).
  * La firma y autorización siguen validándose en el API en cada petición con `credentials: 'include'`.
  * DELETE: borra cookie.
  */
