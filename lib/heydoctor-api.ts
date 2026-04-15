@@ -1,6 +1,10 @@
 /**
- * Cliente HTTP unificado al API Nest (HeyDoctor): JWT Bearer + cookie refresh (`credentials: 'include'`).
- * Sin NextAuth ni CSRF hacia el backend.
+ * Cliente HTTP unificado al API Nest (HeyDoctor).
+ *
+ * - Access token: `localStorage["heydoctor_access_token"]` vía `auth-client` (memoria + storage).
+ * - Cada petición: `Authorization: Bearer` + `credentials: 'include'` (cookie HttpOnly `refresh_token` en el origen del API).
+ * - Interceptor 401: `POST /api/auth/refresh` (vía `refreshAccessToken()`, deduplicado en `auth-client`) → reintento de la petición.
+ * - Datos clínicos / panel: `cache: "no-store"`. Listados públicos de doctores en RSC: `lib/server/public-doctors.ts` con `revalidate: 60`.
  */
 
 import { getAccessToken, refreshAccessToken } from "./auth-client";
@@ -106,6 +110,7 @@ export async function fetchWithAuth(
     if (newToken) {
       res = await doFetch();
     }
+    // Un segundo 401 tras refresh implica sesión inválida; no bucle de refresh.
     if (res.status === 401) {
       if (process.env.NODE_ENV === "development" && typeof console !== "undefined" && console.error) {
         console.error("[heydoctor-api] 401 after refresh — session cleared:", url);
