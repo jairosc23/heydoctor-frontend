@@ -1,14 +1,21 @@
 "use client";
 
+import { useEffect } from "react";
+import * as Sentry from "@sentry/nextjs";
+
 const BRAND = "#078a92";
 
-export default function GlobalError({
+export default function Error({
   error,
   reset,
 }: {
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  useEffect(() => {
+    Sentry.captureException(error);
+  }, [error]);
+
   return (
     <div
       style={{
@@ -63,6 +70,7 @@ export default function GlobalError({
           {error.message || "Ocurrió un error inesperado."}
         </p>
         <button
+          type="button"
           onClick={reset}
           style={{
             padding: "12px 28px",

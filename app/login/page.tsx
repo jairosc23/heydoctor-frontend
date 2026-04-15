@@ -54,7 +54,7 @@ function LoginContent() {
         setError(
           msg.startsWith("Error de red")
             ? msg
-            : "Error de red: no se pudo contactar el API. Revisa conexión, NEXT_PUBLIC_API_URL, CORS con credenciales en el backend y CSP connect-src (pro-api / dominio del API).",
+            : "Error de red: no se pudo contactar el API. Revisa conexión, NEXT_PUBLIC_HEYDOCTOR_API_URL, CORS con credenciales en el backend y CSP connect-src (pro-api / dominio del API).",
         );
       } else if (
         lower.includes("401") ||

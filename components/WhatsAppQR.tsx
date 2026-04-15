@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
 
@@ -67,7 +68,8 @@ export function WhatsAppQR({
         }}
       >
         {dataUrl ? (
-          <img
+          <Image
+            unoptimized
             src={dataUrl}
             width={QR_SIZE}
             height={QR_SIZE}

@@ -1,5 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
+import * as Sentry from "@sentry/nextjs";
+
 export default function PanelError({
   error,
   reset,
@@ -7,6 +10,10 @@ export default function PanelError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  useEffect(() => {
+    Sentry.captureException(error);
+  }, [error]);
+
   return (
     <div
       style={{
@@ -43,6 +50,7 @@ export default function PanelError({
           {error.message || "Ocurrió un error inesperado."}
         </p>
         <button
+          type="button"
           onClick={reset}
           style={{
             padding: "10px 24px",

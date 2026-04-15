@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
+import Image from "next/image";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   fetchConsultation,
@@ -537,11 +538,13 @@ export default function ConsultationDetailPage() {
                   background: "#f8fafc",
                 }}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <Image
+                  unoptimized
                   src={`data:image/png;base64,${consultation.doctorSignature}`}
                   alt="Firma del doctor"
-                  style={{ maxWidth: 300, maxHeight: 120 }}
+                  width={300}
+                  height={120}
+                  style={{ maxWidth: 300, maxHeight: 120, width: "auto", height: "auto" }}
                 />
               </div>
             )}

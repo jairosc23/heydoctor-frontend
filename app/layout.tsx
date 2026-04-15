@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/react";
 import { CookieBanner } from "@/components/CookieBanner";
 import { Providers } from "@/components/Providers";
 import "./globals.css";
+
+const SITE_DESCRIPTION = "Consulta médica online inmediata";
 
 export const metadata: Metadata = {
   metadataBase: new URL(
@@ -9,7 +12,7 @@ export const metadata: Metadata = {
   ),
 
   title: "HeyDoctor",
-  description: "Atención médica online y presencial",
+  description: SITE_DESCRIPTION,
 
   icons: {
     icon: "/logo-heydoctor.png",
@@ -17,7 +20,7 @@ export const metadata: Metadata = {
 
   openGraph: {
     title: "HeyDoctor",
-    description: "Atención médica online y presencial",
+    description: SITE_DESCRIPTION,
     url: "https://heydoctor.health",
     siteName: "HeyDoctor",
     images: ["/logo-heydoctor.png"],
@@ -28,7 +31,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "HeyDoctor",
-    description: "Atención médica online y presencial",
+    description: SITE_DESCRIPTION,
     images: ["/logo-heydoctor.png"],
   },
 };
@@ -49,6 +52,7 @@ export default function RootLayout({
       <body>
         <Providers>{children}</Providers>
         <CookieBanner />
+        <Analytics />
       </body>
     </html>
   );

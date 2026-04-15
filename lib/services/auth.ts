@@ -76,7 +76,7 @@ export async function getMe(accessToken?: string): Promise<AuthUser> {
     if (err instanceof ApiError) {
       const hint =
         err.status === 404
-          ? ` Revisa NEXT_PUBLIC_HEYDOCTOR_API_URL / NEXT_PUBLIC_API_URL y que el backend exponga GET /api/auth/me. URL usada: ${meUrl}.`
+          ? ` Revisa NEXT_PUBLIC_HEYDOCTOR_API_URL y que el backend exponga GET /api/auth/me. URL usada: ${meUrl}.`
           : err.status === 401
             ? " Sesión no válida o cookies no enviadas (CORS / SameSite)."
             : "";

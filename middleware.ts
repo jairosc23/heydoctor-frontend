@@ -66,7 +66,7 @@ const HEYDOCTOR_PRO_API_WS = "wss://pro-api.heydoctor.health";
 
 /**
  * connect-src estricto pero completo: mismo origen, Railway legacy, subdominios *.heydoctor.health,
- * y host de API producción siempre presente (no depende solo de NEXT_PUBLIC_API_URL en build).
+ * y host de API producción siempre presente (NEXT_PUBLIC_HEYDOCTOR_API_URL en build).
  */
 function connectSrcDirective(): string {
   const parts = [
@@ -78,7 +78,7 @@ function connectSrcDirective(): string {
     HEYDOCTOR_PRO_API_ORIGIN,
     HEYDOCTOR_PRO_API_WS,
   ];
-  const raw = process.env.NEXT_PUBLIC_API_URL?.trim();
+  const raw = process.env.NEXT_PUBLIC_HEYDOCTOR_API_URL?.trim();
   if (raw) {
     try {
       const normalized = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;

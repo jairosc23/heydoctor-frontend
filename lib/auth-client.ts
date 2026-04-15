@@ -288,7 +288,7 @@ export async function authLogin(
       cause instanceof Error ? cause.message : String(cause);
     throw new Error(
       `Error de red al contactar el API (POST /api/auth/login). ` +
-        `Revisa CORS con credenciales en el backend, la política CSP connect-src del frontend y NEXT_PUBLIC_HEYDOCTOR_API_URL / NEXT_PUBLIC_API_URL. ` +
+        `Revisa CORS con credenciales en el backend, la política CSP connect-src del frontend y NEXT_PUBLIC_HEYDOCTOR_API_URL. ` +
         `URL usada: ${url}. Detalle: ${detail}`,
     );
   }
@@ -300,7 +300,7 @@ export async function authLogin(
     emitAuthTelemetry("login_fail", { status: res.status, parseError: true });
     throw new Error(
       `Respuesta no JSON (${res.status} ${res.statusText}). ` +
-        `Confirma que NEXT_PUBLIC_HEYDOCTOR_API_URL o NEXT_PUBLIC_API_URL apunta al Nest (p. ej. https://pro-api.heydoctor.health) y expone POST /api/auth/login.`,
+        `Confirma que NEXT_PUBLIC_HEYDOCTOR_API_URL apunta al Nest (p. ej. https://pro-api.heydoctor.health) y expone POST /api/auth/login.`,
     );
   }
 
