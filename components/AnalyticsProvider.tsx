@@ -10,11 +10,15 @@ function AnalyticsRouteListener({ children }: { children: ReactNode }) {
   const lastPath = useRef<string | null>(null);
 
   useEffect(() => {
-    const qs = searchParams?.toString() ?? "";
-    const full = `${pathname ?? "/"}${qs ? `?${qs}` : ""}`;
-    if (lastPath.current === full) return;
-    lastPath.current = full;
-    void trackPageView(full);
+    try {
+      const qs = searchParams?.toString() ?? "";
+      const full = `${pathname ?? "/"}${qs ? `?${qs}` : ""}`;
+      if (lastPath.current === full) return;
+      lastPath.current = full;
+      void trackPageView(full).catch(() => {});
+    } catch {
+      /* no bloquear el árbol de la app si analytics falla */
+    }
   }, [pathname, searchParams]);
 
   return <>{children}</>;

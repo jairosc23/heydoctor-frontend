@@ -56,57 +56,8 @@ function isProtected(pathname: string): boolean {
   );
 }
 
-/** API producción HeyDoctor — fetch (REST) y WebSocket (Socket.IO); explícito además de wildcards. */
-const HEYDOCTOR_PRO_API_ORIGIN = "https://pro-api.heydoctor.health";
-const HEYDOCTOR_PRO_API_WS = "wss://pro-api.heydoctor.health";
-
-/**
- * connect-src estricto pero completo: mismo origen, Railway legacy, subdominios *.heydoctor.health,
- * y host de API producción siempre presente (NEXT_PUBLIC_HEYDOCTOR_API_URL en build).
- */
-function connectSrcDirective(): string {
-  const parts = [
-    "'self'",
-    "https://*.railway.app",
-    "wss://*.railway.app",
-    "https://*.heydoctor.health",
-    "wss://*.heydoctor.health",
-    HEYDOCTOR_PRO_API_ORIGIN,
-    HEYDOCTOR_PRO_API_WS,
-  ];
-  const raw = process.env.NEXT_PUBLIC_HEYDOCTOR_API_URL?.trim();
-  if (raw) {
-    try {
-      const normalized = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
-      const u = new URL(normalized.replace(/\/api\/?$/i, ""));
-      const origin = u.origin;
-      const wss = u.protocol === "https:" ? `wss://${u.host}` : "";
-      if (origin && !parts.includes(origin)) parts.push(origin);
-      if (wss && !parts.includes(wss)) parts.push(wss);
-    } catch {
-      /* URL inválida en env: se ignoran entradas extra */
-    }
-  }
-  return parts.join(" ");
-}
-
-const CSP_DIRECTIVES = [
-  "default-src 'self'",
-  "script-src 'self' https://vercel.live https://va.vercel-scripts.com",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "font-src 'self' https://fonts.gstatic.com",
-  "img-src 'self' data: blob:",
-  "media-src 'self' blob:",
-  `connect-src ${connectSrcDirective()}`,
-  "frame-src 'none'",
-  "object-src 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-  "upgrade-insecure-requests",
-].join("; ");
-
 function addSecurityHeaders(response: NextResponse): NextResponse {
-  response.headers.set("Content-Security-Policy", CSP_DIRECTIVES);
+  /** CSP: solo en next.config.mjs (una sola política; duplicar aquí provoca intersección y pantalla en blanco). */
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("X-Frame-Options", "DENY");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
