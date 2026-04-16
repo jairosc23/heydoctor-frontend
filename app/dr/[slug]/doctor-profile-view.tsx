@@ -103,7 +103,7 @@ export function DoctorProfileView({
               fontSize: 15,
             }}
           >
-            Agendar consulta
+            Hablar con médico ahora
           </Link>
         </div>
 

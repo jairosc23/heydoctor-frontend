@@ -15,7 +15,10 @@ export type AnalyticsEventName =
   | "page_view"
   | "consultation_started"
   | "consultation_paid"
-  | "consultation_completed";
+  | "consultation_completed"
+  | "payment_initiated"
+  | "payment_failed"
+  | "payment_abandoned";
 
 export type TrackEventOptions = {
   event: AnalyticsEventName;

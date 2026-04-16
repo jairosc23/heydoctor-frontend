@@ -110,7 +110,7 @@ export default function LandingPage() {
               Iniciar Sesión
             </Button>
             <Button href="/consultar" variant="primary" className="px-5 py-2 text-sm font-[family-name:Montserrat,sans-serif]">
-              Consultar Ahora
+              Hablar con médico ahora
             </Button>
           </div>
         </Container>
@@ -334,7 +334,7 @@ export default function LandingPage() {
               variant="secondary"
               className="min-w-[200px] border-0 bg-white font-[family-name:Montserrat,sans-serif] text-gray-900 shadow-premium hover:bg-gray-100"
             >
-              Consultar Ahora
+              Hablar con médico ahora
             </Button>
             <Button
               href="/for-doctors/apply"

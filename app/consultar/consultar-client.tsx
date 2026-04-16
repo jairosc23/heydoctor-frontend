@@ -5,6 +5,11 @@ import Link from "next/link";
 import HeyDoctorLogo from "@/components/ui/HeyDoctorLogo";
 import { useRouter } from "next/navigation";
 import type { DoctorProfile } from "@/lib/services/doctor-profiles";
+import {
+  formatPriceClp,
+  getConsultationPriceClp,
+  URGENCY_AVAILABLE_NOW,
+} from "@/lib/consultation-pricing";
 
 const TEAL = "#078a92";
 
@@ -67,6 +72,28 @@ export function ConsultarClient({
           <p style={{ color: "#475569", fontSize: 18, lineHeight: 1.6 }}>
             Conecta con un especialista en minutos. Atención profesional
             desde la comodidad de tu hogar.
+          </p>
+          <p
+            style={{
+              marginTop: 16,
+              fontSize: 15,
+              fontWeight: 700,
+              color: "#0f766e",
+            }}
+          >
+            {URGENCY_AVAILABLE_NOW}
+          </p>
+          <p
+            style={{
+              marginTop: 8,
+              fontSize: 16,
+              color: "#1e293b",
+            }}
+          >
+            Consulta desde{" "}
+            <strong style={{ color: TEAL }}>
+              {formatPriceClp(getConsultationPriceClp())}
+            </strong>
           </p>
         </div>
 
@@ -155,7 +182,7 @@ export function ConsultarClient({
                 cursor: submitting ? "not-allowed" : "pointer",
               }}
             >
-              {submitting ? "Preparando..." : "Agendar consulta"}
+              {submitting ? "Preparando..." : "Hablar con médico ahora"}
             </button>
           </div>
         </form>

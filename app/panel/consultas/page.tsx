@@ -20,6 +20,11 @@ import {
   ConsultationConsentCard,
   ConsultationAssistPanel,
 } from "@/components/clinical";
+import {
+  formatPriceClp,
+  getConsultationPriceClp,
+  URGENCY_AVAILABLE_NOW,
+} from "@/lib/consultation-pricing";
 
 function ConsultasContent() {
   const searchParams = useSearchParams();
@@ -187,6 +192,25 @@ function ConsultasContent() {
           }}
         >
           <h3 style={{ marginBottom: 12, fontSize: 16 }}>Iniciar consulta</h3>
+          <p
+            style={{
+              margin: "0 0 8px",
+              fontSize: 13,
+              fontWeight: 600,
+              color: "#0f766e",
+            }}
+          >
+            {URGENCY_AVAILABLE_NOW}
+          </p>
+          <p style={{ margin: "0 0 16px", fontSize: 14, color: "#334155" }}>
+            Valor referencial de la consulta:{" "}
+            <strong style={{ color: "#078a92" }}>
+              {formatPriceClp(getConsultationPriceClp())}
+            </strong>{" "}
+            <span style={{ color: "#64748b", fontSize: 12 }}>
+              (el cobro final se confirma al pagar tras firmar)
+            </span>
+          </p>
           <select
             value={patientIdParam ?? patientId ?? ""}
             onChange={(e) => setPatient(e.target.value || null)}
@@ -224,7 +248,7 @@ function ConsultasContent() {
               fontSize: 14,
             }}
           >
-            {starting ? "Iniciando..." : "Iniciar consulta"}
+            {starting ? "Iniciando..." : "Hablar con médico ahora"}
           </button>
           {!doctorId && !ctxLoading && (
             <p style={{ marginTop: 8, color: "#c00", fontSize: 13 }}>

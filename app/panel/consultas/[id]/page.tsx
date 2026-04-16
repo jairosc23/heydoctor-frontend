@@ -15,8 +15,36 @@ import {
   trackConsultationCompletedIfNeeded,
   trackConsultationPaid,
   trackConsultationStartedDeduped,
+  trackEvent,
 } from "@/lib/analytics";
+import {
+  formatPriceClp,
+  getConsultationPriceClp,
+  URGENCY_AVAILABLE_NOW,
+} from "@/lib/consultation-pricing";
+import { ApiError } from "@/lib/heydoctor-api";
 import { ConsultationConsentCard, SignatureCanvas } from "@/components/clinical";
+
+function paymentFailureUserMessage(err: unknown): string {
+  if (err instanceof ApiError) {
+    if (err.status === 401) {
+      return "Tu sesión expiró. Inicia sesión de nuevo e inténtalo otra vez.";
+    }
+    if (err.status === 403) {
+      return "No tienes permiso para iniciar el pago de esta consulta.";
+    }
+    if (err.status === 404) {
+      return "No encontramos la consulta o el endpoint de pagos. Contacta soporte.";
+    }
+    if (err.status >= 500) {
+      return "El servicio de pagos no está disponible en este momento. Espera unos minutos e inténtalo de nuevo.";
+    }
+    const m = err.message?.trim();
+    if (m) return m;
+  }
+  if (err instanceof Error && err.message) return err.message;
+  return "No pudimos iniciar el pago. Revisa tu conexión e inténtalo de nuevo.";
+}
 
 const STATUS_LABELS: Record<string, string> = {
   draft: "Borrador",
@@ -66,6 +94,7 @@ export default function ConsultationDetailPage() {
   const [signing, setSigning] = useState(false);
   const [startingCall, setStartingCall] = useState(false);
   const [creatingPayment, setCreatingPayment] = useState(false);
+  const [paymentStep, setPaymentStep] = useState<"idle" | "confirm">("idle");
 
   const paymentResult = searchParams.get("payment");
 
@@ -101,11 +130,16 @@ export default function ConsultationDetailPage() {
 
   useEffect(() => {
     if (paymentResult === "success") {
+      setPaymentStep("idle");
       setSaveMsg("Pago procesado correctamente");
       setTimeout(() => setSaveMsg(""), 5000);
       load();
     }
   }, [paymentResult, load]);
+
+  useEffect(() => {
+    setPaymentStep("idle");
+  }, [id]);
 
   async function handleSave() {
     setSaving(true);
@@ -178,19 +212,44 @@ export default function ConsultationDetailPage() {
     }
   }
 
-  async function handlePayment() {
+  function handlePaymentAbandoned(reason: string) {
+    void trackEvent({
+      event: "payment_abandoned",
+      consultationId: id,
+      properties: { reason },
+    });
+    setPaymentStep("idle");
+    setSaveMsg("");
+  }
+
+  async function executePaymentToProvider() {
     setCreatingPayment(true);
     setSaveMsg("");
+    const amount = getConsultationPriceClp();
+    void trackEvent({
+      event: "payment_initiated",
+      consultationId: id,
+      properties: { currency: "CLP", amount },
+    });
     try {
       const session = await createPaymentSession(id);
       void trackConsultationPaid(id, {
         paymentId: session.paymentId,
+        amount,
+        currency: "CLP",
       });
       window.location.href = session.paymentUrl;
     } catch (err) {
-      setSaveMsg(
-        err instanceof Error ? err.message : "Error al crear sesión de pago"
-      );
+      const msg = paymentFailureUserMessage(err);
+      void trackEvent({
+        event: "payment_failed",
+        consultationId: id,
+        properties: {
+          message: msg,
+          ...(err instanceof ApiError ? { httpStatus: err.status } : {}),
+        },
+      });
+      setSaveMsg(msg);
       setCreatingPayment(false);
     }
   }
@@ -618,39 +677,123 @@ export default function ConsultationDetailPage() {
             marginBottom: 20,
           }}
         >
-          <h3 style={{ margin: "0 0 12px", fontSize: 16, color: "#333" }}>
+          <h3 style={{ margin: "0 0 8px", fontSize: 16, color: "#333" }}>
             Pago de consulta
           </h3>
-          <p style={{ color: "#475569", fontSize: 13, marginBottom: 12 }}>
-            La consulta ha sido firmada. Proceda al pago para finalizar y
-            bloquear la consulta.
-          </p>
-          <button
-            onClick={handlePayment}
-            disabled={creatingPayment}
+          <p
             style={{
-              padding: "12px 24px",
-              background: "#7c3aed",
-              color: "white",
-              border: "none",
-              borderRadius: 8,
-              cursor: creatingPayment ? "not-allowed" : "pointer",
-              fontSize: 14,
+              margin: "0 0 8px",
+              fontSize: 13,
               fontWeight: 600,
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
+              color: "#0f766e",
             }}
           >
-            <span style={{ fontSize: 18 }}>&#x1F4B3;</span>
-            {creatingPayment ? "Redirigiendo a Payku..." : "Pagar consulta"}
-          </button>
+            {URGENCY_AVAILABLE_NOW}
+          </p>
+          <p style={{ color: "#475569", fontSize: 13, marginBottom: 12 }}>
+            La consulta ha sido firmada. Confirma el monto y continúa al pago
+            seguro para finalizar y bloquear la consulta.
+          </p>
+          {paymentStep === "idle" ? (
+            <button
+              type="button"
+              onClick={() => {
+                setSaveMsg("");
+                setPaymentStep("confirm");
+              }}
+              disabled={creatingPayment}
+              style={{
+                padding: "12px 24px",
+                background: "#7c3aed",
+                color: "white",
+                border: "none",
+                borderRadius: 8,
+                cursor: creatingPayment ? "not-allowed" : "pointer",
+                fontSize: 14,
+                fontWeight: 600,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              <span style={{ fontSize: 18 }}>&#x1F4B3;</span>
+              Pagar consulta
+            </button>
+          ) : (
+            <div
+              style={{
+                border: "1px solid #e2e8f0",
+                borderRadius: 10,
+                padding: 16,
+                background: "#fafafa",
+              }}
+            >
+              <p style={{ margin: "0 0 8px", fontSize: 14, fontWeight: 600 }}>
+                Confirmar pago
+              </p>
+              <p style={{ margin: "0 0 4px", fontSize: 22, color: "#1e293b" }}>
+                {formatPriceClp(getConsultationPriceClp())}
+              </p>
+              <p style={{ margin: "0 0 16px", fontSize: 12, color: "#64748b" }}>
+                Serás redirigido a nuestro proveedor de pago (Payku) para
+                completar la transacción de forma segura.
+              </p>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                <button
+                  type="button"
+                  onClick={() => handlePaymentAbandoned("user_cancelled_confirm")}
+                  disabled={creatingPayment}
+                  style={{
+                    padding: "10px 18px",
+                    background: "white",
+                    color: "#475569",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: 8,
+                    cursor: creatingPayment ? "not-allowed" : "pointer",
+                    fontSize: 14,
+                  }}
+                >
+                  Volver
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void executePaymentToProvider()}
+                  disabled={creatingPayment}
+                  style={{
+                    padding: "10px 18px",
+                    background: creatingPayment ? "#a78bfa" : "#7c3aed",
+                    color: "white",
+                    border: "none",
+                    borderRadius: 8,
+                    cursor: creatingPayment ? "wait" : "pointer",
+                    fontSize: 14,
+                    fontWeight: 600,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
+                >
+                  {creatingPayment
+                    ? "Conectando con el proveedor de pago…"
+                    : "Continuar al pago"}
+                </button>
+              </div>
+            </div>
+          )}
           {saveMsg && (
             <p
               style={{
-                marginTop: 8,
+                marginTop: 12,
                 fontSize: 13,
-                color: saveMsg.includes("Error") ? "#c00" : "#16a34a",
+                color:
+                  saveMsg.includes("expiró") ||
+                  saveMsg.includes("No pudimos") ||
+                  saveMsg.includes("No tienes") ||
+                  saveMsg.includes("no está disponible") ||
+                  saveMsg.includes("no encontramos")
+                    ? "#b91c1c"
+                    : "#16a34a",
+                lineHeight: 1.45,
               }}
             >
               {saveMsg}
