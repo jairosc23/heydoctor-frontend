@@ -142,6 +142,80 @@ export class ApiError extends Error {
   }
 }
 
+/** Cuerpo JSON típico de Nest (`message` string | string[] | `error`). */
+function extractMessageFromNestBody(body: unknown): string | null {
+  if (body == null) {
+    return null;
+  }
+  if (typeof body === "string" && body.trim()) {
+    return body.trim();
+  }
+  if (typeof body !== "object") {
+    return null;
+  }
+  const o = body as Record<string, unknown>;
+  const msg = o.message;
+  if (Array.isArray(msg)) {
+    const joined = msg.map(String).filter(Boolean).join(". ");
+    return joined || null;
+  }
+  if (typeof msg === "string" && msg.trim()) {
+    return msg.trim();
+  }
+  if (msg != null && typeof msg !== "object") {
+    const s = String(msg).trim();
+    return s || null;
+  }
+  const errField = o.error;
+  if (typeof errField === "string" && errField.trim()) {
+    return errField.trim();
+  }
+  return null;
+}
+
+function messageFromFailedResponse(
+  data: unknown,
+  status: number,
+  statusText: string,
+): string {
+  const fromBody = extractMessageFromNestBody(data);
+  if (fromBody) {
+    return fromBody;
+  }
+  return `Error ${status}: ${statusText || "solicitud fallida"}`;
+}
+
+/**
+ * Mensaje para mostrar en UI ante fallos del API (fetch + ApiError; compatible con forma axios `error.response.data`).
+ */
+export function getApiErrorMessage(
+  error: unknown,
+  fallback = "Ha ocurrido un error",
+): string {
+  if (error instanceof ApiError) {
+    const fromBody = extractMessageFromNestBody(error.body);
+    if (fromBody) {
+      return fromBody;
+    }
+    if (error.message?.trim()) {
+      return error.message.trim();
+    }
+    return fallback;
+  }
+  if (error && typeof error === "object" && "response" in error) {
+    const response = (error as { response?: { data?: unknown } }).response;
+    const data = response?.data;
+    const fromBody = extractMessageFromNestBody(data);
+    if (fromBody) {
+      return fromBody;
+    }
+  }
+  if (error instanceof Error && error.message?.trim()) {
+    return error.message.trim();
+  }
+  return fallback;
+}
+
 async function parseResponse<T>(res: Response): Promise<T> {
   const text = await res.text();
   let data: unknown;
@@ -152,19 +226,7 @@ async function parseResponse<T>(res: Response): Promise<T> {
   }
 
   if (!res.ok) {
-    const raw =
-      (data as { message?: unknown })?.message ??
-      (data as { error?: unknown })?.error;
-    let msg: string;
-    if (Array.isArray(raw)) {
-      msg = raw.map(String).filter(Boolean).join(", ");
-    } else if (typeof raw === "string") {
-      msg = raw;
-    } else if (raw != null) {
-      msg = String(raw);
-    } else {
-      msg = `Error ${res.status}: ${res.statusText}`;
-    }
+    const msg = messageFromFailedResponse(data, res.status, res.statusText);
     throw new ApiError(msg, res.status, data);
   }
 

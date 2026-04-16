@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { getApiErrorMessage } from "@/lib/heydoctor-api";
 import { fetchPatients, createPatient } from "@/lib/services";
 
 interface PatientItem {
@@ -57,9 +58,8 @@ export default function PacientesPage() {
       setShowForm(false);
       loadPatients();
     } catch (err) {
-      setFormError(
-        err instanceof Error ? err.message : "Error al crear paciente"
-      );
+      console.error("CREATE_PATIENT_FRONT_ERROR", err);
+      setFormError(getApiErrorMessage(err, "Error al crear paciente"));
     } finally {
       setCreating(false);
     }
@@ -149,7 +149,11 @@ export default function PacientesPage() {
             }}
           />
           {formError && (
-            <p style={{ color: "#c00", fontSize: 13, margin: 0 }}>
+            <p
+              className="text-red-500 text-sm"
+              style={{ margin: 0 }}
+              role="alert"
+            >
               {formError}
             </p>
           )}
