@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/lib/context/AuthContext";
 import { exchangeMagicLinkToken } from "@/lib/magic-link-exchange";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Suspense,
   useEffect,
@@ -16,7 +16,6 @@ function MagicLinkSessionBootstrapInner({
   children: ReactNode;
 }) {
   const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
   const { refreshUser } = useAuth();
   const ranForTokenRef = useRef<string | null>(null);
@@ -34,16 +33,13 @@ function MagicLinkSessionBootstrapInner({
     void (async () => {
       try {
         await exchangeMagicLinkToken(token);
-        const next = new URLSearchParams(searchParams.toString());
-        next.delete("access_token");
-        const q = next.toString();
-        router.replace(q ? `${pathname}?${q}` : pathname, { scroll: false });
+        router.replace("/panel", { scroll: false });
         await refreshUser();
       } catch {
         ranForTokenRef.current = null;
       }
     })();
-  }, [pathname, refreshUser, router, searchParams]);
+  }, [refreshUser, router, searchParams]);
 
   return <>{children}</>;
 }

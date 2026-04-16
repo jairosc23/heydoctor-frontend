@@ -147,6 +147,20 @@ async function clearFirstPartySessionCookie(): Promise<void> {
   }).catch(() => {});
 }
 
+function clearAllBrowserStorage(): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.clear();
+  } catch {
+    /* noop */
+  }
+  try {
+    sessionStorage.clear();
+  } catch {
+    /* noop */
+  }
+}
+
 // ── Refresh token flow ──────────────────────────────────────────
 
 /**
@@ -377,6 +391,7 @@ export async function authLogout(options?: AuthLogoutOptions): Promise<void> {
   setAccessToken(null);
   _lastRefreshFailedAt = 0;
   await clearFirstPartySessionCookie();
+  clearAllBrowserStorage();
 }
 
 attachMultiTabAuthSync();

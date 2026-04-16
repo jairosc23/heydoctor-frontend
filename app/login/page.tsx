@@ -37,7 +37,7 @@ function LoginContent() {
 
     try {
       await login(email.trim(), password);
-      router.push(redirect);
+      router.replace(redirect);
       router.refresh();
     } catch (err) {
       const msg =

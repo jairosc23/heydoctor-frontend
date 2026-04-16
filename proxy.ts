@@ -15,10 +15,6 @@ const SSR_SESSION_CLOCK_SKEW_MS = 5_000;
 function isSsrSessionValid(cookieValue: string | undefined): boolean {
   const token = cookieValue;
 
-  if (token === "1") {
-    return true;
-  }
-
   if (!token) {
     return false;
   }
@@ -96,7 +92,7 @@ function connectSrcDirective(): string {
 
 const CSP_DIRECTIVES = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",
+  "script-src 'self' https://vercel.live https://va.vercel-scripts.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com",
   "img-src 'self' data: blob:",

@@ -10,7 +10,10 @@ import {
   startCall,
   type NestConsultation,
 } from "@/lib/services/consultations";
-import { createPaymentSession } from "@/lib/services/payments";
+import {
+  createPaymentSession,
+  fetchConsultationPaymentStatus,
+} from "@/lib/services/payments";
 import {
   trackConsultationCompletedIfNeeded,
   trackConsultationPaid,
@@ -130,13 +133,47 @@ export default function ConsultationDetailPage() {
   }, [load]);
 
   useEffect(() => {
-    if (paymentResult === "success") {
-      setPaymentStep("idle");
-      setSaveMsg("Pago procesado correctamente");
-      setTimeout(() => setSaveMsg(""), 5000);
-      load();
+    if (paymentResult !== "success" && paymentResult !== "mock") {
+      return;
     }
-  }, [paymentResult, load]);
+    let cancelled = false;
+    void (async () => {
+      try {
+        const st = await fetchConsultationPaymentStatus(id);
+        if (cancelled) return;
+        setPaymentStep("idle");
+        if (st.isPaid) {
+          setSaveMsg("Pago confirmado.");
+          setTimeout(() => setSaveMsg(""), 5000);
+        } else if (st.hasPending) {
+          setSaveMsg(
+            "Pago en proceso de confirmación. Actualiza en unos segundos o revisa el estado de la consulta."
+          );
+          setTimeout(() => setSaveMsg(""), 8000);
+        } else {
+          setSaveMsg(
+            "No confirmamos un pago completado todavía. Si ya pagaste, espera la confirmación; si no, puedes intentar de nuevo."
+          );
+          setTimeout(() => setSaveMsg(""), 8000);
+        }
+      } catch {
+        if (!cancelled) {
+          setSaveMsg(
+            "No pudimos verificar el pago. Revisa tu conexión o vuelve a intentar más tarde."
+          );
+          setTimeout(() => setSaveMsg(""), 8000);
+        }
+      } finally {
+        if (!cancelled) {
+          router.replace(`/panel/consultas/${id}`, { scroll: false });
+          await load();
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [paymentResult, id, router, load]);
 
   useEffect(() => {
     setPaymentStep("idle");
