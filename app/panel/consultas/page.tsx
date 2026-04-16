@@ -21,10 +21,10 @@ import {
   ConsultationAssistPanel,
 } from "@/components/clinical";
 import {
-  formatPriceClp,
-  getConsultationPriceClp,
+  formatConsultationPrice,
   URGENCY_AVAILABLE_NOW,
 } from "@/lib/consultation-pricing";
+import { useConsultationPrice } from "@/lib/hooks/useConsultationPrice";
 
 function ConsultasContent() {
   const searchParams = useSearchParams();
@@ -164,6 +164,7 @@ function ConsultasContent() {
   };
 
   const selectedPatient = patients.find((p) => p.id === (patientId ?? patientIdParam));
+  const consultationPrice = useConsultationPrice();
 
   return (
     <div style={{ padding: 25 }}>
@@ -205,10 +206,15 @@ function ConsultasContent() {
           <p style={{ margin: "0 0 16px", fontSize: 14, color: "#334155" }}>
             Valor referencial de la consulta:{" "}
             <strong style={{ color: "#078a92" }}>
-              {formatPriceClp(getConsultationPriceClp())}
+              {consultationPrice.loading
+                ? "…"
+                : formatConsultationPrice(
+                    consultationPrice.amount,
+                    consultationPrice.currency,
+                  )}
             </strong>{" "}
             <span style={{ color: "#64748b", fontSize: 12 }}>
-              (el cobro final se confirma al pagar tras firmar)
+              (mismo monto que verás al pagar con Payku)
             </span>
           </p>
           <select

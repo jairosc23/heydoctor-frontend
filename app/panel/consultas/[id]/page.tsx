@@ -18,10 +18,10 @@ import {
   trackEvent,
 } from "@/lib/analytics";
 import {
-  formatPriceClp,
-  getConsultationPriceClp,
+  formatConsultationPrice,
   URGENCY_AVAILABLE_NOW,
 } from "@/lib/consultation-pricing";
+import { useConsultationPrice } from "@/lib/hooks/useConsultationPrice";
 import { ApiError } from "@/lib/heydoctor-api";
 import { ConsultationConsentCard, SignatureCanvas } from "@/components/clinical";
 
@@ -77,6 +77,7 @@ export default function ConsultationDetailPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = params.id as string;
+  const consultationPrice = useConsultationPrice();
 
   const [consultation, setConsultation] = useState<NestConsultation | null>(
     null
@@ -225,18 +226,19 @@ export default function ConsultationDetailPage() {
   async function executePaymentToProvider() {
     setCreatingPayment(true);
     setSaveMsg("");
-    const amount = getConsultationPriceClp();
+    const amount = consultationPrice.amount;
+    const currency = consultationPrice.currency;
     void trackEvent({
       event: "payment_initiated",
       consultationId: id,
-      properties: { currency: "CLP", amount },
+      properties: { currency, amount },
     });
     try {
       const session = await createPaymentSession(id);
       void trackConsultationPaid(id, {
         paymentId: session.paymentId,
         amount,
-        currency: "CLP",
+        currency,
       });
       window.location.href = session.paymentUrl;
     } catch (err) {
@@ -732,7 +734,12 @@ export default function ConsultationDetailPage() {
                 Confirmar pago
               </p>
               <p style={{ margin: "0 0 4px", fontSize: 22, color: "#1e293b" }}>
-                {formatPriceClp(getConsultationPriceClp())}
+                {consultationPrice.loading
+                  ? "…"
+                  : formatConsultationPrice(
+                      consultationPrice.amount,
+                      consultationPrice.currency,
+                    )}
               </p>
               <p style={{ margin: "0 0 16px", fontSize: 12, color: "#64748b" }}>
                 Serás redirigido a nuestro proveedor de pago (Payku) para

@@ -1,29 +1,30 @@
 /**
- * Precio mostrado antes de crear consulta / en confirmación de pago.
- * Override: NEXT_PUBLIC_CONSULTATION_PRICE_CLP (entero, sin separadores).
+ * Formato de precio. El monto autoritativo viene del API:
+ * GET /api/payments/consultation-price
  */
 
-const DEFAULT_CLP = 35_000;
-
-function parsePrice(raw: string | undefined): number {
-  if (raw == null || raw.trim() === "") return DEFAULT_CLP;
-  const n = Number.parseInt(raw.replace(/\D/g, ""), 10);
-  return Number.isFinite(n) && n > 0 ? n : DEFAULT_CLP;
-}
-
-export function getConsultationPriceClp(): number {
-  if (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_CONSULTATION_PRICE_CLP) {
-    return parsePrice(process.env.NEXT_PUBLIC_CONSULTATION_PRICE_CLP);
-  }
-  return DEFAULT_CLP;
-}
-
-export function formatPriceClp(amount: number): string {
-  return new Intl.NumberFormat("es-CL", {
-    style: "currency",
-    currency: "CLP",
-    maximumFractionDigits: 0,
-  }).format(amount);
-}
+/** Fallback si el API no responde (alineado con backend `DEFAULT_CONSULTATION_AMOUNT_CLP`). */
+export const DEFAULT_CONSULTATION_PRICE_CLP = 15_000;
 
 export const URGENCY_AVAILABLE_NOW = "Médicos disponibles ahora";
+
+export function formatConsultationPrice(
+  amount: number,
+  currency: string = "CLP",
+): string {
+  const code = /^[A-Z]{3}$/i.test(currency) ? currency.toUpperCase() : "CLP";
+  try {
+    return new Intl.NumberFormat("es-CL", {
+      style: "currency",
+      currency: code,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  } catch {
+    return `${amount} ${code}`;
+  }
+}
+
+/** @deprecated Usar {@link formatConsultationPrice}(amount, 'CLP') */
+export function formatPriceClp(amount: number): string {
+  return formatConsultationPrice(amount, "CLP");
+}

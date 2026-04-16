@@ -6,10 +6,10 @@ import HeyDoctorLogo from "@/components/ui/HeyDoctorLogo";
 import { useRouter } from "next/navigation";
 import type { DoctorProfile } from "@/lib/services/doctor-profiles";
 import {
-  formatPriceClp,
-  getConsultationPriceClp,
+  formatConsultationPrice,
   URGENCY_AVAILABLE_NOW,
 } from "@/lib/consultation-pricing";
+import { useConsultationPrice } from "@/lib/hooks/useConsultationPrice";
 
 const TEAL = "#078a92";
 
@@ -25,6 +25,7 @@ export function ConsultarClient({
   const [reason, setReason] = useState("");
   const [selectedDoctor, setSelectedDoctor] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const consultationPrice = useConsultationPrice();
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -92,7 +93,12 @@ export function ConsultarClient({
           >
             Consulta desde{" "}
             <strong style={{ color: TEAL }}>
-              {formatPriceClp(getConsultationPriceClp())}
+              {consultationPrice.loading
+                ? "…"
+                : formatConsultationPrice(
+                    consultationPrice.amount,
+                    consultationPrice.currency,
+                  )}
             </strong>
           </p>
         </div>
