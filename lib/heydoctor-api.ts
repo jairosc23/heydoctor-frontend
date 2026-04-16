@@ -3,7 +3,7 @@
  *
  * - Access token: `localStorage["heydoctor_access_token"]` vía `auth-client` (memoria + storage).
  * - Cada petición: `Authorization: Bearer` + `credentials: 'include'` (cookie HttpOnly `refresh_token` en el origen del API).
- * - Interceptor 401: `POST /api/auth/refresh` con promesa compartida (`dedupedRefresh`) para evitar tormentas de refresh concurrentes → reintento de la petición.
+ * - Interceptor 401: `POST /api/auth/refresh` (vía `refreshAccessToken()`, deduplicado en `auth-client`) → reintento de la petición.
  * - Datos clínicos / panel: `cache: "no-store"`. Listados públicos de doctores en RSC: `lib/server/public-doctors.ts` con `revalidate: 60`.
  */
 
@@ -19,19 +19,6 @@ export {
 } from "./api-base";
 
 export { HEYDOCTOR_ACCESS_TOKEN_STORAGE_KEY } from "./heydoctor-auth-constants";
-
-/** Una sola operación de refresh en vuelo por pestaña (varios 401 concurrentes comparten la misma promesa). */
-let refreshPromise: Promise<string | null> | null = null;
-
-function dedupedRefresh(): Promise<string | null> {
-  if (refreshPromise) {
-    return refreshPromise;
-  }
-  refreshPromise = refreshAccessToken().finally(() => {
-    refreshPromise = null;
-  });
-  return refreshPromise;
-}
 
 function buildAuthUrl(path: string): string {
   const base = getApiBase();
@@ -119,7 +106,7 @@ export async function fetchWithAuth(
     if (process.env.NODE_ENV === "development" && typeof console !== "undefined" && console.error) {
       console.error("[heydoctor-api] 401 Unauthorized — attempting refresh:", url);
     }
-    const newToken = await dedupedRefresh();
+    const newToken = await refreshAccessToken();
     if (newToken) {
       res = await doFetch();
     }
