@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getApiBase } from "@/lib/api-base";
 import { DEFAULT_CONSULTATION_PRICE_CLP } from "@/lib/consultation-pricing";
 
 export type ConsultationPriceState = {
@@ -12,7 +11,7 @@ export type ConsultationPriceState = {
 };
 
 /**
- * Precio de consulta desde el mismo origen que Payku (`GET /api/payments/consultation-price`).
+ * Precio vía ruta Next `/api/consultation-price` (ISR 60s → mismo contrato que Nest).
  */
 export function useConsultationPrice(): ConsultationPriceState {
   const [state, setState] = useState<ConsultationPriceState>({
@@ -24,15 +23,13 @@ export function useConsultationPrice(): ConsultationPriceState {
 
   useEffect(() => {
     let cancelled = false;
-    const base = getApiBase().replace(/\/$/, "");
-    const url = `${base}/payments/consultation-price`;
 
     void (async () => {
       try {
-        const res = await fetch(url, {
+        const res = await fetch("/api/consultation-price", {
           method: "GET",
-          cache: "no-store",
           headers: { Accept: "application/json" },
+          next: { revalidate: 60 },
         });
         if (!res.ok) {
           throw new Error(`No se pudo cargar el precio (${res.status})`);
