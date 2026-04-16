@@ -11,6 +11,11 @@ import {
   type NestConsultation,
 } from "@/lib/services/consultations";
 import { createPaymentSession } from "@/lib/services/payments";
+import {
+  trackConsultationCompletedIfNeeded,
+  trackConsultationPaid,
+  trackConsultationStartedDeduped,
+} from "@/lib/analytics";
 import { ConsultationConsentCard, SignatureCanvas } from "@/components/clinical";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -64,9 +69,19 @@ export default function ConsultationDetailPage() {
 
   const paymentResult = searchParams.get("payment");
 
+  const prevStatusRef = React.useRef<string | undefined>(undefined);
+
+  useEffect(() => {
+    prevStatusRef.current = undefined;
+  }, [id]);
+
   const load = useCallback(async () => {
     try {
       const c = await fetchConsultation(id);
+      const st = c.status ?? "draft";
+      trackConsultationCompletedIfNeeded(prevStatusRef.current, st, id);
+      prevStatusRef.current = st;
+      void trackConsultationStartedDeduped(id, { status: st, source: "detail" });
       setConsultation(c);
       setNotes(c.notes ?? "");
       setDiagnosis(c.diagnosis ?? "");
@@ -117,7 +132,11 @@ export default function ConsultationDetailPage() {
     if (!next) return;
     setTransitioning(true);
     try {
+      const prev = consultation.status ?? prevStatusRef.current;
       const updated = await updateConsultation(id, { status: next });
+      const st = updated.status ?? "";
+      trackConsultationCompletedIfNeeded(prev, st, id);
+      prevStatusRef.current = st;
       setConsultation(updated);
     } catch (err) {
       setSaveMsg(
@@ -129,9 +148,14 @@ export default function ConsultationDetailPage() {
   }
 
   async function handleSign(base64: string) {
+    if (!consultation) return;
     setSigning(true);
     try {
+      const prev = consultation.status ?? prevStatusRef.current;
       const updated = await signConsultation(id, base64);
+      const st = updated.status ?? "";
+      trackConsultationCompletedIfNeeded(prev, st, id);
+      prevStatusRef.current = st;
       setConsultation(updated);
     } catch (err) {
       setSaveMsg(err instanceof Error ? err.message : "Error al firmar");
@@ -158,8 +182,11 @@ export default function ConsultationDetailPage() {
     setCreatingPayment(true);
     setSaveMsg("");
     try {
-      const { paymentUrl } = await createPaymentSession(id);
-      window.location.href = paymentUrl;
+      const session = await createPaymentSession(id);
+      void trackConsultationPaid(id, {
+        paymentId: session.paymentId,
+      });
+      window.location.href = session.paymentUrl;
     } catch (err) {
       setSaveMsg(
         err instanceof Error ? err.message : "Error al crear sesión de pago"

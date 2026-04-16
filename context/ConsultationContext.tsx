@@ -16,6 +16,7 @@ import {
   fetchConsultations,
 } from "@/lib/services";
 import { silentCatch } from "@/lib/handle-error";
+import { trackConsultationStartedDeduped } from "@/lib/analytics";
 
 interface ConsultationContextValue {
   consultationId: string | null;
@@ -118,6 +119,10 @@ export function ConsultationProvider({
         });
         const cid = res?.id ?? null;
         if (cid) {
+          void trackConsultationStartedDeduped(cid, {
+            source: "panel_create",
+            patientId: pid,
+          });
           setConsultationId(cid);
           setPatientId(pid);
           setClinicalNotes("");

@@ -8,7 +8,7 @@ import type { DoctorProfile, RatingsResponse } from "../services/doctor-profiles
 export async function fetchPublicDoctorsCached(): Promise<DoctorProfile[]> {
   const res = await fetch(`${getApiBase()}/doctors`, {
     headers: { Accept: "application/json" },
-    next: { revalidate: 60 },
+    next: { revalidate: 60, tags: ["doctors"] },
   });
   if (!res.ok) {
     throw new Error(`doctors list failed: ${res.status}`);
@@ -21,7 +21,7 @@ export async function fetchDoctorBySlugCached(
 ): Promise<DoctorProfile> {
   const res = await fetch(`${getApiBase()}/doctors/${encodeURIComponent(slug)}`, {
     headers: { Accept: "application/json" },
-    next: { revalidate: 60 },
+    next: { revalidate: 60, tags: ["doctors"] },
   });
   if (!res.ok) {
     throw new Error(`doctor ${slug}: ${res.status}`);
@@ -36,7 +36,7 @@ export async function fetchDoctorRatingsCached(
     `${getApiBase()}/doctors/${encodeURIComponent(slug)}/ratings`,
     {
       headers: { Accept: "application/json" },
-      next: { revalidate: 60 },
+      next: { revalidate: 60, tags: ["doctors"] },
     },
   );
   if (!res.ok) {
