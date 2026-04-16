@@ -40,12 +40,13 @@ function connectSrcDirective() {
 
 /**
  * CSP única (evitar duplicar con middleware: varias políticas se combinan y endurecen todo).
- * script-src: sin 'unsafe-inline'; 'unsafe-eval' por compatibilidad runtime Next/Vercel.
+ * script-src: 'unsafe-inline' + 'unsafe-eval' — requerido por hidratación App Router en Vercel;
+ * endurecer después con nonces si aplica.
  */
 function contentSecurityPolicy() {
   return [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-eval' https://vercel.live https://va.vercel-scripts.com",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live https://va.vercel-scripts.com",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: blob:",
