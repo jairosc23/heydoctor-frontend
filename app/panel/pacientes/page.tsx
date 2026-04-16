@@ -25,15 +25,24 @@ export default function PacientesPage() {
   const [formEmail, setFormEmail] = useState("");
   const [creating, setCreating] = useState(false);
   const [formError, setFormError] = useState("");
+  const [listError, setListError] = useState("");
 
   const loadPatients = useCallback(() => {
     setLoading(true);
+    setListError("");
     fetchPatients({ search: search || undefined, limit: 50 })
       .then(({ data, total: t }) => {
         setPatients(Array.isArray(data) ? data : []);
         setTotal(t ?? 0);
       })
-      .catch(() => setPatients([]))
+      .catch((err) => {
+        console.error("LOAD_PATIENTS_ERROR", err);
+        setPatients([]);
+        setTotal(0);
+        setListError(
+          getApiErrorMessage(err, "No se pudo cargar la lista de pacientes.")
+        );
+      })
       .finally(() => setLoading(false));
   }, [search]);
 
@@ -103,6 +112,12 @@ export default function PacientesPage() {
       <p style={{ color: "#666", marginBottom: 16 }}>
         Gestión de pacientes del centro.
       </p>
+
+      {listError && (
+        <p className="text-red-500 text-sm" style={{ marginBottom: 12 }} role="alert">
+          {listError}
+        </p>
+      )}
 
       {showForm && (
         <form

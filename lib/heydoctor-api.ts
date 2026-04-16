@@ -185,6 +185,21 @@ function messageFromFailedResponse(
   return `Error ${status}: ${statusText || "solicitud fallida"}`;
 }
 
+/** Evita mostrar el texto genérico en inglés que Nest usa en producción para 500. */
+function humanizeGenericServerMessage(
+  message: string,
+  status?: number,
+): string {
+  const m = message.trim().toLowerCase();
+  if (
+    m === "internal server error" ||
+    (status === 500 && m.startsWith("error 500"))
+  ) {
+    return "Error del servidor. Revisa la conexión o inténtalo más tarde.";
+  }
+  return message.trim();
+}
+
 /**
  * Mensaje para mostrar en UI ante fallos del API (fetch + ApiError; compatible con forma axios `error.response.data`).
  */
@@ -195,10 +210,10 @@ export function getApiErrorMessage(
   if (error instanceof ApiError) {
     const fromBody = extractMessageFromNestBody(error.body);
     if (fromBody) {
-      return fromBody;
+      return humanizeGenericServerMessage(fromBody, error.status);
     }
     if (error.message?.trim()) {
-      return error.message.trim();
+      return humanizeGenericServerMessage(error.message, error.status);
     }
     return fallback;
   }
