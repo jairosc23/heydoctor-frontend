@@ -53,7 +53,7 @@ function contentSecurityPolicy() {
     "media-src 'self' blob:",
     "worker-src 'self' blob:",
     `connect-src ${connectSrcDirective()}`,
-    "frame-src 'self' https://*.payku.cl",
+    "frame-src 'self' https://vercel.live https://*.payku.cl",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
