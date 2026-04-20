@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getAccessToken } from "@/lib/auth-client";
 import { DEFAULT_CONSULTATION_PRICE_CLP } from "@/lib/consultation-pricing";
 
 export type ConsultationPriceState = {
@@ -11,7 +12,8 @@ export type ConsultationPriceState = {
 };
 
 /**
- * Precio vía ruta Next `/api/consultation-price` (ISR 60s → mismo contrato que Nest).
+ * Precio vía proxy Next → Nest GET /api/consultations/consultation-price (Bearer reenviado).
+ * Contrato Nest: { amountClp, currency: 'CLP', source: 'config' | 'default' }.
  */
 export function useConsultationPrice(): ConsultationPriceState {
   const [state, setState] = useState<ConsultationPriceState>({
@@ -26,19 +28,27 @@ export function useConsultationPrice(): ConsultationPriceState {
 
     void (async () => {
       try {
-        const res = await fetch("/api/consultation-price", {
+        const token = getAccessToken()?.trim();
+        const headers: HeadersInit = { Accept: "application/json" };
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
+        }
+
+        const res = await fetch("/api/consultations/consultation-price", {
           method: "GET",
-          headers: { Accept: "application/json" },
-          next: { revalidate: 60 },
+          headers,
+          credentials: "include",
         });
         if (!res.ok) {
           throw new Error(`No se pudo cargar el precio (${res.status})`);
         }
         const data = (await res.json()) as {
+          amountClp?: unknown;
           amount?: unknown;
           currency?: unknown;
         };
-        const amount = Number(data.amount);
+        const raw = data.amountClp ?? data.amount;
+        const amount = Number(raw);
         const currency =
           typeof data.currency === "string" && data.currency.length > 0
             ? data.currency

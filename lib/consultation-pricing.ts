@@ -1,6 +1,6 @@
 /**
- * Formato de precio. El monto autoritativo viene del API:
- * GET /api/payments/consultation-price
+ * Formato de precio. El monto autoritativo viene del Nest:
+ * GET /api/consultations/consultation-price (JWT; proxy Next en /api/consultations/consultation-price).
  */
 
 /** Fallback si el API no responde (alineado con backend `DEFAULT_CONSULTATION_AMOUNT_CLP`). */
