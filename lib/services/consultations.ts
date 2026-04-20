@@ -13,6 +13,16 @@ function appendQueryParam(
   params.set(key, s);
 }
 
+/**
+ * Query `status` en el Nest debe ir en MAYÚSCULAS con guión bajo (p. ej. IN_PROGRESS, COMPLETED).
+ * Acepta entradas legacy en minúsculas (`in_progress`, `completed`, `pending`).
+ */
+export function normalizeConsultationStatusQueryParam(status: string): string {
+  const t = status.trim().replace(/-/g, "_");
+  if (!t) return t;
+  return t.toUpperCase();
+}
+
 /** Crear consulta en Nest: `patientId` + `reason` (chiefComplaint se mapea a reason en wire). */
 export interface CreateConsultationDto {
   patientId: string;
@@ -85,7 +95,13 @@ export async function fetchConsultations(
   const params = new URLSearchParams();
   appendQueryParam(params, "patientId", filters?.patientId);
   appendQueryParam(params, "doctorId", filters?.doctorId);
-  appendQueryParam(params, "status", filters?.status);
+  if (filters?.status != null && String(filters.status).trim() !== "") {
+    appendQueryParam(
+      params,
+      "status",
+      normalizeConsultationStatusQueryParam(String(filters.status)),
+    );
+  }
   appendQueryParam(params, "from", filters?.from);
   appendQueryParam(params, "to", filters?.to);
   appendQueryParam(params, "search", filters?.search);

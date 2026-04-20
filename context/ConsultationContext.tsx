@@ -146,9 +146,13 @@ export function ConsultationProvider({
 
   const refreshConsultation = useCallback(() => {
     if (!patientId) return;
-    fetchConsultations({ patientId, status: "in_progress" })
+    fetchConsultations({ patientId, status: "IN_PROGRESS" })
       .then(({ data }) => {
-        const active = data.find((c) => c.status === "in_progress");
+        const active = data.find(
+          (c) =>
+            c.status === "in_progress" ||
+            c.status === "IN_PROGRESS",
+        );
         if (active) setConsultationId(active.id);
       })
       .catch(silentCatch("refreshConsultation"));

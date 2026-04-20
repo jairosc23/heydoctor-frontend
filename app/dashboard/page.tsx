@@ -32,7 +32,7 @@ export default function DashboardPage() {
         data: [],
         total: 0,
       })),
-      fetchConsultations({ status: "in_progress", limit: 1 }).catch(() => ({
+      fetchConsultations({ status: "IN_PROGRESS", limit: 1 }).catch(() => ({
         data: [],
         total: 0,
       })),
