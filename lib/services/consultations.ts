@@ -13,11 +13,10 @@ function appendQueryParam(
   params.set(key, s);
 }
 
-/** Crear consulta en Nest: patientId + chiefComplaint (alias `reason` por compatibilidad). */
+/** Crear consulta en Nest: `patientId` + `reason` (chiefComplaint se mapea a reason en wire). */
 export interface CreateConsultationDto {
   patientId: string;
   chiefComplaint?: string;
-  /** @deprecated usar chiefComplaint */
   reason?: string;
 }
 
@@ -107,14 +106,20 @@ export async function fetchConsultation(id: string): Promise<NestConsultation> {
 }
 
 export async function createConsultation(dto: CreateConsultationDto) {
-  const chiefComplaint =
+  const reason = (
     dto.chiefComplaint?.trim() ||
     dto.reason?.trim() ||
-    "";
-  return heydoctorApi.post<NestConsultation>(BASE, {
-    patientId: dto.patientId,
-    chiefComplaint,
-  });
+    "Consulta HeyDoctor"
+  ).trim();
+  const patientId = dto.patientId?.trim() ?? "";
+  if (!patientId) {
+    throw new Error("patientId is required");
+  }
+  /** Contrato Nest CreateConsultationDto: solo `patientId` + `reason` (sin chiefComplaint ni otros campos). */
+  const body = { patientId, reason };
+  // eslint-disable-next-line no-console -- debug temporal creación consulta
+  console.log("[HeyDoctor] POST /api/consultations payload", body);
+  return heydoctorApi.post<NestConsultation>(BASE, body);
 }
 
 /** Respuesta de GET /consultations/:id/ai */

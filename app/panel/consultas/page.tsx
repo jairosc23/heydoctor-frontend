@@ -67,12 +67,13 @@ function ConsultasContent() {
     undefined
   );
 
-  // Load patient when patientIdParam present
+  // Sincronizar solo cuando cambia la query (?patientId=); no incluir `patientId` en deps
+  // para no revertir el paciente elegido en el dropdown.
   useEffect(() => {
-    if (patientIdParam && patientIdParam !== patientId) {
+    if (patientIdParam) {
       setPatient(patientIdParam);
     }
-  }, [patientIdParam, patientId, setPatient]);
+  }, [patientIdParam, setPatient]);
 
   useEffect(() => {
     if (patientsQuery.data?.data) {
@@ -132,8 +133,7 @@ function ConsultasContent() {
   }, [consultationId]);
 
   const handleStartConsultation = async () => {
-    if (!patientIdParam && !patientId) return;
-    const pid = patientIdParam ?? patientId;
+    const pid = (patientId ?? patientIdParam ?? "").trim();
     if (!pid) return;
     setStarting(true);
     try {
@@ -163,7 +163,9 @@ function ConsultasContent() {
     }
   };
 
-  const selectedPatient = patients.find((p) => p.id === (patientId ?? patientIdParam));
+  const selectedPatient = patients.find(
+    (p) => p.id === (patientId ?? patientIdParam ?? ""),
+  );
   const consultationPrice = useConsultationPrice();
 
   return (
@@ -218,7 +220,7 @@ function ConsultasContent() {
             </span>
           </p>
           <select
-            value={patientIdParam ?? patientId ?? ""}
+            value={patientId ?? patientIdParam ?? ""}
             onChange={(e) => setPatient(e.target.value || null)}
             style={{
               padding: "10px 14px",
@@ -241,7 +243,7 @@ function ConsultasContent() {
             disabled={
               starting ||
               ctxLoading ||
-              !(patientIdParam ?? patientId) ||
+              !(patientId ?? patientIdParam)?.trim() ||
               !doctorId
             }
             style={{
