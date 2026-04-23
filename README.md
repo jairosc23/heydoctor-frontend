@@ -101,4 +101,4 @@ Viña del Mar – Chile
 
 ## 📝 Licencia
 
-© 2025 SAVAC MedTech LLC. Todos los derechos reservados.
+© 2025 SAVAC MedTech LLC. Todos los derechos reservados.# test
