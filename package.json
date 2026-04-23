@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "preview": "next build && next start",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "lint": "tsc --noEmit",
+    "test": "node --test ci-smoke.test.mjs"
   },
   "repository": {
     "type": "git",

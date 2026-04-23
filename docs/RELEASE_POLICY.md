@@ -24,6 +24,10 @@ Alineada con SemVer y el flujo descrito en el backend; este repo versiona **de f
 3. GitHub Actions genera el release con notas automáticas.
 4. Vercel sigue la configuración actual del proyecto (sin cambios impuestos por este workflow).
 
+## CI en GitHub (bloqueo de merge)
+
+El workflow `.github/workflows/ci.yml` corre en push y pull_request a `main` (install, `tsc --noEmit`, build, smoke test). Para **bloquear merge si falla**: **Settings → Branches** → proteger `main` → **Require status checks** → añadir **`CI / frontend`**.
+
 ## Referencias
 
 - Backend (política detallada y monorepo): repositorio `heydoctor-backend-pro` — `docs/RELEASE_POLICY.md`.
