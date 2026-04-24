@@ -108,21 +108,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, pathname, router]);
 
   const login = useCallback(async (email: string, password: string) => {
-    let accessToken: string;
     try {
-      const result = await loginRequest(email, password);
-      accessToken = result.accessToken?.trim() ?? "";
-      if (!accessToken) {
-        throw new Error("Login no devolvió access_token.");
-      }
+      await loginRequest(email, password);
     } catch (e) {
       await clearMiddlewareSession();
       throw e;
     }
     try {
-      const me = await getMe(accessToken);
+      const me = await getMe();
       setUser(me);
-      await syncMiddlewareSession(accessToken);
+      const t = getAccessToken()?.trim();
+      if (t) {
+        await syncMiddlewareSession(t);
+      }
     } catch (e) {
       await clearMiddlewareSession();
       setAccessToken(null);

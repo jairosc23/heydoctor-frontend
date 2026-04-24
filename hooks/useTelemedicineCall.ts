@@ -714,8 +714,8 @@ export function useTelemedicineCall(
 
     let socket = externalSocket ?? null;
     if (!socket) {
-      const accessToken = await ensureAccessToken();
-      if (!accessToken?.trim()) {
+      const sessionOk = await ensureAccessToken();
+      if (!sessionOk) {
         onError?.('Inicia sesión para usar la videollamada.');
         return;
       }
@@ -725,7 +725,7 @@ export function useTelemedicineCall(
         transports: ['websocket', 'polling'],
         withCredentials: true,
         autoConnect: true,
-        auth: { token: accessToken },
+        auth: {},
       });
       ownSocketRef.current = true;
     } else {

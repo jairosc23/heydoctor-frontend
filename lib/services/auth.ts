@@ -1,6 +1,6 @@
 /**
- * Auth: login al Nest con `credentials: 'include'`; access JWT en memoria + Bearer en peticiones autenticadas.
- * Cookie HttpOnly en el API: solo `refresh_token`. `syncMiddlewareSession` fija cookie en el origen Next para el proxy.
+ * Auth: login al Nest con `credentials: 'include'`; sesión en cookies HttpOnly del API.
+ * `syncMiddlewareSession` opcional si hay JWT en memoria (legacy); con `COOKIE_DOMAIN` el edge valida `access_token`.
  */
 
 import { getAuthMeUrl } from "../api-base";
@@ -8,7 +8,6 @@ import {
   authLogin as authLoginClient,
   authLogout as authLogoutClient,
   getAccessToken,
-  setAccessToken,
 } from "../auth-client";
 import { ApiError, heydoctorApi } from "../heydoctor-api";
 import { setFirstPartySessionFromAccessToken } from "../first-party-session-cookie";
@@ -30,7 +29,6 @@ export type LoginResultUser = {
 
 export type LoginResult = {
   user: LoginResultUser;
-  accessToken: string;
 };
 
 /**
@@ -54,7 +52,7 @@ export async function login(
   password: string
 ): Promise<LoginResult> {
   const result = await authLoginClient(email, password);
-  return { user: result.user, accessToken: result.accessToken };
+  return { user: result.user };
 }
 
 export async function logout(): Promise<void> {
@@ -62,12 +60,8 @@ export async function logout(): Promise<void> {
   await clearMiddlewareSession();
 }
 
-/** Perfil: GET al Nest con Bearer (`heydoctor_access_token`) y `credentials: 'include'` (refresh). */
-export async function getMe(accessToken?: string): Promise<AuthUser> {
-  const t = accessToken?.trim();
-  if (t) {
-    setAccessToken(t);
-  }
+/** Perfil: GET al Nest con cookies y `credentials: 'include'` (JWT en cookie o Bearer en memoria si existe). */
+export async function getMe(): Promise<AuthUser> {
   const meUrl = getAuthMeUrl();
 
   try {
@@ -86,7 +80,7 @@ export async function getMe(accessToken?: string): Promise<AuthUser> {
   }
 }
 
-/** Útil si ya hay token en memoria (mismo flujo que login, sin segundo argumento opcional). */
+/** Sincroniza cookie Next si hay JWT en memoria (legacy). */
 export async function primeSessionFromAccessToken(): Promise<void> {
   const t = getAccessToken()?.trim();
   if (!t) return;

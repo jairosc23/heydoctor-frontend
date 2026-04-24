@@ -5,6 +5,8 @@ import {
 } from "@/lib/auth/jwt-utils";
 
 const SESSION_COOKIE = "heydoctor_session";
+/** Misma clave que el Nest (`ACCESS_TOKEN_COOKIE`) cuando `COOKIE_DOMAIN` comparte sesión con el front. */
+const ACCESS_TOKEN_COOKIE = "access_token";
 /** Tolerancia de reloj (cliente vs Edge): no tratar como expirado si falta < skew. */
 const SSR_SESSION_CLOCK_SKEW_MS = 5_000;
 
@@ -84,7 +86,9 @@ export function proxy(request: NextRequest) {
     return addSecurityHeaders(NextResponse.next());
   }
 
-  const sessionCookie = request.cookies.get(SESSION_COOKIE)?.value;
+  const sessionCookie =
+    request.cookies.get(SESSION_COOKIE)?.value ??
+    request.cookies.get(ACCESS_TOKEN_COOKIE)?.value;
   const hasSession = isSsrSessionValid(sessionCookie);
 
   if (isProtected(pathname) && !hasSession) {
