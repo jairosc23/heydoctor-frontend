@@ -1,6 +1,6 @@
 /**
- * Auth: login al Nest con `credentials: 'include'`; sesión en cookies HttpOnly del API.
- * `syncMiddlewareSession` opcional si hay JWT en memoria (legacy); con `COOKIE_DOMAIN` el edge valida `access_token`.
+ * Auth: login al Nest con `credentials: 'include'`; cookies HttpOnly + CSRF en cabecera.
+ * `syncMiddlewareSession` si hay JWT en memoria (legacy); con `COOKIE_DOMAIN` el edge puede validar `access_token`.
  */
 
 import { getAuthMeUrl } from "../api-base";
@@ -31,10 +31,6 @@ export type LoginResult = {
   user: LoginResultUser;
 };
 
-/**
- * Sincroniza cookie HttpOnly `heydoctor_session` en el **origen Next** (ruta relativa).
- * Nunca llames al dominio del API Nest: `/api/auth/session` solo existe en este frontend.
- */
 export async function syncMiddlewareSession(accessToken: string): Promise<void> {
   await setFirstPartySessionFromAccessToken(accessToken);
 }
@@ -49,7 +45,7 @@ export async function clearMiddlewareSession(): Promise<void> {
 
 export async function login(
   email: string,
-  password: string
+  password: string,
 ): Promise<LoginResult> {
   const result = await authLoginClient(email, password);
   return { user: result.user };
@@ -60,7 +56,7 @@ export async function logout(): Promise<void> {
   await clearMiddlewareSession();
 }
 
-/** Perfil: GET al Nest con cookies y `credentials: 'include'` (JWT en cookie o Bearer en memoria si existe). */
+/** Perfil: GET al Nest con cookies y `credentials: 'include'`. */
 export async function getMe(): Promise<AuthUser> {
   const meUrl = getAuthMeUrl();
 

@@ -1,18 +1,20 @@
 /**
  * Cliente HTTP unificado al API Nest (HeyDoctor).
  *
- * - Sesión: cookies HttpOnly en el origen del API (`access_token`, `refresh_token`) con `credentials: 'include'`.
- * - Si hay JWT en memoria (legacy), se añade `Authorization: Bearer`.
- * - Interceptor 401: `POST /auth/refresh` → reintento de la petición.
- * - Datos clínicos / panel: `cache: "no-store"`.
+ * - Sesión: cookies HttpOnly (`access_token`, `refresh_token`) con `credentials: 'include'`.
+ * - Bearer opcional si hay JWT en memoria (legacy).
+ * - Mutaciones: cabecera `X-CSRF-Token` (login/refresh o GET /auth/csrf).
+ * - 401: `POST /auth/refresh` y reintento; datos dinámicos con `cache: "no-store"`.
  */
 
 import { getAccessToken, refreshAccessToken } from "./auth-client";
 import { handleAuthError } from "./auth/auth-guard";
 import { getApiBase } from "./api-base";
+import { getApiCsrfToken, API_CSRF_HEADER } from "./api-csrf";
 
 export {
   getApiBase,
+  getAuthCsrfUrl,
   getAuthLoginUrl,
   getAuthMeUrl,
   getBackendOrigin,
@@ -77,6 +79,13 @@ export async function fetchWithAuth(
     const bearer = getAccessToken()?.trim();
     if (bearer && !headers.has("Authorization")) {
       headers.set("Authorization", `Bearer ${bearer}`);
+    }
+    const unsafe = !["GET", "HEAD", "OPTIONS", "TRACE", "CONNECT"].includes(
+      method,
+    );
+    const csrf = getApiCsrfToken();
+    if (unsafe && csrf && !headers.has(API_CSRF_HEADER)) {
+      headers.set(API_CSRF_HEADER, csrf);
     }
     return headers;
   };
