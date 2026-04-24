@@ -1,20 +1,20 @@
 /**
- * Auth client — login/register/refresh/logout **directo del navegador al Nest** con `credentials: 'include'`.
- * Access JWT: memoria + `localStorage` (`heydoctor_access_token`) + `Authorization: Bearer` (vía `fetchWithAuth`).
- * Cookie HttpOnly en el API: `refresh_token` cuando aplica.
- * Cookie de primer partido en Vercel: POST `/api/auth/session` con Bearer para el proxy de Next.
+ * Auth client — login/register/refresh/logout al Nest con `credentials: 'include'`.
+ * Tokens de acceso: cookies HttpOnly en el origen del API (`access_token`, `refresh_token`).
+ * Sin persistir JWT en localStorage/sessionStorage.
+ * Cookie de primer partido en Vercel (`heydoctor_session`): solo si hay JWT en memoria (legacy);
+ * con `COOKIE_DOMAIN` en el API, el middleware puede validar `access_token` directamente.
  */
 
 import { invalidateJwtPayloadCache } from "./auth-token";
-import { HEYDOCTOR_ACCESS_TOKEN_STORAGE_KEY } from "./heydoctor-auth-constants";
 import { emitAuthTelemetry } from "./auth-telemetry";
 import { getApiBase, getAuthLoginUrl } from "./api-base";
 import { setFirstPartySessionFromAccessToken } from "./first-party-session-cookie";
 
-// ── In-memory access token (+ localStorage para recargar pestaña) ───────────
+// ── In-memory access token (opcional; p. ej. magic-link legacy). No localStorage. ──
 
 let _accessToken: string | null = null;
-let _refreshPromise: Promise<string | null> | null = null;
+let _refreshPromise: Promise<boolean> | null = null;
 let _lastRefreshFailedAt = 0;
 
 const REFRESH_COOLDOWN_MS = 3_000;
@@ -41,46 +41,16 @@ function emitRefreshState(isRefreshing: boolean): void {
   });
 }
 
-function readStoredAccessToken(): string | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const s = localStorage.getItem(HEYDOCTOR_ACCESS_TOKEN_STORAGE_KEY)?.trim();
-    return s || null;
-  } catch {
-    return null;
-  }
-}
-
-function persistAccessToken(token: string | null): void {
-  if (typeof window === "undefined") return;
-  try {
-    if (token) {
-      localStorage.setItem(HEYDOCTOR_ACCESS_TOKEN_STORAGE_KEY, token);
-    } else {
-      localStorage.removeItem(HEYDOCTOR_ACCESS_TOKEN_STORAGE_KEY);
-    }
-  } catch {
-    /* noop */
-  }
-}
-
 export function getAccessToken(): string | null {
-  if (_accessToken?.trim()) {
-    return _accessToken;
-  }
-  const fromStore = readStoredAccessToken();
-  if (fromStore) {
-    _accessToken = fromStore;
-  }
-  return _accessToken;
+  return _accessToken?.trim() ? _accessToken : null;
 }
 
 export function setAccessToken(token: string | null): void {
-  if (_accessToken !== token) {
+  const next = token?.trim() ? token.trim() : null;
+  if (_accessToken !== next) {
     invalidateJwtPayloadCache();
   }
-  _accessToken = token?.trim() ? token.trim() : null;
-  persistAccessToken(_accessToken);
+  _accessToken = next;
 }
 
 function getTabId(): string {
@@ -147,28 +117,15 @@ async function clearFirstPartySessionCookie(): Promise<void> {
   }).catch(() => {});
 }
 
-function clearAllBrowserStorage(): void {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.clear();
-  } catch {
-    /* noop */
-  }
-  try {
-    sessionStorage.clear();
-  } catch {
-    /* noop */
-  }
-}
-
-// ── Refresh token flow ──────────────────────────────────────────
+// ── Refresh (cookies HttpOnly; cuerpo puede ser `{ ok: true }` sin JWT) ─────────
 
 /**
- * Refreshes the access token via the HttpOnly refresh_token cookie (API origin).
+ * Rota access/refresh vía cookie `refresh_token`. Devuelve true si la respuesta fue OK
+ * (nuevas cookies aplicadas por el navegador).
  */
-export async function refreshAccessToken(): Promise<string | null> {
+export async function refreshAccessToken(): Promise<boolean> {
   if (Date.now() - _lastRefreshFailedAt < REFRESH_COOLDOWN_MS) {
-    return null;
+    return false;
   }
 
   if (_refreshPromise) return _refreshPromise;
@@ -181,7 +138,7 @@ export async function refreshAccessToken(): Promise<string | null> {
   }
 }
 
-async function _doRefresh(): Promise<string | null> {
+async function _doRefresh(): Promise<boolean> {
   const accessTokenSnapshot = _accessToken;
   emitRefreshState(true);
   try {
@@ -198,46 +155,55 @@ async function _doRefresh(): Promise<string | null> {
         setAccessToken(null);
       }
       await clearFirstPartySessionCookie();
-      return null;
+      return false;
     }
 
-    const data = (await res.json()) as {
-      access_token?: string;
-    };
+    let data: { access_token?: string; ok?: boolean } = {};
+    try {
+      data = (await res.json()) as { access_token?: string; ok?: boolean };
+    } catch {
+      data = {};
+    }
+
     const next = (data.access_token ?? "").trim();
-    setAccessToken(next || null);
-
-    if (_accessToken) {
+    if (next) {
+      setAccessToken(next);
       _lastRefreshFailedAt = 0;
-      await setFirstPartySessionFromAccessToken(_accessToken);
+      await setFirstPartySessionFromAccessToken(next);
       broadcastAuthMessage("token-refreshed");
+      return true;
     }
 
-    return _accessToken;
+    if (_accessToken === accessTokenSnapshot) {
+      setAccessToken(null);
+    }
+    _lastRefreshFailedAt = 0;
+    await clearFirstPartySessionCookie();
+    broadcastAuthMessage("token-refreshed");
+    return true;
   } catch {
     _lastRefreshFailedAt = Date.now();
     emitAuthTelemetry("refresh_fail", { status: 0 });
     if (_accessToken === accessTokenSnapshot) {
       setAccessToken(null);
     }
-    return null;
+    return false;
   } finally {
     emitRefreshState(false);
   }
 }
 
 /**
- * Ensures an access token is available (refreshes if needed).
+ * Garantiza sesión vía cookies (refresca si no hay JWT en memoria).
  */
-export async function ensureAccessToken(): Promise<string | null> {
-  if (_accessToken) return _accessToken;
+export async function ensureAccessToken(): Promise<boolean> {
+  if (getAccessToken()?.trim()) return true;
   return refreshAccessToken();
 }
 
 // ── Login ───────────────────────────────────────────────────────
 
 export interface AuthLoginResult {
-  accessToken: string;
   user: {
     id: string;
     email: string;
@@ -279,7 +245,6 @@ export async function authLogin(
   }
 
   const normalizedEmail = email.trim().toLowerCase();
-  /** Cuerpo estricto: solo `email` y `password` (Nest POST /api/auth/login). */
   const loginBody: { email: string; password: string } = {
     email: normalizedEmail,
     password,
@@ -330,31 +295,26 @@ export async function authLogin(
     throw new Error(msg);
   }
 
-  const raw =
-    (data.access_token as string | undefined) ??
-    (data.jwt as string | undefined) ??
-    (data.token as string | undefined) ??
-    "";
-  const token = typeof raw === "string" ? raw.trim() : "";
-
-  if (!token) {
-    emitAuthTelemetry("login_fail", { status: res.status, reason: "no_token" });
-    throw new Error("Respuesta de login sin access_token");
+  const u = (data.user ?? null) as Record<string, unknown> | null;
+  if (!u || typeof u !== "object") {
+    emitAuthTelemetry("login_fail", { status: res.status, reason: "no_user" });
+    throw new Error("Respuesta de login inválida: falta user");
   }
 
-  setAccessToken(token);
-  _lastRefreshFailedAt = 0;
-
-  const u = (data.user ?? {}) as Record<string, unknown>;
   const fromNames = [u.firstName, u.lastName].filter(Boolean).join(" ").trim();
   const fallback = fromNames || (u.email as string) || "";
   const name = (u.name as string) ?? fallback;
 
   const userId = String(u.id ?? "");
+  if (!userId) {
+    emitAuthTelemetry("login_fail", { status: res.status, reason: "no_user_id" });
+    throw new Error("Respuesta de login inválida: falta user");
+  }
+
+  _lastRefreshFailedAt = 0;
   emitAuthTelemetry("login_success", { userId });
 
   return {
-    accessToken: token,
     user: {
       id: userId,
       email: (u.email as string) ?? "",
@@ -365,9 +325,7 @@ export async function authLogin(
 }
 
 export type AuthLogoutOptions = {
-  /** No llama POST /auth/logout (p. ej. otra pestaña ya revocó). */
   skipRemote?: boolean;
-  /** No broadcast a otras pestañas (evita bucles). */
   skipBroadcast?: boolean;
 };
 
@@ -391,7 +349,6 @@ export async function authLogout(options?: AuthLogoutOptions): Promise<void> {
   setAccessToken(null);
   _lastRefreshFailedAt = 0;
   await clearFirstPartySessionCookie();
-  clearAllBrowserStorage();
 }
 
 attachMultiTabAuthSync();

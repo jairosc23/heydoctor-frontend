@@ -4,7 +4,7 @@
  */
 
 import { getApiBase } from "./api-base";
-import { HEYDOCTOR_ACCESS_TOKEN_STORAGE_KEY } from "./heydoctor-auth-constants";
+import { getAccessToken } from "./auth-client";
 
 const SESSION_KEY = "hd_session_id";
 
@@ -60,9 +60,7 @@ function decodeJwtPayload(token: string): Record<string, unknown> | null {
 function getOptionalUserId(): string | undefined {
   if (typeof window === "undefined") return undefined;
   try {
-    const token = localStorage
-      .getItem(HEYDOCTOR_ACCESS_TOKEN_STORAGE_KEY)
-      ?.trim();
+    const token = getAccessToken()?.trim();
     if (!token) return undefined;
     const payload = decodeJwtPayload(token);
     const sub = payload?.sub;
