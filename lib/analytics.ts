@@ -132,6 +132,7 @@ async function postCollect(
       headers: { "Content-Type": "application/json", Accept: "application/json" },
       body,
       keepalive: true,
+      credentials: "include",
     });
   } catch {
     /* no romper UX */

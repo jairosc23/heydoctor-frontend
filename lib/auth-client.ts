@@ -14,9 +14,9 @@ import {
   getApiCsrfToken,
   setApiCsrfToken,
   API_CSRF_HEADER,
+  API_X_REQUESTED_WITH,
+  API_XRW_XMLHTTPREQUEST,
 } from "./api-csrf";
-import { setFirstPartySessionFromAccessToken } from "./first-party-session-cookie";
-
 // ── In-memory access token (opcional; p. ej. magic-link legacy). No localStorage. ──
 
 let _accessToken: string | null = null;
@@ -124,7 +124,13 @@ async function clearFirstPartySessionCookie(): Promise<void> {
 
 function buildCsrfHeaders(): HeadersInit {
   const csrf = getApiCsrfToken();
-  return csrf ? { [API_CSRF_HEADER]: csrf } : {};
+  const headers: Record<string, string> = {
+    [API_X_REQUESTED_WITH]: API_XRW_XMLHTTPREQUEST,
+  };
+  if (csrf) {
+    headers[API_CSRF_HEADER] = csrf;
+  }
+  return headers;
 }
 
 /** Obtiene `csrfToken` del API (cookies existentes o nueva cookie). Llamar al montar la app. */
@@ -139,6 +145,13 @@ export async function bootstrapApiCsrf(): Promise<void> {
     if (!res.ok) return;
     const data = (await res.json()) as { csrfToken?: string };
     applyCsrfFromPayload(data);
+    if (process.env.NODE_ENV === "development") {
+      /* HttpOnly (p. ej. csrf en dominio del API) no aparece aquí; solo cookies legibles en Vercel. */
+      console.log(
+        "[auth-debug] document.cookie (origen actual):",
+        document.cookie,
+      );
+    }
   } catch {
     /* noop */
   }
@@ -188,7 +201,7 @@ async function _doRefresh(): Promise<boolean> {
       return false;
     }
 
-    let data: { access_token?: string; csrfToken?: string; ok?: boolean } = {};
+    let data: { csrfToken?: string; ok?: boolean } = {};
     try {
       data = (await res.json()) as typeof data;
     } catch {
@@ -197,20 +210,7 @@ async function _doRefresh(): Promise<boolean> {
 
     applyCsrfFromPayload(data);
 
-    const next = (data.access_token ?? "").trim();
-    if (next) {
-      setAccessToken(next);
-      _lastRefreshFailedAt = 0;
-      await setFirstPartySessionFromAccessToken(next);
-      broadcastAuthMessage("token-refreshed");
-      return true;
-    }
-
-    if (_accessToken === accessTokenSnapshot) {
-      setAccessToken(null);
-    }
     _lastRefreshFailedAt = 0;
-    await clearFirstPartySessionCookie();
     broadcastAuthMessage("token-refreshed");
     return true;
   } catch {
@@ -226,10 +226,9 @@ async function _doRefresh(): Promise<boolean> {
 }
 
 /**
- * Garantiza sesión vía cookies (refresca si no hay JWT en memoria).
+ * Garantiza sesión vía cookies del API (refresh sin cuerpo ni access_token).
  */
 export async function ensureAccessToken(): Promise<boolean> {
-  if (getAccessToken()?.trim()) return true;
   return refreshAccessToken();
 }
 
@@ -287,6 +286,7 @@ export async function authLogin(
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
+        [API_X_REQUESTED_WITH]: API_XRW_XMLHTTPREQUEST,
       },
       body: JSON.stringify(loginBody),
       credentials: "include",
@@ -333,17 +333,7 @@ export async function authLogin(
     throw new Error("Respuesta de login inválida: falta user");
   }
 
-  const raw =
-    (data.access_token as string | undefined) ??
-    (data.jwt as string | undefined) ??
-    (data.token as string | undefined) ??
-    "";
-  const tokenFromBody = typeof raw === "string" ? raw.trim() : "";
-  if (tokenFromBody) {
-    setAccessToken(tokenFromBody);
-  } else {
-    setAccessToken(null);
-  }
+  setAccessToken(null);
 
   const fromNames = [u.firstName, u.lastName].filter(Boolean).join(" ").trim();
   const fallback = fromNames || (u.email as string) || "";
@@ -357,10 +347,6 @@ export async function authLogin(
 
   _lastRefreshFailedAt = 0;
   emitAuthTelemetry("login_success", { userId });
-
-  if (tokenFromBody) {
-    await setFirstPartySessionFromAccessToken(tokenFromBody).catch(() => {});
-  }
 
   return {
     user: {

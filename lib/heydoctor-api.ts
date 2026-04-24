@@ -1,16 +1,21 @@
 /**
  * Cliente HTTP unificado al API Nest (HeyDoctor).
  *
- * - Sesión: cookies HttpOnly (`access_token`, `refresh_token`) con `credentials: 'include'`.
- * - Bearer opcional si hay JWT en memoria (legacy).
- * - Mutaciones: cabecera `X-CSRF-Token` (login/refresh o GET /auth/csrf).
+ * - Sesión solo vía cookies HttpOnly (`access_token`, `refresh_token`) y `credentials: 'include'`.
+ * - Sin cabecera `Authorization` / Bearer desde el cliente.
+ * - Mutaciones: `X-CSRF-Token` + `X-Requested-With: XMLHttpRequest`.
  * - 401: `POST /auth/refresh` y reintento; datos dinámicos con `cache: "no-store"`.
  */
 
-import { getAccessToken, refreshAccessToken } from "./auth-client";
+import { refreshAccessToken } from "./auth-client";
 import { handleAuthError } from "./auth/auth-guard";
 import { getApiBase } from "./api-base";
-import { getApiCsrfToken, API_CSRF_HEADER } from "./api-csrf";
+import {
+  getApiCsrfToken,
+  API_CSRF_HEADER,
+  API_X_REQUESTED_WITH,
+  API_XRW_XMLHTTPREQUEST,
+} from "./api-csrf";
 
 export {
   getApiBase,
@@ -39,10 +44,8 @@ function isAuthRefreshRequest(url: string): boolean {
 }
 
 export type FetchWithAuthContext = {
-  /** @deprecated Ignorado; el Bearer sale de getAccessToken. */
-  bearerToken?: string;
   /**
-   * Si es true, exige token antes del fetch. Por defecto true en apiFetch.
+   * Reservado para rutas públicas (`false`). No implica Bearer; la sesión son cookies.
    */
   requireAuth?: boolean;
 };
@@ -51,7 +54,7 @@ export type FetchWithAuthContext = {
 export type ApiAuthOptions = FetchWithAuthContext;
 
 /**
- * Peticiones al API Nest: URL absoluta, Authorization Bearer, credentials para refresh cookie.
+ * Peticiones al API Nest: URL absoluta, `credentials: 'include'`, sin Bearer.
  * Ante 401 intenta refresh y reintenta. `cache: 'no-store'` para datos dinámicos.
  */
 export async function fetchWithAuth(
@@ -76,13 +79,12 @@ export async function fetchWithAuth(
     ) {
       headers.set("Content-Type", "application/json");
     }
-    const bearer = getAccessToken()?.trim();
-    if (bearer && !headers.has("Authorization")) {
-      headers.set("Authorization", `Bearer ${bearer}`);
-    }
     const unsafe = !["GET", "HEAD", "OPTIONS", "TRACE", "CONNECT"].includes(
       method,
     );
+    if (unsafe && !headers.has(API_X_REQUESTED_WITH)) {
+      headers.set(API_X_REQUESTED_WITH, API_XRW_XMLHTTPREQUEST);
+    }
     const csrf = getApiCsrfToken();
     if (unsafe && csrf && !headers.has(API_CSRF_HEADER)) {
       headers.set(API_CSRF_HEADER, csrf);
@@ -123,14 +125,6 @@ export async function fetchWithAuth(
   }
 
   return res;
-}
-
-export function requireAccessToken(): string {
-  const t = getAccessToken()?.trim();
-  if (!t) {
-    throw new Error("No auth token available");
-  }
-  return t;
 }
 
 export class ApiError extends Error {
@@ -293,11 +287,8 @@ export async function apiPost<T = unknown>(
     options instanceof AbortSignal ? { signal: options } : options;
   const signal = opts?.signal;
   const auth: ApiAuthOptions | undefined =
-    opts && (opts.requireAuth !== undefined || opts.bearerToken !== undefined)
-      ? {
-          requireAuth: opts.requireAuth,
-          bearerToken: opts.bearerToken,
-        }
+    opts && opts.requireAuth !== undefined
+      ? { requireAuth: opts.requireAuth }
       : undefined;
 
   return apiFetch<T>(

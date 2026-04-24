@@ -33,8 +33,8 @@ type AuthContextValue = {
   sessionRevalidating: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  /** Recarga perfil con cookies; `explicitAccessToken` opcional sincroniza memoria + cookie proxy Next. */
-  refreshUser: (explicitAccessToken?: string) => Promise<void>;
+  /** Recarga perfil: refresh por cookies y GET /auth/me. */
+  refreshUser: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -69,27 +69,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await clearMiddlewareSession();
   }, []);
 
-  const refreshUser = useCallback(
-    async (explicitToken?: string) => {
-      try {
-        const t0 = explicitToken?.trim();
-        if (t0) {
-          setAccessToken(t0);
-        } else {
-          await refreshAccessToken();
-        }
-        const me = await getMe();
-        setUser(me);
-        const t = getAccessToken()?.trim();
-        if (t) {
-          await syncMiddlewareSession(t);
-        }
-      } catch {
-        await clearSession();
+  const refreshUser = useCallback(async () => {
+    try {
+      await refreshAccessToken();
+      const me = await getMe();
+      setUser(me);
+      const t = getAccessToken()?.trim();
+      if (t) {
+        await syncMiddlewareSession(t);
       }
-    },
-    [clearSession],
-  );
+    } catch {
+      await clearSession();
+    }
+  }, [clearSession]);
 
   /**
    * Tras login exitoso: `?redirect=` → ir al destino sin depender de estado async global previo.
