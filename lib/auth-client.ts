@@ -1,14 +1,20 @@
 /**
  * Auth client — login/register/refresh/logout al Nest con `credentials: 'include'`.
- * Tokens de acceso: cookies HttpOnly en el origen del API (`access_token`, `refresh_token`).
- * Sin persistir JWT en localStorage/sessionStorage.
- * Cookie de primer partido en Vercel (`heydoctor_session`): solo si hay JWT en memoria (legacy);
- * con `COOKIE_DOMAIN` en el API, el middleware puede validar `access_token` directamente.
+ * Cookies HttpOnly en el origen del API (`access_token`, `refresh_token`); sin JWT en localStorage.
+ * Cookie de primer partido (`heydoctor_session`) si el backend devuelve JWT en JSON (legacy) o
+ * con `COOKIE_DOMAIN` compartido; CSRF vía `csrfToken` en JSON + cabecera `X-CSRF-Token`
+ * (necesario con front en Vercel y API en otro dominio).
  */
 
 import { invalidateJwtPayloadCache } from "./auth-token";
 import { emitAuthTelemetry } from "./auth-telemetry";
-import { getApiBase, getAuthLoginUrl } from "./api-base";
+import { getApiBase, getAuthCsrfUrl, getAuthLoginUrl } from "./api-base";
+import {
+  applyCsrfFromPayload,
+  getApiCsrfToken,
+  setApiCsrfToken,
+  API_CSRF_HEADER,
+} from "./api-csrf";
 import { setFirstPartySessionFromAccessToken } from "./first-party-session-cookie";
 
 // ── In-memory access token (opcional; p. ej. magic-link legacy). No localStorage. ──
@@ -23,7 +29,6 @@ const AUTH_TAB_CHANNEL = "heydoctor-auth-v1";
 type RefreshStateListener = (isRefreshing: boolean) => void;
 const refreshStateListeners = new Set<RefreshStateListener>();
 
-/** Suscripción para overlay de “revalidando sesión” (AuthProvider). */
 export function subscribeRefreshState(
   listener: RefreshStateListener,
 ): () => void {
@@ -117,7 +122,29 @@ async function clearFirstPartySessionCookie(): Promise<void> {
   }).catch(() => {});
 }
 
-// ── Refresh (cookies HttpOnly; cuerpo puede ser `{ ok: true }` sin JWT) ─────────
+function buildCsrfHeaders(): HeadersInit {
+  const csrf = getApiCsrfToken();
+  return csrf ? { [API_CSRF_HEADER]: csrf } : {};
+}
+
+/** Obtiene `csrfToken` del API (cookies existentes o nueva cookie). Llamar al montar la app. */
+export async function bootstrapApiCsrf(): Promise<void> {
+  if (typeof window === "undefined") return;
+  try {
+    const res = await fetch(getAuthCsrfUrl(), {
+      method: "GET",
+      credentials: "include",
+      headers: { Accept: "application/json" },
+    });
+    if (!res.ok) return;
+    const data = (await res.json()) as { csrfToken?: string };
+    applyCsrfFromPayload(data);
+  } catch {
+    /* noop */
+  }
+}
+
+// ── Refresh (cookies HttpOnly; cuerpo puede incluir `csrfToken` y opcionalmente JWT) ──
 
 /**
  * Rota access/refresh vía cookie `refresh_token`. Devuelve true si la respuesta fue OK
@@ -145,7 +172,10 @@ async function _doRefresh(): Promise<boolean> {
     const res = await fetch(`${getApiBase()}/auth/refresh`, {
       method: "POST",
       credentials: "include",
-      headers: { Accept: "application/json" },
+      headers: {
+        Accept: "application/json",
+        ...buildCsrfHeaders(),
+      },
     });
 
     if (!res.ok) {
@@ -158,12 +188,14 @@ async function _doRefresh(): Promise<boolean> {
       return false;
     }
 
-    let data: { access_token?: string; ok?: boolean } = {};
+    let data: { access_token?: string; csrfToken?: string; ok?: boolean } = {};
     try {
-      data = (await res.json()) as { access_token?: string; ok?: boolean };
+      data = (await res.json()) as typeof data;
     } catch {
       data = {};
     }
+
+    applyCsrfFromPayload(data);
 
     const next = (data.access_token ?? "").trim();
     if (next) {
@@ -200,8 +232,6 @@ export async function ensureAccessToken(): Promise<boolean> {
   if (getAccessToken()?.trim()) return true;
   return refreshAccessToken();
 }
-
-// ── Login ───────────────────────────────────────────────────────
 
 export interface AuthLoginResult {
   user: {
@@ -279,7 +309,7 @@ export async function authLogin(
     emitAuthTelemetry("login_fail", { status: res.status, parseError: true });
     throw new Error(
       `Respuesta no JSON (${res.status} ${res.statusText}). ` +
-        `Confirma que NEXT_PUBLIC_HEYDOCTOR_API_URL apunta al Nest (p. ej. https://pro-api.heydoctor.health) y expone POST /api/auth/login.`,
+        `Confirma que NEXT_PUBLIC_HEYDOCTOR_API_URL apunta al Nest y expone POST /api/auth/login.`,
     );
   }
 
@@ -295,10 +325,24 @@ export async function authLogin(
     throw new Error(msg);
   }
 
+  applyCsrfFromPayload(data);
+
   const u = (data.user ?? null) as Record<string, unknown> | null;
   if (!u || typeof u !== "object") {
     emitAuthTelemetry("login_fail", { status: res.status, reason: "no_user" });
     throw new Error("Respuesta de login inválida: falta user");
+  }
+
+  const raw =
+    (data.access_token as string | undefined) ??
+    (data.jwt as string | undefined) ??
+    (data.token as string | undefined) ??
+    "";
+  const tokenFromBody = typeof raw === "string" ? raw.trim() : "";
+  if (tokenFromBody) {
+    setAccessToken(tokenFromBody);
+  } else {
+    setAccessToken(null);
   }
 
   const fromNames = [u.firstName, u.lastName].filter(Boolean).join(" ").trim();
@@ -313,6 +357,10 @@ export async function authLogin(
 
   _lastRefreshFailedAt = 0;
   emitAuthTelemetry("login_success", { userId });
+
+  if (tokenFromBody) {
+    await setFirstPartySessionFromAccessToken(tokenFromBody).catch(() => {});
+  }
 
   return {
     user: {
@@ -339,14 +387,18 @@ export async function authLogout(options?: AuthLogoutOptions): Promise<void> {
       await fetch(`${getApiBase()}/auth/logout`, {
         method: "POST",
         credentials: "include",
-        headers: { Accept: "application/json" },
+        headers: {
+          Accept: "application/json",
+          ...buildCsrfHeaders(),
+        },
       });
     }
   } catch {
-    /* authLogout ya limpia estado local aunque falle el fetch */
+    /* noop */
   }
 
   setAccessToken(null);
+  setApiCsrfToken(null);
   _lastRefreshFailedAt = 0;
   await clearFirstPartySessionCookie();
 }

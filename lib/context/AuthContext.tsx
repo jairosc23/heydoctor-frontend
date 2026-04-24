@@ -23,6 +23,7 @@ import {
   getAccessToken,
   subscribeRefreshState,
   setAccessToken,
+  bootstrapApiCsrf,
 } from "@/lib/auth-client";
 
 type AuthContextValue = {
@@ -48,6 +49,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     return subscribeRefreshState(setSessionRevalidating);
+  }, []);
+
+  useEffect(() => {
+    void bootstrapApiCsrf();
   }, []);
 
   useEffect(() => {

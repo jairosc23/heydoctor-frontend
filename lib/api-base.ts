@@ -31,3 +31,8 @@ export function getAuthMeUrl(): string {
 export function getAuthLoginUrl(): string {
   return `${getApiBase()}/auth/login`;
 }
+
+/** GET /api/auth/csrf — token para cabecera X-CSRF-Token en mutaciones cross-origin. */
+export function getAuthCsrfUrl(): string {
+  return `${getApiBase()}/auth/csrf`;
+}

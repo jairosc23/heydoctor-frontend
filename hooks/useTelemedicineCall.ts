@@ -8,7 +8,7 @@ import {
 import { fetchWebrtcIceServers } from '@/lib/fetch-webrtc-ice-servers';
 import { requestRecordingStart, requestRecordingStop } from '@/lib/webrtc-recording-api';
 import { sendCallMetrics } from '@/lib/send-webrtc-metrics';
-import { ensureAccessToken } from '@/lib/auth-client';
+import { ensureAccessToken, getAccessToken } from '@/lib/auth-client';
 import type { Socket } from 'socket.io-client';
 import { io } from 'socket.io-client';
 
@@ -720,12 +720,13 @@ export function useTelemedicineCall(
         return;
       }
       const origin = backendOrigin.replace(/\/$/, '');
+      const mem = getAccessToken()?.trim();
       socket = io(`${origin}/webrtc`, {
         path: socketPath,
         transports: ['websocket', 'polling'],
         withCredentials: true,
         autoConnect: true,
-        auth: {},
+        auth: mem ? { token: mem } : {},
       });
       ownSocketRef.current = true;
     } else {
