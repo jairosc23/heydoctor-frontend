@@ -43,6 +43,9 @@ function ConsultasContent() {
     setClinicalNotes,
     clinicalDiagnosisText,
     setClinicalDiagnosisText,
+    startError,
+    clearStartError,
+    hasTelemedicineConsent,
   } = useConsultation();
 
   const [patients, setPatients] = useState<PatientRow[]>([]);
@@ -135,6 +138,7 @@ function ConsultasContent() {
   const handleStartConsultation = async () => {
     const pid = (patientId ?? patientIdParam ?? "").trim();
     if (!pid) return;
+    clearStartError();
     setStarting(true);
     try {
       await startConsultation(pid);
@@ -261,6 +265,39 @@ function ConsultasContent() {
           {!doctorId && !ctxLoading && (
             <p style={{ marginTop: 8, color: "#c00", fontSize: 13 }}>
               No se pudo identificar al médico en sesión. Vuelve a iniciar sesión.
+            </p>
+          )}
+          {hasTelemedicineConsent === false && !startError && (
+            <p
+              style={{
+                marginTop: 8,
+                color: "#92400e",
+                background: "#fffbeb",
+                border: "1px solid #fde68a",
+                borderRadius: 8,
+                padding: "8px 10px",
+                fontSize: 13,
+              }}
+            >
+              Antes de iniciar tu primera consulta debes aceptar el
+              consentimiento informado de telemedicina. Se mostrará al pulsar
+              «Hablar con médico ahora».
+            </p>
+          )}
+          {startError && (
+            <p
+              role="alert"
+              style={{
+                marginTop: 8,
+                color: "#b91c1c",
+                background: "#fef2f2",
+                border: "1px solid #fecaca",
+                borderRadius: 8,
+                padding: "8px 10px",
+                fontSize: 13,
+              }}
+            >
+              {startError}
             </p>
           )}
         </div>

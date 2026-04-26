@@ -14,3 +14,4 @@ export * from "./webrtc-metrics";
 export * from "./consultation-assist";
 export * from "./auth-session";
 export * from "./auth";
+export * from "./consents";
