@@ -30,12 +30,35 @@ export function LabOrdersPanel({
   const [selectedTests, setSelectedTests] = useState<string[]>([]);
   const [testInput, setTestInput] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [listError, setListError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setListError(null);
     fetchLabOrdersByPatient(patientId)
-      .then(setOrders)
-      .catch(() => setOrders([]))
-      .finally(() => setLoading(false));
+      .then((list) => {
+        if (cancelled) return;
+        setOrders(list);
+      })
+      .catch((e) => {
+        if (cancelled) return;
+        if (process.env.NODE_ENV === "development") {
+          console.error("[heydoctor][lab-orders] lista falló", e);
+        }
+        setOrders([]);
+        setListError(
+          e instanceof Error
+            ? e.message
+            : "No se pudieron cargar órdenes previas.",
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [patientId]);
 
   useEffect(() => {
@@ -99,6 +122,14 @@ export function LabOrdersPanel({
         <p className="text-sm text-gray-500">Cargando órdenes...</p>
       ) : (
         <>
+          {listError && (
+            <p
+              role="alert"
+              className="text-xs mb-2 text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-2 py-1"
+            >
+              {listError}
+            </p>
+          )}
           {orderList.length > 0 && (
             <div className="mb-3">
               <h4 className="text-xs font-medium text-gray-600 mb-1">

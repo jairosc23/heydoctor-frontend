@@ -6,12 +6,14 @@ import Link from "next/link";
 import { useConsultation } from "@/context/ConsultationContext";
 import { fetchConsultation } from "@/lib/services";
 import { TeleconsultaVideoSession } from "@/components/webrtc/TeleconsultaVideoSession";
+import { useIsMobile } from "@/lib/hooks/useIsMobile";
 
 function TeleconsultaDeepLinkContent() {
   const params = useParams();
   const router = useRouter();
   const consultationId = params?.consultationId as string;
   const { doctorId, patientId } = useConsultation();
+  const isMobile = useIsMobile();
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -69,6 +71,17 @@ function TeleconsultaDeepLinkContent() {
           Ir a login →
         </Link>
       </div>
+    );
+  }
+
+  if (isMobile) {
+    return (
+      <TeleconsultaVideoSession
+        roomId={consultationId}
+        consultationId={consultationId}
+        isDoctor={!!doctorId}
+        onEndCall={() => router.push("/panel/consultas")}
+      />
     );
   }
 

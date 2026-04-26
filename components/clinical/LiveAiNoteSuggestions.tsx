@@ -122,6 +122,7 @@ export function LiveAiNoteSuggestions({
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [fetching, setFetching] = useState(false);
   const [insertFlash, setInsertFlash] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const requestSeq = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
   const cacheRef = useRef<{ key: string; items: Suggestion[] } | null>(null);
@@ -169,6 +170,7 @@ export function LiveAiNoteSuggestions({
       abortRef.current?.abort();
       setSuggestions([]);
       setFetching(false);
+      setError(null);
       cacheRef.current = null;
       return;
     }
@@ -181,6 +183,7 @@ export function LiveAiNoteSuggestions({
     );
     if (cacheRef.current?.key === key) {
       setSuggestions(cacheRef.current.items);
+      setError(null);
       return;
     }
 
@@ -190,6 +193,7 @@ export function LiveAiNoteSuggestions({
 
     const seq = ++requestSeq.current;
     setFetching(true);
+    setError(null);
 
     postConsultationSummary(
       buildRequestPayload(trimmed, diagnosisContext, patientAge, patientSex),
@@ -200,11 +204,20 @@ export function LiveAiNoteSuggestions({
         const items = buildSuggestions(res);
         cacheRef.current = { key, items };
         setSuggestions(items);
+        setError(null);
       })
       .catch((e: unknown) => {
         if (e instanceof Error && e.name === "AbortError") return;
         if (seq !== requestSeq.current) return;
+        if (process.env.NODE_ENV === "development") {
+          console.error("[heydoctor][ai-suggestions] fallo", e);
+        }
         setSuggestions([]);
+        setError(
+          e instanceof Error
+            ? e.message
+            : "Las sugerencias de IA no están disponibles ahora.",
+        );
       })
       .finally(() => {
         if (seq === requestSeq.current) setFetching(false);
@@ -281,6 +294,23 @@ export function LiveAiNoteSuggestions({
           ? "Tab · insertar 1.ª sugerencia"
           : "\u00a0"}
       </p>
+
+      {error && !fetching && suggestions.length === 0 && (
+        <p
+          role="alert"
+          style={{
+            margin: "6px 0 0",
+            fontSize: 12,
+            color: "#92400e",
+            background: "#fffbeb",
+            border: "1px solid #fde68a",
+            borderRadius: 8,
+            padding: "6px 10px",
+          }}
+        >
+          {error}
+        </p>
+      )}
 
       {(fetching || suggestions.length > 0) && (
         <div

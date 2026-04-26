@@ -12,6 +12,7 @@ import { ConnectionQualityBadge } from "@/components/ConnectionQualityBadge";
 import { getBackendOrigin } from "@/lib/api-base";
 import { logger } from "@/lib/logger";
 import { useTelemedicineCall } from "@/hooks/useTelemedicineCall";
+import { useIsMobile } from "@/lib/hooks/useIsMobile";
 
 export type VideoCallProps = {
   consultationId: string;
@@ -68,6 +69,8 @@ export const VideoCall = forwardRef<
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordingChunksRef = useRef<BlobPart[]>([]);
   const mountedRef = useRef(true);
+
+  const isMobile = useIsMobile();
 
   const [status, setStatus] = useState<string>("Preparando cámara…");
   const [micOn, setMicOn] = useState(true);
@@ -230,6 +233,20 @@ export const VideoCall = forwardRef<
     // eslint-disable-next-line react-hooks/exhaustive-deps -- startCall/endCall dependen de muchos refs internos del hook
   }, [consultationId]);
 
+  /**
+   * En móvil bloqueamos el scroll del documento mientras la videollamada está
+   * activa (el layout es fullscreen `position: fixed`). Restauramos al
+   * desmontar para no afectar al resto del panel.
+   */
+  useEffect(() => {
+    if (!isMobile || typeof document === "undefined") return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [isMobile]);
+
   useEffect(() => {
     localStreamRef.current = localStream;
     const el = localVideoRef.current;
@@ -318,9 +335,98 @@ export const VideoCall = forwardRef<
     );
   }
 
+  if (isMobile) {
+    return (
+      <div
+        data-call-recording={isRecording ? "true" : "false"}
+        data-call-variant="mobile"
+        style={mobileShellStyle}
+        role="dialog"
+        aria-label="Videollamada con paciente"
+      >
+        <video
+          ref={remoteVideoRef}
+          autoPlay
+          playsInline
+          style={mobileRemoteVideoStyle}
+        />
+
+        <div style={mobileSelfViewStyle}>
+          <video
+            ref={localVideoRef}
+            autoPlay
+            playsInline
+            muted
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              transform: "scaleX(-1)",
+            }}
+          />
+        </div>
+
+        <div style={mobileTopBarStyle}>
+          <span style={mobileStatusPillStyle}>{status}</span>
+          <ConnectionQualityBadge quality={connectionQuality} showWhenIdle />
+        </div>
+
+        {error && mediaReady && (
+          <div style={mobileErrorBannerStyle} role="alert">
+            {error}
+          </div>
+        )}
+
+        <div style={mobileControlsBarStyle}>
+          <button
+            type="button"
+            onClick={toggleMic}
+            aria-pressed={!micOn}
+            aria-label={micOn ? "Silenciar micrófono" : "Activar micrófono"}
+            style={
+              micOn
+                ? mobileCircleBtnStyle
+                : { ...mobileCircleBtnStyle, ...mobileCircleBtnOffStyle }
+            }
+          >
+            <span aria-hidden style={{ fontSize: 22 }}>
+              {micOn ? "🎤" : "🔇"}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={toggleCam}
+            aria-pressed={!camOn}
+            aria-label={camOn ? "Apagar cámara" : "Encender cámara"}
+            style={
+              camOn
+                ? mobileCircleBtnStyle
+                : { ...mobileCircleBtnStyle, ...mobileCircleBtnOffStyle }
+            }
+          >
+            <span aria-hidden style={{ fontSize: 22 }}>
+              {camOn ? "📷" : "📵"}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={handleEnd}
+            aria-label="Finalizar llamada"
+            style={mobileHangupBtnStyle}
+          >
+            <span aria-hidden style={{ fontSize: 26, transform: "rotate(135deg)", display: "inline-block" }}>
+              📞
+            </span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       data-call-recording={isRecording ? "true" : "false"}
+      data-call-variant="desktop"
       style={{
         display: "flex",
         flexDirection: "column",
@@ -469,4 +575,124 @@ const btnStyle: React.CSSProperties = {
   color: "#f1f5f9",
   cursor: "pointer",
   fontSize: 13,
+};
+
+/* ───────────────────────── Mobile fullscreen layout ───────────────────────── */
+
+const mobileShellStyle: React.CSSProperties = {
+  position: "fixed",
+  inset: 0,
+  width: "100vw",
+  height: "100dvh",
+  background: "#000",
+  overflow: "hidden",
+  zIndex: 50,
+  touchAction: "manipulation",
+};
+
+const mobileRemoteVideoStyle: React.CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  width: "100%",
+  height: "100%",
+  objectFit: "cover",
+  background: "#000",
+};
+
+const mobileSelfViewStyle: React.CSSProperties = {
+  position: "absolute",
+  bottom: 110,
+  right: 12,
+  width: 96,
+  height: 128,
+  borderRadius: 14,
+  overflow: "hidden",
+  border: "2px solid rgba(255,255,255,0.35)",
+  boxShadow: "0 6px 24px rgba(0,0,0,0.55)",
+  zIndex: 2,
+  background: "#000",
+};
+
+const mobileTopBarStyle: React.CSSProperties = {
+  position: "absolute",
+  top: 0,
+  left: 0,
+  right: 0,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 8,
+  padding: "max(env(safe-area-inset-top), 12px) 12px 8px",
+  background:
+    "linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 100%)",
+  zIndex: 3,
+  pointerEvents: "none",
+};
+
+const mobileStatusPillStyle: React.CSSProperties = {
+  color: "#e2e8f0",
+  fontSize: 12,
+  background: "rgba(15,23,42,0.55)",
+  padding: "4px 10px",
+  borderRadius: 999,
+  maxWidth: "60%",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+};
+
+const mobileErrorBannerStyle: React.CSSProperties = {
+  position: "absolute",
+  bottom: 220,
+  left: 12,
+  right: 12,
+  padding: "8px 12px",
+  background: "rgba(127,29,29,0.92)",
+  color: "#fecaca",
+  fontSize: 12,
+  borderRadius: 10,
+  zIndex: 4,
+  textAlign: "center",
+};
+
+const mobileControlsBarStyle: React.CSSProperties = {
+  position: "absolute",
+  bottom: 0,
+  left: 0,
+  right: 0,
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  gap: 18,
+  padding: "16px 16px max(env(safe-area-inset-bottom), 16px)",
+  background:
+    "linear-gradient(to top, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0) 100%)",
+  zIndex: 3,
+};
+
+const mobileCircleBtnStyle: React.CSSProperties = {
+  width: 60,
+  height: 60,
+  borderRadius: "50%",
+  border: "none",
+  background: "rgba(255,255,255,0.18)",
+  color: "#fff",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  cursor: "pointer",
+  backdropFilter: "blur(6px)",
+  WebkitBackdropFilter: "blur(6px)",
+};
+
+const mobileCircleBtnOffStyle: React.CSSProperties = {
+  background: "rgba(220,38,38,0.85)",
+};
+
+const mobileHangupBtnStyle: React.CSSProperties = {
+  ...mobileCircleBtnStyle,
+  width: 68,
+  height: 68,
+  background: "#dc2626",
+  boxShadow: "0 6px 20px rgba(220,38,38,0.55)",
 };

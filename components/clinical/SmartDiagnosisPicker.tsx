@@ -43,14 +43,17 @@ export function SmartDiagnosisPicker({
   const [suggestions, setSuggestions] = useState<DiagnosisSuggestion[]>([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchSuggestions = useCallback(
     async (q: string) => {
       if (!q.trim()) {
         setSuggestions([]);
+        setError(null);
         return;
       }
       setLoading(true);
+      setError(null);
       try {
         const [searchRes, cdssRes] = await Promise.all([
           searchMedical(q, "diagnostic"),
@@ -83,9 +86,25 @@ export function SmartDiagnosisPicker({
             merged.push(s);
           }
         }
+        if (process.env.NODE_ENV === "development") {
+          console.debug("[heydoctor][diagnostic] sugerencias", {
+            query: q,
+            search: fromSearch.length,
+            cdss: fromCdss.length,
+            merged: merged.length,
+          });
+        }
         setSuggestions(merged.slice(0, 12));
-      } catch {
+      } catch (e) {
+        if (process.env.NODE_ENV === "development") {
+          console.error("[heydoctor][diagnostic] búsqueda falló", e);
+        }
         setSuggestions([]);
+        setError(
+          e instanceof Error
+            ? e.message
+            : "No se pudieron cargar diagnósticos. Reintenta.",
+        );
       } finally {
         setLoading(false);
       }
@@ -142,10 +161,14 @@ export function SmartDiagnosisPicker({
         placeholder={placeholder}
         className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
       />
-      {open && (suggestions.length > 0 || loading) && (
+      {open && (suggestions.length > 0 || loading || error) && (
         <ul className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
           {loading && suggestions.length === 0 ? (
             <li className="px-3 py-2 text-sm text-gray-500">Buscando...</li>
+          ) : error && suggestions.length === 0 ? (
+            <li className="px-3 py-2 text-sm text-red-700 bg-red-50">
+              {error}
+            </li>
           ) : (
             suggestions.map((s, i) => (
               <li
