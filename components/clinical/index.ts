@@ -6,3 +6,4 @@ export { LiveAiNoteSuggestions } from "./LiveAiNoteSuggestions";
 export { ConsultationConsentCard } from "./ConsultationConsentCard";
 export { ConsultationAssistPanel } from "./ConsultationAssistPanel";
 export { SignatureCanvas } from "./SignatureCanvas";
+export { TelemedicineConsentModal } from "./TelemedicineConsentModal";

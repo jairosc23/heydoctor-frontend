@@ -95,6 +95,13 @@ function currentDocumentPath(): string | undefined {
   );
 }
 
+/**
+ * Si el endpoint `/analytics/collect` no existe en el backend (404), desactivamos el
+ * envío durante el resto de la sesión para evitar ruido en consola y peticiones inútiles.
+ * El telemetry de UX no debe degradar el rendimiento ni la observabilidad.
+ */
+let analyticsDisabled = false;
+
 async function postCollect(
   events: Array<{
     event: AnalyticsEventName;
@@ -103,6 +110,7 @@ async function postCollect(
     metadata?: Record<string, unknown>;
   }>,
 ): Promise<void> {
+  if (analyticsDisabled) return;
   if (typeof window === "undefined" || events.length === 0) return;
 
   const sessionId = getSessionId();
@@ -117,25 +125,22 @@ async function postCollect(
 
   const url = `${getApiBase().replace(/\/$/, "")}/analytics/collect`;
 
+  /* `sendBeacon` no permite distinguir 404 del server, así que sólo lo usamos en
+     `unload` (no aplica aquí) y privilegiamos `fetch` para detectar el 404 una
+     única vez y desactivar el envío hasta el próximo recargo. */
   try {
-    if (typeof navigator.sendBeacon === "function") {
-      const blob = new Blob([body], { type: "application/json" });
-      if (navigator.sendBeacon(url, blob)) return;
-    }
-  } catch {
-    /* fallback fetch */
-  }
-
-  try {
-    await fetch(url, {
+    const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
       body,
       keepalive: true,
       credentials: "include",
     });
+    if (res.status === 404) {
+      analyticsDisabled = true;
+    }
   } catch {
-    /* no romper UX */
+    /* no romper UX; tampoco desactivamos por errores de red transitorios */
   }
 }
 
