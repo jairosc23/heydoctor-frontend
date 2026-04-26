@@ -1,15 +1,14 @@
 /**
  * Auth: login al Nest con `credentials: 'include'`; cookies HttpOnly + CSRF en cabecera.
- * `syncMiddlewareSession` si hay JWT en memoria (legacy); con `COOKIE_DOMAIN` el edge puede validar `access_token`.
+ * `syncMiddlewareSession` solo para flujos que aún obtienen JWT en cliente (p. ej. magic link).
  */
 
-import { getAuthMeUrl } from "../api-base";
 import {
   authLogin as authLoginClient,
   authLogout as authLogoutClient,
   getAccessToken,
 } from "../auth-client";
-import { ApiError, heydoctorApi } from "../heydoctor-api";
+import { ApiError, apiFetch } from "../heydoctor-api";
 import { setFirstPartySessionFromAccessToken } from "../first-party-session-cookie";
 
 export type AuthUser = {
@@ -56,17 +55,15 @@ export async function logout(): Promise<void> {
   await clearMiddlewareSession();
 }
 
-/** Perfil: GET al Nest con cookies y `credentials: 'include'`. */
+/** Perfil: GET al Nest solo con cookies (sin Authorization). */
 export async function getMe(): Promise<AuthUser> {
-  const meUrl = getAuthMeUrl();
-
   try {
-    return await heydoctorApi.get<AuthUser>(meUrl);
+    return await apiFetch<AuthUser>("/auth/me");
   } catch (err) {
     if (err instanceof ApiError) {
       const hint =
         err.status === 404
-          ? ` Revisa NEXT_PUBLIC_HEYDOCTOR_API_URL y que el backend exponga GET /api/auth/me. URL usada: ${meUrl}.`
+          ? " Revisa NEXT_PUBLIC_HEYDOCTOR_API_URL y que el backend exponga GET /api/auth/me."
           : err.status === 401
             ? " Sesión no válida o cookies no enviadas (CORS / SameSite)."
             : "";

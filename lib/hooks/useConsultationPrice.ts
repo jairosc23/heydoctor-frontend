@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getAccessToken } from "@/lib/auth-client";
+import { ApiError, heydoctorApi } from "@/lib/heydoctor-api";
 import { DEFAULT_CONSULTATION_PRICE_CLP } from "@/lib/consultation-pricing";
 
 export type ConsultationPriceState = {
@@ -28,25 +28,11 @@ export function useConsultationPrice(): ConsultationPriceState {
 
     void (async () => {
       try {
-        const token = getAccessToken()?.trim();
-        const headers: HeadersInit = { Accept: "application/json" };
-        if (token) {
-          headers.Authorization = `Bearer ${token}`;
-        }
-
-        const res = await fetch("/api/consultations/consultation-price", {
-          method: "GET",
-          headers,
-          credentials: "include",
-        });
-        if (!res.ok) {
-          throw new Error(`No se pudo cargar el precio (${res.status})`);
-        }
-        const data = (await res.json()) as {
+        const data = await heydoctorApi.get<{
           amountClp?: unknown;
           amount?: unknown;
           currency?: unknown;
-        };
+        }>("/consultations/consultation-price", { requireAuth: false });
         const raw = data.amountClp ?? data.amount;
         const amount = Number(raw);
         const currency =
@@ -66,11 +52,17 @@ export function useConsultationPrice(): ConsultationPriceState {
         }
       } catch (e) {
         if (!cancelled) {
+          const msg =
+            e instanceof ApiError
+              ? e.message
+              : e instanceof Error
+                ? e.message
+                : "Error al cargar precio";
           setState({
             amount: DEFAULT_CONSULTATION_PRICE_CLP,
             currency: "CLP",
             loading: false,
-            error: e instanceof Error ? e.message : "Error al cargar precio",
+            error: msg,
           });
         }
       }

@@ -6,6 +6,10 @@
 
 export const API_CSRF_HEADER = "x-csrf-token";
 
+/** Cabecera típica de peticiones AJAX en mutaciones al API. */
+export const API_X_REQUESTED_WITH = "x-requested-with";
+export const API_XRW_XMLHTTPREQUEST = "XMLHttpRequest";
+
 let _apiCsrfToken: string | null = null;
 
 export function setApiCsrfToken(token: string | null): void {
