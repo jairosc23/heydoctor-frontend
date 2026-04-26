@@ -1,9 +1,14 @@
-import PanelLayout from "../../components/PanelLayout";
+import PanelLayout from "@/components/PanelLayout";
+import { ConsultationProvider } from "@/context/ConsultationContext";
 
 export default function PanelRootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return <PanelLayout>{children}</PanelLayout>;
+  return (
+    <ConsultationProvider>
+      <PanelLayout>{children}</PanelLayout>
+    </ConsultationProvider>
+  );
 }

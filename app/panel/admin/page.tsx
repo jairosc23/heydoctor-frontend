@@ -1,0 +1,28 @@
+"use client";
+
+import MetricsDashboard from "@/components/admin/MetricsDashboard";
+import DoctorApplicationsManager from "@/components/admin/DoctorApplicationsManager";
+
+export default function AdminPage() {
+  return (
+    <div style={{ maxWidth: 960 }}>
+      <h1
+        style={{
+          fontFamily: "Montserrat, sans-serif",
+          color: "#078a92",
+          fontSize: 26,
+          fontWeight: 700,
+          marginBottom: 28,
+        }}
+      >
+        Panel de Administración
+      </h1>
+
+      <MetricsDashboard />
+
+      <div style={{ marginTop: 32 }}>
+        <DoctorApplicationsManager />
+      </div>
+    </div>
+  );
+}

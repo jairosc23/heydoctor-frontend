@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 * {
   margin: 0;
   padding: 0;
@@ -7,4 +11,34 @@
 body {
   font-family: "Open Sans", sans-serif;
   background: #f9fafb;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Landing: accesibilidad teclado en botón WhatsApp */
+.whatsapp-cta-button:focus-visible {
+  outline: 3px solid #14532d;
+  outline-offset: 4px;
 }

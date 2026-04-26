@@ -3,7 +3,7 @@
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { API_URL } from "../../../lib/api";
+import { heydoctorApi } from "@/lib/heydoctor-api";
 
 interface VerifyResult {
   valid: boolean;
@@ -22,15 +22,18 @@ export default function VerifyPage() {
   const id = params?.id as string;
   const [result, setResult] = useState<VerifyResult | null>(null);
   const [loading, setLoading] = useState(true);
+  const [unavailable, setUnavailable] = useState(false);
 
   useEffect(() => {
     if (!id) return;
-    fetch(`${API_URL}/verify/${id}`)
-      .then((r) => r.json())
-      .then((data: VerifyResult) => {
-        setResult(data);
+    heydoctorApi.get<VerifyResult>(`/verify/${id}`, { requireAuth: false })
+      .then((data) => setResult(data))
+      .catch((e) => {
+        if ((e as { status?: number }).status === 404) {
+          setUnavailable(true);
+        }
+        setResult({ valid: false });
       })
-      .catch(() => setResult({ valid: false }))
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -56,6 +59,23 @@ export default function VerifyPage() {
       </Link>
       {loading ? (
         <p>Cargando verificación...</p>
+      ) : unavailable ? (
+        <div
+          style={{
+            background: "white",
+            padding: 32,
+            borderRadius: 16,
+            boxShadow: "0 4px 18px rgba(0,0,0,0.06)",
+            borderLeft: "6px solid #f2a900",
+          }}
+        >
+          <h1 style={{ fontFamily: "Montserrat", color: "#f2a900", marginBottom: 16 }}>
+            Verificación no disponible
+          </h1>
+          <p style={{ color: "#666" }}>
+            El endpoint de verificación no está configurado en este backend.
+          </p>
+        </div>
       ) : result?.valid ? (
         <div
           style={{

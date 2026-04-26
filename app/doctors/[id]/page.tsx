@@ -3,7 +3,7 @@
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { API_URL } from "../../../lib/api";
+import { heydoctorApi } from "@/lib/heydoctor-api";
 
 export default function DoctorPage() {
   const params = useParams();
@@ -14,14 +14,26 @@ export default function DoctorPage() {
     registration?: string;
   } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [unavailable, setUnavailable] = useState(false);
 
   useEffect(() => {
-    fetch(`${API_URL}/doctor`)
-      .then((r) => r.json())
-      .then((data) => {
-        setDoctor(data);
+    heydoctorApi.get<{ name?: string; specialty?: string; registration?: string }>("/clinics/me")
+      .then((res) => {
+        const d = (res as { data?: { doctor?: { user?: { firstName?: string; lastName?: string }; speciality?: string; licenseNumber?: string } } })?.data?.doctor;
+        if (d) {
+          setDoctor({
+            name: d.user ? [d.user.firstName, d.user.lastName].filter(Boolean).join(" ") : undefined,
+            specialty: d.speciality,
+            registration: d.licenseNumber,
+          });
+        } else {
+          setDoctor(null);
+        }
       })
-      .catch(() => setDoctor(null))
+      .catch((e) => {
+        if ((e as { status?: number }).status === 404) setUnavailable(true);
+        setDoctor(null);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -46,6 +58,8 @@ export default function DoctorPage() {
       </Link>
       {loading ? (
         <p>Cargando...</p>
+      ) : unavailable ? (
+        <p>Información del doctor no disponible.</p>
       ) : doctor ? (
         <div
           style={{
