@@ -1,16 +1,10 @@
 "use client";
 
-/**
- * Única implementación de videollamada UI de la app. Importar siempre desde
- * `@/components/VideoCall` (no duplicar este componente en otras rutas).
- */
-
 import React, {
   forwardRef,
   useCallback,
   useEffect,
   useImperativeHandle,
-  useMemo,
   useRef,
   useState,
 } from "react";
@@ -19,15 +13,6 @@ import { getBackendOrigin } from "@/lib/api-base";
 import { logger } from "@/lib/logger";
 import { useTelemedicineCall } from "@/hooks/useTelemedicineCall";
 import { useIsMobile } from "@/lib/hooks/useIsMobile";
-
-function safeVibrate(pattern?: number | number[]): void {
-  if (typeof navigator === "undefined" || !navigator.vibrate) return;
-  try {
-    navigator.vibrate(pattern ?? 35);
-  } catch {
-    /* ignorar: política del navegador o permisos */
-  }
-}
 
 export type VideoCallProps = {
   consultationId: string;
@@ -41,8 +26,6 @@ export type VideoCallProps = {
    * Grabación local (WebM). Distinto de los stubs de API del hook.
    */
   enableCallRecording?: boolean;
-  /** Nombre del participante remoto (p. ej. paciente) para el encabezado. */
-  peerDisplayName?: string;
 };
 
 /** API imperativa cuando `enableCallRecording` es true (sin UI en el componente). */
@@ -76,7 +59,6 @@ export const VideoCall = forwardRef<
     onEndCall,
     isInitiator = true,
     enableCallRecording = false,
-    peerDisplayName,
   },
   ref
 ) {
@@ -89,34 +71,13 @@ export const VideoCall = forwardRef<
   const mountedRef = useRef(true);
 
   const isMobile = useIsMobile();
-  const mobileShellRef = useRef<HTMLDivElement>(null);
-  const controlsHideTimerRef = useRef<number | null>(null);
-  const prevInCallRef = useRef(false);
 
+  const [status, setStatus] = useState<string>("Preparando cámara…");
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mediaReady, setMediaReady] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
-  const [controlsVisible, setControlsVisible] = useState(true);
-  const [chatPanelOpen, setChatPanelOpen] = useState(false);
-
-  const clearControlsHideTimer = useCallback(() => {
-    if (controlsHideTimerRef.current !== null) {
-      clearTimeout(controlsHideTimerRef.current);
-      controlsHideTimerRef.current = null;
-    }
-  }, []);
-
-  const showControlsWithAutoHide = useCallback(() => {
-    if (typeof window === "undefined") return;
-    setControlsVisible(true);
-    clearControlsHideTimer();
-    controlsHideTimerRef.current = window.setTimeout(() => {
-      controlsHideTimerRef.current = null;
-      setControlsVisible(false);
-    }, 2500);
-  }, [clearControlsHideTimer]);
 
   const {
     localStream,
@@ -124,12 +85,8 @@ export const VideoCall = forwardRef<
     connectionQuality,
     connectionState,
     iceConnectionState,
-    screenSharing,
-    canShareScreen,
     startCall,
     endCall,
-    startScreenShare,
-    stopScreenShare,
   } = useTelemedicineCall({
     consultationId,
     isInitiator,
@@ -137,6 +94,14 @@ export const VideoCall = forwardRef<
     socketPath: "/socket.io",
     onError: (message) => setError(message),
   });
+
+  useEffect(() => {
+    if (process.env.NODE_ENV === "development") {
+      console.log({
+        quality: connectionQuality,
+      });
+    }
+  }, [connectionQuality]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -269,46 +234,18 @@ export const VideoCall = forwardRef<
   }, [consultationId]);
 
   /**
-   * Scroll del documento bloqueado mientras la llamada está activa (capa fixed).
+   * En móvil bloqueamos el scroll del documento mientras la videollamada está
+   * activa (el layout es fullscreen `position: fixed`). Restauramos al
+   * desmontar para no afectar al resto del panel.
    */
   useEffect(() => {
-    if (typeof document === "undefined" || !mediaReady) return;
+    if (!isMobile || typeof document === "undefined") return;
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = previous;
     };
-  }, [mediaReady]);
-
-  /**
-   * `--app-vh` como fallback junto a `100dvh` (Safari iOS, barras dinámicas).
-   */
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const root = document.documentElement;
-    const previous = root.style.getPropertyValue("--app-vh");
-
-    const setVh = () => {
-      root.style.setProperty("--app-vh", `${window.innerHeight}px`);
-    };
-
-    setVh();
-    window.addEventListener("resize", setVh);
-    window.addEventListener("orientationchange", setVh);
-    document.addEventListener("visibilitychange", setVh);
-
-    return () => {
-      window.removeEventListener("resize", setVh);
-      window.removeEventListener("orientationchange", setVh);
-      document.removeEventListener("visibilitychange", setVh);
-      if (previous) {
-        root.style.setProperty("--app-vh", previous);
-      } else {
-        root.style.removeProperty("--app-vh");
-      }
-    };
-  }, []);
+  }, [isMobile]);
 
   useEffect(() => {
     localStreamRef.current = localStream;
@@ -326,153 +263,44 @@ export const VideoCall = forwardRef<
     }
   }, [remoteStream]);
 
-  const hasRemoteLive = useMemo(
-    () =>
-      !!remoteStream &&
-      remoteStream.getTracks().some((t) => t.readyState === "live"),
-    [remoteStream],
-  );
-
-  const isConnectingPhase = useMemo(() => {
-    if (hasRemoteLive) return false;
-    if (connectionState === "connecting") return true;
-    if (iceConnectionState === "checking") return true;
-    if (
-      remoteStream &&
-      !remoteStream.getTracks().some((t) => t.readyState === "live")
-    ) {
-      return true;
-    }
-    return false;
-  }, [hasRemoteLive, connectionState, iceConnectionState, remoteStream]);
-
-  const remoteOverlayMessage = isConnectingPhase
-    ? "Conectando…"
-    : "Esperando al participante…";
-
-  const statusPillLabel = hasRemoteLive
-    ? "En llamada"
-    : isConnectingPhase
-      ? "Conectando"
-      : "Esperando";
-
-  const statusPillAccent = useMemo(() => {
-    if (hasRemoteLive) {
-      return {
-        borderColor: "rgba(45, 212, 191, 0.45)",
-        background: "rgba(13, 148, 136, 0.42)",
-        color: "#ecfdf5",
-      };
-    }
-    if (isConnectingPhase) {
-      return {
-        borderColor: "rgba(251, 191, 36, 0.55)",
-        background: "rgba(146, 64, 14, 0.38)",
-        color: "#fffbeb",
-      };
-    }
-    return {
-      borderColor: "rgba(148, 163, 184, 0.4)",
-      background: "rgba(30, 41, 59, 0.75)",
-      color: "#f1f5f9",
-    };
-  }, [hasRemoteLive, isConnectingPhase]);
-
-  const pipShellStyleComputed = useMemo(
-    () => ({
-      ...pipShellBaseStyle,
-      width: isMobile ? 140 : 200,
-      height: isMobile ? Math.round((140 * 4) / 3) : Math.round((200 * 4) / 3),
-    }),
-    [isMobile],
-  );
-
   useEffect(() => {
-    const hasRemote =
-      !!remoteStream &&
-      remoteStream.getTracks().some((t) => t.readyState === "live");
-    const inCall = connectionState === "connected" && hasRemote && !error;
-    if (inCall && !prevInCallRef.current) {
-      safeVibrate([35, 40, 35]);
-    } else if (
-      !inCall &&
-      prevInCallRef.current &&
-      (connectionState === "disconnected" ||
-        connectionState === "failed" ||
-        iceConnectionState === "disconnected" ||
-        iceConnectionState === "failed")
-    ) {
-      safeVibrate(55);
-    }
-    prevInCallRef.current = inCall;
-  }, [connectionState, iceConnectionState, remoteStream, error]);
-
-  useEffect(() => {
-    if (!mediaReady) {
-      clearControlsHideTimer();
+    if (error) {
       return;
     }
-    showControlsWithAutoHide();
-    return () => {
-      clearControlsHideTimer();
-    };
+    if (!localStream) {
+      setStatus("Preparando cámara…");
+      return;
+    }
+    const hasRemote =
+      !!remoteStream && remoteStream.getTracks().some((t) => t.readyState === "live");
+    if (connectionState === "connected" && hasRemote) {
+      setStatus("En llamada");
+      return;
+    }
+    if (
+      connectionState === "connecting" ||
+      iceConnectionState === "checking" ||
+      iceConnectionState === "connected"
+    ) {
+      if (!hasRemote) {
+        setStatus("Conectando medios…");
+        return;
+      }
+    }
+    if (iceConnectionState === "disconnected" || connectionState === "disconnected") {
+      setStatus("Conexión inestable…");
+      return;
+    }
+    setStatus("Esperando participante…");
   }, [
-    consultationId,
-    mediaReady,
-    showControlsWithAutoHide,
-    clearControlsHideTimer,
+    localStream,
+    remoteStream,
+    connectionState,
+    iceConnectionState,
+    error,
   ]);
 
-  useEffect(() => {
-    if (!isMobile || !mediaReady || typeof document === "undefined") {
-      return;
-    }
-    if (typeof window === "undefined") {
-      return;
-    }
-    const node = mobileShellRef.current;
-    if (!node?.requestFullscreen) {
-      return;
-    }
-
-    let cancelled = false;
-    const tid = window.setTimeout(() => {
-      if (cancelled) return;
-      void (async () => {
-        try {
-          if (document.fullscreenElement == null) {
-            await node.requestFullscreen({ navigationUI: "hide" });
-          }
-        } catch {
-          /* sin gesto o política del navegador */
-        }
-      })();
-    }, 500);
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(tid);
-      if (document.fullscreenElement === node) {
-        void document.exitFullscreen?.().catch(() => {});
-      }
-    };
-  }, [isMobile, mediaReady, consultationId]);
-
-  useEffect(() => {
-    return () => {
-      clearControlsHideTimer();
-      if (
-        typeof document !== "undefined" &&
-        mobileShellRef.current &&
-        document.fullscreenElement === mobileShellRef.current
-      ) {
-        void document.exitFullscreen?.().catch(() => {});
-      }
-    };
-  }, [clearControlsHideTimer]);
-
   const toggleMic = () => {
-    if (mediaReady) showControlsWithAutoHide();
     const stream = localStream;
     const audio = stream?.getAudioTracks()[0];
     if (audio) {
@@ -482,7 +310,6 @@ export const VideoCall = forwardRef<
   };
 
   const toggleCam = () => {
-    if (mediaReady) showControlsWithAutoHide();
     const stream = localStream;
     const video = stream?.getVideoTracks()[0];
     if (video) {
@@ -492,39 +319,10 @@ export const VideoCall = forwardRef<
   };
 
   const handleEnd = () => {
-    clearControlsHideTimer();
     stopMediaRecorderIfActive();
     endCall();
     onEndCall();
   };
-
-  const handleSurfaceTap = useCallback(() => {
-    if (mediaReady) {
-      showControlsWithAutoHide();
-    }
-  }, [mediaReady, showControlsWithAutoHide]);
-
-  const handleToggleScreenShare = useCallback(() => {
-    if (!canShareScreen) return;
-    if (mediaReady) showControlsWithAutoHide();
-    if (screenSharing) {
-      void stopScreenShare();
-    } else {
-      void startScreenShare();
-    }
-  }, [
-    canShareScreen,
-    mediaReady,
-    screenSharing,
-    showControlsWithAutoHide,
-    startScreenShare,
-    stopScreenShare,
-  ]);
-
-  const handleChatToggle = useCallback(() => {
-    if (mediaReady) showControlsWithAutoHide();
-    setChatPanelOpen((v) => !v);
-  }, [mediaReady, showControlsWithAutoHide]);
 
   if (!mediaReady && error) {
     return (
@@ -537,431 +335,282 @@ export const VideoCall = forwardRef<
     );
   }
 
-  /**
-   * Layout unificado: remoto a pantalla completa + PiP local (misma UX médico/paciente).
-   * Vídeo con recorte tipo “cover” real para evitar bandas en móvil.
-   */
-  const overlayHiddenStyle: React.CSSProperties = controlsVisible
-    ? { opacity: 1, pointerEvents: "auto" as const }
-    : { opacity: 0, pointerEvents: "none" as const };
-  const topBarTransform = controlsVisible
-    ? "translateY(0)"
-    : "translateY(-10px)";
-  const bottomBarTransform = controlsVisible
-    ? "translateY(0)"
-    : "translateY(16px)";
-
-  const pipShellStyle: React.CSSProperties = pipShellStyleComputed;
-
-  const localVideoEl = (
-    <video
-      ref={localVideoRef}
-      autoPlay
-      playsInline
-      muted
-      style={{
-        ...videoCoverBase,
-        transform: "translate(-50%, -50%) scaleX(-1)",
-      }}
-    />
-  );
-
-  const remoteVideoEl = (
-    <video
-      ref={remoteVideoRef}
-      autoPlay
-      playsInline
-      style={{
-        ...videoCoverBase,
-        transform: "translate(-50%, -50%)",
-      }}
-    />
-  );
-
-  const renderCallLayout = () => (
-    <div
-      ref={mobileShellRef}
-      data-call-recording={isRecording ? "true" : "false"}
-      data-call-variant="fullscreen-pip"
-      data-controls-visible={controlsVisible ? "true" : "false"}
-      style={mobileShellStyle}
-      role="dialog"
-      aria-label="Videollamada"
-    >
+  if (isMobile) {
+    return (
       <div
-        style={remoteStageStyle}
-        onClick={handleSurfaceTap}
-        role="presentation"
+        data-call-recording={isRecording ? "true" : "false"}
+        data-call-variant="mobile"
+        style={mobileShellStyle}
+        role="dialog"
+        aria-label="Videollamada con paciente"
       >
-        {remoteVideoEl}
-        {!hasRemoteLive && (
-          <div style={remoteWaitingOverlayStyle}>
-            <p
-              key={remoteOverlayMessage}
-              className="videocall-remote-overlay-text call-status-enter"
-              style={remoteWaitingTextStyle}
-            >
-              {remoteOverlayMessage}
-            </p>
+        <video
+          ref={remoteVideoRef}
+          autoPlay
+          playsInline
+          style={mobileRemoteVideoStyle}
+        />
+
+        <div style={mobileSelfViewStyle}>
+          <video
+            ref={localVideoRef}
+            autoPlay
+            playsInline
+            muted
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              transform: "scaleX(-1)",
+            }}
+          />
+        </div>
+
+        <div style={mobileTopBarStyle}>
+          <span style={mobileStatusPillStyle}>{status}</span>
+          <ConnectionQualityBadge quality={connectionQuality} showWhenIdle />
+        </div>
+
+        {error && mediaReady && (
+          <div style={mobileErrorBannerStyle} role="alert">
+            {error}
           </div>
         )}
-      </div>
 
-      <div
-        style={pipShellStyle}
-        onClick={handleSurfaceTap}
-        role="presentation"
-      >
-        <div style={{ position: "absolute", inset: 0, background: "#000" }}>
-          {localVideoEl}
-          {!camOn ? (
-            <div style={pipCameraOffOverlayStyle}>
-              <span style={pipCameraOffIconStyle} aria-hidden>
-                📷
-              </span>
-              <span style={pipCameraOffLabelStyle}>Cámara apagada</span>
-            </div>
-          ) : null}
-        </div>
-      </div>
-
-      {chatPanelOpen ? (
-        <div
-          style={chatSidePanelStyle}
-          onClick={(e) => e.stopPropagation()}
-          role="dialog"
-          aria-label="Chat de consulta"
-        >
-          <p style={{ margin: 0, fontSize: 14, color: "#e2e8f0", lineHeight: 1.5 }}>
-            Para escribir al paciente usa el chat en la ficha de la consulta en el
-            panel.
-          </p>
+        <div style={mobileControlsBarStyle}>
           <button
             type="button"
-            className="premium-tap"
-            onClick={() => setChatPanelOpen(false)}
-            style={{
-              marginTop: 16,
-              padding: "10px 16px",
-              borderRadius: 12,
-              border: "none",
-              background: "rgba(255,255,255,0.12)",
-              color: "#fff",
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
+            onClick={toggleMic}
+            aria-pressed={!micOn}
+            aria-label={micOn ? "Silenciar micrófono" : "Activar micrófono"}
+            style={
+              micOn
+                ? mobileCircleBtnStyle
+                : { ...mobileCircleBtnStyle, ...mobileCircleBtnOffStyle }
+            }
           >
-            Cerrar
+            <span aria-hidden style={{ fontSize: 22 }}>
+              {micOn ? "🎤" : "🔇"}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={toggleCam}
+            aria-pressed={!camOn}
+            aria-label={camOn ? "Apagar cámara" : "Encender cámara"}
+            style={
+              camOn
+                ? mobileCircleBtnStyle
+                : { ...mobileCircleBtnStyle, ...mobileCircleBtnOffStyle }
+            }
+          >
+            <span aria-hidden style={{ fontSize: 22 }}>
+              {camOn ? "📷" : "📵"}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={handleEnd}
+            aria-label="Finalizar llamada"
+            style={mobileHangupBtnStyle}
+          >
+            <span aria-hidden style={{ fontSize: 26, transform: "rotate(135deg)", display: "inline-block" }}>
+              📞
+            </span>
           </button>
         </div>
-      ) : null}
+      </div>
+    );
+  }
 
-      <div
-        style={{
-          ...mobileTopBarStyle,
-          ...overlayHiddenStyle,
-          transform: topBarTransform,
-        }}
-        aria-hidden={!controlsVisible}
-      >
-        <div style={topBarLeftClusterStyle}>
-          <span
-            key={statusPillLabel}
+  return (
+    <div
+      data-call-recording={isRecording ? "true" : "false"}
+      data-call-variant="desktop"
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        minHeight: 360,
+        background: "#0f172a",
+        borderRadius: 12,
+        overflow: "hidden",
+        position: "relative",
+      }}
+    >
+      <div style={{ flex: 1, position: "relative", minHeight: 200 }}>
+        <video
+          ref={remoteVideoRef}
+          autoPlay
+          playsInline
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            background: "#000",
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            bottom: 12,
+            right: 12,
+            width: 140,
+            maxWidth: "36%",
+            aspectRatio: "4/3",
+            borderRadius: 8,
+            overflow: "hidden",
+            border: "2px solid rgba(255,255,255,0.3)",
+            boxShadow: "0 4px 20px rgba(0,0,0,0.4)",
+            zIndex: 1,
+          }}
+        >
+          <video
+            ref={localVideoRef}
+            autoPlay
+            playsInline
+            muted
             style={{
-              ...mobileStatusPillStyle,
-              ...statusPillAccent,
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              transform: "scaleX(-1)",
             }}
-            className="call-status-enter"
-          >
-            {statusPillLabel}
-          </span>
-          {peerDisplayName?.trim() ? (
-            <span style={peerNameHeaderStyle}>{peerDisplayName.trim()}</span>
-          ) : null}
+          />
         </div>
-        <div style={{ pointerEvents: "none", alignSelf: "flex-start" }}>
+        <div
+          style={{
+            position: "absolute",
+            top: 12,
+            left: 12,
+            color: "#e2e8f0",
+            fontSize: 13,
+            background: "rgba(0,0,0,0.45)",
+            padding: "6px 10px",
+            borderRadius: 8,
+            zIndex: 2,
+            maxWidth: "min(280px, 55%)",
+          }}
+        >
+          {status}
+        </div>
+        <div
+          style={{
+            position: "absolute",
+            top: 12,
+            right: 12,
+            zIndex: 2,
+            maxWidth: "min(220px, 52%)",
+            pointerEvents: "none",
+          }}
+        >
           <ConnectionQualityBadge quality={connectionQuality} showWhenIdle />
         </div>
       </div>
 
       {error && mediaReady && (
-        <div style={mobileErrorBannerStyle} role="alert">
+        <div
+          style={{
+            padding: "8px 12px",
+            background: "#7f1d1d",
+            color: "#fecaca",
+            fontSize: 12,
+          }}
+        >
           {error}
         </div>
       )}
 
       <div
         style={{
-          ...floatingControlsDockStyle,
-          ...overlayHiddenStyle,
-          transform: bottomBarTransform,
+          display: "flex",
+          gap: 10,
+          justifyContent: "center",
+          alignItems: "center",
+          padding: 14,
+          background: "rgba(15,23,42,0.95)",
+          borderTop: "1px solid #334155",
         }}
-        aria-hidden={!controlsVisible}
       >
-        <div style={floatingControlsPillStyle}>
         <button
           type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            toggleCam();
-          }}
-          className="videocall-dock-btn premium-tap"
-          aria-pressed={!camOn}
-          aria-label={camOn ? "Apagar cámara" : "Encender cámara"}
-          tabIndex={controlsVisible ? 0 : -1}
-          style={
-            camOn
-              ? { ...mobileDockBtnBase, ...dockBtnActiveStyle }
-              : { ...mobileDockBtnBase, ...dockBtnMutedStyle }
-          }
-        >
-          <span aria-hidden style={{ fontSize: 22 }}>
-            {camOn ? "📷" : "📵"}
-          </span>
-        </button>
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            toggleMic();
-          }}
-          className="videocall-dock-btn premium-tap"
+          onClick={toggleMic}
+          style={btnStyle}
           aria-pressed={!micOn}
-          aria-label={micOn ? "Silenciar micrófono" : "Activar micrófono"}
-          tabIndex={controlsVisible ? 0 : -1}
-          style={
-            micOn
-              ? { ...mobileDockBtnBase, ...dockBtnActiveStyle }
-              : { ...mobileDockBtnBase, ...dockBtnMutedStyle }
-          }
         >
-          <span aria-hidden style={{ fontSize: 22 }}>
-            {micOn ? "🎤" : "🔇"}
-          </span>
-        </button>
-        {canShareScreen ? (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleToggleScreenShare();
-            }}
-            className="videocall-dock-btn premium-tap"
-            aria-pressed={screenSharing}
-            aria-label={
-              screenSharing ? "Dejar de compartir pantalla" : "Compartir pantalla"
-            }
-            tabIndex={controlsVisible ? 0 : -1}
-            style={
-              screenSharing
-                ? { ...mobileDockBtnBase, ...screenShareActiveBtnStyle }
-                : { ...mobileDockBtnBase, ...dockBtnActiveStyle }
-            }
-          >
-            <span aria-hidden style={{ fontSize: 22 }}>
-              🖥️
-            </span>
-          </button>
-        ) : null}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleChatToggle();
-          }}
-          className="videocall-dock-btn premium-tap"
-          aria-pressed={chatPanelOpen}
-          aria-label="Chat"
-          tabIndex={controlsVisible ? 0 : -1}
-          style={{ ...mobileDockBtnBase, ...dockBtnActiveStyle }}
-        >
-          <span aria-hidden style={{ fontSize: 22 }}>
-            💬
-          </span>
+          {micOn ? "Silenciar" : "Activar mic"}
         </button>
         <button
           type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleEnd();
-          }}
-          className="videocall-dock-btn premium-tap"
-          aria-label="Finalizar llamada"
-          tabIndex={controlsVisible ? 0 : -1}
-          style={mobileHangupBtnStyle}
+          onClick={toggleCam}
+          style={btnStyle}
+          aria-pressed={!camOn}
         >
-          <span
-            aria-hidden
-            style={{
-              fontSize: 26,
-              transform: "rotate(135deg)",
-              display: "inline-block",
-            }}
-          >
-            📞
-          </span>
+          {camOn ? "Apagar cámara" : "Encender cámara"}
         </button>
-        </div>
+        <button
+          type="button"
+          onClick={handleEnd}
+          style={{
+            ...btnStyle,
+            background: "#dc2626",
+            color: "#fff",
+            borderColor: "#b91c1c",
+          }}
+        >
+          Finalizar
+        </button>
       </div>
-
-      <span
-        aria-hidden
-        data-immersive-hint="true"
-        style={{
-          ...immersiveHintStyle,
-          opacity: controlsVisible ? 0 : 1,
-          transitionDelay: controlsVisible ? "0ms" : "260ms",
-        }}
-      >
-        Toca para mostrar controles
-      </span>
     </div>
   );
-
-  return renderCallLayout();
 });
 
 VideoCall.displayName = "VideoCall";
 
-/* ─── Estilos auxiliares (panel lateral chat, PiP, controles) ─── */
-
-const chatSidePanelStyle: React.CSSProperties = {
-  position: "absolute",
-  top: 0,
-  right: 0,
-  bottom: 0,
-  width: "min(360px, 92vw)",
-  zIndex: 20,
-  padding: "max(env(safe-area-inset-top), 20px) 20px max(env(safe-area-inset-bottom), 20px)",
-  boxSizing: "border-box",
-  background: "rgba(11,17,32,0.94)",
-  borderLeft: "1px solid rgba(255,255,255,0.08)",
-  backdropFilter: "blur(10px)",
-  WebkitBackdropFilter: "blur(10px)",
+const btnStyle: React.CSSProperties = {
+  padding: "10px 16px",
+  borderRadius: 8,
+  border: "1px solid #475569",
+  background: "#1e293b",
+  color: "#f1f5f9",
+  cursor: "pointer",
+  fontSize: 13,
 };
 
-/** Raíz única de la llamada: fullscreen viewport, por encima del resto de la app. */
+/* ───────────────────────── Mobile fullscreen layout ───────────────────────── */
+
 const mobileShellStyle: React.CSSProperties = {
   position: "fixed",
   inset: 0,
   width: "100vw",
   height: "100dvh",
-  minHeight: "100dvh",
-  maxHeight: "100dvh",
-  margin: 0,
-  padding: 0,
   background: "#000",
   overflow: "hidden",
-  zIndex: 2147483000,
+  zIndex: 50,
   touchAction: "manipulation",
-  boxSizing: "border-box",
 };
 
-/** Recorte “cover” centrado: sin letterboxing en contenedores de cualquier ratio. */
-const videoCoverBase: React.CSSProperties = {
+const mobileRemoteVideoStyle: React.CSSProperties = {
   position: "absolute",
-  left: "50%",
-  top: "50%",
+  inset: 0,
   width: "100%",
   height: "100%",
-  minWidth: "100%",
-  minHeight: "100%",
   objectFit: "cover",
-  backgroundColor: "#000",
-};
-
-const remoteStageStyle: React.CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  zIndex: 0,
-  overflow: "hidden",
   background: "#000",
 };
 
-const remoteWaitingOverlayStyle: React.CSSProperties = {
+const mobileSelfViewStyle: React.CSSProperties = {
   position: "absolute",
-  inset: 0,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  padding: "24px 32px",
-  background: "radial-gradient(ellipse at center, rgba(15,23,42,0.5) 0%, rgba(0,0,0,0.75) 100%)",
-  pointerEvents: "none",
-  transition: "opacity 380ms ease",
-};
-
-const remoteWaitingTextStyle: React.CSSProperties = {
-  margin: 0,
-  color: "rgba(255,255,255,0.85)",
-  fontSize: 17,
-  fontWeight: 600,
-  letterSpacing: "0.01em",
-  lineHeight: 1.45,
-  textAlign: "center",
-  maxWidth: 320,
-  textShadow: "0 2px 12px rgba(0,0,0,0.45)",
-};
-
-/** PiP: posición fija; width/height en `pipShellStyleComputed` (móvil vs desktop). */
-const pipShellBaseStyle: React.CSSProperties = {
-  position: "absolute",
-  bottom: "max(calc(env(safe-area-inset-bottom) + 112px), 120px)",
-  right: "max(env(safe-area-inset-right), 16px)",
-  borderRadius: 16,
+  bottom: 110,
+  right: 12,
+  width: 96,
+  height: 128,
+  borderRadius: 14,
   overflow: "hidden",
-  border: "1px solid rgba(255,255,255,0.28)",
-  boxShadow:
-    "0 12px 40px rgba(0,0,0,0.55), 0 0 0 1px rgba(0,0,0,0.35)",
+  border: "2px solid rgba(255,255,255,0.35)",
+  boxShadow: "0 6px 24px rgba(0,0,0,0.55)",
   zIndex: 2,
   background: "#000",
-};
-
-const pipCameraOffOverlayStyle: React.CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: 6,
-  background: "linear-gradient(180deg, rgba(15,23,42,0.92) 0%, rgba(0,0,0,0.88) 100%)",
-  pointerEvents: "none",
-  transition: "opacity 220ms ease",
-};
-
-const pipCameraOffIconStyle: React.CSSProperties = {
-  fontSize: 28,
-  opacity: 0.92,
-  filter: "grayscale(0.2)",
-};
-
-const pipCameraOffLabelStyle: React.CSSProperties = {
-  fontSize: 10,
-  fontWeight: 600,
-  letterSpacing: "0.04em",
-  textTransform: "uppercase",
-  color: "rgba(248,250,252,0.72)",
-};
-
-const topBarLeftClusterStyle: React.CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "flex-start",
-  gap: 6,
-  maxWidth: "min(58vw, 380px)",
-  minWidth: 0,
-};
-
-const peerNameHeaderStyle: React.CSSProperties = {
-  fontSize: 14,
-  fontWeight: 600,
-  color: "rgba(255,255,255,0.92)",
-  lineHeight: 1.25,
-  textShadow: "0 1px 8px rgba(0,0,0,0.55)",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  maxWidth: "100%",
 };
 
 const mobileTopBarStyle: React.CSSProperties = {
@@ -970,33 +619,26 @@ const mobileTopBarStyle: React.CSSProperties = {
   left: 0,
   right: 0,
   display: "flex",
-  alignItems: "flex-start",
+  alignItems: "center",
   justifyContent: "space-between",
-  gap: 12,
-  padding: "max(env(safe-area-inset-top), 12px) 16px 14px",
+  gap: 8,
+  padding: "max(env(safe-area-inset-top), 12px) 12px 8px",
   background:
-    "linear-gradient(to bottom, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.35) 52%, rgba(0,0,0,0) 100%)",
-  zIndex: 5,
-  transition:
-    "opacity 260ms ease, transform 260ms cubic-bezier(0.4, 0, 0.2, 1)",
-  willChange: "opacity, transform",
+    "linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 100%)",
+  zIndex: 3,
+  pointerEvents: "none",
 };
 
 const mobileStatusPillStyle: React.CSSProperties = {
+  color: "#e2e8f0",
   fontSize: 12,
-  fontWeight: 700,
-  letterSpacing: "0.04em",
-  textTransform: "uppercase",
-  backdropFilter: "blur(14px)",
-  WebkitBackdropFilter: "blur(14px)",
-  border: "1px solid rgba(255,255,255,0.14)",
-  padding: "7px 14px",
+  background: "rgba(15,23,42,0.55)",
+  padding: "4px 10px",
   borderRadius: 999,
-  maxWidth: "100%",
+  maxWidth: "60%",
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
-  boxShadow: "0 4px 20px rgba(0,0,0,0.4)",
 };
 
 const mobileErrorBannerStyle: React.CSSProperties = {
@@ -1009,100 +651,48 @@ const mobileErrorBannerStyle: React.CSSProperties = {
   color: "#fecaca",
   fontSize: 12,
   borderRadius: 10,
-  zIndex: 6,
+  zIndex: 4,
   textAlign: "center",
 };
 
-const floatingControlsDockStyle: React.CSSProperties = {
+const mobileControlsBarStyle: React.CSSProperties = {
   position: "absolute",
+  bottom: 0,
   left: 0,
   right: 0,
-  bottom: 0,
-  zIndex: 5,
   display: "flex",
-  justifyContent: "center",
-  alignItems: "flex-end",
-  padding:
-    "0 16px max(calc(env(safe-area-inset-bottom) + 24px), 24px)",
-  pointerEvents: "none",
-  background:
-    "linear-gradient(to top, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0) 56%)",
-  transition:
-    "opacity 260ms ease, transform 260ms cubic-bezier(0.4, 0, 0.2, 1)",
-  willChange: "opacity, transform",
-};
-
-const floatingControlsPillStyle: React.CSSProperties = {
-  display: "flex",
-  flexWrap: "wrap",
   justifyContent: "center",
   alignItems: "center",
-  gap: 10,
-  pointerEvents: "auto",
-  padding: "8px 12px",
-  borderRadius: 999,
-  background: "rgba(20,20,20,0.6)",
-  backdropFilter: "blur(12px) saturate(140%)",
-  WebkitBackdropFilter: "blur(12px) saturate(140%)",
-  border: "1px solid rgba(255,255,255,0.12)",
-  boxShadow:
-    "0 16px 44px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)",
+  gap: 18,
+  padding: "16px 16px max(env(safe-area-inset-bottom), 16px)",
+  background:
+    "linear-gradient(to top, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0) 100%)",
+  zIndex: 3,
 };
 
-const immersiveHintStyle: React.CSSProperties = {
-  position: "absolute",
-  bottom: "max(calc(env(safe-area-inset-bottom) + 120px), 128px)",
-  left: "50%",
-  transform: "translateX(-50%)",
-  fontSize: 11,
-  color: "rgba(255,255,255,0.62)",
-  background: "rgba(0,0,0,0.45)",
-  backdropFilter: "blur(8px)",
-  WebkitBackdropFilter: "blur(8px)",
-  padding: "6px 14px",
-  borderRadius: 999,
-  zIndex: 4,
-  pointerEvents: "none",
-  whiteSpace: "nowrap",
-  transition: "opacity 240ms ease",
-  border: "1px solid rgba(255,255,255,0.08)",
-};
-
-const mobileDockBtnBase: React.CSSProperties = {
-  width: 52,
-  height: 52,
-  minWidth: 52,
-  minHeight: 52,
+const mobileCircleBtnStyle: React.CSSProperties = {
+  width: 60,
+  height: 60,
   borderRadius: "50%",
   border: "none",
+  background: "rgba(255,255,255,0.18)",
+  color: "#fff",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
   cursor: "pointer",
-  color: "#fff",
+  backdropFilter: "blur(6px)",
+  WebkitBackdropFilter: "blur(6px)",
 };
 
-const dockBtnActiveStyle: React.CSSProperties = {
-  background: "rgba(13, 148, 136, 0.88)",
-  boxShadow: "0 2px 16px rgba(13, 148, 136, 0.38)",
-};
-
-const dockBtnMutedStyle: React.CSSProperties = {
-  background: "rgba(220, 38, 38, 0.9)",
-  boxShadow: "0 2px 14px rgba(220, 38, 38, 0.35)",
-};
-
-const screenShareActiveBtnStyle: React.CSSProperties = {
-  background: "rgba(37, 99, 235, 0.88)",
-  boxShadow: "0 0 0 2px rgba(96, 165, 250, 0.42)",
+const mobileCircleBtnOffStyle: React.CSSProperties = {
+  background: "rgba(220,38,38,0.85)",
 };
 
 const mobileHangupBtnStyle: React.CSSProperties = {
-  ...mobileDockBtnBase,
-  width: 56,
-  height: 56,
-  minWidth: 56,
-  minHeight: 56,
-  background: "linear-gradient(180deg, #fb7185 0%, #dc2626 100%)",
-  boxShadow: "0 8px 24px rgba(220,38,38,0.48)",
+  ...mobileCircleBtnStyle,
+  width: 68,
+  height: 68,
+  background: "#dc2626",
+  boxShadow: "0 6px 20px rgba(220,38,38,0.55)",
 };
