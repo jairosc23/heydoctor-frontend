@@ -196,12 +196,25 @@ export function ConsultationProvider({
         chiefComplaint: DEFAULT_CONSULTATION_REASON,
       };
 
+      if (process.env.NODE_ENV === "development") {
+        console.debug("[heydoctor][consultation] crear", { patientId: pid });
+      }
+
       const tryCreate = async () => createConsultation(dto);
 
       let res;
       try {
         res = await tryCreate();
+        if (process.env.NODE_ENV === "development") {
+          console.debug("[heydoctor][consultation] creada", {
+            id: res?.id,
+            status: res?.status,
+          });
+        }
       } catch (err) {
+        if (process.env.NODE_ENV === "development") {
+          console.error("[heydoctor][consultation] error", err);
+        }
         // Fallback: el backend nos dice que falta el consentimiento (cache out of sync).
         if (isConsentRequiredError(err)) {
           setHasTelemedicineConsent(false);

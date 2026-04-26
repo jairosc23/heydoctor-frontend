@@ -32,12 +32,35 @@ export function PrescriptionPanel({
   const [dosage, setDosage] = useState("");
   const [instructions, setInstructions] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [listError, setListError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setListError(null);
     fetchPrescriptionsByPatient(patientId)
-      .then(setPrescriptions)
-      .catch(() => setPrescriptions([]))
-      .finally(() => setLoading(false));
+      .then((list) => {
+        if (cancelled) return;
+        setPrescriptions(list);
+      })
+      .catch((e) => {
+        if (cancelled) return;
+        if (process.env.NODE_ENV === "development") {
+          console.error("[heydoctor][prescriptions] lista falló", e);
+        }
+        setPrescriptions([]);
+        setListError(
+          e instanceof Error
+            ? e.message
+            : "No se pudieron cargar recetas previas.",
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [patientId]);
 
   useEffect(() => {
@@ -104,6 +127,14 @@ export function PrescriptionPanel({
         <p className="text-sm text-gray-500">Cargando recetas...</p>
       ) : (
         <>
+          {listError && (
+            <p
+              role="alert"
+              className="text-xs mb-2 text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-2 py-1"
+            >
+              {listError}
+            </p>
+          )}
           {prescriptionList.length > 0 && (
             <div className="mb-3">
               <h4 className="text-xs font-medium text-gray-600 mb-1">

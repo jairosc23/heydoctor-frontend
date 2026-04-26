@@ -138,11 +138,27 @@ export function AiInsightsPanel({
       if (mode === "regenerate") setRegenerating(true);
       else setLoading(true);
       setError(null);
+      if (process.env.NODE_ENV === "development") {
+        console.debug("[heydoctor][ai] cargar", { consultationId, mode });
+      }
       fetchConsultationAi(consultationId)
-        .then((payload) => setAi(payload))
+        .then((payload) => {
+          if (process.env.NODE_ENV === "development") {
+            console.debug("[heydoctor][ai] ok", {
+              hasSummary: !!payload?.summary,
+              diagCount: payload?.suggestedDiagnosis?.length ?? 0,
+            });
+          }
+          setAi(payload);
+        })
         .catch((e: unknown) => {
+          if (process.env.NODE_ENV === "development") {
+            console.error("[heydoctor][ai] error", e);
+          }
           setError(
-            e instanceof Error ? e.message : "No se pudo cargar el asistente de IA"
+            e instanceof Error
+              ? e.message
+              : "No se pudo cargar el asistente de IA",
           );
           if (mode === "initial") setAi(null);
         })

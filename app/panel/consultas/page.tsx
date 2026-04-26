@@ -19,6 +19,7 @@ import {
   LiveAiNoteSuggestions,
   ConsultationConsentCard,
   ConsultationAssistPanel,
+  ShareConsultationDialog,
 } from "@/components/clinical";
 import {
   formatConsultationPrice,
@@ -50,6 +51,8 @@ function ConsultasContent() {
 
   const [patients, setPatients] = useState<PatientRow[]>([]);
   const [consultations, setConsultations] = useState<unknown[]>([]);
+  const [diagnosisError, setDiagnosisError] = useState<string | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
 
   const patientsQuery = useQuery({
     queryKey: ["patients", "panel-consultas", 100],
@@ -155,6 +158,13 @@ function ConsultasContent() {
     if (!consultationId) return;
     setDiagnosisCode(item.code);
     setClinicalDiagnosisText(`${item.code} - ${item.description}`);
+    setDiagnosisError(null);
+    if (process.env.NODE_ENV === "development") {
+      console.debug("[heydoctor][diagnostic] confirmar", {
+        consultationId,
+        code: item.code,
+      });
+    }
     try {
       await createDiagnosis({
         consultationId,
@@ -162,8 +172,15 @@ function ConsultasContent() {
         diagnostic_date: new Date().toISOString(),
         diagnosis_details: `${item.code} - ${item.description}`,
       });
-    } catch {
-      // Show error could be added
+    } catch (e) {
+      const msg =
+        e instanceof Error
+          ? e.message
+          : "No se pudo guardar el diagnóstico. Reintenta.";
+      setDiagnosisError(msg);
+      if (process.env.NODE_ENV === "development") {
+        console.error("[heydoctor][diagnostic] guardar falló", e);
+      }
     }
   };
 
@@ -325,7 +342,14 @@ function ConsultasContent() {
                 : patientId}
             </strong>
           </span>
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: 8,
+              alignItems: "center",
+              flexWrap: "wrap",
+            }}
+          >
             <button
               onClick={() =>
                 consultationId &&
@@ -345,6 +369,21 @@ function ConsultasContent() {
               📹 Iniciar Teleconsulta
             </button>
             <button
+              onClick={() => consultationId && setShareOpen(true)}
+              disabled={!consultationId}
+              style={{
+                padding: "8px 16px",
+                background: "white",
+                color: "#078a92",
+                border: "1px solid #078a92",
+                borderRadius: 8,
+                cursor: consultationId ? "pointer" : "not-allowed",
+                fontSize: 13,
+              }}
+            >
+              🔗 Compartir
+            </button>
+            <button
               onClick={endConsultation}
               style={{
                 padding: "8px 16px",
@@ -360,6 +399,21 @@ function ConsultasContent() {
             </button>
           </div>
         </div>
+      )}
+
+      {consultationId && (
+        <ShareConsultationDialog
+          consultationId={consultationId}
+          open={shareOpen}
+          patientName={
+            selectedPatient
+              ? [selectedPatient.firstname, selectedPatient.lastname]
+                  .filter(Boolean)
+                  .join(" ")
+              : undefined
+          }
+          onClose={() => setShareOpen(false)}
+        />
       )}
 
       {/* Consultation workspace */}
@@ -406,6 +460,22 @@ function ConsultasContent() {
                 onConfirm={handleDiagnosisConfirm}
                 clinicId={clinicId}
               />
+              {diagnosisError && (
+                <p
+                  role="alert"
+                  style={{
+                    marginTop: 8,
+                    color: "#b91c1c",
+                    background: "#fef2f2",
+                    border: "1px solid #fecaca",
+                    borderRadius: 8,
+                    padding: "6px 10px",
+                    fontSize: 13,
+                  }}
+                >
+                  {diagnosisError}
+                </p>
+              )}
             </div>
 
             <div

@@ -7,12 +7,14 @@ import { useConsultation } from "@/context/ConsultationContext";
 import { fetchConsultation } from "@/lib/services";
 import { CallQualityDashboard } from "@/components/CallQualityDashboard";
 import { TeleconsultaVideoSession } from "@/components/webrtc/TeleconsultaVideoSession";
+import { useIsMobile } from "@/lib/hooks/useIsMobile";
 
 export default function TeleconsultaPanelPage() {
   const params = useParams();
   const router = useRouter();
   const consultationId = params?.id as string;
   const { consultationId: ctxConsultationId, doctorId, patientId } = useConsultation();
+  const isMobile = useIsMobile();
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -55,6 +57,22 @@ export default function TeleconsultaPanelPage() {
           ← Volver a consultas
         </Link>
       </div>
+    );
+  }
+
+  if (isMobile) {
+    /**
+     * Mobile: el `VideoCall` interno usa `position: fixed; inset: 0; z-index:
+     * 50` y cubre el sidebar/header del panel. No renderizamos chrome del
+     * dashboard ni el panel de calidad; los controles flotan sobre el video.
+     */
+    return (
+      <TeleconsultaVideoSession
+        roomId={consultationId}
+        consultationId={consultationId}
+        isDoctor={!!doctorId}
+        onEndCall={() => router.push("/panel/consultas")}
+      />
     );
   }
 
