@@ -17,6 +17,7 @@ import {
   API_X_REQUESTED_WITH,
   API_XRW_XMLHTTPREQUEST,
 } from "./api-csrf";
+
 // ── In-memory access token (opcional; p. ej. magic-link legacy). No localStorage. ──
 
 let _accessToken: string | null = null;
