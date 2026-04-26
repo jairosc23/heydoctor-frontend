@@ -133,28 +133,43 @@ function buildCsrfHeaders(): HeadersInit {
   return headers;
 }
 
-/** Obtiene `csrfToken` del API (cookies existentes o nueva cookie). Llamar al montar la app. */
+let _bootstrapPromise: Promise<void> | null = null;
+
+/**
+ * Obtiene `csrfToken` del API (cookies existentes o nueva cookie). Llamar al montar la app.
+ * In-flight deduplicada: múltiples llamadas concurrentes comparten el mismo fetch.
+ */
 export async function bootstrapApiCsrf(): Promise<void> {
   if (typeof window === "undefined") return;
-  try {
-    const res = await fetch(getAuthCsrfUrl(), {
-      method: "GET",
-      credentials: "include",
-      headers: { Accept: "application/json" },
-    });
-    if (!res.ok) return;
-    const data = (await res.json()) as { csrfToken?: string };
-    applyCsrfFromPayload(data);
-    if (process.env.NODE_ENV === "development") {
-      /* HttpOnly (p. ej. csrf en dominio del API) no aparece aquí; solo cookies legibles en Vercel. */
-      console.log(
-        "[auth-debug] document.cookie (origen actual):",
-        document.cookie,
-      );
+  if (_bootstrapPromise) return _bootstrapPromise;
+
+  _bootstrapPromise = (async () => {
+    try {
+      const res = await fetch(getAuthCsrfUrl(), {
+        method: "GET",
+        credentials: "include",
+        headers: { Accept: "application/json" },
+      });
+      if (!res.ok) return;
+      const data = (await res.json()) as { csrfToken?: string };
+      applyCsrfFromPayload(data);
+      if (process.env.NODE_ENV === "development") {
+        /* HttpOnly del API no aparece en document.cookie; solo cookies legibles del origen actual. */
+        console.log(
+          "[auth-debug] CSRF bootstrap → memoria:",
+          getApiCsrfToken() ? "present" : "missing",
+          "| document.cookie:",
+          document.cookie,
+        );
+      }
+    } catch {
+      /* noop */
+    } finally {
+      _bootstrapPromise = null;
     }
-  } catch {
-    /* noop */
-  }
+  })();
+
+  return _bootstrapPromise;
 }
 
 // ── Refresh (cookies HttpOnly; cuerpo puede incluir `csrfToken` y opcionalmente JWT) ──

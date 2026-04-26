@@ -7,7 +7,7 @@
  * - 401: `POST /auth/refresh` y reintento; datos dinámicos con `cache: "no-store"`.
  */
 
-import { refreshAccessToken } from "./auth-client";
+import { bootstrapApiCsrf, refreshAccessToken } from "./auth-client";
 import { handleAuthError } from "./auth/auth-guard";
 import { getApiBase } from "./api-base";
 import {
@@ -16,6 +16,18 @@ import {
   API_X_REQUESTED_WITH,
   API_XRW_XMLHTTPREQUEST,
 } from "./api-csrf";
+
+const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+
+function isUnsafeMethod(method?: string): boolean {
+  return UNSAFE_METHODS.has((method ?? "GET").toUpperCase());
+}
+
+function isCsrfFailure(status: number, body?: unknown): boolean {
+  if (status !== 403) return false;
+  const text = typeof body === "string" ? body : JSON.stringify(body ?? "");
+  return /csrf/i.test(text);
+}
 
 export {
   getApiBase,
@@ -64,10 +76,16 @@ export async function fetchWithAuth(
 ): Promise<Response> {
   const url = buildAuthUrl(path);
   const isRefreshEndpoint = isAuthRefreshRequest(url);
+  const method = (init.method ?? "GET").toUpperCase();
+  const unsafe = isUnsafeMethod(method);
+  const isCsrfBootstrapEndpoint = url.endsWith("/auth/csrf");
 
-  const buildHeaders = async (): Promise<Headers> => {
+  if (unsafe && !isRefreshEndpoint && !getApiCsrfToken()) {
+    await bootstrapApiCsrf();
+  }
+
+  const buildHeaders = (): Headers => {
     const headers = new Headers(init.headers);
-    const method = (init.method ?? "GET").toUpperCase();
     if (!headers.has("Accept")) {
       headers.set("Accept", "application/json");
     }
@@ -79,9 +97,6 @@ export async function fetchWithAuth(
     ) {
       headers.set("Content-Type", "application/json");
     }
-    const unsafe = !["GET", "HEAD", "OPTIONS", "TRACE", "CONNECT"].includes(
-      method,
-    );
     if (unsafe && !headers.has(API_X_REQUESTED_WITH)) {
       headers.set(API_X_REQUESTED_WITH, API_XRW_XMLHTTPREQUEST);
     }
@@ -89,13 +104,23 @@ export async function fetchWithAuth(
     if (unsafe && csrf && !headers.has(API_CSRF_HEADER)) {
       headers.set(API_CSRF_HEADER, csrf);
     }
+    if (
+      process.env.NODE_ENV === "development" &&
+      unsafe &&
+      typeof console !== "undefined"
+    ) {
+      console.log("[heydoctor-api]", method, url, {
+        csrfPresent: Boolean(csrf),
+        csrfHeader: API_CSRF_HEADER,
+      });
+    }
     return headers;
   };
 
   const doFetch = async (): Promise<Response> =>
     fetch(url, {
       ...init,
-      headers: await buildHeaders(),
+      headers: buildHeaders(),
       credentials: "include",
       cache: "no-store",
     });
@@ -114,13 +139,30 @@ export async function fetchWithAuth(
     if (refreshed) {
       res = await doFetch();
     }
-    // Un segundo 401 tras refresh implica sesión inválida; no bucle de refresh.
     if (res.status === 401) {
       if (process.env.NODE_ENV === "development" && typeof console !== "undefined" && console.error) {
         console.error("[heydoctor-api] 401 after refresh — session cleared:", url);
       }
       await handleAuthError();
       throw new Error("SESSION_EXPIRED");
+    }
+  }
+
+  if (res.status === 403 && unsafe && !isCsrfBootstrapEndpoint) {
+    let bodyText: string | null = null;
+    try {
+      bodyText = await res.clone().text();
+    } catch {
+      bodyText = null;
+    }
+    if (isCsrfFailure(res.status, bodyText)) {
+      if (process.env.NODE_ENV === "development" && typeof console !== "undefined" && console.warn) {
+        console.warn("[heydoctor-api] 403 CSRF — re-bootstrapping and retrying:", url);
+      }
+      await bootstrapApiCsrf();
+      if (getApiCsrfToken()) {
+        res = await doFetch();
+      }
     }
   }
 
