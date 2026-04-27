@@ -10,7 +10,7 @@ export default function Card({
   return (
     <div
       className={cn(
-        "rounded-2xl bg-white p-6 shadow-soft transition-all duration-200 hover:shadow-premium",
+        "rounded-2xl bg-white p-6 shadow-soft transition-all duration-[180ms] ease hover:shadow-premium active:scale-[0.99]",
         className,
       )}
     >

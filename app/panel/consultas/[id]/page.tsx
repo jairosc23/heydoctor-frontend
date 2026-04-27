@@ -999,18 +999,41 @@ export default function ConsultationDetailPage() {
           marginBottom: 20,
         }}
       >
-        <h3 style={{ margin: "0 0 16px", fontSize: 16, color: "#333" }}>
+        <h3
+          style={{
+            margin: "0 0 20px",
+            fontSize: 17,
+            fontWeight: 700,
+            color: "#0f172a",
+            letterSpacing: "-0.02em",
+          }}
+        >
           Datos clínicos
         </h3>
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <div>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 20,
+          }}
+        >
+          <div
+            style={{
+              background: "#f8fafc",
+              border: "1px solid #e2e8f0",
+              borderRadius: 12,
+              padding: 18,
+            }}
+          >
             <label
               style={{
-                fontSize: 13,
-                fontWeight: 600,
-                color: "#475569",
+                fontSize: 12,
+                fontWeight: 700,
+                color: "#334155",
                 display: "block",
-                marginBottom: 4,
+                marginBottom: 8,
+                letterSpacing: "0.02em",
+                textTransform: "uppercase",
               }}
             >
               Diagnóstico
@@ -1027,19 +1050,29 @@ export default function ConsultationDetailPage() {
                 borderRadius: 8,
                 fontSize: 14,
                 resize: "vertical",
-                background: isEditable ? "white" : "#f8fafc",
+                background: isEditable ? "white" : "#f1f5f9",
+                lineHeight: 1.45,
               }}
               placeholder="Ingrese el diagnóstico..."
             />
           </div>
-          <div>
+          <div
+            style={{
+              background: "#f8fafc",
+              border: "1px solid #e2e8f0",
+              borderRadius: 12,
+              padding: 18,
+            }}
+          >
             <label
               style={{
-                fontSize: 13,
-                fontWeight: 600,
-                color: "#475569",
+                fontSize: 12,
+                fontWeight: 700,
+                color: "#334155",
                 display: "block",
-                marginBottom: 4,
+                marginBottom: 8,
+                letterSpacing: "0.02em",
+                textTransform: "uppercase",
               }}
             >
               Notas de consulta
@@ -1056,19 +1089,29 @@ export default function ConsultationDetailPage() {
                 borderRadius: 8,
                 fontSize: 14,
                 resize: "vertical",
-                background: isEditable ? "white" : "#f8fafc",
+                background: isEditable ? "white" : "#f1f5f9",
+                lineHeight: 1.45,
               }}
               placeholder="Evolución, hallazgos, plan..."
             />
           </div>
-          <div>
+          <div
+            style={{
+              background: "#f8fafc",
+              border: "1px solid #e2e8f0",
+              borderRadius: 12,
+              padding: 18,
+            }}
+          >
             <label
               style={{
-                fontSize: 13,
-                fontWeight: 600,
-                color: "#475569",
+                fontSize: 12,
+                fontWeight: 700,
+                color: "#334155",
                 display: "block",
-                marginBottom: 4,
+                marginBottom: 8,
+                letterSpacing: "0.02em",
+                textTransform: "uppercase",
               }}
             >
               Tratamiento
@@ -1085,7 +1128,8 @@ export default function ConsultationDetailPage() {
                 borderRadius: 8,
                 fontSize: 14,
                 resize: "vertical",
-                background: isEditable ? "white" : "#f8fafc",
+                background: isEditable ? "white" : "#f1f5f9",
+                lineHeight: 1.45,
               }}
               placeholder="Indicaciones, medicación, seguimiento..."
             />
@@ -1094,8 +1138,10 @@ export default function ConsultationDetailPage() {
           {isEditable && (
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <button
+                type="button"
                 onClick={handleSave}
                 disabled={saving}
+                className="premium-tap"
                 style={{
                   padding: "10px 24px",
                   background: "#078a92",
