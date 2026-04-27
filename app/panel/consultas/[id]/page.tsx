@@ -31,6 +31,7 @@ import {
   ConsultationActionBar,
   ConsultationConsentCard,
   PrescriptionPanel,
+  ShareConsultationDialog,
   SignatureCanvas,
 } from "@/components/clinical";
 import {
@@ -140,6 +141,7 @@ export default function ConsultationDetailPage() {
 
   /** Trigger para que ClinicalRecordPanel ejecute "Autollenar con IA". */
   const [aiTrigger, setAiTrigger] = useState(0);
+  const [shareOpen, setShareOpen] = useState(false);
 
   const paymentResult = searchParams.get("payment");
 
@@ -583,7 +585,23 @@ export default function ConsultationDetailPage() {
             Motivo: {consultation.reason || "\u2014"}
           </p>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <button
+            type="button"
+            onClick={() => setShareOpen(true)}
+            style={{
+              padding: "8px 14px",
+              background: "white",
+              color: "#0f766e",
+              border: "1px solid #0f766e",
+              borderRadius: 8,
+              cursor: "pointer",
+              fontSize: 13,
+              fontWeight: 600,
+            }}
+          >
+            Compartir
+          </button>
           <span
             style={{
               padding: "6px 14px",
@@ -615,6 +633,13 @@ export default function ConsultationDetailPage() {
           )}
         </div>
       </div>
+
+      <ShareConsultationDialog
+        consultationId={id}
+        open={shareOpen}
+        patientName={patientName}
+        onClose={() => setShareOpen(false)}
+      />
 
       {/* Action bar (chips) */}
       <ConsultationActionBar
