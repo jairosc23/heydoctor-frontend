@@ -111,7 +111,7 @@ export default function LandingPage() {
               Iniciar Sesión
             </Button>
             <Button href="/consulta-rapida" variant="primary" className="px-5 py-2 text-sm font-[family-name:Montserrat,sans-serif]">
-              Hablar con médico ahora
+              Consulta rápida
             </Button>
           </div>
         </Container>
@@ -125,29 +125,30 @@ export default function LandingPage() {
               <HeyDoctorLogo size={88} priority />
             </div>
             <span className="mb-6 inline-block rounded-full bg-primaryLight px-4 py-1.5 text-sm font-semibold tracking-wide text-primaryMid">
-              Plataforma clínica de nueva generación
+              Atención médica online, sin esperas
             </span>
             <h1
               className="mb-5 max-w-4xl font-bold leading-[1.1] tracking-tight text-gray-900"
               style={{
                 fontFamily: FONT_HEADING,
-                fontSize: "clamp(36px, 5vw, 60px)",
+                fontSize: "clamp(32px, 5vw, 56px)",
               }}
             >
-              El workspace clínico
-              <br />
-              <span className="text-primary">potenciado por IA</span>
+              Médico online en menos de 1 minuto
             </h1>
             <p className="mb-10 max-w-xl text-lg leading-relaxed text-gray-600">
-              Consultas, telemedicina, inteligencia artificial y cumplimiento legal
-              en una sola plataforma diseñada para profesionales de salud.
+              Videollamada segura desde el navegador. Atención profesional cuando
+              la necesitas, sin colas ni trámites eternos.
             </p>
-            <div className="flex flex-wrap items-center justify-center gap-6">
-              <Button href="/login" variant="primary" className="min-w-[180px] text-base">
-                Empezar Gratis
+            <div className="flex flex-wrap items-center justify-center gap-4">
+              <Button href="/consulta-rapida" variant="primary" className="min-h-[52px] min-w-[200px] text-base font-[family-name:Montserrat,sans-serif]">
+                Empezar ahora — sin registro
               </Button>
-              <Button href="#pricing" variant="secondary" className="min-w-[180px] text-base">
-                Ver Plan PRO
+              <Button href="#acceso-qr" variant="secondary" className="min-h-[52px] min-w-[160px] text-base">
+                Ver código QR
+              </Button>
+              <Button href="/login" variant="secondary" className="min-h-[52px] min-w-[140px] text-base">
+                Soy médico
               </Button>
             </div>
           </div>
