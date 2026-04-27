@@ -56,21 +56,24 @@ export default function HomeQuickAccess() {
       <Container>
         <div className="mx-auto grid max-w-5xl items-center gap-10 lg:grid-cols-[1.2fr_0.8fr]">
           <div>
-            <span className="mb-3 inline-block rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary shadow-sm">
-              Acceso rápido
+            <span className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-bold uppercase tracking-wider text-primary shadow-sm">
+              <span aria-hidden>⚡</span> En menos de 1 minuto
             </span>
             <h2
               id="quick-access-title"
-              className="mb-4 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl"
+              className="mb-4 text-3xl font-bold leading-[1.1] tracking-tight text-gray-900 sm:text-[42px]"
               style={{ fontFamily: FONT_HEADING }}
             >
-              Habla con un médico ahora,
+              Médico online,
               <br />
-              <span className="text-primary">sin registrarte.</span>
+              <span className="text-primary">ya mismo.</span>
             </h2>
-            <p className="mb-7 max-w-md text-base leading-relaxed text-gray-700">
-              Inicia una teleconsulta en menos de 30 segundos. Solo necesitas
-              tu nombre y el motivo. Sin cuenta, sin descargas.
+            <p className="mb-3 max-w-md text-lg font-semibold leading-snug text-gray-800">
+              Sin cuenta. Sin descargas. Sin esperas.
+            </p>
+            <p className="mb-7 max-w-md text-sm leading-relaxed text-gray-600">
+              Solo necesitas tu nombre y el motivo. Te conectamos con un médico
+              en una videollamada segura, directo desde el navegador.
             </p>
 
             <div className="flex flex-col flex-wrap gap-3 sm:flex-row sm:items-center">
@@ -94,6 +97,21 @@ export default function HomeQuickAccess() {
                 </a>
               ) : null}
             </div>
+
+            <ul className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-gray-600">
+              <li className="inline-flex items-center gap-1">
+                <span aria-hidden className="text-primary">✓</span>
+                Privado y encriptado
+              </li>
+              <li className="inline-flex items-center gap-1">
+                <span aria-hidden className="text-primary">✓</span>
+                Sin tarjeta de crédito
+              </li>
+              <li className="inline-flex items-center gap-1">
+                <span aria-hidden className="text-primary">✓</span>
+                Funciona en cualquier celular
+              </li>
+            </ul>
 
             <p className="mt-4 text-xs text-gray-500">
               ¿Eres médico?{" "}
@@ -132,8 +150,8 @@ export default function HomeQuickAccess() {
                 )}
               </div>
             </div>
-            <p className="text-center text-xs font-semibold text-gray-700">
-              Escanea con tu cámara
+            <p className="text-center text-xs font-bold text-gray-800">
+              Escanea para abrir en tu celular
             </p>
             <p className="text-center text-[11px] text-gray-500">{siteUrl}</p>
           </div>

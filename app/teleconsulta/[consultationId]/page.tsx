@@ -9,7 +9,9 @@ import {
   fetchPublicConsultationStatus,
 } from "@/lib/services";
 import { TeleconsultaVideoSession } from "@/components/webrtc/TeleconsultaVideoSession";
+import { GuestNamePrompt } from "@/components/telemedicine/GuestNamePrompt";
 import { useIsMobile } from "@/lib/hooks/useIsMobile";
+import { getGuestName, setGuestName } from "@/lib/guest-session";
 
 function TeleconsultaDeepLinkContent() {
   const params = useParams();
@@ -20,6 +22,12 @@ function TeleconsultaDeepLinkContent() {
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const [isGuest, setIsGuest] = useState(false);
   const [loading, setLoading] = useState(true);
+  /**
+   * Nombre del invitado en este dispositivo. Se hidrata desde localStorage
+   * cuando se confirma que la consulta es guest. Mientras sea `null` y
+   * `isGuest === true`, mostramos el prompt en lugar de la videollamada.
+   */
+  const [guestName, setGuestNameState] = useState<string | null>(null);
 
   useEffect(() => {
     if (!consultationId) {
@@ -58,6 +66,11 @@ function TeleconsultaDeepLinkContent() {
         const status = await fetchPublicConsultationStatus(consultationId);
         if (status?.isGuest) {
           setIsGuest(true);
+          /**
+           * Hidratamos el nombre persistido si existe; si no, el render
+           * pintará `<GuestNamePrompt>` para capturarlo.
+           */
+          setGuestNameState(getGuestName(consultationId));
           return true;
         }
         return false;
@@ -125,15 +138,40 @@ function TeleconsultaDeepLinkContent() {
    */
   const exitHref = isGuest ? "/" : "/panel/consultas";
   const onEndCall = () => router.push(exitHref);
+  const sessionMode: "auth" | "guest" = isGuest ? "guest" : "auth";
+
+  /**
+   * Si es guest y aún no tenemos su nombre (primer ingreso o storage limpio),
+   * mostramos el prompt antes de conectar la cámara. Una vez confirmado se
+   * persiste y la página re-renderiza con la videollamada visible.
+   */
+  if (isGuest && !guestName) {
+    return (
+      <GuestNamePrompt
+        onContinue={(name) => {
+          setGuestName(consultationId, name);
+          setGuestNameState(name);
+        }}
+      />
+    );
+  }
 
   if (isMobile) {
     return (
-      <TeleconsultaVideoSession
-        roomId={consultationId}
-        consultationId={consultationId}
-        isDoctor={!!doctorId}
-        onEndCall={onEndCall}
-      />
+      <>
+        <TeleconsultaVideoSession
+          roomId={consultationId}
+          consultationId={consultationId}
+          isDoctor={!!doctorId}
+          onEndCall={onEndCall}
+          mode={sessionMode}
+        />
+        {isGuest && guestName && (
+          <span style={mobileGuestBadgeStyle} aria-label="Modo invitado">
+            🎫 Invitado · {guestName}
+          </span>
+        )}
+      </>
     );
   }
 
@@ -141,9 +179,9 @@ function TeleconsultaDeepLinkContent() {
     <div style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
       <div
         style={{
-          padding: 16,
-          background: "#fff",
-          borderBottom: "1px solid #eee",
+          padding: "12px 16px",
+          background: isGuest ? "#fef3c7" : "#fff",
+          borderBottom: isGuest ? "1px solid #fde68a" : "1px solid #eee",
           display: "flex",
           alignItems: "center",
           gap: 16,
@@ -151,21 +189,42 @@ function TeleconsultaDeepLinkContent() {
       >
         <Link
           href={exitHref}
-          style={{ color: "#078a92", textDecoration: "none", fontSize: 14 }}
+          style={{
+            color: isGuest ? "#92400e" : "#078a92",
+            textDecoration: "none",
+            fontSize: 14,
+            fontWeight: 600,
+          }}
         >
           ← Salir
         </Link>
         {isGuest ? (
           <span
             style={{
-              fontSize: 12,
-              color: "#666",
-              background: "#f3f4f6",
-              padding: "4px 10px",
+              fontSize: 13,
+              color: "#92400e",
+              background: "#fde68a",
+              padding: "4px 12px",
               borderRadius: 999,
+              fontWeight: 700,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
             }}
           >
-            Modo invitado
+            <span aria-hidden>🎫</span>
+            Modo invitado{guestName ? ` · ${guestName}` : ""}
+          </span>
+        ) : null}
+        {isGuest ? (
+          <span
+            style={{
+              fontSize: 11,
+              color: "#92400e",
+              opacity: 0.85,
+            }}
+          >
+            Sesión temporal · sin cuenta
           </span>
         ) : null}
       </div>
@@ -175,11 +234,31 @@ function TeleconsultaDeepLinkContent() {
           consultationId={consultationId}
           isDoctor={!!doctorId}
           onEndCall={onEndCall}
+          mode={sessionMode}
         />
       </div>
     </div>
   );
 }
+
+const mobileGuestBadgeStyle: React.CSSProperties = {
+  position: "fixed",
+  top: "max(env(safe-area-inset-top), 12px)",
+  left: "50%",
+  transform: "translateX(-50%)",
+  zIndex: 60,
+  fontSize: 11,
+  fontWeight: 700,
+  color: "#92400e",
+  background: "rgba(254,243,199,0.92)",
+  padding: "4px 12px",
+  borderRadius: 999,
+  pointerEvents: "none",
+  whiteSpace: "nowrap",
+  maxWidth: "80vw",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+};
 
 export default function TeleconsultaDeepLinkPage() {
   return (
