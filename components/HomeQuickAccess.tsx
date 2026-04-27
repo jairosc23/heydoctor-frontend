@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
 import Container from "@/components/ui/Container";
-import { buildConsultaRapidaUrl, getWhatsAppBookingUrl } from "@/lib/whatsapp-url";
+import { getWhatsAppBookingUrl } from "@/lib/whatsapp-url";
 
 const FONT_HEADING = "Montserrat, sans-serif";
 const QR_SIZE = 180;
@@ -25,18 +25,13 @@ function resolveSiteUrl(): string {
 }
 
 export default function HomeQuickAccess() {
-  const [whatsAppUrl, setWhatsAppUrl] = useState<string | null>(null);
+  const whatsAppUrl = getWhatsAppBookingUrl();
   const siteUrl = resolveSiteUrl();
-  const qrTarget = buildConsultaRapidaUrl(siteUrl);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    setWhatsAppUrl(getWhatsAppBookingUrl(window.location.origin));
-  }, []);
-
-  useEffect(() => {
     let cancelled = false;
-    QRCode.toDataURL(qrTarget, {
+    QRCode.toDataURL(siteUrl, {
       width: QR_SIZE,
       margin: 2,
       color: { dark: "#0a4a4f", light: "#ffffff" },
@@ -51,33 +46,31 @@ export default function HomeQuickAccess() {
     return () => {
       cancelled = true;
     };
-  }, [qrTarget]);
+  }, [siteUrl]);
 
   return (
     <section
-      id="acceso-qr"
       aria-labelledby="quick-access-title"
       className="bg-gradient-to-br from-primaryLight/40 via-white to-primaryLight/30 py-16"
     >
       <Container>
         <div className="mx-auto grid max-w-5xl items-center gap-10 lg:grid-cols-[1.2fr_0.8fr]">
           <div>
-            <span className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-bold uppercase tracking-wider text-primary shadow-sm">
-              <span aria-hidden>⚡</span> En menos de 1 minuto
+            <span className="mb-3 inline-block rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary shadow-sm">
+              Acceso rápido
             </span>
             <h2
               id="quick-access-title"
-              className="mb-4 text-3xl font-bold leading-[1.1] tracking-tight text-gray-900 sm:text-[42px]"
+              className="mb-4 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl"
               style={{ fontFamily: FONT_HEADING }}
             >
-              Médico online en menos de 1 minuto
+              Habla con un médico ahora,
+              <br />
+              <span className="text-primary">sin registrarte.</span>
             </h2>
-            <p className="mb-3 max-w-md text-lg font-semibold leading-snug text-gray-800">
-              Sin cuenta. Sin descargas. Sin esperas.
-            </p>
-            <p className="mb-7 max-w-md text-sm leading-relaxed text-gray-600">
-              Solo necesitas tu nombre y el motivo. Te conectamos con un médico
-              en una videollamada segura, directo desde el navegador.
+            <p className="mb-7 max-w-md text-base leading-relaxed text-gray-700">
+              Inicia una teleconsulta en menos de 30 segundos. Solo necesitas
+              tu nombre y el motivo. Sin cuenta, sin descargas.
             </p>
 
             <div className="flex flex-col flex-wrap gap-3 sm:flex-row sm:items-center">
@@ -101,21 +94,6 @@ export default function HomeQuickAccess() {
                 </a>
               ) : null}
             </div>
-
-            <ul className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-gray-600">
-              <li className="inline-flex items-center gap-1">
-                <span aria-hidden className="text-primary">✓</span>
-                Privado y encriptado
-              </li>
-              <li className="inline-flex items-center gap-1">
-                <span aria-hidden className="text-primary">✓</span>
-                Sin tarjeta de crédito
-              </li>
-              <li className="inline-flex items-center gap-1">
-                <span aria-hidden className="text-primary">✓</span>
-                Funciona en cualquier celular
-              </li>
-            </ul>
 
             <p className="mt-4 text-xs text-gray-500">
               ¿Eres médico?{" "}
@@ -144,8 +122,7 @@ export default function HomeQuickAccess() {
                     src={qrDataUrl}
                     width={QR_SIZE}
                     height={QR_SIZE}
-                    alt="Escanea para abrir en tu celular — consulta rápida HeyDoctor"
-                    aria-describedby="qr-instruction"
+                    alt={`QR hacia ${siteUrl}`}
                     style={{ display: "block", borderRadius: 8 }}
                   />
                 ) : (
@@ -155,15 +132,10 @@ export default function HomeQuickAccess() {
                 )}
               </div>
             </div>
-            <p
-              className="text-center text-base font-semibold leading-snug tracking-tight text-gray-800"
-              id="qr-instruction"
-            >
-              Escanea para abrir en tu celular
+            <p className="text-center text-xs font-semibold text-gray-700">
+              Escanea con tu cámara
             </p>
-            <p className="text-center text-[11px] text-gray-500 break-all px-1">
-              {qrTarget}
-            </p>
+            <p className="text-center text-[11px] text-gray-500">{siteUrl}</p>
           </div>
         </div>
       </Container>
