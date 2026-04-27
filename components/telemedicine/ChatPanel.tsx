@@ -178,7 +178,7 @@ export function ChatPanel({
   useEffect(() => {
     const el = listRef.current;
     if (!el) return;
-    el.scrollTop = el.scrollHeight;
+    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [messages.length]);
 
   const refreshFromBackend = useCallback(async () => {
@@ -387,7 +387,7 @@ export function ChatPanel({
         <button
           type="button"
           onClick={() => void refreshFromBackend()}
-          className="text-xs text-indigo-600 hover:text-indigo-700"
+          className="premium-tap rounded-md px-2 py-1 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
           aria-label="Actualizar mensajes"
         >
           Actualizar
@@ -402,7 +402,7 @@ export function ChatPanel({
 
       <div
         ref={listRef}
-        className="flex-1 overflow-y-auto px-2 py-2 space-y-2 sm:px-3 max-h-[min(58dvh,420px)] md:max-h-[320px]"
+        className="flex-1 overflow-y-auto scroll-smooth px-2 py-2 space-y-2 sm:px-3 max-h-[min(58dvh,420px)] md:max-h-[320px]"
       >
         {messages.length === 0 ? (
           <p className="text-xs text-gray-400 text-center py-6 px-1">
@@ -533,7 +533,7 @@ export function ChatPanel({
           onClick={() => examInputRef.current?.click()}
           aria-label="Adjuntar examen o documento (imagen o PDF)"
           title="Examen o PDF"
-          className="flex min-h-11 shrink-0 items-center gap-1 rounded-md border border-gray-200 bg-gray-50 px-2 py-2 text-xs font-semibold text-gray-800 hover:bg-gray-100 sm:gap-1.5 sm:px-2.5"
+          className="premium-tap flex min-h-11 shrink-0 items-center gap-1 rounded-md border border-gray-200 bg-gray-50 px-2 py-2 text-xs font-semibold text-gray-800 hover:bg-gray-100 sm:gap-1.5 sm:px-2.5"
         >
           <span aria-hidden>📎</span>
           <span className="hidden min-[380px]:inline">Examen</span>
@@ -543,7 +543,7 @@ export function ChatPanel({
           onClick={() => photoInputRef.current?.click()}
           aria-label="Tomar o elegir foto"
           title="Foto"
-          className="flex min-h-11 shrink-0 items-center gap-1 rounded-md border border-gray-200 bg-gray-50 px-2 py-2 text-xs font-semibold text-gray-800 hover:bg-gray-100 sm:gap-1.5 sm:px-2.5"
+          className="premium-tap flex min-h-11 shrink-0 items-center gap-1 rounded-md border border-gray-200 bg-gray-50 px-2 py-2 text-xs font-semibold text-gray-800 hover:bg-gray-100 sm:gap-1.5 sm:px-2.5"
         >
           <span aria-hidden>📷</span>
           <span className="hidden min-[380px]:inline">Foto</span>
@@ -553,7 +553,7 @@ export function ChatPanel({
           onClick={() => audioInputRef.current?.click()}
           aria-label="Grabar o adjuntar audio"
           title="Audio"
-          className="flex min-h-11 shrink-0 items-center gap-1 rounded-md border border-gray-200 bg-gray-50 px-2 py-2 text-xs font-semibold text-gray-800 hover:bg-gray-100 sm:gap-1.5 sm:px-2.5"
+          className="premium-tap flex min-h-11 shrink-0 items-center gap-1 rounded-md border border-gray-200 bg-gray-50 px-2 py-2 text-xs font-semibold text-gray-800 hover:bg-gray-100 sm:gap-1.5 sm:px-2.5"
         >
           <span aria-hidden>🎤</span>
           <span className="hidden min-[380px]:inline">Audio</span>
@@ -570,7 +570,7 @@ export function ChatPanel({
           type="button"
           onClick={() => void handleSend()}
           disabled={sending || (!bodyInput.trim() && !pendingAttachment)}
-          className="min-h-11 shrink-0 rounded-md bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-50"
+          className="premium-tap min-h-11 shrink-0 rounded-md bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-50"
         >
           {sending ? "Enviando…" : "Enviar"}
         </button>
@@ -617,7 +617,7 @@ function ChatMessageRow({
       data-message-pending={message.pending ? "true" : "false"}
     >
       <div
-        className={`max-w-[min(92%,520px)] rounded-2xl px-3 py-2 text-sm shadow-sm ${
+        className={`chat-bubble-in max-w-[min(92%,520px)] rounded-2xl px-3 py-2 text-sm shadow-sm ${
           mine
             ? "bg-teal-600 text-white"
             : "bg-gray-100 text-gray-800 border border-gray-200"
