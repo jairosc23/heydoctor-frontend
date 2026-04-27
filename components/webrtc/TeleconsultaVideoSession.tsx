@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ConsentModal } from "@/components/ConsentModal";
-/** Única fuente de UI de llamada: `@/components/VideoCall` (no usar alternativas duplicadas). */
 import { VideoCall } from "@/components/VideoCall";
 import { refreshAccessToken } from "@/lib/auth-client";
 import {
@@ -24,8 +23,6 @@ export interface TeleconsultaVideoSessionProps {
    * al crear la consulta vía `/api/public/consultations`.
    */
   mode?: "auth" | "guest";
-  /** Nombre del participante remoto (p. ej. paciente) para la barra superior. */
-  peerDisplayName?: string;
 }
 
 /**
@@ -37,8 +34,6 @@ export function TeleconsultaVideoSession({
   consultationId,
   onEndCall,
   mode = "auth",
-  isDoctor = true,
-  peerDisplayName,
 }: TeleconsultaVideoSessionProps) {
   const searchParams = useSearchParams();
   const accessTokenPending = !!searchParams.get("access_token")?.trim();
@@ -199,8 +194,6 @@ export function TeleconsultaVideoSession({
     <VideoCall
       consultationId={roomId || consultationId}
       onEndCall={onEndCall}
-      isInitiator={isDoctor}
-      peerDisplayName={peerDisplayName}
     />
   );
 }
