@@ -5,6 +5,7 @@ import React, {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -84,7 +85,6 @@ export const VideoCall = forwardRef<
   const controlsHideTimerRef = useRef<number | null>(null);
   const prevInCallRef = useRef(false);
 
-  const [status, setStatus] = useState<string>("Preparando cámara…");
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -335,42 +335,21 @@ export const VideoCall = forwardRef<
     }
   }, [remoteStream]);
 
-  useEffect(() => {
+  const callStatusLabel = useMemo(() => {
     if (error) {
-      return;
+      return "Conectando...";
     }
     if (!localStream) {
-      setStatus("Preparando cámara…");
-      return;
+      return "Conectando...";
     }
     const hasRemote =
-      !!remoteStream && remoteStream.getTracks().some((t) => t.readyState === "live");
+      !!remoteStream &&
+      remoteStream.getTracks().some((t) => t.readyState === "live");
     if (connectionState === "connected" && hasRemote) {
-      setStatus("En llamada");
-      return;
+      return "Paciente conectado";
     }
-    if (
-      connectionState === "connecting" ||
-      iceConnectionState === "checking" ||
-      iceConnectionState === "connected"
-    ) {
-      if (!hasRemote) {
-        setStatus("Conectando medios…");
-        return;
-      }
-    }
-    if (iceConnectionState === "disconnected" || connectionState === "disconnected") {
-      setStatus("Conexión inestable…");
-      return;
-    }
-    setStatus("Esperando participante…");
-  }, [
-    localStream,
-    remoteStream,
-    connectionState,
-    iceConnectionState,
-    error,
-  ]);
+    return "Conectando...";
+  }, [localStream, remoteStream, connectionState, error]);
 
   useEffect(() => {
     const hasRemote =
@@ -586,11 +565,16 @@ export const VideoCall = forwardRef<
         }}
         aria-hidden={!controlsVisible}
       >
-        <span style={mobileStatusPillStyle}>{status}</span>
+        <span style={mobileStatusPillStyle}>
+          <span key={callStatusLabel} className="call-status-enter inline-block">
+            {callStatusLabel}
+          </span>
+        </span>
         <ConnectionQualityBadge quality={connectionQuality} showWhenIdle />
         {!isMobile && (
           <button
             type="button"
+            className="premium-tap"
             onClick={() => {
               showControlsWithAutoHide();
               setIsFullscreen(false);
@@ -622,6 +606,7 @@ export const VideoCall = forwardRef<
         <button
           type="button"
           onClick={toggleMic}
+          className="premium-tap"
           aria-pressed={!micOn}
           aria-label={micOn ? "Silenciar micrófono" : "Activar micrófono"}
           tabIndex={controlsVisible ? 0 : -1}
@@ -638,6 +623,7 @@ export const VideoCall = forwardRef<
         <button
           type="button"
           onClick={toggleCam}
+          className="premium-tap"
           aria-pressed={!camOn}
           aria-label={camOn ? "Apagar cámara" : "Encender cámara"}
           tabIndex={controlsVisible ? 0 : -1}
@@ -654,6 +640,7 @@ export const VideoCall = forwardRef<
         {!isMobile && (
           <button
             type="button"
+            className="premium-tap"
             onClick={() => {
               showControlsWithAutoHide();
               setIsFullscreen(false);
@@ -670,6 +657,7 @@ export const VideoCall = forwardRef<
         <button
           type="button"
           onClick={handleEnd}
+          className="premium-tap"
           aria-label="Finalizar llamada"
           tabIndex={controlsVisible ? 0 : -1}
           style={mobileHangupBtnStyle}
@@ -781,7 +769,9 @@ export const VideoCall = forwardRef<
             maxWidth: "min(280px, 55%)",
           }}
         >
-          {status}
+          <span key={callStatusLabel} className="call-status-enter inline-block">
+            {callStatusLabel}
+          </span>
         </div>
         <div
           style={{
@@ -824,6 +814,7 @@ export const VideoCall = forwardRef<
         <button
           type="button"
           onClick={toggleMic}
+          className="premium-tap"
           style={btnStyle}
           aria-pressed={!micOn}
         >
@@ -832,6 +823,7 @@ export const VideoCall = forwardRef<
         <button
           type="button"
           onClick={toggleCam}
+          className="premium-tap"
           style={btnStyle}
           aria-pressed={!camOn}
         >
@@ -841,6 +833,7 @@ export const VideoCall = forwardRef<
           type="button"
           onClick={() => setIsFullscreen(true)}
           aria-label="Activar pantalla completa"
+          className="premium-tap"
           style={btnStyle}
         >
           ⛶ Pantalla completa
@@ -848,6 +841,7 @@ export const VideoCall = forwardRef<
         <button
           type="button"
           onClick={handleEnd}
+          className="premium-tap"
           style={{
             ...btnStyle,
             background: "#dc2626",
@@ -872,6 +866,7 @@ const btnStyle: React.CSSProperties = {
   color: "#f1f5f9",
   cursor: "pointer",
   fontSize: 13,
+  transition: "all 180ms ease",
 };
 
 /* ───────────────────────── Mobile fullscreen layout ───────────────────────── */

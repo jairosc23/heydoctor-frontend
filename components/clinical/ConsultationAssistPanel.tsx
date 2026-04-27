@@ -85,6 +85,12 @@ export function ConsultationAssistPanel({
         Solo apoyo informativo. No decisiones automáticas ni diagnósticos
         definitivos. Verificar siempre en consulta.
       </p>
+      {loading && (
+        <div className="ia-live-strip" role="status" aria-live="polite">
+          <span className="ia-live-strip__dot" aria-hidden />
+          Generando sugerencias en vivo…
+        </div>
+      )}
       <label style={{ display: "block", fontSize: 12, color: "#475569" }}>
         Motivo / queja principal
         <textarea
@@ -152,6 +158,7 @@ export function ConsultationAssistPanel({
       </label>
       <button
         type="button"
+        className="premium-tap"
         onClick={() => void run()}
         disabled={loading}
         style={{
@@ -202,6 +209,7 @@ export function ConsultationAssistPanel({
       )}
       {result && (
         <div
+          className="assist-result-enter"
           style={{
             marginTop: 16,
             paddingTop: 16,
