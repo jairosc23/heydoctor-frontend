@@ -26,7 +26,27 @@ import {
 } from "@/lib/consultation-pricing";
 import { useConsultationPrice } from "@/lib/hooks/useConsultationPrice";
 import { ApiError } from "@/lib/heydoctor-api";
-import { ConsultationConsentCard, SignatureCanvas } from "@/components/clinical";
+import {
+  ClinicalRecordPanel,
+  ConsultationActionBar,
+  ConsultationConsentCard,
+  PrescriptionPanel,
+  SignatureCanvas,
+} from "@/components/clinical";
+import {
+  deleteConsultation,
+  downloadConsultationPdf,
+  generateConsultationInvoice,
+  generatePremiumDocument,
+  generateSignedMedicalCertificate,
+  generateSignedPrescription,
+  generateSignedReferral,
+  type ActionResult,
+} from "@/lib/services/consultation-actions";
+import {
+  parseClinicalRecord,
+  serializeClinicalRecord,
+} from "@/lib/services/clinical-record";
 
 function paymentFailureUserMessage(err: unknown): string {
   if (err instanceof ApiError) {
@@ -100,6 +120,27 @@ export default function ConsultationDetailPage() {
   const [creatingPayment, setCreatingPayment] = useState(false);
   const [paymentStep, setPaymentStep] = useState<"idle" | "confirm">("idle");
 
+  /** Estado del editor estructurado (ficha clínica + barra de acciones). */
+  const [chiefComplaintDraft, setChiefComplaintDraft] = useState("");
+  const [editMode, setEditMode] = useState(true);
+  const [showPrescription, setShowPrescription] = useState(false);
+  const [actionLoading, setActionLoading] = useState({
+    invoice: false,
+    pdf: false,
+    deleting: false,
+    signedPrescription: false,
+    signedCertificate: false,
+    signedReferral: false,
+    premium: false,
+  });
+  const [actionMsg, setActionMsg] = useState<
+    | { kind: "info" | "success" | "warning" | "error"; text: string; href?: string }
+    | null
+  >(null);
+
+  /** Trigger para que ClinicalRecordPanel ejecute "Autollenar con IA". */
+  const [aiTrigger, setAiTrigger] = useState(0);
+
   const paymentResult = searchParams.get("payment");
 
   const prevStatusRef = React.useRef<string | undefined>(undefined);
@@ -116,7 +157,10 @@ export default function ConsultationDetailPage() {
       prevStatusRef.current = st;
       void trackConsultationStartedDeduped(id, { status: st, source: "detail" });
       setConsultation(c);
-      setNotes(c.notes ?? "");
+      /** El textarea "Notas de consulta" muestra solo las notas libres
+       * (sin el bloque estructurado de la ficha cl\u00ednica). El panel de
+       * ficha cl\u00ednica trabaja con `c.notes` crudo. */
+      setNotes(parseClinicalRecord(c.notes).freeNotes);
       setDiagnosis(c.diagnosis ?? "");
       setTreatment(c.treatmentPlan ?? c.treatment ?? "");
     } catch (err) {
@@ -183,8 +227,16 @@ export default function ConsultationDetailPage() {
     setSaving(true);
     setSaveMsg("");
     try {
+      /** Combina las notas libres con el bloque estructurado de la ficha
+       * cl\u00ednica para no perder la informaci\u00f3n estructurada al editar el
+       * textarea legacy. */
+      const currentRecord = parseClinicalRecord(consultation?.notes);
+      const merged = serializeClinicalRecord({
+        ...currentRecord,
+        freeNotes: notes.trim(),
+      });
       const updated = await updateConsultation(id, {
-        notes: notes.trim() || undefined,
+        notes: merged.length > 0 ? merged : undefined,
         diagnosis: diagnosis.trim() || undefined,
         treatmentPlan: treatment.trim() || undefined,
       });
@@ -248,6 +300,162 @@ export default function ConsultationDetailPage() {
       );
       setStartingCall(false);
     }
+  }
+
+  /* ──────── Ficha cl\u00ednica + Action Bar handlers ──────── */
+
+  /** Sincroniza el draft del motivo cuando llega/recarga la consulta. */
+  useEffect(() => {
+    setChiefComplaintDraft(consultation?.chiefComplaint ?? consultation?.reason ?? "");
+  }, [consultation?.chiefComplaint, consultation?.reason]);
+
+  function flashAction(
+    kind: "info" | "success" | "warning" | "error",
+    text: string,
+    href?: string,
+    ttl = 6000,
+  ) {
+    setActionMsg({ kind, text, href });
+    if (ttl > 0) window.setTimeout(() => setActionMsg(null), ttl);
+  }
+
+  function handleActionResult(label: string, result: ActionResult) {
+    if (result.status === "ok") {
+      flashAction(
+        "success",
+        result.message ?? `${label} generado correctamente.`,
+        result.url,
+      );
+      if (result.url) {
+        try {
+          window.open(result.url, "_blank", "noopener,noreferrer");
+        } catch {
+          /* noop */
+        }
+      }
+      return;
+    }
+    if (result.status === "unavailable") {
+      flashAction(
+        "warning",
+        `${label}: ${result.message ?? "esta acci\u00f3n estar\u00e1 disponible pronto."}`,
+        undefined,
+        9000,
+      );
+      return;
+    }
+    flashAction(
+      "error",
+      `${label}: ${result.message ?? "no se pudo completar la acci\u00f3n."}`,
+      undefined,
+      9000,
+    );
+  }
+
+  async function handleSaveClinicalRecord({
+    notes,
+    chiefComplaint,
+  }: {
+    notes: string;
+    chiefComplaint: string;
+  }) {
+    if (!consultation) return;
+    const updated = await updateConsultation(id, {
+      notes,
+      chiefComplaint: chiefComplaint || undefined,
+    });
+    setConsultation(updated);
+    setNotes(updated.notes ?? "");
+  }
+
+  function handleOpenPrescription() {
+    setShowPrescription((v) => !v);
+    if (typeof window !== "undefined") {
+      window.setTimeout(() => {
+        const el = document.getElementById("prescription-section");
+        el?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 50);
+    }
+  }
+
+  async function handleGenerateInvoice() {
+    setActionLoading((s) => ({ ...s, invoice: true }));
+    const r = await generateConsultationInvoice(id);
+    setActionLoading((s) => ({ ...s, invoice: false }));
+    handleActionResult("Factura", r);
+  }
+
+  async function handleDownloadPdf() {
+    setActionLoading((s) => ({ ...s, pdf: true }));
+    const r = await downloadConsultationPdf(id);
+    setActionLoading((s) => ({ ...s, pdf: false }));
+    handleActionResult("PDF", r);
+  }
+
+  function handleToggleEdit() {
+    setEditMode((v) => !v);
+  }
+
+  function handleAnalyzeWithAi() {
+    setAiTrigger((n) => n + 1);
+    if (typeof window !== "undefined") {
+      window.setTimeout(() => {
+        const el = document.getElementById("clinical-record-section");
+        el?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 50);
+    }
+    flashAction(
+      "info",
+      "Generando propuesta con IA en la ficha cl\u00ednica\u2026",
+      undefined,
+      3500,
+    );
+  }
+
+  async function handleDeleteConsultation() {
+    if (typeof window !== "undefined") {
+      const ok = window.confirm(
+        "\u00bfEliminar esta consulta? Esta acci\u00f3n no se puede deshacer.",
+      );
+      if (!ok) return;
+    }
+    setActionLoading((s) => ({ ...s, deleting: true }));
+    const r = await deleteConsultation(id);
+    setActionLoading((s) => ({ ...s, deleting: false }));
+    if (r.status === "ok") {
+      flashAction("success", "Consulta eliminada.");
+      router.push("/panel/consultas");
+      return;
+    }
+    handleActionResult("Eliminar", r);
+  }
+
+  async function handleSignedPrescription() {
+    setActionLoading((s) => ({ ...s, signedPrescription: true }));
+    const r = await generateSignedPrescription(id);
+    setActionLoading((s) => ({ ...s, signedPrescription: false }));
+    handleActionResult("Receta firmada", r);
+  }
+
+  async function handleSignedCertificate() {
+    setActionLoading((s) => ({ ...s, signedCertificate: true }));
+    const r = await generateSignedMedicalCertificate(id);
+    setActionLoading((s) => ({ ...s, signedCertificate: false }));
+    handleActionResult("Certificado m\u00e9dico firmado", r);
+  }
+
+  async function handleSignedReferral() {
+    setActionLoading((s) => ({ ...s, signedReferral: true }));
+    const r = await generateSignedReferral(id);
+    setActionLoading((s) => ({ ...s, signedReferral: false }));
+    handleActionResult("Interconsulta firmada", r);
+  }
+
+  async function handlePremiumDocument() {
+    setActionLoading((s) => ({ ...s, premium: true }));
+    const r = await generatePremiumDocument(id);
+    setActionLoading((s) => ({ ...s, premium: false }));
+    handleActionResult("Documento premium", r);
   }
 
   function handlePaymentAbandoned(reason: string) {
@@ -334,7 +542,7 @@ export default function ConsultationDetailPage() {
     "Paciente";
 
   return (
-    <div style={{ padding: 25, maxWidth: 900 }}>
+    <div style={{ padding: 25, maxWidth: 1100 }}>
       {/* Header */}
       <div
         style={{
@@ -406,6 +614,115 @@ export default function ConsultationDetailPage() {
             </button>
           )}
         </div>
+      </div>
+
+      {/* Action bar (chips) */}
+      <ConsultationActionBar
+        isEditing={editMode}
+        patientId={consultation.patientId ?? null}
+        loading={{
+          starting: startingCall,
+          invoice: actionLoading.invoice,
+          pdf: actionLoading.pdf,
+          deleting: actionLoading.deleting,
+          signedPrescription: actionLoading.signedPrescription,
+          signedCertificate: actionLoading.signedCertificate,
+          signedReferral: actionLoading.signedReferral,
+          premium: actionLoading.premium,
+        }}
+        disabled={{
+          startTele: !canStartCall || isLocked,
+          prescription: isLocked,
+          edit: isLocked,
+          ai: isLocked,
+          delete: isLocked,
+          signedPrescription: !isSigned && !isLocked && !canSign,
+        }}
+        handlers={{
+          onStartTeleconsultation: () => void handleStartCall(),
+          onOpenPrescription: handleOpenPrescription,
+          onGenerateInvoice: () => void handleGenerateInvoice(),
+          onDownloadPdf: () => void handleDownloadPdf(),
+          onToggleEdit: handleToggleEdit,
+          onAnalyzeWithAi: handleAnalyzeWithAi,
+          onDelete: () => void handleDeleteConsultation(),
+          onGenerateSignedPrescription: () => void handleSignedPrescription(),
+          onGenerateSignedCertificate: () => void handleSignedCertificate(),
+          onGenerateSignedReferral: () => void handleSignedReferral(),
+          onGeneratePremiumDocument: () => void handlePremiumDocument(),
+        }}
+      />
+
+      {actionMsg ? (
+        <div
+          role="status"
+          style={{
+            marginBottom: 16,
+            padding: "10px 14px",
+            borderRadius: 10,
+            fontSize: 13,
+            background:
+              actionMsg.kind === "success"
+                ? "#ecfdf5"
+                : actionMsg.kind === "warning"
+                  ? "#fffbeb"
+                  : actionMsg.kind === "error"
+                    ? "#fef2f2"
+                    : "#eff6ff",
+            color:
+              actionMsg.kind === "success"
+                ? "#065f46"
+                : actionMsg.kind === "warning"
+                  ? "#92400e"
+                  : actionMsg.kind === "error"
+                    ? "#991b1b"
+                    : "#1e3a8a",
+            border:
+              actionMsg.kind === "success"
+                ? "1px solid #a7f3d0"
+                : actionMsg.kind === "warning"
+                  ? "1px solid #fde68a"
+                  : actionMsg.kind === "error"
+                    ? "1px solid #fecaca"
+                    : "1px solid #bfdbfe",
+          }}
+        >
+          {actionMsg.text}
+          {actionMsg.href ? (
+            <>
+              {" "}
+              <a
+                href={actionMsg.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: "#0f766e", fontWeight: 600 }}
+              >
+                Abrir documento \u2192
+              </a>
+            </>
+          ) : null}
+        </div>
+      ) : null}
+
+      {/* Ficha cl\u00ednica estructurada (motivo, HEA, revisi\u00f3n por sistemas) */}
+      <div id="clinical-record-section" style={{ marginBottom: 20 }}>
+        <ClinicalRecordPanel
+          consultationId={id}
+          rawNotes={consultation.notes ?? ""}
+          chiefComplaint={chiefComplaintDraft}
+          onChiefComplaintChange={setChiefComplaintDraft}
+          createdAt={consultation.createdAt ?? null}
+          editable={isEditable && editMode}
+          patient={
+            consultation.patient
+              ? {
+                  name: consultation.patient.name ?? null,
+                }
+              : null
+          }
+          onSave={handleSaveClinicalRecord}
+          autofillRequest={aiTrigger}
+        />
       </div>
 
       {/* Payment success banner */}
@@ -630,6 +947,17 @@ export default function ConsultationDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Prescription panel (toggle desde la action bar) */}
+      {showPrescription && consultation.patientId ? (
+        <div id="prescription-section" style={{ marginBottom: 20 }}>
+          <PrescriptionPanel
+            patientId={consultation.patientId}
+            consultationId={id}
+            diagnosisCode={diagnosis || undefined}
+          />
+        </div>
+      ) : null}
 
       {/* Signature section */}
       <div

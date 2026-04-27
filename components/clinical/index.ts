@@ -8,3 +8,5 @@ export { ConsultationAssistPanel } from "./ConsultationAssistPanel";
 export { SignatureCanvas } from "./SignatureCanvas";
 export { TelemedicineConsentModal } from "./TelemedicineConsentModal";
 export { ShareConsultationDialog } from "./ShareConsultationDialog";
+export { ClinicalRecordPanel } from "./ClinicalRecordPanel";
+export { ConsultationActionBar } from "./ConsultationActionBar";
