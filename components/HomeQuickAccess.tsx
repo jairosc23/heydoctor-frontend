@@ -144,7 +144,8 @@ export default function HomeQuickAccess() {
                     src={qrDataUrl}
                     width={QR_SIZE}
                     height={QR_SIZE}
-                    alt={`Código QR: consulta rápida HeyDoctor`}
+                    alt="Escanea para abrir en tu celular — consulta rápida HeyDoctor"
+                    aria-describedby="qr-instruction"
                     style={{ display: "block", borderRadius: 8 }}
                   />
                 ) : (
@@ -154,7 +155,10 @@ export default function HomeQuickAccess() {
                 )}
               </div>
             </div>
-            <p className="text-center text-xs font-bold text-gray-800">
+            <p
+              className="text-center text-base font-semibold leading-snug tracking-tight text-gray-800"
+              id="qr-instruction"
+            >
               Escanea para abrir en tu celular
             </p>
             <p className="text-center text-[11px] text-gray-500 break-all px-1">
