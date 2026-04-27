@@ -39,6 +39,7 @@ const DEFAULT_POLL_MS = 5000;
  */
 const ACCEPT_TYPES =
   "image/*,application/pdf,audio/*,audio/webm,audio/mp4,audio/mpeg,audio/ogg,audio/wav,.webm,.m4a,.aac";
+const EXAM_ACCEPT = "image/*,application/pdf,.pdf";
 
 const STORAGE_PREFIX = "heydoctor:chat:";
 
@@ -155,7 +156,8 @@ export function ChatPanel({
   /** True cuando hay un drag activo sobre el panel (overlay visible). */
   const [dragging, setDragging] = useState(false);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const examInputRef = useRef<HTMLInputElement>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   /** Counter para drag enter/leave en hijos (evita parpadeo del overlay). */
@@ -490,11 +492,23 @@ export function ChatPanel({
         </p>
       )}
 
-      <div className="flex flex-wrap items-end gap-2 border-t border-gray-200 px-2 py-2 sm:flex-nowrap sm:px-3">
+      <div className="flex flex-wrap items-end gap-1.5 border-t border-gray-200 px-2 py-2 sm:gap-2 sm:px-3">
         <input
-          ref={fileInputRef}
+          ref={examInputRef}
           type="file"
-          accept={ACCEPT_TYPES}
+          accept={EXAM_ACCEPT}
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0] ?? null;
+            handleFilePicked(file);
+            e.target.value = "";
+          }}
+        />
+        <input
+          ref={photoInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
           className="hidden"
           onChange={(e) => {
             const file = e.target.files?.[0] ?? null;
@@ -516,26 +530,33 @@ export function ChatPanel({
         />
         <button
           type="button"
-          onClick={() => fileInputRef.current?.click()}
-          aria-label="Adjuntar archivo (imagen, PDF o audio)"
-          title="Adjuntar imagen, PDF o audio"
-          className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md p-2 text-gray-600 hover:bg-gray-100"
+          onClick={() => examInputRef.current?.click()}
+          aria-label="Adjuntar examen o documento (imagen o PDF)"
+          title="Examen o PDF"
+          className="flex min-h-11 shrink-0 items-center gap-1 rounded-md border border-gray-200 bg-gray-50 px-2 py-2 text-xs font-semibold text-gray-800 hover:bg-gray-100 sm:gap-1.5 sm:px-2.5"
         >
-          <span aria-hidden style={{ fontSize: 20 }}>
-            📎
-          </span>
+          <span aria-hidden>📎</span>
+          <span className="hidden min-[380px]:inline">Examen</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => photoInputRef.current?.click()}
+          aria-label="Tomar o elegir foto"
+          title="Foto"
+          className="flex min-h-11 shrink-0 items-center gap-1 rounded-md border border-gray-200 bg-gray-50 px-2 py-2 text-xs font-semibold text-gray-800 hover:bg-gray-100 sm:gap-1.5 sm:px-2.5"
+        >
+          <span aria-hidden>📷</span>
+          <span className="hidden min-[380px]:inline">Foto</span>
         </button>
         <button
           type="button"
           onClick={() => audioInputRef.current?.click()}
-          aria-label="Grabar o adjuntar nota de voz"
-          title="Nota de voz"
-          lang="es"
-          className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md p-2 text-gray-600 hover:bg-gray-100"
+          aria-label="Grabar o adjuntar audio"
+          title="Audio"
+          className="flex min-h-11 shrink-0 items-center gap-1 rounded-md border border-gray-200 bg-gray-50 px-2 py-2 text-xs font-semibold text-gray-800 hover:bg-gray-100 sm:gap-1.5 sm:px-2.5"
         >
-          <span aria-hidden style={{ fontSize: 20 }}>
-            🎙️
-          </span>
+          <span aria-hidden>🎤</span>
+          <span className="hidden min-[380px]:inline">Audio</span>
         </button>
         <textarea
           value={bodyInput}
