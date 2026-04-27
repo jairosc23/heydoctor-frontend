@@ -17,5 +17,3 @@ export * from "./auth-session";
 export * from "./auth";
 export * from "./consents";
 export * from "./public-consultations";
-export * from "./clinical-record";
-export * from "./consultation-actions";
