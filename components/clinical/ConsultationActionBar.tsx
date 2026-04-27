@@ -1,12 +1,10 @@
 "use client";
 
 /**
- * Barra de acciones del detalle de consulta (chips en dos filas).
- * Texto e iconos en UTF-8 explícito: evita secuencias `\u{...}` en JSX que en
- * algunos builds se mostraban literalmente en pantalla.
+ * Barra de acciones: acciones frecuentes visibles y resto en «Más acciones».
  */
 
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 export interface ActionBarHandlers {
   onStartTeleconsultation: () => void;
@@ -137,8 +135,23 @@ export function ConsultationActionBar({
   isEditing,
   patientId,
 }: ConsultationActionBarProps) {
+  const [moreOpen, setMoreOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!moreOpen) return;
+    const close = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+        setMoreOpen(false);
+      }
+    };
+    document.addEventListener("click", close);
+    return () => document.removeEventListener("click", close);
+  }, [moreOpen]);
+
   return (
     <div
+      ref={wrapRef}
       style={{
         display: "flex",
         flexDirection: "column",
@@ -147,6 +160,7 @@ export function ConsultationActionBar({
         width: "100%",
         maxWidth: "100%",
         boxSizing: "border-box",
+        position: "relative",
       }}
     >
       <div style={rowStyle}>
@@ -166,22 +180,6 @@ export function ConsultationActionBar({
           onClick={handlers.onOpenPrescription}
         />
         <Chip
-          label="Generar factura"
-          icon="🧾"
-          variant="mintOutline"
-          loading={loading.invoice}
-          disabled={disabled.invoice}
-          onClick={handlers.onGenerateInvoice}
-        />
-        <Chip
-          label="Descargar PDF"
-          icon="📄"
-          variant="mintOutline"
-          loading={loading.pdf}
-          disabled={disabled.pdf}
-          onClick={handlers.onDownloadPdf}
-        />
-        <Chip
           label={isEditing ? "Cerrar edición" : "Editar"}
           icon="✏️"
           variant="mintOutline"
@@ -196,49 +194,130 @@ export function ConsultationActionBar({
           disabled={disabled.ai}
           onClick={handlers.onAnalyzeWithAi}
         />
-        <Chip
-          label="Eliminar"
-          icon="🗑️"
-          variant="deleteOutline"
-          loading={loading.deleting}
-          disabled={disabled.delete}
-          onClick={handlers.onDelete}
-          title="Eliminar consulta (requiere confirmación)"
-        />
-      </div>
-      <div style={rowStyle}>
-        <Chip
-          label="Generar Receta Firmada"
-          icon="📝"
-          variant="tealSolid"
-          loading={loading.signedPrescription}
-          disabled={disabled.signedPrescription}
-          onClick={handlers.onGenerateSignedPrescription}
-        />
-        <Chip
-          label="Generar Certificado Médico Firmado"
-          icon="📜"
-          variant="tealSolid"
-          loading={loading.signedCertificate}
-          disabled={disabled.signedCertificate}
-          onClick={handlers.onGenerateSignedCertificate}
-        />
-        <Chip
-          label="Generar Interconsulta Firmada"
-          icon="🤝"
-          variant="tealSolid"
-          loading={loading.signedReferral}
-          disabled={disabled.signedReferral}
-          onClick={handlers.onGenerateSignedReferral}
-        />
-        <Chip
-          label="Generar Documento Premium"
-          icon="👑"
-          variant="premiumDark"
-          loading={loading.premium}
-          disabled={disabled.premium}
-          onClick={handlers.onGeneratePremiumDocument}
-        />
+        <div style={{ position: "relative", display: "inline-flex" }}>
+          <button
+            type="button"
+            onClick={() => setMoreOpen((v) => !v)}
+            aria-expanded={moreOpen}
+            aria-haspopup="menu"
+            style={{
+              padding: "10px 18px",
+              borderRadius: 999,
+              border: "1px solid #94a3b8",
+              background: "#f8fafc",
+              color: "#334155",
+              fontWeight: 600,
+              fontSize: 13,
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            Más acciones
+            <span aria-hidden style={{ fontSize: 10 }}>
+              ▾
+            </span>
+          </button>
+          {moreOpen ? (
+            <div
+              role="menu"
+              style={{
+                position: "absolute",
+                top: "100%",
+                left: 0,
+                marginTop: 6,
+                minWidth: 280,
+                maxWidth: "min(100vw - 32px, 340px)",
+                background: "#fff",
+                borderRadius: 12,
+                boxShadow:
+                  "0 10px 40px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.06)",
+                zIndex: 50,
+                padding: "8px 0",
+              }}
+            >
+              <MenuBtn
+                label="Generar factura"
+                icon="🧾"
+                loading={loading.invoice}
+                disabled={disabled.invoice}
+                onClick={() => {
+                  setMoreOpen(false);
+                  handlers.onGenerateInvoice();
+                }}
+              />
+              <MenuBtn
+                label="Descargar PDF"
+                icon="📄"
+                loading={loading.pdf}
+                disabled={disabled.pdf}
+                onClick={() => {
+                  setMoreOpen(false);
+                  handlers.onDownloadPdf();
+                }}
+              />
+              <MenuBtn
+                label="Generar receta firmada"
+                icon="📝"
+                loading={loading.signedPrescription}
+                disabled={disabled.signedPrescription}
+                onClick={() => {
+                  setMoreOpen(false);
+                  handlers.onGenerateSignedPrescription();
+                }}
+              />
+              <MenuBtn
+                label="Certificado médico firmado"
+                icon="📜"
+                loading={loading.signedCertificate}
+                disabled={disabled.signedCertificate}
+                onClick={() => {
+                  setMoreOpen(false);
+                  handlers.onGenerateSignedCertificate();
+                }}
+              />
+              <MenuBtn
+                label="Interconsulta firmada"
+                icon="🤝"
+                loading={loading.signedReferral}
+                disabled={disabled.signedReferral}
+                onClick={() => {
+                  setMoreOpen(false);
+                  handlers.onGenerateSignedReferral();
+                }}
+              />
+              <MenuBtn
+                label="Documento premium"
+                icon="👑"
+                loading={loading.premium}
+                disabled={disabled.premium}
+                onClick={() => {
+                  setMoreOpen(false);
+                  handlers.onGeneratePremiumDocument();
+                }}
+              />
+              <div
+                style={{
+                  borderTop: "1px solid #e2e8f0",
+                  marginTop: 4,
+                  paddingTop: 4,
+                }}
+              />
+              <MenuBtn
+                label="Eliminar consulta…"
+                icon="🗑️"
+                danger
+                loading={loading.deleting}
+                disabled={disabled.delete}
+                onClick={() => {
+                  setMoreOpen(false);
+                  handlers.onDelete();
+                }}
+              />
+            </div>
+          ) : null}
+        </div>
       </div>
       {patientId ? (
         <div style={{ marginTop: 2 }}>
@@ -256,6 +335,50 @@ export function ConsultationActionBar({
         </div>
       ) : null}
     </div>
+  );
+}
+
+function MenuBtn({
+  label,
+  icon,
+  onClick,
+  loading,
+  disabled,
+  danger,
+}: {
+  label: string;
+  icon: string;
+  onClick: () => void;
+  loading?: boolean;
+  disabled?: boolean;
+  danger?: boolean;
+}) {
+  const inactive = disabled || loading;
+  return (
+    <button
+      type="button"
+      role="menuitem"
+      onClick={onClick}
+      disabled={inactive}
+      style={{
+        display: "flex",
+        width: "100%",
+        alignItems: "center",
+        gap: 10,
+        padding: "10px 16px",
+        border: "none",
+        background: "transparent",
+        cursor: inactive ? "not-allowed" : "pointer",
+        fontSize: 13,
+        fontWeight: 600,
+        color: danger ? "#b91c1c" : "#1e293b",
+        textAlign: "left",
+        opacity: inactive ? 0.5 : 1,
+      }}
+    >
+      <span aria-hidden>{icon}</span>
+      {loading ? "Procesando…" : label}
+    </button>
   );
 }
 

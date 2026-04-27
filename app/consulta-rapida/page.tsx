@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import HeyDoctorLogo from "@/components/ui/HeyDoctorLogo";
 import Container from "@/components/ui/Container";
 import Button from "@/components/ui/Button";
@@ -28,9 +28,20 @@ export default function GuestConsultationPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  React.useEffect(() => {
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const reasonInputRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
     setWhatsAppUrl(getWhatsAppBookingUrl(window.location.origin));
   }, []);
+
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      if (step === 1) nameInputRef.current?.focus();
+      else if (step === 2) reasonInputRef.current?.focus();
+    }, 50);
+    return () => window.clearTimeout(t);
+  }, [step]);
 
   const setStep = (n: number) => {
     setError(null);
@@ -112,19 +123,25 @@ export default function GuestConsultationPage() {
                       Paso 1 · Tu nombre
                     </label>
                     <input
+                      ref={nameInputRef}
                       id="guest-name"
                       type="text"
                       value={name}
                       onChange={(e) =>
                         setName(e.target.value.slice(0, NAME_MAX))
                       }
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          if (step1Ok && !submitting) setStep(2);
+                        }
+                      }}
                       placeholder="Ej: María González"
                       required
                       autoComplete="name"
                       maxLength={NAME_MAX}
                       disabled={submitting}
                       className="w-full min-h-12 rounded-lg border border-gray-300 px-3 py-3 text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
-                      autoFocus
                     />
                   </div>
                   <Button
@@ -149,18 +166,24 @@ export default function GuestConsultationPage() {
                       Paso 2 · Motivo de la consulta
                     </label>
                     <textarea
+                      ref={reasonInputRef}
                       id="guest-reason"
                       value={reason}
                       onChange={(e) =>
                         setReason(e.target.value.slice(0, REASON_MAX))
                       }
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          if (step2Ok && !submitting) setStep(3);
+                        }
+                      }}
                       placeholder="Describe brevemente cómo te sientes o qué necesitas."
                       required
                       rows={5}
                       maxLength={REASON_MAX}
                       disabled={submitting}
                       className="w-full resize-none rounded-lg border border-gray-300 px-3 py-3 text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
-                      autoFocus
                     />
                     <p className="mt-1 text-[11px] text-gray-400">
                       {trimmedReason.length}/{REASON_MAX}

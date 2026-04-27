@@ -140,16 +140,18 @@ export default function LandingPage() {
               Videollamada segura desde el navegador. Atención profesional cuando
               la necesitas, sin colas ni trámites eternos.
             </p>
-            <div className="flex flex-wrap items-center justify-center gap-4">
-              <Button href="/consulta-rapida" variant="primary" className="min-h-[52px] min-w-[200px] text-base font-[family-name:Montserrat,sans-serif]">
+            <div className="flex w-full max-w-lg flex-col items-stretch justify-center gap-4 sm:max-w-2xl sm:items-center">
+              <Button href="/consulta-rapida" variant="primary" className="min-h-14 w-full px-8 text-lg font-semibold shadow-premium sm:min-h-16 sm:max-w-md sm:px-12">
                 Empezar ahora — sin registro
               </Button>
-              <Button href="#acceso-qr" variant="secondary" className="min-h-[52px] min-w-[160px] text-base">
-                Ver código QR
-              </Button>
-              <Button href="/login" variant="secondary" className="min-h-[52px] min-w-[140px] text-base">
-                Soy médico
-              </Button>
+              <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:justify-center">
+                <Button href="#acceso-qr" variant="secondary" className="min-h-12 w-full text-base sm:w-auto sm:min-w-[180px]">
+                  Ver código QR
+                </Button>
+                <Button href="/login" variant="secondary" className="min-h-12 w-full text-base sm:w-auto sm:min-w-[180px]">
+                  Soy médico
+                </Button>
+              </div>
             </div>
           </div>
         </Container>
