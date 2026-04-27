@@ -2,7 +2,7 @@
 
 import React, { Suspense, useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useSearchParams, useRouter } from "next/navigation";
+import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { useConsultation } from "@/context/ConsultationContext";
 import {
   fetchPatients,
@@ -31,6 +31,7 @@ import { useConsultationPrice } from "@/lib/hooks/useConsultationPrice";
 function ConsultasContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const pathname = usePathname();
   const patientIdParam = searchParams.get("patientId");
   const {
     patientId,
@@ -139,13 +140,29 @@ function ConsultasContent() {
     };
   }, [consultationId]);
 
+  /**
+   * La ficha clínica completa y la barra de acciones viven en
+   * `/panel/consultas/[id]`. Si el contexto tiene `consultationId` pero la URL
+   * sigue siendo exactamente `/panel/consultas` (p. ej. tras iniciar consulta
+   * o al volver atrás), llevamos al médico al detalle para que vea siempre la
+   * misma UI que en producción de referencia.
+   */
+  useEffect(() => {
+    if (!consultationId) return;
+    if (pathname !== "/panel/consultas") return;
+    router.replace(`/panel/consultas/${consultationId}`);
+  }, [consultationId, pathname, router]);
+
   const handleStartConsultation = async () => {
     const pid = (patientId ?? patientIdParam ?? "").trim();
     if (!pid) return;
     clearStartError();
     setStarting(true);
     try {
-      await startConsultation(pid);
+      const cid = await startConsultation(pid);
+      if (cid) {
+        router.push(`/panel/consultas/${cid}`);
+      }
     } finally {
       setStarting(false);
     }
