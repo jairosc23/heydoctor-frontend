@@ -13,7 +13,12 @@ export default function TeleconsultaPanelPage() {
   const params = useParams();
   const router = useRouter();
   const consultationId = params?.id as string;
-  const { consultationId: ctxConsultationId, doctorId, patientId } = useConsultation();
+  const {
+    consultationId: ctxConsultationId,
+    doctorId,
+    patientId,
+    isLoading: ctxBootLoading,
+  } = useConsultation();
   const isMobile = useIsMobile();
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
@@ -24,16 +29,41 @@ export default function TeleconsultaPanelPage() {
       setLoading(false);
       return;
     }
-    fetchConsultation(consultationId)
+
+    /**
+     * Evita condición de carrera: `doctorId` llega después del primer render.
+     * Si verificamos antes, `isDoctor` queda en falso y la videollamada no
+     * arranca aunque el médico sea el titular de la consulta.
+     */
+    if (ctxBootLoading) {
+      setLoading(true);
+      return;
+    }
+
+    let cancelled = false;
+    setLoading(true);
+
+    void fetchConsultation(consultationId)
       .then((data) => {
+        if (cancelled) return;
         const c = data as { doctorId?: string; patientId?: string };
-        const isDoctor = doctorId && c.doctorId === doctorId;
-        const isPatient = patientId && c.patientId === patientId;
-        setAllowed(!!(isDoctor || isPatient || ctxConsultationId));
+        const isDoctor = Boolean(doctorId && c.doctorId === doctorId);
+        const isPatient = Boolean(patientId && c.patientId === patientId);
+        const fromPanelContext =
+          Boolean(ctxConsultationId && ctxConsultationId === consultationId);
+        setAllowed(isDoctor || isPatient || fromPanelContext);
       })
-      .catch(() => setAllowed(false))
-      .finally(() => setLoading(false));
-  }, [consultationId, doctorId, patientId, ctxConsultationId]);
+      .catch(() => {
+        if (!cancelled) setAllowed(false);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [consultationId, doctorId, patientId, ctxConsultationId, ctxBootLoading]);
 
   if (loading) {
     return (

@@ -340,7 +340,7 @@ export default function ConsultationDetailPage() {
     if (result.status === "unavailable") {
       flashAction(
         "warning",
-        `${label}: ${result.message ?? "esta acci\u00f3n estar\u00e1 disponible pronto."}`,
+        `${label}: ${result.message ?? "esta acción estará disponible pronto."}`,
         undefined,
         9000,
       );
@@ -348,7 +348,7 @@ export default function ConsultationDetailPage() {
     }
     flashAction(
       "error",
-      `${label}: ${result.message ?? "no se pudo completar la acci\u00f3n."}`,
+      `${label}: ${result.message ?? "no se pudo completar la acción."}`,
       undefined,
       9000,
     );
@@ -408,7 +408,7 @@ export default function ConsultationDetailPage() {
     }
     flashAction(
       "info",
-      "Generando propuesta con IA en la ficha cl\u00ednica\u2026",
+      "Generando propuesta con IA en la ficha clínica…",
       undefined,
       3500,
     );
@@ -417,7 +417,7 @@ export default function ConsultationDetailPage() {
   async function handleDeleteConsultation() {
     if (typeof window !== "undefined") {
       const ok = window.confirm(
-        "\u00bfEliminar esta consulta? Esta acci\u00f3n no se puede deshacer.",
+        "¿Eliminar esta consulta? Esta acción no se puede deshacer.",
       );
       if (!ok) return;
     }
@@ -443,7 +443,7 @@ export default function ConsultationDetailPage() {
     setActionLoading((s) => ({ ...s, signedCertificate: true }));
     const r = await generateSignedMedicalCertificate(id);
     setActionLoading((s) => ({ ...s, signedCertificate: false }));
-    handleActionResult("Certificado m\u00e9dico firmado", r);
+    handleActionResult("Certificado médico firmado", r);
   }
 
   async function handleSignedReferral() {
@@ -582,7 +582,7 @@ export default function ConsultationDetailPage() {
             Consulta &mdash; {patientName}
           </h1>
           <p style={{ color: "#666", fontSize: 13, marginTop: 4 }}>
-            Motivo: {consultation.reason || "\u2014"}
+            Motivo: {consultation.reason || "—"}
           </p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
@@ -722,7 +722,7 @@ export default function ConsultationDetailPage() {
                 rel="noopener noreferrer"
                 style={{ color: "#0f766e", fontWeight: 600 }}
               >
-                Abrir documento \u2192
+                Abrir documento →
               </a>
             </>
           ) : null}
@@ -1003,7 +1003,7 @@ export default function ConsultationDetailPage() {
               Consulta firmada el{" "}
               {consultation.signedAt
                 ? new Date(consultation.signedAt).toLocaleString("es")
-                : "\u2014"}
+                : "—"}
             </p>
             {consultation.doctorSignature && (
               <div
