@@ -58,3 +58,20 @@ export function filterFallbackDiagnoses(
     )
     .slice(0, limit);
 }
+
+/** Respuesta demo cuando el endpoint de asistencia IA no está disponible. */
+export const FALLBACK_CONSULTATION_ASSIST = {
+  assistiveOnlyNotice:
+    "Modo demostración: no hubo respuesta del servicio de IA. Revise la conexión y la configuración del API; lo siguiente es solo orientativo y no sustituye el juicio clínico.",
+  possibleDiagnoses: [
+    "Valorar cuadro según motivo de consulta y exploración; completar anamnesis dirigida.",
+    "Considerar diagnósticos diferenciales acorde a la guía local y a la edad del paciente.",
+  ],
+  recommendations: [
+    "Registrar signos vitales y signos de alarma según protocolo.",
+    "Indicaciones generales y seguimiento según evolución.",
+  ],
+  generalEducation: [
+    "Verificar siempre con fuentes clínicas vigentes y políticas institucionales.",
+  ],
+};

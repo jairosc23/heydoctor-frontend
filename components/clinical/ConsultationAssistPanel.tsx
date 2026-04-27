@@ -14,9 +14,6 @@ export type ConsultationAssistPanelProps = {
   className?: string;
 };
 
-const FRIENDLY_ASSIST_NOTICE =
-  "Ahora mismo no podemos conectar con el asistente inteligente. Te mostramos ideas generales de apoyo; en consulta siempre confirma con tu criterio clínico.";
-
 /**
  * Panel opcional: sugerencias asistivas (no sustituye juicio clínico).
  */
@@ -36,13 +33,13 @@ export function ConsultationAssistPanel({
     setSymptoms(initialSymptoms);
     setNotes(initialNotes);
   }, [initialChiefComplaint, initialSymptoms, initialNotes]);
-  const [assistNotice, setAssistNotice] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ConsultationAssistResponse | null>(null);
   const [usedFallback, setUsedFallback] = useState(false);
 
   const run = async () => {
     setLoading(true);
-    setAssistNotice(null);
+    setError(null);
     setResult(null);
     setUsedFallback(false);
     try {
@@ -52,8 +49,10 @@ export function ConsultationAssistPanel({
         notes: notes.trim() || undefined,
       });
       setResult(data);
-    } catch {
-      setAssistNotice(FRIENDLY_ASSIST_NOTICE);
+    } catch (e) {
+      const msg =
+        e instanceof Error ? e.message : "No se pudo obtener sugerencias";
+      setError(msg);
       setResult({ ...FALLBACK_CONSULTATION_ASSIST });
       setUsedFallback(true);
     } finally {
@@ -85,12 +84,6 @@ export function ConsultationAssistPanel({
         Solo apoyo informativo. No decisiones automáticas ni diagnósticos
         definitivos. Verificar siempre en consulta.
       </p>
-      {loading && (
-        <div className="ia-live-strip" role="status" aria-live="polite">
-          <span className="ia-live-strip__dot" aria-hidden />
-          Generando sugerencias en vivo…
-        </div>
-      )}
       <label style={{ display: "block", fontSize: 12, color: "#475569" }}>
         Motivo / queja principal
         <textarea
@@ -158,7 +151,6 @@ export function ConsultationAssistPanel({
       </label>
       <button
         type="button"
-        className="premium-tap"
         onClick={() => void run()}
         disabled={loading}
         style={{
@@ -175,22 +167,8 @@ export function ConsultationAssistPanel({
       >
         {loading ? "Generando…" : "Obtener sugerencias"}
       </button>
-      {assistNotice && (
-        <p
-          role="status"
-          style={{
-            marginTop: 10,
-            fontSize: 12,
-            color: "#1e40af",
-            background: "#eff6ff",
-            border: "1px solid #bfdbfe",
-            borderRadius: 8,
-            padding: "10px 12px",
-            lineHeight: 1.45,
-          }}
-        >
-          {assistNotice}
-        </p>
+      {error && (
+        <p style={{ color: "#b91c1c", fontSize: 12, marginTop: 10 }}>{error}</p>
       )}
       {usedFallback && (
         <p
@@ -204,12 +182,11 @@ export function ConsultationAssistPanel({
             padding: "8px 10px",
           }}
         >
-          Modo guía: sugerencias generales mientras restablecemos la conexión.
+          Mostrando sugerencias de demostración (el servidor no respondió).
         </p>
       )}
       {result && (
         <div
-          className="assist-result-enter"
           style={{
             marginTop: 16,
             paddingTop: 16,
