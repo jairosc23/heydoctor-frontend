@@ -16,3 +16,4 @@ export * from "./consultation-messages";
 export * from "./auth-session";
 export * from "./auth";
 export * from "./consents";
+export * from "./public-consultations";

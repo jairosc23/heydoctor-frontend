@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { WhatsAppPatientCTA } from "@/components/WhatsAppPatientCTA";
+import HomeQuickAccess from "@/components/HomeQuickAccess";
 import HeyDoctorLogo from "@/components/ui/HeyDoctorLogo";
 import Container from "@/components/ui/Container";
 import Button from "@/components/ui/Button";
@@ -109,7 +110,7 @@ export default function LandingPage() {
             <Button href="/login" variant="secondary" className="px-5 py-2 text-sm font-[family-name:Montserrat,sans-serif]">
               Iniciar Sesión
             </Button>
-            <Button href="/consultar" variant="primary" className="px-5 py-2 text-sm font-[family-name:Montserrat,sans-serif]">
+            <Button href="/consulta-rapida" variant="primary" className="px-5 py-2 text-sm font-[family-name:Montserrat,sans-serif]">
               Hablar con médico ahora
             </Button>
           </div>
@@ -152,6 +153,9 @@ export default function LandingPage() {
           </div>
         </Container>
       </section>
+
+      {/* ── ACCESO RÁPIDO (CTA guest + WhatsApp + QR) ── */}
+      <HomeQuickAccess />
 
       {whatsAppUrl ? <WhatsAppPatientCTA url={whatsAppUrl} /> : null}
 
@@ -330,7 +334,7 @@ export default function LandingPage() {
           </p>
           <div className="flex flex-wrap items-center justify-center gap-6">
             <Button
-              href="/consultar"
+              href="/consulta-rapida"
               variant="secondary"
               className="min-w-[200px] border-0 bg-white font-[family-name:Montserrat,sans-serif] text-gray-900 shadow-premium hover:bg-gray-100"
             >
