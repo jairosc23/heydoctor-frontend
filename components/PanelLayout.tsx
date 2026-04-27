@@ -11,9 +11,12 @@ const MENU = [
   { label: "Dashboard", href: "/dashboard" },
   { label: "Pacientes", href: "/panel/pacientes" },
   { label: "Consultas", href: "/panel/consultas" },
+  { label: "Prescripción", href: "/panel/prescripcion" },
+  { label: "Plantillas", href: "/panel/plantillas" },
   { label: "Agenda", href: "/panel/agenda" },
   { label: "Reportes", href: "/panel/reportes" },
   { label: "Facturación", href: "/panel/facturacion" },
+  { label: "Comunicaciones", href: "/panel/comunicaciones" },
   { label: "Configuración", href: "/panel/config" },
   { label: "Admin", href: "/panel/admin" },
 ];
@@ -22,13 +25,23 @@ const TITLES: Record<string, string> = {
   "/dashboard": "Dashboard",
   "/panel/pacientes": "Pacientes",
   "/panel/consultas": "Consultas",
+  "/panel/prescripcion": "Prescripción",
+  "/panel/plantillas": "Plantillas",
   "/panel/agenda": "Agenda",
   "/panel/reportes": "Reportes",
   "/panel/facturacion": "Facturación",
+  "/panel/comunicaciones": "Comunicaciones",
   "/panel/config": "Configuración",
   "/panel/admin": "Admin",
   "/panel": "Panel",
 };
+
+function isMenuActive(pathname: string | null, href: string): boolean {
+  if (!pathname) return false;
+  if (href === "/dashboard") return pathname === "/dashboard";
+  if (pathname === href) return true;
+  return pathname.startsWith(`${href}/`);
+}
 
 export default function PanelLayout({
   children,
@@ -38,7 +51,15 @@ export default function PanelLayout({
   title?: string;
 }) {
   const pathname = usePathname();
-  const displayTitle = title ?? TITLES[pathname || ""] ?? "Panel";
+  const displayTitle =
+    title ??
+    (pathname
+      ? TITLES[pathname] ??
+        (pathname.startsWith("/panel/consultas/")
+          ? "Consultas"
+          : undefined)
+      : undefined) ??
+    "Panel";
   const router = useRouter();
   const { isAuthenticated, logout, user, refreshUser } = useAuth();
   const [dark, setDark] = useState(false);
@@ -99,7 +120,7 @@ export default function PanelLayout({
             href={item.href}
             className={cn(
               "mb-2 rounded-xl px-4 py-2 text-[15px] font-medium text-gray-700 no-underline transition-all duration-200 hover:bg-gray-50",
-              pathname === item.href && "bg-primaryLight text-primary",
+              isMenuActive(pathname, item.href) && "bg-primaryLight text-primary",
             )}
           >
             {item.label}
