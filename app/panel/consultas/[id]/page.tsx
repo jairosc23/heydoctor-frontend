@@ -767,9 +767,10 @@ export default function ConsultationDetailPage() {
         </div>
       ) : null}
 
-      {/* Workspace: CIE-10, notas con IA, recetas, laboratorio | Asistencia IA, insights, chat */}
-      {consultation.patientId &&
-      (consultation.clinicId || ctxClinicId) ? (
+      {/* Workspace: CIE-10, notas con IA, recetas, laboratorio | Asistencia IA, insights, chat.
+          No exigir clinicId: si falta en la consulta y el contexto aún no cargó la clínica,
+          igual mostrar herramientas (CDSS/search toleran clinicId undefined). */}
+      {consultation.patientId ? (
         <div
           style={{
             display: "grid",
@@ -983,7 +984,7 @@ export default function ConsultationDetailPage() {
             }}
           >
             <span style={{ fontSize: 18 }}>&#x1F4F9;</span>
-            {startingCall ? "Conectando..." : "Iniciar videollamada"}
+            {startingCall ? "Conectando..." : "Iniciar Teleconsulta"}
           </button>
         </div>
       )}
