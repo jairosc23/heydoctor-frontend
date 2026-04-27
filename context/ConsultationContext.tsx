@@ -47,6 +47,14 @@ interface ConsultationContextValue {
   clearStartError: () => void;
   /** `true` si el médico ya firmó la versión vigente del consentimiento. */
   hasTelemedicineConsent: boolean | null;
+  /**
+   * Sincroniza la consulta activa cuando el médico abre `/panel/consultas/[id]`
+   * directamente (teleconsulta y contexto comparten el mismo id).
+   */
+  attachConsultationSession: (
+    consultationId: string | null,
+    patientId: string | null,
+  ) => void;
 }
 
 const ConsultationContext = createContext<ConsultationContextValue | undefined>(
@@ -275,6 +283,14 @@ export function ConsultationProvider({
     setClinicalDiagnosisText("");
   }, []);
 
+  const attachConsultationSession = useCallback(
+    (cid: string | null, pid: string | null) => {
+      if (cid) setConsultationId(cid);
+      if (pid) setPatientId(pid);
+    },
+    [],
+  );
+
   const refreshConsultation = useCallback(() => {
     if (!patientId) return;
     fetchConsultations({ patientId, status: "IN_PROGRESS" })
@@ -308,6 +324,7 @@ export function ConsultationProvider({
       startError,
       clearStartError,
       hasTelemedicineConsent,
+      attachConsultationSession,
     }),
     [
       consultationId,
@@ -326,6 +343,7 @@ export function ConsultationProvider({
       startError,
       clearStartError,
       hasTelemedicineConsent,
+      attachConsultationSession,
     ],
   );
 

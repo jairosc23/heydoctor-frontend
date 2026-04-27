@@ -10,6 +10,8 @@ import {
   startCall,
   type NestConsultation,
 } from "@/lib/services/consultations";
+import { createDiagnosis } from "@/lib/services";
+import { useConsultation } from "@/context/ConsultationContext";
 import {
   createPaymentSession,
   fetchConsultationPaymentStatus,
@@ -27,13 +29,19 @@ import {
 import { useConsultationPrice } from "@/lib/hooks/useConsultationPrice";
 import { ApiError } from "@/lib/heydoctor-api";
 import {
+  AiInsightsPanel,
   ClinicalRecordPanel,
   ConsultationActionBar,
+  ConsultationAssistPanel,
   ConsultationConsentCard,
+  LabOrdersPanel,
+  LiveAiNoteSuggestions,
   PrescriptionPanel,
   ShareConsultationDialog,
   SignatureCanvas,
+  SmartDiagnosisPicker,
 } from "@/components/clinical";
+import { ChatPanel } from "@/components/telemedicine/ChatPanel";
 import {
   deleteConsultation,
   downloadConsultationPdf,
@@ -102,6 +110,7 @@ export default function ConsultationDetailPage() {
   const searchParams = useSearchParams();
   const id = params.id as string;
   const consultationPrice = useConsultationPrice();
+  const { clinicId: ctxClinicId, attachConsultationSession } = useConsultation();
 
   const [consultation, setConsultation] = useState<NestConsultation | null>(
     null
@@ -124,7 +133,8 @@ export default function ConsultationDetailPage() {
   /** Estado del editor estructurado (ficha clínica + barra de acciones). */
   const [chiefComplaintDraft, setChiefComplaintDraft] = useState("");
   const [editMode, setEditMode] = useState(true);
-  const [showPrescription, setShowPrescription] = useState(false);
+  const [diagnosisCode, setDiagnosisCode] = useState("");
+  const [diagnosisError, setDiagnosisError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState({
     invoice: false,
     pdf: false,
@@ -177,6 +187,13 @@ export default function ConsultationDetailPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    const cid = consultation?.id;
+    const pid = consultation?.patientId;
+    if (!cid || !pid) return;
+    attachConsultationSession(cid, pid);
+  }, [consultation?.id, consultation?.patientId, attachConsultationSession]);
 
   useEffect(() => {
     if (paymentResult !== "success" && paymentResult !== "mock") {
@@ -300,7 +317,32 @@ export default function ConsultationDetailPage() {
       setSaveMsg(
         err instanceof Error ? err.message : "Error al iniciar videollamada"
       );
+    } finally {
       setStartingCall(false);
+    }
+  }
+
+  async function handleDiagnosisConfirm(item: {
+    code: string;
+    description: string;
+    cie10CodeId?: string;
+  }) {
+    setDiagnosisCode(item.code);
+    setDiagnosis(`${item.code} - ${item.description}`);
+    setDiagnosisError(null);
+    try {
+      await createDiagnosis({
+        consultationId: id,
+        cie10CodeId: item.cie10CodeId,
+        diagnostic_date: new Date().toISOString(),
+        diagnosis_details: `${item.code} - ${item.description}`,
+      });
+    } catch (e) {
+      setDiagnosisError(
+        e instanceof Error
+          ? e.message
+          : "No se pudo guardar el diagnóstico. Reintenta.",
+      );
     }
   }
 
@@ -371,13 +413,9 @@ export default function ConsultationDetailPage() {
   }
 
   function handleOpenPrescription() {
-    setShowPrescription((v) => !v);
-    if (typeof window !== "undefined") {
-      window.setTimeout(() => {
-        const el = document.getElementById("prescription-section");
-        el?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 50);
-    }
+    document
+      .getElementById("prescription-workspace")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   async function handleGenerateInvoice() {
@@ -729,7 +767,119 @@ export default function ConsultationDetailPage() {
         </div>
       ) : null}
 
-      {/* Ficha cl\u00ednica estructurada (motivo, HEA, revisi\u00f3n por sistemas) */}
+      {/* Workspace: CIE-10, notas con IA, recetas, laboratorio | Asistencia IA, insights, chat */}
+      {consultation.patientId &&
+      (consultation.clinicId || ctxClinicId) ? (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns:
+              "repeat(auto-fit, minmax(min(100%, 320px), 1fr))",
+            gap: 24,
+            marginBottom: 24,
+            width: "100%",
+            maxWidth: "100%",
+            boxSizing: "border-box",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 20,
+              minWidth: 0,
+            }}
+          >
+            <div
+              id="diagnosis-workspace"
+              style={{
+                background: "white",
+                padding: 20,
+                borderRadius: 12,
+                boxShadow: "0 2px 10px rgba(0,0,0,0.06)",
+              }}
+            >
+              <h3 style={{ marginBottom: 12, fontSize: 16 }}>Diagnóstico</h3>
+              <SmartDiagnosisPicker
+                value={diagnosis}
+                onChange={(item) =>
+                  setDiagnosis(`${item.code} - ${item.description}`)
+                }
+                onConfirm={handleDiagnosisConfirm}
+                clinicId={consultation.clinicId ?? ctxClinicId ?? null}
+              />
+              {diagnosisError ? (
+                <p
+                  role="alert"
+                  style={{
+                    marginTop: 8,
+                    color: "#b91c1c",
+                    background: "#fef2f2",
+                    border: "1px solid #fecaca",
+                    borderRadius: 8,
+                    padding: "6px 10px",
+                    fontSize: 13,
+                  }}
+                >
+                  {diagnosisError}
+                </p>
+              ) : null}
+            </div>
+            <div
+              style={{
+                background: "white",
+                padding: 20,
+                borderRadius: 12,
+                boxShadow: "0 2px 10px rgba(0,0,0,0.06)",
+              }}
+            >
+              <h3 style={{ marginBottom: 12, fontSize: 16 }}>Notas de consulta</h3>
+              <LiveAiNoteSuggestions
+                notes={notes}
+                setNotes={setNotes}
+                diagnosisContext={diagnosis}
+                patientAge={undefined}
+                patientSex={undefined}
+              />
+            </div>
+            <div id="prescription-workspace">
+              <PrescriptionPanel
+                patientId={consultation.patientId}
+                consultationId={id}
+                diagnosisCode={
+                  diagnosisCode || diagnosis || undefined
+                }
+              />
+            </div>
+            <LabOrdersPanel
+              patientId={consultation.patientId}
+              consultationId={id}
+              diagnosisCode={diagnosisCode || diagnosis || undefined}
+            />
+          </div>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 20,
+              minWidth: 0,
+            }}
+          >
+            <ConsultationAssistPanel
+              initialChiefComplaint={chiefComplaintDraft}
+              initialSymptoms=""
+              initialNotes={notes}
+            />
+            <AiInsightsPanel
+              patientId={consultation.patientId}
+              consultationId={id}
+            />
+            <ChatPanel consultationId={id} sender="doctor" />
+          </div>
+        </div>
+      ) : null}
+
+      {/* Ficha clínica estructurada (motivo, HEA, revisión por sistemas) */}
       <div id="clinical-record-section" style={{ marginBottom: 20 }}>
         <ClinicalRecordPanel
           consultationId={id}
@@ -972,17 +1122,6 @@ export default function ConsultationDetailPage() {
           )}
         </div>
       </div>
-
-      {/* Prescription panel (toggle desde la action bar) */}
-      {showPrescription && consultation.patientId ? (
-        <div id="prescription-section" style={{ marginBottom: 20 }}>
-          <PrescriptionPanel
-            patientId={consultation.patientId}
-            consultationId={id}
-            diagnosisCode={diagnosis || undefined}
-          />
-        </div>
-      ) : null}
 
       {/* Signature section */}
       <div

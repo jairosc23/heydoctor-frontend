@@ -13,12 +13,7 @@ export default function TeleconsultaPanelPage() {
   const params = useParams();
   const router = useRouter();
   const consultationId = params?.id as string;
-  const {
-    consultationId: ctxConsultationId,
-    doctorId,
-    patientId,
-    isLoading: ctxBootLoading,
-  } = useConsultation();
+  const { doctorId, isLoading: ctxBootLoading } = useConsultation();
   const isMobile = useIsMobile();
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
@@ -44,14 +39,14 @@ export default function TeleconsultaPanelPage() {
     setLoading(true);
 
     void fetchConsultation(consultationId)
-      .then((data) => {
+      .then(() => {
         if (cancelled) return;
-        const c = data as { doctorId?: string; patientId?: string };
-        const isDoctor = Boolean(doctorId && c.doctorId === doctorId);
-        const isPatient = Boolean(patientId && c.patientId === patientId);
-        const fromPanelContext =
-          Boolean(ctxConsultationId && ctxConsultationId === consultationId);
-        setAllowed(isDoctor || isPatient || fromPanelContext);
+        /**
+         * Si GET /consultations/:id responde 200, el backend ya validó sesión
+         * y pertenencia a la clínica. Evita falsos negativos por carrera de
+         * `doctorId` en el contexto o consulta abierta sin `startConsultation`.
+         */
+        setAllowed(true);
       })
       .catch(() => {
         if (!cancelled) setAllowed(false);
@@ -63,7 +58,7 @@ export default function TeleconsultaPanelPage() {
     return () => {
       cancelled = true;
     };
-  }, [consultationId, doctorId, patientId, ctxConsultationId, ctxBootLoading]);
+  }, [consultationId, ctxBootLoading]);
 
   if (loading) {
     return (
