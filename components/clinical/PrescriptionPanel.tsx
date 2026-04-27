@@ -6,6 +6,7 @@ import {
   createPrescription,
   suggestMedications,
 } from "@/lib/services";
+import { FALLBACK_MEDICATIONS } from "@/lib/clinical-fallbacks";
 
 interface PrescriptionPanelProps {
   patientId: string;
@@ -24,6 +25,7 @@ export function PrescriptionPanel({
 }: PrescriptionPanelProps) {
   const [prescriptions, setPrescriptions] = useState<unknown[]>([]);
   const [suggestedMeds, setSuggestedMeds] = useState<string[]>([]);
+  const [suggestionsAreFallback, setSuggestionsAreFallback] = useState(false);
   const [loading, setLoading] = useState(true);
   const [suggestLoading, setSuggestLoading] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -65,13 +67,35 @@ export function PrescriptionPanel({
 
   useEffect(() => {
     if (!diagnosisCode) {
-      setSuggestedMeds([]);
+      setSuggestedMeds(FALLBACK_MEDICATIONS);
+      setSuggestionsAreFallback(true);
       return;
     }
     setSuggestLoading(true);
+    setSuggestionsAreFallback(false);
     suggestMedications(diagnosisCode)
-      .then(setSuggestedMeds)
-      .catch(() => setSuggestedMeds([]))
+      .then((list) => {
+        if (process.env.NODE_ENV === "development") {
+          console.debug("[heydoctor][prescriptions] sugerencias", {
+            diagnosisCode,
+            count: list?.length ?? 0,
+          });
+        }
+        if (Array.isArray(list) && list.length > 0) {
+          setSuggestedMeds(list);
+          setSuggestionsAreFallback(false);
+        } else {
+          setSuggestedMeds(FALLBACK_MEDICATIONS);
+          setSuggestionsAreFallback(true);
+        }
+      })
+      .catch((e) => {
+        if (process.env.NODE_ENV === "development") {
+          console.error("[heydoctor][prescriptions] sugerencias falló", e);
+        }
+        setSuggestedMeds(FALLBACK_MEDICATIONS);
+        setSuggestionsAreFallback(true);
+      })
       .finally(() => setSuggestLoading(false));
   }, [diagnosisCode]);
 
@@ -159,8 +183,16 @@ export function PrescriptionPanel({
           <div className="space-y-2">
             {suggestedMeds.length > 0 && (
               <div>
-                <h4 className="text-xs font-medium text-gray-600 mb-1">
+                <h4 className="text-xs font-medium text-gray-600 mb-1 flex items-center gap-1">
                   Sugeridos {diagnosisCode ? "(por diagnóstico)" : ""}
+                  {suggestionsAreFallback && (
+                    <span
+                      className="text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-800 rounded font-normal"
+                      title="Sugerencias de muestra mientras el catálogo backend no está disponible."
+                    >
+                      demo
+                    </span>
+                  )}
                 </h4>
                 <div className="flex flex-wrap gap-1">
                   {suggestedMeds.slice(0, 6).map((m, i) => (

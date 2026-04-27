@@ -78,6 +78,14 @@ export const VideoCall = forwardRef<
   const [error, setError] = useState<string | null>(null);
   const [mediaReady, setMediaReady] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  /**
+   * `isFullscreen` activa el layout fullscreen (mismo estilo que móvil) en
+   * cualquier breakpoint. En móvil el layout ya es fullscreen por defecto;
+   * el toggle solo controla la visibilidad de los controles flotantes
+   * (vista limpia ↔ vista con controles).
+   */
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [mobileControlsVisible, setMobileControlsVisible] = useState(true);
 
   const {
     localStream,
@@ -357,6 +365,24 @@ export const VideoCall = forwardRef<
     onEndCall();
   };
 
+  /**
+   * Doble click/tap en el video remoto: en móvil alterna la visibilidad de los
+   * controles flotantes (vista inmersiva vs vista con controles). En desktop
+   * alterna el modo fullscreen.
+   */
+  const lastTapRef = useRef<number>(0);
+  const handleRemoteTap = useCallback(() => {
+    const now = Date.now();
+    const isDoubleTap = now - lastTapRef.current < 320;
+    lastTapRef.current = now;
+    if (!isDoubleTap) return;
+    if (isMobile) {
+      setMobileControlsVisible((v) => !v);
+    } else {
+      setIsFullscreen((v) => !v);
+    }
+  }, [isMobile]);
+
   if (!mediaReady && error) {
     return (
       <div style={{ padding: 24, color: "#b91c1c" }}>
@@ -368,48 +394,73 @@ export const VideoCall = forwardRef<
     );
   }
 
-  if (isMobile) {
-    return (
-      <div
-        data-call-recording={isRecording ? "true" : "false"}
-        data-call-variant="mobile"
-        style={mobileShellStyle}
-        role="dialog"
-        aria-label="Videollamada con paciente"
-      >
+  /**
+   * Layout fullscreen reutilizable: se usa siempre en móvil y también en
+   * desktop cuando `isFullscreen` está activo. En móvil + vista inmersiva
+   * (`mobileControlsVisible === false`), ocultamos los controles para una
+   * experiencia tipo Meet/WhatsApp.
+   */
+  const showOverlayControls = isMobile ? mobileControlsVisible : true;
+  const renderFullscreenLayout = () => (
+    <div
+      data-call-recording={isRecording ? "true" : "false"}
+      data-call-variant={isMobile ? "mobile" : "desktop-fullscreen"}
+      style={mobileShellStyle}
+      role="dialog"
+      aria-label="Videollamada con paciente"
+    >
+      <video
+        ref={remoteVideoRef}
+        autoPlay
+        playsInline
+        onClick={handleRemoteTap}
+        onDoubleClick={() => {
+          if (!isMobile) setIsFullscreen((v) => !v);
+        }}
+        style={mobileRemoteVideoStyle}
+      />
+
+      <div style={mobileSelfViewStyle}>
         <video
-          ref={remoteVideoRef}
+          ref={localVideoRef}
           autoPlay
           playsInline
-          style={mobileRemoteVideoStyle}
+          muted
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            transform: "scaleX(-1)",
+          }}
         />
+      </div>
 
-        <div style={mobileSelfViewStyle}>
-          <video
-            ref={localVideoRef}
-            autoPlay
-            playsInline
-            muted
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              transform: "scaleX(-1)",
-            }}
-          />
-        </div>
-
+      {showOverlayControls && (
         <div style={mobileTopBarStyle}>
           <span style={mobileStatusPillStyle}>{status}</span>
           <ConnectionQualityBadge quality={connectionQuality} showWhenIdle />
+          {!isMobile && (
+            <button
+              type="button"
+              onClick={() => setIsFullscreen(false)}
+              aria-label="Salir de pantalla completa"
+              style={fullscreenCloseBtnStyle}
+            >
+              <span aria-hidden style={{ fontSize: 16, fontWeight: 700 }}>
+                ×
+              </span>
+            </button>
+          )}
         </div>
+      )}
 
-        {error && mediaReady && (
-          <div style={mobileErrorBannerStyle} role="alert">
-            {error}
-          </div>
-        )}
+      {error && mediaReady && (
+        <div style={mobileErrorBannerStyle} role="alert">
+          {error}
+        </div>
+      )}
 
+      {showOverlayControls && (
         <div style={mobileControlsBarStyle}>
           <button
             type="button"
@@ -441,19 +492,42 @@ export const VideoCall = forwardRef<
               {camOn ? "📷" : "📵"}
             </span>
           </button>
+          {!isMobile && (
+            <button
+              type="button"
+              onClick={() => setIsFullscreen(false)}
+              aria-label="Salir de pantalla completa"
+              style={mobileCircleBtnStyle}
+            >
+              <span aria-hidden style={{ fontSize: 22 }}>
+                ⤡
+              </span>
+            </button>
+          )}
           <button
             type="button"
             onClick={handleEnd}
             aria-label="Finalizar llamada"
             style={mobileHangupBtnStyle}
           >
-            <span aria-hidden style={{ fontSize: 26, transform: "rotate(135deg)", display: "inline-block" }}>
+            <span
+              aria-hidden
+              style={{
+                fontSize: 26,
+                transform: "rotate(135deg)",
+                display: "inline-block",
+              }}
+            >
               📞
             </span>
           </button>
         </div>
-      </div>
-    );
+      )}
+    </div>
+  );
+
+  if (isMobile || isFullscreen) {
+    return renderFullscreenLayout();
   }
 
   return (
@@ -476,11 +550,13 @@ export const VideoCall = forwardRef<
           ref={remoteVideoRef}
           autoPlay
           playsInline
+          onDoubleClick={() => setIsFullscreen(true)}
           style={{
             width: "100%",
             height: "100%",
             objectFit: "cover",
             background: "#000",
+            cursor: "zoom-in",
           }}
         />
         <div
@@ -580,6 +656,14 @@ export const VideoCall = forwardRef<
           aria-pressed={!camOn}
         >
           {camOn ? "Apagar cámara" : "Encender cámara"}
+        </button>
+        <button
+          type="button"
+          onClick={() => setIsFullscreen(true)}
+          aria-label="Activar pantalla completa"
+          style={btnStyle}
+        >
+          ⛶ Pantalla completa
         </button>
         <button
           type="button"
@@ -736,4 +820,19 @@ const mobileHangupBtnStyle: React.CSSProperties = {
   height: 68,
   background: "#dc2626",
   boxShadow: "0 6px 20px rgba(220,38,38,0.55)",
+};
+
+const fullscreenCloseBtnStyle: React.CSSProperties = {
+  pointerEvents: "auto",
+  width: 32,
+  height: 32,
+  borderRadius: "50%",
+  border: "none",
+  background: "rgba(15,23,42,0.7)",
+  color: "#fff",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  cursor: "pointer",
+  marginLeft: "auto",
 };
