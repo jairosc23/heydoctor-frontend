@@ -17,6 +17,12 @@ export interface TeleconsultaVideoSessionProps {
   consultationId: string;
   isDoctor?: boolean;
   onEndCall: () => void;
+  /**
+   * `"guest"` salta la verificación de consent del médico (que requiere
+   * sesión autenticada). El consent del paciente invitado ya quedó registrado
+   * al crear la consulta vía `/api/public/consultations`.
+   */
+  mode?: "auth" | "guest";
 }
 
 /**
@@ -27,20 +33,30 @@ export function TeleconsultaVideoSession({
   roomId,
   consultationId,
   onEndCall,
+  mode = "auth",
 }: TeleconsultaVideoSessionProps) {
   const searchParams = useSearchParams();
   const accessTokenPending = !!searchParams.get("access_token")?.trim();
-  const [authReady, setAuthReady] = useState(false);
-  const [consentLoading, setConsentLoading] = useState(true);
+  const isGuestMode = mode === "guest";
+  const [authReady, setAuthReady] = useState(isGuestMode);
+  const [consentLoading, setConsentLoading] = useState(!isGuestMode);
   const [consentBootstrapError, setConsentBootstrapError] = useState<
     string | null
   >(null);
-  const [hasConsent, setHasConsent] = useState(false);
+  const [hasConsent, setHasConsent] = useState(isGuestMode);
   const [consentRetryKey, setConsentRetryKey] = useState(0);
   const [consentSubmitting, setConsentSubmitting] = useState(false);
   const [consentError, setConsentError] = useState<string | null>(null);
 
   useEffect(() => {
+    /**
+     * En modo guest no hay sesión que refrescar — entramos directo al video.
+     * El consent ya quedó registrado al crear la consulta pública.
+     */
+    if (isGuestMode) {
+      setAuthReady(true);
+      return;
+    }
     if (accessTokenPending) {
       setAuthReady(false);
       return;
@@ -55,9 +71,10 @@ export function TeleconsultaVideoSession({
     return () => {
       cancelled = true;
     };
-  }, [accessTokenPending]);
+  }, [accessTokenPending, isGuestMode]);
 
   useEffect(() => {
+    if (isGuestMode) return;
     if (!authReady) return;
 
     let cancelled = false;
@@ -86,7 +103,7 @@ export function TeleconsultaVideoSession({
     return () => {
       cancelled = true;
     };
-  }, [authReady, consentRetryKey]);
+  }, [authReady, consentRetryKey, isGuestMode]);
 
   if (!authReady) {
     return (

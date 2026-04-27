@@ -6,6 +6,7 @@ import {
   createLabOrder,
   suggestLabTests,
 } from "@/lib/services";
+import { FALLBACK_LAB_TESTS } from "@/lib/clinical-fallbacks";
 
 interface LabOrdersPanelProps {
   patientId: string;
@@ -24,6 +25,7 @@ export function LabOrdersPanel({
 }: LabOrdersPanelProps) {
   const [orders, setOrders] = useState<unknown[]>([]);
   const [suggestedTests, setSuggestedTests] = useState<string[]>([]);
+  const [suggestionsAreFallback, setSuggestionsAreFallback] = useState(false);
   const [loading, setLoading] = useState(true);
   const [suggestLoading, setSuggestLoading] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -63,13 +65,35 @@ export function LabOrdersPanel({
 
   useEffect(() => {
     if (!diagnosisCode) {
-      setSuggestedTests([]);
+      setSuggestedTests(FALLBACK_LAB_TESTS);
+      setSuggestionsAreFallback(true);
       return;
     }
     setSuggestLoading(true);
+    setSuggestionsAreFallback(false);
     suggestLabTests(diagnosisCode)
-      .then(setSuggestedTests)
-      .catch(() => setSuggestedTests([]))
+      .then((list) => {
+        if (process.env.NODE_ENV === "development") {
+          console.debug("[heydoctor][lab-orders] sugerencias", {
+            diagnosisCode,
+            count: list?.length ?? 0,
+          });
+        }
+        if (Array.isArray(list) && list.length > 0) {
+          setSuggestedTests(list);
+          setSuggestionsAreFallback(false);
+        } else {
+          setSuggestedTests(FALLBACK_LAB_TESTS);
+          setSuggestionsAreFallback(true);
+        }
+      })
+      .catch((e) => {
+        if (process.env.NODE_ENV === "development") {
+          console.error("[heydoctor][lab-orders] sugerencias falló", e);
+        }
+        setSuggestedTests(FALLBACK_LAB_TESTS);
+        setSuggestionsAreFallback(true);
+      })
       .finally(() => setSuggestLoading(false));
   }, [diagnosisCode]);
 
@@ -150,8 +174,16 @@ export function LabOrdersPanel({
           <div className="space-y-2">
             {suggestedTests.length > 0 && (
               <div>
-                <h4 className="text-xs font-medium text-gray-600 mb-1">
+                <h4 className="text-xs font-medium text-gray-600 mb-1 flex items-center gap-1">
                   Sugeridos {diagnosisCode ? "(por diagnóstico)" : ""}
+                  {suggestionsAreFallback && (
+                    <span
+                      className="text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-800 rounded font-normal"
+                      title="Sugerencias de muestra mientras el catálogo backend no está disponible."
+                    >
+                      demo
+                    </span>
+                  )}
                 </h4>
                 <div className="flex flex-wrap gap-1">
                   {suggestedTests.slice(0, 6).map((t, i) => (

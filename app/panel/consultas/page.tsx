@@ -21,6 +21,7 @@ import {
   ConsultationAssistPanel,
   ShareConsultationDialog,
 } from "@/components/clinical";
+import { ChatPanel } from "@/components/telemedicine/ChatPanel";
 import {
   formatConsultationPrice,
   URGENCY_AVAILABLE_NOW,
@@ -516,6 +517,9 @@ function ConsultasContent() {
               patientId={patientId}
               consultationId={consultationId}
             />
+            {consultationId && (
+              <ChatPanel consultationId={consultationId} sender="doctor" />
+            )}
           </div>
         </div>
       )}

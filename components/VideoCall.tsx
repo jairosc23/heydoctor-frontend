@@ -78,6 +78,17 @@ export const VideoCall = forwardRef<
   const [error, setError] = useState<string | null>(null);
   const [mediaReady, setMediaReady] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  /**
+   * `isFullscreen` activa el layout fullscreen (mismo estilo que móvil) en
+   * cualquier breakpoint. En móvil el layout ya es fullscreen por defecto.
+   *
+   * `controlsVisible` controla la visibilidad de los overlays flotantes en
+   * cualquier modo fullscreen (móvil o desktop): tap simple lo alterna para
+   * crear modo inmersivo tipo Meet/WhatsApp. Las transiciones se hacen con
+   * opacity + transform en CSS, no desmontando los nodos (UX más fluida).
+   */
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [controlsVisible, setControlsVisible] = useState(true);
 
   const {
     localStream,
@@ -247,6 +258,39 @@ export const VideoCall = forwardRef<
     };
   }, [isMobile]);
 
+  /**
+   * Fallback robusto para Safari iOS < 15.4 (sin soporte de `dvh`) y para
+   * recalcular tras rotación / aparición del teclado virtual: actualiza la
+   * variable CSS `--app-vh` con `window.innerHeight` real. El layout móvil
+   * usa `var(--app-vh, 100dvh)` con fallback final a `100vh`.
+   */
+  useEffect(() => {
+    if (!isMobile || typeof window === "undefined") return;
+
+    const root = document.documentElement;
+    const previous = root.style.getPropertyValue("--app-vh");
+
+    const setVh = () => {
+      root.style.setProperty("--app-vh", `${window.innerHeight}px`);
+    };
+
+    setVh();
+    window.addEventListener("resize", setVh);
+    window.addEventListener("orientationchange", setVh);
+    document.addEventListener("visibilitychange", setVh);
+
+    return () => {
+      window.removeEventListener("resize", setVh);
+      window.removeEventListener("orientationchange", setVh);
+      document.removeEventListener("visibilitychange", setVh);
+      if (previous) {
+        root.style.setProperty("--app-vh", previous);
+      } else {
+        root.style.removeProperty("--app-vh");
+      }
+    };
+  }, [isMobile]);
+
   useEffect(() => {
     localStreamRef.current = localStream;
     const el = localVideoRef.current;
@@ -324,6 +368,47 @@ export const VideoCall = forwardRef<
     onEndCall();
   };
 
+  /**
+   * Gesture handling sobre el video remoto en modo fullscreen:
+   * - **Tap/click simple** → alterna la visibilidad de los overlays
+   *   (modo inmersivo: vista limpia ↔ vista con controles).
+   * - **Doble tap/click** → alterna fullscreen (entrar/salir).
+   *
+   * Usamos un `setTimeout` con ventana de 260 ms: el primer tap arma el
+   * timer, un segundo tap dentro de la ventana lo cancela y dispara el
+   * fullscreen toggle. La latencia perceptible (~260 ms) es estándar y
+   * preferible a disparar simple+doble en cascada.
+   */
+  const tapTimeoutRef = useRef<number | null>(null);
+  const clearTapTimeout = () => {
+    if (tapTimeoutRef.current !== null) {
+      window.clearTimeout(tapTimeoutRef.current);
+      tapTimeoutRef.current = null;
+    }
+  };
+  useEffect(() => () => clearTapTimeout(), []);
+
+  /**
+   * Al entrar/salir de fullscreen, garantizamos que los controles aparezcan:
+   * el usuario probablemente quiere verlos para orientarse, y siempre puede
+   * volver a inmersivo con un tap.
+   */
+  useEffect(() => {
+    setControlsVisible(true);
+  }, [isFullscreen]);
+
+  const handleRemoteTap = useCallback(() => {
+    if (tapTimeoutRef.current !== null) {
+      clearTapTimeout();
+      setIsFullscreen((v) => !v);
+      return;
+    }
+    tapTimeoutRef.current = window.setTimeout(() => {
+      tapTimeoutRef.current = null;
+      setControlsVisible((v) => !v);
+    }, 260);
+  }, []);
+
   if (!mediaReady && error) {
     return (
       <div style={{ padding: 24, color: "#b91c1c" }}>
@@ -335,92 +420,178 @@ export const VideoCall = forwardRef<
     );
   }
 
-  if (isMobile) {
-    return (
-      <div
-        data-call-recording={isRecording ? "true" : "false"}
-        data-call-variant="mobile"
-        style={mobileShellStyle}
-        role="dialog"
-        aria-label="Videollamada con paciente"
-      >
+  /**
+   * Layout fullscreen reutilizable: se usa siempre en móvil y también en
+   * desktop cuando `isFullscreen` está activo. Los overlays se mantienen
+   * montados y se ocultan vía opacity/transform/pointer-events para que la
+   * transición sea fluida (220 ms ease) en cualquier breakpoint.
+   */
+  const overlayHiddenStyle: React.CSSProperties = controlsVisible
+    ? { opacity: 1, pointerEvents: "auto" }
+    : { opacity: 0, pointerEvents: "none" };
+  const topBarTransform = controlsVisible
+    ? "translateY(0)"
+    : "translateY(-8px)";
+  const bottomBarTransform = controlsVisible
+    ? "translateY(0)"
+    : "translateY(12px)";
+
+  const renderFullscreenLayout = () => (
+    <div
+      data-call-recording={isRecording ? "true" : "false"}
+      data-call-variant={isMobile ? "mobile" : "desktop-fullscreen"}
+      data-controls-visible={controlsVisible ? "true" : "false"}
+      style={mobileShellStyle}
+      role="dialog"
+      aria-label="Videollamada"
+    >
+      <video
+        ref={remoteVideoRef}
+        autoPlay
+        playsInline
+        onClick={handleRemoteTap}
+        style={mobileRemoteVideoStyle}
+      />
+
+      <div style={mobileSelfViewStyle}>
         <video
-          ref={remoteVideoRef}
+          ref={localVideoRef}
           autoPlay
           playsInline
-          style={mobileRemoteVideoStyle}
+          muted
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            transform: "scaleX(-1)",
+          }}
         />
-
-        <div style={mobileSelfViewStyle}>
-          <video
-            ref={localVideoRef}
-            autoPlay
-            playsInline
-            muted
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              transform: "scaleX(-1)",
-            }}
-          />
-        </div>
-
-        <div style={mobileTopBarStyle}>
-          <span style={mobileStatusPillStyle}>{status}</span>
-          <ConnectionQualityBadge quality={connectionQuality} showWhenIdle />
-        </div>
-
-        {error && mediaReady && (
-          <div style={mobileErrorBannerStyle} role="alert">
-            {error}
-          </div>
-        )}
-
-        <div style={mobileControlsBarStyle}>
-          <button
-            type="button"
-            onClick={toggleMic}
-            aria-pressed={!micOn}
-            aria-label={micOn ? "Silenciar micrófono" : "Activar micrófono"}
-            style={
-              micOn
-                ? mobileCircleBtnStyle
-                : { ...mobileCircleBtnStyle, ...mobileCircleBtnOffStyle }
-            }
-          >
-            <span aria-hidden style={{ fontSize: 22 }}>
-              {micOn ? "🎤" : "🔇"}
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={toggleCam}
-            aria-pressed={!camOn}
-            aria-label={camOn ? "Apagar cámara" : "Encender cámara"}
-            style={
-              camOn
-                ? mobileCircleBtnStyle
-                : { ...mobileCircleBtnStyle, ...mobileCircleBtnOffStyle }
-            }
-          >
-            <span aria-hidden style={{ fontSize: 22 }}>
-              {camOn ? "📷" : "📵"}
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={handleEnd}
-            aria-label="Finalizar llamada"
-            style={mobileHangupBtnStyle}
-          >
-            <span aria-hidden style={{ fontSize: 26, transform: "rotate(135deg)", display: "inline-block" }}>
-              📞
-            </span>
-          </button>
-        </div>
       </div>
-    );
+
+      <div
+        style={{
+          ...mobileTopBarStyle,
+          ...overlayHiddenStyle,
+          transform: topBarTransform,
+        }}
+        aria-hidden={!controlsVisible}
+      >
+        <span style={mobileStatusPillStyle}>{status}</span>
+        <ConnectionQualityBadge quality={connectionQuality} showWhenIdle />
+        {!isMobile && (
+          <button
+            type="button"
+            onClick={() => setIsFullscreen(false)}
+            aria-label="Salir de pantalla completa"
+            style={fullscreenCloseBtnStyle}
+          >
+            <span aria-hidden style={{ fontSize: 16, fontWeight: 700 }}>
+              ×
+            </span>
+          </button>
+        )}
+      </div>
+
+      {error && mediaReady && (
+        <div style={mobileErrorBannerStyle} role="alert">
+          {error}
+        </div>
+      )}
+
+      <div
+        style={{
+          ...mobileControlsBarStyle,
+          ...overlayHiddenStyle,
+          transform: bottomBarTransform,
+        }}
+        aria-hidden={!controlsVisible}
+      >
+        <button
+          type="button"
+          onClick={toggleMic}
+          aria-pressed={!micOn}
+          aria-label={micOn ? "Silenciar micrófono" : "Activar micrófono"}
+          tabIndex={controlsVisible ? 0 : -1}
+          style={
+            micOn
+              ? mobileCircleBtnStyle
+              : { ...mobileCircleBtnStyle, ...mobileCircleBtnOffStyle }
+          }
+        >
+          <span aria-hidden style={{ fontSize: 22 }}>
+            {micOn ? "🎤" : "🔇"}
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={toggleCam}
+          aria-pressed={!camOn}
+          aria-label={camOn ? "Apagar cámara" : "Encender cámara"}
+          tabIndex={controlsVisible ? 0 : -1}
+          style={
+            camOn
+              ? mobileCircleBtnStyle
+              : { ...mobileCircleBtnStyle, ...mobileCircleBtnOffStyle }
+          }
+        >
+          <span aria-hidden style={{ fontSize: 22 }}>
+            {camOn ? "📷" : "📵"}
+          </span>
+        </button>
+        {!isMobile && (
+          <button
+            type="button"
+            onClick={() => setIsFullscreen(false)}
+            aria-label="Salir de pantalla completa"
+            tabIndex={controlsVisible ? 0 : -1}
+            style={mobileCircleBtnStyle}
+          >
+            <span aria-hidden style={{ fontSize: 22 }}>
+              ⤡
+            </span>
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={handleEnd}
+          aria-label="Finalizar llamada"
+          tabIndex={controlsVisible ? 0 : -1}
+          style={mobileHangupBtnStyle}
+        >
+          <span
+            aria-hidden
+            style={{
+              fontSize: 26,
+              transform: "rotate(135deg)",
+              display: "inline-block",
+            }}
+          >
+            📞
+          </span>
+        </button>
+      </div>
+
+      <span
+        aria-hidden
+        data-immersive-hint="true"
+        style={{
+          ...immersiveHintStyle,
+          opacity: controlsVisible ? 0 : 1,
+          /**
+           * Pequeño delay al aparecer para no competir con la transición
+           * de salida de los overlays; al volver, el hint debe desvanecer
+           * inmediatamente.
+           */
+          transitionDelay: controlsVisible ? "0ms" : "260ms",
+        }}
+      >
+        Toca para mostrar controles · doble toque para fullscreen
+      </span>
+    </div>
+  );
+
+  if (isMobile || isFullscreen) {
+    return renderFullscreenLayout();
   }
 
   return (
@@ -443,11 +614,13 @@ export const VideoCall = forwardRef<
           ref={remoteVideoRef}
           autoPlay
           playsInline
+          onDoubleClick={() => setIsFullscreen(true)}
           style={{
             width: "100%",
             height: "100%",
             objectFit: "cover",
             background: "#000",
+            cursor: "zoom-in",
           }}
         />
         <div
@@ -550,6 +723,14 @@ export const VideoCall = forwardRef<
         </button>
         <button
           type="button"
+          onClick={() => setIsFullscreen(true)}
+          aria-label="Activar pantalla completa"
+          style={btnStyle}
+        >
+          ⛶ Pantalla completa
+        </button>
+        <button
+          type="button"
           onClick={handleEnd}
           style={{
             ...btnStyle,
@@ -583,7 +764,15 @@ const mobileShellStyle: React.CSSProperties = {
   position: "fixed",
   inset: 0,
   width: "100vw",
-  height: "100dvh",
+  /**
+   * Cascada de fallbacks: en navegadores que no entiendan `var()` cae a `100vh`
+   * (Safari iOS < 15.4). En navegadores modernos `--app-vh` (recalculada por
+   * el efecto de `VideoCall`) gana, y si no se ha establecido todavía usan
+   * `100dvh`. El navegador descarta los valores que no entiende.
+   */
+  height: "100vh",
+  minHeight: "var(--app-vh, 100dvh)",
+  maxHeight: "var(--app-vh, 100dvh)",
   background: "#000",
   overflow: "hidden",
   zIndex: 50,
@@ -626,7 +815,13 @@ const mobileTopBarStyle: React.CSSProperties = {
   background:
     "linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 100%)",
   zIndex: 3,
-  pointerEvents: "none",
+  /**
+   * Transición de modo inmersivo. `pointer-events` se sobrescribe inline
+   * cuando los controles están ocultos. La barra siempre permite que el
+   * tap pase al video debajo (los botones internos sí reciben pointer).
+   */
+  transition: "opacity 220ms ease, transform 220ms ease",
+  willChange: "opacity, transform",
 };
 
 const mobileStatusPillStyle: React.CSSProperties = {
@@ -668,6 +863,24 @@ const mobileControlsBarStyle: React.CSSProperties = {
   background:
     "linear-gradient(to top, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0) 100%)",
   zIndex: 3,
+  transition: "opacity 220ms ease, transform 220ms ease",
+  willChange: "opacity, transform",
+};
+
+const immersiveHintStyle: React.CSSProperties = {
+  position: "absolute",
+  bottom: "max(env(safe-area-inset-bottom), 16px)",
+  left: "50%",
+  transform: "translateX(-50%)",
+  fontSize: 11,
+  color: "rgba(255,255,255,0.55)",
+  background: "rgba(0,0,0,0.35)",
+  padding: "5px 12px",
+  borderRadius: 999,
+  zIndex: 4,
+  pointerEvents: "none",
+  whiteSpace: "nowrap",
+  transition: "opacity 220ms ease",
 };
 
 const mobileCircleBtnStyle: React.CSSProperties = {
@@ -695,4 +908,19 @@ const mobileHangupBtnStyle: React.CSSProperties = {
   height: 68,
   background: "#dc2626",
   boxShadow: "0 6px 20px rgba(220,38,38,0.55)",
+};
+
+const fullscreenCloseBtnStyle: React.CSSProperties = {
+  pointerEvents: "auto",
+  width: 32,
+  height: 32,
+  borderRadius: "50%",
+  border: "none",
+  background: "rgba(15,23,42,0.7)",
+  color: "#fff",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  cursor: "pointer",
+  marginLeft: "auto",
 };
