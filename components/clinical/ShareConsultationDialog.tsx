@@ -14,6 +14,23 @@ interface ShareConsultationDialogProps {
 }
 
 /**
+ * Resuelve la URL pública para que el paciente abra la teleconsulta. Prefiere
+ * `NEXT_PUBLIC_APP_URL` (producción canónica, p.ej. `https://app.heydoctor.health`)
+ * y cae a `window.location.origin` si no está configurada o si estamos en SSR
+ * (que no debería ocurrir dentro de este componente, pero es defensivo).
+ */
+function resolveShareBaseUrl(): string {
+  const fromEnv = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (fromEnv) {
+    return fromEnv.replace(/\/+$/, "");
+  }
+  if (typeof window !== "undefined" && window.location?.origin) {
+    return window.location.origin;
+  }
+  return "";
+}
+
+/**
  * Diálogo para compartir el enlace de la teleconsulta con el paciente.
  *
  * - Calcula la URL pública del cliente sin depender de un endpoint backend:
@@ -35,9 +52,11 @@ export function ShareConsultationDialog({
 
   useEffect(() => {
     if (!open) return;
-    if (typeof window === "undefined") return;
-    const origin = window.location.origin || "";
-    setShareUrl(`${origin}/teleconsulta/${consultationId}`);
+    const base = resolveShareBaseUrl();
+    setShareUrl(`${base}/teleconsulta/${consultationId}`);
+    if (process.env.NODE_ENV === "development") {
+      console.debug("[heydoctor][share] base url", { base, consultationId });
+    }
   }, [open, consultationId]);
 
   useEffect(() => {

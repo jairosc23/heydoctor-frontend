@@ -247,6 +247,39 @@ export const VideoCall = forwardRef<
     };
   }, [isMobile]);
 
+  /**
+   * Fallback robusto para Safari iOS < 15.4 (sin soporte de `dvh`) y para
+   * recalcular tras rotación / aparición del teclado virtual: actualiza la
+   * variable CSS `--app-vh` con `window.innerHeight` real. El layout móvil
+   * usa `var(--app-vh, 100dvh)` con fallback final a `100vh`.
+   */
+  useEffect(() => {
+    if (!isMobile || typeof window === "undefined") return;
+
+    const root = document.documentElement;
+    const previous = root.style.getPropertyValue("--app-vh");
+
+    const setVh = () => {
+      root.style.setProperty("--app-vh", `${window.innerHeight}px`);
+    };
+
+    setVh();
+    window.addEventListener("resize", setVh);
+    window.addEventListener("orientationchange", setVh);
+    document.addEventListener("visibilitychange", setVh);
+
+    return () => {
+      window.removeEventListener("resize", setVh);
+      window.removeEventListener("orientationchange", setVh);
+      document.removeEventListener("visibilitychange", setVh);
+      if (previous) {
+        root.style.setProperty("--app-vh", previous);
+      } else {
+        root.style.removeProperty("--app-vh");
+      }
+    };
+  }, [isMobile]);
+
   useEffect(() => {
     localStreamRef.current = localStream;
     const el = localVideoRef.current;
@@ -583,7 +616,15 @@ const mobileShellStyle: React.CSSProperties = {
   position: "fixed",
   inset: 0,
   width: "100vw",
-  height: "100dvh",
+  /**
+   * Cascada de fallbacks: en navegadores que no entiendan `var()` cae a `100vh`
+   * (Safari iOS < 15.4). En navegadores modernos `--app-vh` (recalculada por
+   * el efecto de `VideoCall`) gana, y si no se ha establecido todavía usan
+   * `100dvh`. El navegador descarta los valores que no entiende.
+   */
+  height: "100vh",
+  minHeight: "var(--app-vh, 100dvh)",
+  maxHeight: "var(--app-vh, 100dvh)",
   background: "#000",
   overflow: "hidden",
   zIndex: 50,
