@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/react";
 import { AnalyticsProvider } from "@/components/AnalyticsProvider";
 import { CookieBanner } from "@/components/CookieBanner";
+import { GlobalWhatsAppFab } from "@/components/GlobalWhatsAppFab";
 import { Providers } from "@/components/Providers";
 import "./globals.css";
 
@@ -55,6 +56,7 @@ export default function RootLayout({
           <AnalyticsProvider>{children}</AnalyticsProvider>
         </Providers>
         <CookieBanner />
+        <GlobalWhatsAppFab />
         <Analytics />
       </body>
     </html>
