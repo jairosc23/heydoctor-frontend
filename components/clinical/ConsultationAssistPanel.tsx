@@ -5,6 +5,7 @@ import {
   requestConsultationAssist,
   type ConsultationAssistResponse,
 } from "@/lib/services/consultation-assist";
+import { FALLBACK_CONSULTATION_ASSIST } from "@/lib/clinical-fallbacks";
 
 export type ConsultationAssistPanelProps = {
   initialChiefComplaint?: string;
@@ -34,11 +35,13 @@ export function ConsultationAssistPanel({
   }, [initialChiefComplaint, initialSymptoms, initialNotes]);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ConsultationAssistResponse | null>(null);
+  const [usedFallback, setUsedFallback] = useState(false);
 
   const run = async () => {
     setLoading(true);
     setError(null);
     setResult(null);
+    setUsedFallback(false);
     try {
       const data = await requestConsultationAssist({
         chiefComplaint: chief.trim() || undefined,
@@ -47,9 +50,11 @@ export function ConsultationAssistPanel({
       });
       setResult(data);
     } catch (e) {
-      setError(
-        e instanceof Error ? e.message : "No se pudo obtener sugerencias"
-      );
+      const msg =
+        e instanceof Error ? e.message : "No se pudo obtener sugerencias";
+      setError(msg);
+      setResult({ ...FALLBACK_CONSULTATION_ASSIST });
+      setUsedFallback(true);
     } finally {
       setLoading(false);
     }
@@ -164,6 +169,21 @@ export function ConsultationAssistPanel({
       </button>
       {error && (
         <p style={{ color: "#b91c1c", fontSize: 12, marginTop: 10 }}>{error}</p>
+      )}
+      {usedFallback && (
+        <p
+          style={{
+            marginTop: 8,
+            fontSize: 11,
+            color: "#92400e",
+            background: "#fffbeb",
+            border: "1px solid #fde68a",
+            borderRadius: 8,
+            padding: "8px 10px",
+          }}
+        >
+          Mostrando sugerencias de demostración (el servidor no respondió).
+        </p>
       )}
       {result && (
         <div
