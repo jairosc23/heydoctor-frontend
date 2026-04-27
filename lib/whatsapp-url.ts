@@ -36,20 +36,3 @@ export function getWhatsAppBookingUrl(origin?: string): string | null {
   const text = encodeURIComponent(getWhatsAppMessageText(origin));
   return `https://wa.me/${digits}?text=${text}`;
 }
-
-/**
- * Abre WhatsApp con un texto libre (p. ej. enlace de teleconsulta para el paciente).
- * Requiere `NEXT_PUBLIC_WHATSAPP_NUMBER`. Devuelve `null` si no está configurado.
- */
-export function getWhatsAppUrlWithCustomMessage(message: string): string | null {
-  const raw = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.trim();
-  if (!raw) {
-    return null;
-  }
-  const digits = raw.replace(/\D/g, "");
-  if (digits.length < 8) {
-    return null;
-  }
-  const text = encodeURIComponent(message);
-  return `https://wa.me/${digits}?text=${text}`;
-}

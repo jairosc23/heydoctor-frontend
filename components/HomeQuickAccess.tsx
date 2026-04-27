@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
 import Container from "@/components/ui/Container";
-import { getWhatsAppBookingUrl } from "@/lib/whatsapp-url";
+import { buildConsultaRapidaUrl, getWhatsAppBookingUrl } from "@/lib/whatsapp-url";
 
 const FONT_HEADING = "Montserrat, sans-serif";
 const QR_SIZE = 180;
@@ -25,13 +25,18 @@ function resolveSiteUrl(): string {
 }
 
 export default function HomeQuickAccess() {
-  const whatsAppUrl = getWhatsAppBookingUrl();
+  const [whatsAppUrl, setWhatsAppUrl] = useState<string | null>(null);
   const siteUrl = resolveSiteUrl();
+  const qrTarget = buildConsultaRapidaUrl(siteUrl);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
 
   useEffect(() => {
+    setWhatsAppUrl(getWhatsAppBookingUrl(window.location.origin));
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
-    QRCode.toDataURL(siteUrl, {
+    QRCode.toDataURL(qrTarget, {
       width: QR_SIZE,
       margin: 2,
       color: { dark: "#0a4a4f", light: "#ffffff" },
@@ -46,10 +51,11 @@ export default function HomeQuickAccess() {
     return () => {
       cancelled = true;
     };
-  }, [siteUrl]);
+  }, [qrTarget]);
 
   return (
     <section
+      id="acceso-qr"
       aria-labelledby="quick-access-title"
       className="bg-gradient-to-br from-primaryLight/40 via-white to-primaryLight/30 py-16"
     >
@@ -64,9 +70,7 @@ export default function HomeQuickAccess() {
               className="mb-4 text-3xl font-bold leading-[1.1] tracking-tight text-gray-900 sm:text-[42px]"
               style={{ fontFamily: FONT_HEADING }}
             >
-              Médico online,
-              <br />
-              <span className="text-primary">ya mismo.</span>
+              Médico online en menos de 1 minuto
             </h2>
             <p className="mb-3 max-w-md text-lg font-semibold leading-snug text-gray-800">
               Sin cuenta. Sin descargas. Sin esperas.
@@ -140,7 +144,7 @@ export default function HomeQuickAccess() {
                     src={qrDataUrl}
                     width={QR_SIZE}
                     height={QR_SIZE}
-                    alt={`QR hacia ${siteUrl}`}
+                    alt={`Código QR: consulta rápida HeyDoctor`}
                     style={{ display: "block", borderRadius: 8 }}
                   />
                 ) : (
@@ -153,7 +157,9 @@ export default function HomeQuickAccess() {
             <p className="text-center text-xs font-bold text-gray-800">
               Escanea para abrir en tu celular
             </p>
-            <p className="text-center text-[11px] text-gray-500">{siteUrl}</p>
+            <p className="text-center text-[11px] text-gray-500 break-all px-1">
+              {qrTarget}
+            </p>
           </div>
         </div>
       </Container>
