@@ -1,15 +1,9 @@
 "use client";
 
 /**
- * Barra de acciones del detalle de consulta. Reproduce el conjunto de
- * "chips" que muestra el panel de referencia: iniciar teleconsulta,
- * prescripci\u00f3n, factura, PDF, editar, an\u00e1lisis cl\u00ednico con IA, eliminar
- * y los documentos firmados (receta, certificado, interconsulta, premium).
- *
- * Cada bot\u00f3n es totalmente controlado: la p\u00e1gina padre decide qu\u00e9 hacer
- * (navegar, abrir modal, llamar al servicio) para no acoplar la UI a un
- * endpoint concreto. As\u00ed cada chip puede degradarse de forma independiente
- * con `disabled`/`loading`.
+ * Barra de acciones del detalle de consulta (chips en dos filas).
+ * Texto e iconos en UTF-8 explícito: evita secuencias `\u{...}` en JSX que en
+ * algunos builds se mostraban literalmente en pantalla.
  */
 
 import React from "react";
@@ -58,34 +52,36 @@ interface ConsultationActionBarProps {
   handlers: ActionBarHandlers;
   loading?: ActionBarLoading;
   disabled?: ActionBarDisabled;
-  /** Modo edici\u00f3n actual (cambia el label del bot\u00f3n "Editar"). */
   isEditing?: boolean;
-  /** Link "Ver ficha del paciente" (opcional). */
   patientId?: string | null;
 }
 
-type Variant = "primary" | "secondary" | "danger" | "ghost" | "premium";
+type ChipVariant = "tealSolid" | "purpleSolid" | "mintOutline" | "aiDark" | "deleteOutline" | "premiumDark";
 
-const palette: Record<Variant, { bg: string; fg: string; border?: string }> = {
-  primary: { bg: "#0f766e", fg: "white" },
-  secondary: { bg: "#7dd3c5", fg: "#0f172a" },
-  danger: { bg: "white", fg: "#b91c1c", border: "#fecaca" },
-  ghost: { bg: "white", fg: "#0f172a", border: "#cbd5e1" },
-  premium: { bg: "#0f172a", fg: "white" },
+const chipStyles: Record<
+  ChipVariant,
+  { bg: string; fg: string; border: string }
+> = {
+  tealSolid: { bg: "#0d9488", fg: "#ffffff", border: "transparent" },
+  purpleSolid: { bg: "#7c3aed", fg: "#ffffff", border: "transparent" },
+  mintOutline: { bg: "#ccfbf1", fg: "#0f766e", border: "#99f6e4" },
+  aiDark: { bg: "#312e81", fg: "#ffffff", border: "transparent" },
+  deleteOutline: { bg: "#f8fafc", fg: "#475569", border: "#cbd5e1" },
+  premiumDark: { bg: "#1e293b", fg: "#ffffff", border: "transparent" },
 };
 
 interface ChipProps {
   label: string;
   onClick: () => void;
-  variant?: Variant;
+  variant: ChipVariant;
   loading?: boolean;
   disabled?: boolean;
   icon?: string;
   title?: string;
 }
 
-function Chip({ label, onClick, variant = "secondary", loading, disabled, icon, title }: ChipProps) {
-  const colors = palette[variant];
+function Chip({ label, onClick, variant, loading, disabled, icon, title }: ChipProps) {
+  const c = chipStyles[variant];
   const inactive = disabled || loading;
   return (
     <button
@@ -94,10 +90,10 @@ function Chip({ label, onClick, variant = "secondary", loading, disabled, icon, 
       disabled={inactive}
       title={title ?? label}
       style={{
-        padding: "8px 14px",
-        background: colors.bg,
-        color: colors.fg,
-        border: colors.border ? `1px solid ${colors.border}` : "none",
+        padding: "10px 16px",
+        background: c.bg,
+        color: c.fg,
+        border: `1px solid ${c.border}`,
         borderRadius: 999,
         cursor: inactive ? "not-allowed" : "pointer",
         fontSize: 13,
@@ -105,15 +101,34 @@ function Chip({ label, onClick, variant = "secondary", loading, disabled, icon, 
         opacity: inactive ? 0.55 : 1,
         display: "inline-flex",
         alignItems: "center",
-        gap: 6,
-        transition: "transform 120ms ease, opacity 120ms ease",
+        gap: 8,
+        flex: "0 1 auto",
+        maxWidth: "100%",
+        whiteSpace: "normal",
+        textAlign: "left",
+        lineHeight: 1.25,
+        boxSizing: "border-box",
+        wordBreak: "break-word",
       }}
     >
-      {icon ? <span aria-hidden>{icon}</span> : null}
-      <span>{loading ? "Procesando\u2026" : label}</span>
+      {icon ? (
+        <span aria-hidden style={{ flexShrink: 0, fontSize: 15 }}>
+          {icon}
+        </span>
+      ) : null}
+      <span>{loading ? "Procesando…" : label}</span>
     </button>
   );
 }
+
+const rowStyle: React.CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: 10,
+  alignItems: "stretch",
+  width: "100%",
+  boxSizing: "border-box",
+};
 
 export function ConsultationActionBar({
   handlers,
@@ -127,103 +142,106 @@ export function ConsultationActionBar({
       style={{
         display: "flex",
         flexDirection: "column",
-        gap: 10,
+        gap: 12,
         marginBottom: 20,
+        width: "100%",
+        maxWidth: "100%",
+        boxSizing: "border-box",
       }}
     >
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+      <div style={rowStyle}>
         <Chip
           label="Iniciar Teleconsulta"
-          icon="\u{1F4F9}"
-          variant="primary"
+          icon="📹"
+          variant="tealSolid"
           loading={loading.starting}
           disabled={disabled.startTele}
           onClick={handlers.onStartTeleconsultation}
         />
         <Chip
-          label="Prescripci\u00f3n"
-          icon="\u{1F48A}"
-          variant="secondary"
+          label="Prescripción"
+          icon="💊"
+          variant="purpleSolid"
           disabled={disabled.prescription}
           onClick={handlers.onOpenPrescription}
         />
         <Chip
           label="Generar factura"
-          icon="\u{1F9FE}"
-          variant="secondary"
+          icon="🧾"
+          variant="mintOutline"
           loading={loading.invoice}
           disabled={disabled.invoice}
           onClick={handlers.onGenerateInvoice}
         />
         <Chip
           label="Descargar PDF"
-          icon="\u{1F4C4}"
-          variant="secondary"
+          icon="📄"
+          variant="mintOutline"
           loading={loading.pdf}
           disabled={disabled.pdf}
           onClick={handlers.onDownloadPdf}
         />
         <Chip
-          label={isEditing ? "Cerrar edici\u00f3n" : "Editar"}
-          icon="\u270F\uFE0F"
-          variant="secondary"
+          label={isEditing ? "Cerrar edición" : "Editar"}
+          icon="✏️"
+          variant="mintOutline"
           disabled={disabled.edit}
           onClick={handlers.onToggleEdit}
         />
         <Chip
-          label="An\u00e1lisis cl\u00ednico con IA"
-          icon="\u2728"
-          variant="primary"
+          label="Análisis clínico con IA"
+          icon="✨"
+          variant="aiDark"
           loading={loading.ai}
           disabled={disabled.ai}
           onClick={handlers.onAnalyzeWithAi}
         />
         <Chip
           label="Eliminar"
-          icon="\u{1F5D1}\uFE0F"
-          variant="danger"
+          icon="🗑️"
+          variant="deleteOutline"
           loading={loading.deleting}
           disabled={disabled.delete}
           onClick={handlers.onDelete}
-          title="Eliminar consulta (requiere confirmaci\u00f3n)"
+          title="Eliminar consulta (requiere confirmación)"
         />
       </div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+      <div style={rowStyle}>
         <Chip
           label="Generar Receta Firmada"
-          icon="\u{1F4DD}"
-          variant="secondary"
+          icon="📝"
+          variant="tealSolid"
           loading={loading.signedPrescription}
           disabled={disabled.signedPrescription}
           onClick={handlers.onGenerateSignedPrescription}
         />
         <Chip
-          label="Generar Certificado M\u00e9dico Firmado"
-          icon="\u{1F4DC}"
-          variant="secondary"
+          label="Generar Certificado Médico Firmado"
+          icon="📜"
+          variant="tealSolid"
           loading={loading.signedCertificate}
           disabled={disabled.signedCertificate}
           onClick={handlers.onGenerateSignedCertificate}
         />
         <Chip
           label="Generar Interconsulta Firmada"
-          icon="\u{1F91D}"
-          variant="secondary"
+          icon="🤝"
+          variant="tealSolid"
           loading={loading.signedReferral}
           disabled={disabled.signedReferral}
           onClick={handlers.onGenerateSignedReferral}
         />
         <Chip
           label="Generar Documento Premium"
-          icon="\u{1F451}"
-          variant="premium"
+          icon="👑"
+          variant="premiumDark"
           loading={loading.premium}
           disabled={disabled.premium}
           onClick={handlers.onGeneratePremiumDocument}
         />
       </div>
       {patientId ? (
-        <div>
+        <div style={{ marginTop: 2 }}>
           <a
             href={`/panel/pacientes/${patientId}`}
             style={{
@@ -233,7 +251,7 @@ export function ConsultationActionBar({
               fontWeight: 600,
             }}
           >
-            Ver ficha del paciente \u2192
+            Ver ficha del paciente →
           </a>
         </div>
       ) : null}

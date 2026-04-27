@@ -57,7 +57,7 @@ interface ClinicalRecordPanelProps {
 const SYSTEMS: { key: keyof SystemsReview; label: string }[] = [
   { key: "skin", label: "Piel" },
   { key: "digestive", label: "Digestivo" },
-  { key: "neurological", label: "Neurol\u00f3gico" },
+  { key: "neurological", label: "Neurológico" },
   { key: "respiratory", label: "Respiratorio" },
   { key: "cardiovascular", label: "Cardiovascular" },
   { key: "genitourinary", label: "Genitourinario" },
@@ -89,9 +89,9 @@ const inputBase: React.CSSProperties = {
 };
 
 function fmtDate(input?: string | null): string {
-  if (!input) return "\u2014";
+  if (!input) return "—";
   const d = new Date(input);
-  if (isNaN(d.getTime())) return "\u2014";
+  if (isNaN(d.getTime())) return "—";
   return d.toLocaleString("es", {
     day: "2-digit",
     month: "2-digit",
@@ -198,7 +198,7 @@ export function ClinicalRecordPanel({
     try {
       const notes = serializeClinicalRecord(record);
       await onSave({ notes, chiefComplaint: chiefComplaint.trim() });
-      flashStatus("success", "Ficha cl\u00ednica guardada.");
+      flashStatus("success", "Ficha clínica guardada.");
     } catch (e) {
       flashStatus(
         "error",
@@ -229,14 +229,14 @@ export function ClinicalRecordPanel({
         }}
       >
         <h3 style={{ margin: 0, fontSize: 16, color: "#0f766e" }}>
-          Ficha cl\u00ednica
+          Ficha clínica
         </h3>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           <button
             type="button"
             onClick={handleAutofill}
             disabled={!editable || aiLoading}
-            title="Genera una propuesta de ficha cl\u00ednica con IA y la deja para que la edites."
+            title="Genera una propuesta de ficha clínica con IA y la deja para que la edites."
             style={{
               padding: "8px 14px",
               background: aiLoading ? "#a78bfa" : "#7c3aed",
@@ -252,8 +252,8 @@ export function ClinicalRecordPanel({
               opacity: editable ? 1 : 0.6,
             }}
           >
-            <span aria-hidden>\u2728</span>
-            {aiLoading ? "Generando con IA\u2026" : "Autollenar con IA"}
+            <span aria-hidden>✨</span>
+            {aiLoading ? "Generando con IA…" : "Autollenar con IA"}
           </button>
           <button
             type="button"
@@ -271,7 +271,7 @@ export function ClinicalRecordPanel({
               opacity: editable ? 1 : 0.6,
             }}
           >
-            {saveLoading ? "Guardando\u2026" : "Guardar ficha"}
+            {saveLoading ? "Guardando…" : "Guardar ficha"}
           </button>
         </div>
       </div>
@@ -284,8 +284,8 @@ export function ClinicalRecordPanel({
         <div>
           <span style={labelStyle}>Paciente</span>
           <p style={{ margin: 0, color: "#334155", fontSize: 14 }}>
-            {patient?.name || "\u2014"}
-            {patient?.age ? `, ${patient.age} a\u00f1os` : ""}
+            {patient?.name || "—"}
+            {patient?.age ? `, ${patient.age} años` : ""}
             {patient?.sex ? ` (${patient.sex})` : ""}
           </p>
         </div>
@@ -321,7 +321,7 @@ export function ClinicalRecordPanel({
             setRecord((r) => ({ ...r, presentIllnessHistory: e.target.value }))
           }
           disabled={!editable}
-          placeholder="Evoluci\u00f3n del cuadro, s\u00edntomas, factores agravantes, tratamiento previo\u2026"
+          placeholder="Evolución del cuadro, síntomas, factores agravantes, tratamiento previo…"
           style={{
             ...inputBase,
             resize: "vertical",
@@ -332,7 +332,7 @@ export function ClinicalRecordPanel({
 
       <div style={{ marginBottom: 16 }}>
         <h4 style={{ margin: "0 0 10px", fontSize: 14, color: "#0f766e" }}>
-          Revisi\u00f3n por sistemas
+          Revisión por sistemas
         </h4>
         <div
           style={{
@@ -352,7 +352,7 @@ export function ClinicalRecordPanel({
                 value={record.systemsReview[key]}
                 onChange={(e) => setSystem(key, e.target.value)}
                 disabled={!editable}
-                placeholder={`Hallazgos en ${label.toLowerCase()}\u2026`}
+                placeholder={`Hallazgos en ${label.toLowerCase()}…`}
                 style={{
                   ...inputBase,
                   resize: "vertical",
