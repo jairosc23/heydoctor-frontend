@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { searchMedical, evaluateCdss } from "@/lib/services";
 import { silentCatch } from "@/lib/handle-error";
+import { filterFallbackDiagnoses } from "@/lib/clinical-fallbacks";
 
 interface DiagnosisSuggestion {
   code: string;
@@ -94,12 +95,36 @@ export function SmartDiagnosisPicker({
             merged: merged.length,
           });
         }
-        setSuggestions(merged.slice(0, 12));
+        if (merged.length === 0) {
+          /**
+           * Fallback demo: si ni search ni CDSS devuelven nada, mostramos un
+           * set de diagnósticos comunes filtrados por la query para que el
+           * médico pueda continuar el flujo. Marcamos `source: "fallback"`
+           * para señalizar visualmente.
+           */
+          const fb = filterFallbackDiagnoses(q, 8).map((d) => ({
+            code: d.code,
+            description: d.description,
+            cie10CodeId: undefined,
+            confidence: undefined,
+            source: "fallback",
+          }));
+          setSuggestions(fb);
+        } else {
+          setSuggestions(merged.slice(0, 12));
+        }
       } catch (e) {
         if (process.env.NODE_ENV === "development") {
           console.error("[heydoctor][diagnostic] búsqueda falló", e);
         }
-        setSuggestions([]);
+        const fb = filterFallbackDiagnoses(q, 8).map((d) => ({
+          code: d.code,
+          description: d.description,
+          cie10CodeId: undefined,
+          confidence: undefined,
+          source: "fallback",
+        }));
+        setSuggestions(fb);
         setError(
           e instanceof Error
             ? e.message
@@ -173,17 +198,27 @@ export function SmartDiagnosisPicker({
             suggestions.map((s, i) => (
               <li
                 key={`${s.code}-${i}`}
-                className="px-3 py-2 text-sm hover:bg-indigo-50 cursor-pointer flex justify-between"
+                className="px-3 py-2 text-sm hover:bg-indigo-50 cursor-pointer flex justify-between items-center gap-2"
                 onMouseDown={() => select(s)}
               >
-                <span>
+                <span className="truncate">
                   <strong>{s.code}</strong> {s.description}
                 </span>
-                {s.confidence != null && (
-                  <span className="text-indigo-600 text-xs">
-                    {Math.round((s.confidence ?? 0) * 100)}%
-                  </span>
-                )}
+                <span className="flex items-center gap-1 shrink-0">
+                  {s.source === "fallback" && (
+                    <span
+                      className="text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-800 rounded"
+                      title="Sugerencia de muestra (catálogo backend no disponible)."
+                    >
+                      demo
+                    </span>
+                  )}
+                  {s.confidence != null && (
+                    <span className="text-indigo-600 text-xs">
+                      {Math.round((s.confidence ?? 0) * 100)}%
+                    </span>
+                  )}
+                </span>
               </li>
             ))
           )}

@@ -121,7 +121,12 @@ export function ShareConsultationDialog({
     >
       <div style={modalStyle}>
         <header style={headerStyle}>
-          <h2 style={titleStyle}>Compartir teleconsulta</h2>
+          <div style={titleWrapStyle}>
+            <span style={titleIconStyle} aria-hidden>
+              <QrIcon />
+            </span>
+            <h2 style={titleStyle}>Compartir teleconsulta</h2>
+          </div>
           <button
             type="button"
             onClick={onClose}
@@ -160,18 +165,32 @@ export function ShareConsultationDialog({
           <label style={linkLabelStyle} htmlFor="share-link">
             Enlace directo
           </label>
-          <input
-            id="share-link"
-            readOnly
-            value={shareUrl}
-            onFocus={(e) => e.currentTarget.select()}
-            style={linkInputStyle}
-          />
+          <div style={{ display: "flex", gap: 6 }}>
+            <input
+              id="share-link"
+              readOnly
+              value={shareUrl}
+              onFocus={(e) => e.currentTarget.select()}
+              style={linkInputStyle}
+            />
+            <button
+              type="button"
+              onClick={handleCopy}
+              style={iconBtnStyle}
+              aria-label={copied ? "Enlace copiado" : "Copiar enlace"}
+              title={copied ? "Enlace copiado" : "Copiar enlace"}
+            >
+              {copied ? <CheckIcon /> : <CopyIcon />}
+            </button>
+          </div>
         </div>
 
         <div style={actionsStyle}>
           <button type="button" onClick={handleCopy} style={btnSecondaryStyle}>
-            {copied ? "✓ Copiado" : "Copiar enlace"}
+            <span aria-hidden style={iconWrapStyle}>
+              {copied ? <CheckIcon /> : <CopyIcon />}
+            </span>
+            {copied ? "Copiado" : "Copiar enlace"}
           </button>
           <a
             href={whatsappUrl}
@@ -179,7 +198,10 @@ export function ShareConsultationDialog({
             rel="noopener noreferrer"
             style={btnPrimaryStyle}
           >
-            Compartir por WhatsApp
+            <span aria-hidden style={iconWrapStyle}>
+              <WhatsappIcon />
+            </span>
+            WhatsApp
           </a>
         </div>
 
@@ -188,6 +210,83 @@ export function ShareConsultationDialog({
         </p>
       </div>
     </div>
+  );
+}
+
+/* ─────────────────────────────── icons ─────────────────────────────── */
+
+function QrIcon() {
+  return (
+    <svg
+      width={20}
+      height={20}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <rect x="3" y="3" width="7" height="7" rx="1" />
+      <rect x="14" y="3" width="7" height="7" rx="1" />
+      <rect x="3" y="14" width="7" height="7" rx="1" />
+      <path d="M14 14h3v3" />
+      <path d="M21 14v3" />
+      <path d="M14 21h3" />
+      <path d="M21 21v-3" />
+    </svg>
+  );
+}
+
+function CopyIcon() {
+  return (
+    <svg
+      width={16}
+      height={16}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <rect x="9" y="9" width="11" height="11" rx="2" />
+      <path d="M5 15V5a2 2 0 0 1 2-2h10" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg
+      width={16}
+      height={16}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
+
+function WhatsappIcon() {
+  return (
+    <svg
+      width={18}
+      height={18}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden
+    >
+      <path d="M.057 24l1.687-6.163a11.867 11.867 0 0 1-1.587-5.946C.16 5.335 5.495 0 12.05 0a11.82 11.82 0 0 1 8.413 3.488 11.82 11.82 0 0 1 3.48 8.42c-.003 6.554-5.338 11.892-11.893 11.892a11.9 11.9 0 0 1-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.86 9.86 0 0 0 1.51 5.26l-.999 3.648 3.978-1.607zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413z" />
+    </svg>
   );
 }
 
@@ -218,11 +317,49 @@ const headerStyle: React.CSSProperties = {
   marginBottom: 8,
 };
 
+const titleWrapStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 8,
+};
+
+const titleIconStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: 32,
+  height: 32,
+  borderRadius: 8,
+  background: "#eef2ff",
+  color: "#4f46e5",
+};
+
 const titleStyle: React.CSSProperties = {
   margin: 0,
   fontSize: 17,
   fontWeight: 700,
   color: "#0f172a",
+};
+
+const iconWrapStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  marginRight: 6,
+};
+
+const iconBtnStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: 38,
+  height: 38,
+  borderRadius: 8,
+  border: "1px solid #cbd5e1",
+  background: "#fff",
+  color: "#0f172a",
+  cursor: "pointer",
+  flexShrink: 0,
 };
 
 const closeBtnStyle: React.CSSProperties = {
@@ -268,7 +405,8 @@ const linkLabelStyle: React.CSSProperties = {
 };
 
 const linkInputStyle: React.CSSProperties = {
-  width: "100%",
+  flex: 1,
+  minWidth: 0,
   fontSize: 13,
   padding: "8px 10px",
   border: "1px solid #cbd5e1",
@@ -295,6 +433,10 @@ const btnSecondaryStyle: React.CSSProperties = {
   fontSize: 14,
   fontWeight: 600,
   cursor: "pointer",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 4,
 };
 
 const btnPrimaryStyle: React.CSSProperties = {
@@ -311,6 +453,7 @@ const btnPrimaryStyle: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
+  gap: 4,
   cursor: "pointer",
 };
 
