@@ -182,10 +182,12 @@ export async function signConsultation(
 export async function startCall(
   id: string
 ): Promise<{ ok: boolean; consultationId: string }> {
-  return heydoctorApi.post<{ ok: boolean; consultationId: string }>(
-    `${BASE}/${id}/start-call`,
-    {}
-  );
+  const response = await heydoctorApi.post<{
+    ok: boolean;
+    consultationId: string;
+  }>(`${BASE}/${id}/start-call`, {});
+  console.log("[heydoctor] API startCall response", response);
+  return response;
 }
 
 export async function fetchConsultationAi(
