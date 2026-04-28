@@ -37,7 +37,9 @@ const DEFAULT_POLL_MS = 5000;
  * desde móvil o grabaciones). El navegador puede ignorar el filtro en drag&drop,
  * por eso volvemos a validar `kind` después.
  */
-const ACCEPT_TYPES = "image/*,application/pdf,audio/*";
+const ACCEPT_TYPES =
+  "image/*,application/pdf,audio/*,audio/webm,audio/mp4,audio/mpeg,audio/ogg,audio/wav,.webm,.m4a,.aac";
+const EXAM_ACCEPT = "image/*,application/pdf,.pdf";
 
 const STORAGE_PREFIX = "heydoctor:chat:";
 
@@ -154,7 +156,9 @@ export function ChatPanel({
   /** True cuando hay un drag activo sobre el panel (overlay visible). */
   const [dragging, setDragging] = useState(false);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const examInputRef = useRef<HTMLInputElement>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const audioInputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   /** Counter para drag enter/leave en hijos (evita parpadeo del overlay). */
   const dragCounterRef = useRef(0);
@@ -174,7 +178,7 @@ export function ChatPanel({
   useEffect(() => {
     const el = listRef.current;
     if (!el) return;
-    el.scrollTop = el.scrollHeight;
+    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [messages.length]);
 
   const refreshFromBackend = useCallback(async () => {
@@ -358,7 +362,10 @@ export function ChatPanel({
   return (
     <section
       className={`relative flex flex-col rounded-lg border border-gray-200 bg-white ${className}`}
-      style={{ minHeight: 320 }}
+      style={{
+        minHeight: 280,
+        paddingBottom: "max(4px, env(safe-area-inset-bottom, 0px))",
+      }}
       aria-label="Chat de teleconsulta"
       onDragEnter={onDragEnter}
       onDragOver={onDragOver}
@@ -380,7 +387,7 @@ export function ChatPanel({
         <button
           type="button"
           onClick={() => void refreshFromBackend()}
-          className="text-xs text-indigo-600 hover:text-indigo-700"
+          className="premium-tap rounded-md px-2 py-1 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
           aria-label="Actualizar mensajes"
         >
           Actualizar
@@ -395,12 +402,12 @@ export function ChatPanel({
 
       <div
         ref={listRef}
-        className="flex-1 overflow-y-auto px-3 py-2 space-y-2"
-        style={{ maxHeight: 320 }}
+        className="flex-1 overflow-y-auto scroll-smooth px-2 py-2 space-y-2 sm:px-3 max-h-[min(58dvh,420px)] md:max-h-[320px]"
       >
         {messages.length === 0 ? (
-          <p className="text-xs text-gray-400 text-center py-6">
-            Aún no hay mensajes. Escribe el primero o arrastra un archivo aquí.
+          <p className="text-xs text-gray-400 text-center py-6 px-1">
+            Escribe un mensaje, adjunta imagen, PDF o nota de voz — o arrastra un
+            archivo aquí.
           </p>
         ) : (
           messages.map((m) => (
@@ -410,49 +417,69 @@ export function ChatPanel({
       </div>
 
       {pendingAttachment && (
-        <div className="flex items-center gap-2 px-3 py-2 border-t border-gray-100 bg-gray-50">
-          <AttachmentPreview attachment={pendingAttachment} small />
-          <div className="flex-1 min-w-0">
-            <p className="text-xs text-gray-700 truncate">
-              {pendingAttachment.name}
-            </p>
-            <p className="text-[10px] text-gray-500 flex items-center gap-1.5">
-              <span
-                className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                  KIND_BADGE[pendingAttachment.kind ?? "other"].color
-                }`}
-              >
-                {KIND_BADGE[pendingAttachment.kind ?? "other"].label}
-              </span>
-              <span>{formatBytes(pendingAttachment.size)}</span>
-            </p>
+        <div className="flex flex-col gap-2 border-t border-gray-100 bg-gray-50 px-2 py-2 sm:flex-row sm:items-center sm:px-3">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+            {pendingAttachment.mimeType.startsWith("audio/") &&
+            (pendingAttachment.dataUrl || pendingAttachment.url) ? (
+              <div className="min-w-0 flex-1 basis-full sm:basis-auto sm:max-w-[240px]">
+                <audio
+                  controls
+                  preload="metadata"
+                  src={
+                    pendingAttachment.url ??
+                    pendingAttachment.dataUrl ??
+                    undefined
+                  }
+                  className="h-10 w-full"
+                />
+              </div>
+            ) : (
+              <AttachmentPreview attachment={pendingAttachment} small />
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xs text-gray-700">
+                {pendingAttachment.name}
+              </p>
+              <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] text-gray-500">
+                <span
+                  className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${
+                    KIND_BADGE[pendingAttachment.kind ?? "other"].color
+                  }`}
+                >
+                  {KIND_BADGE[pendingAttachment.kind ?? "other"].label}
+                </span>
+                <span>{formatBytes(pendingAttachment.size)}</span>
+              </p>
+            </div>
           </div>
-          {pendingAttachment.mimeType.startsWith("image/") ||
-          pendingAttachment.mimeType === "application/pdf" ||
-          pendingAttachment.name.toLowerCase().endsWith(".pdf") ? (
+          <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
+            {pendingAttachment.mimeType.startsWith("image/") ||
+            pendingAttachment.mimeType === "application/pdf" ||
+            pendingAttachment.name.toLowerCase().endsWith(".pdf") ? (
+              <button
+                type="button"
+                onClick={togglePendingLabResult}
+                className={`rounded border px-2 py-1 text-[10px] transition-colors ${
+                  pendingAttachment.kind === "lab_result"
+                    ? "border-amber-300 bg-amber-100 text-amber-900"
+                    : "border-gray-300 bg-white text-gray-600 hover:bg-gray-50"
+                }`}
+                aria-pressed={pendingAttachment.kind === "lab_result"}
+              >
+                {pendingAttachment.kind === "lab_result"
+                  ? "✓ Resultado lab"
+                  : "Marcar como lab"}
+              </button>
+            ) : null}
             <button
               type="button"
-              onClick={togglePendingLabResult}
-              className={`text-[10px] px-2 py-1 rounded border transition-colors ${
-                pendingAttachment.kind === "lab_result"
-                  ? "border-amber-300 bg-amber-100 text-amber-900"
-                  : "border-gray-300 bg-white text-gray-600 hover:bg-gray-50"
-              }`}
-              aria-pressed={pendingAttachment.kind === "lab_result"}
+              onClick={() => setPendingAttachment(null)}
+              className="min-h-11 shrink-0 px-2 text-xs text-red-600 hover:text-red-800 sm:min-h-0"
+              aria-label="Quitar adjunto"
             >
-              {pendingAttachment.kind === "lab_result"
-                ? "✓ Resultado lab"
-                : "Marcar como lab"}
+              Quitar
             </button>
-          ) : null}
-          <button
-            type="button"
-            onClick={() => setPendingAttachment(null)}
-            className="text-xs text-red-600 hover:text-red-800"
-            aria-label="Quitar adjunto"
-          >
-            Quitar
-          </button>
+          </div>
         </div>
       )}
 
@@ -465,11 +492,35 @@ export function ChatPanel({
         </p>
       )}
 
-      <div className="flex items-end gap-2 px-3 py-2 border-t border-gray-200">
+      <div className="flex flex-wrap items-end gap-1.5 border-t border-gray-200 px-2 py-2 sm:gap-2 sm:px-3">
         <input
-          ref={fileInputRef}
+          ref={examInputRef}
           type="file"
-          accept={ACCEPT_TYPES}
+          accept={EXAM_ACCEPT}
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0] ?? null;
+            handleFilePicked(file);
+            e.target.value = "";
+          }}
+        />
+        <input
+          ref={photoInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0] ?? null;
+            handleFilePicked(file);
+            e.target.value = "";
+          }}
+        />
+        <input
+          ref={audioInputRef}
+          type="file"
+          accept="audio/*,.webm,.m4a,.aac,.mp3,.wav,.ogg,application/ogg"
+          capture="user"
           className="hidden"
           onChange={(e) => {
             const file = e.target.files?.[0] ?? null;
@@ -479,14 +530,33 @@ export function ChatPanel({
         />
         <button
           type="button"
-          onClick={() => fileInputRef.current?.click()}
-          aria-label="Adjuntar archivo (imagen, PDF o audio)"
-          title="Adjuntar imagen, PDF o nota de voz"
-          className="p-2 rounded-md hover:bg-gray-100 text-gray-600"
+          onClick={() => examInputRef.current?.click()}
+          aria-label="Adjuntar examen o documento (imagen o PDF)"
+          title="Examen o PDF"
+          className="premium-tap flex min-h-11 shrink-0 items-center gap-1 rounded-md border border-gray-200 bg-gray-50 px-2 py-2 text-xs font-semibold text-gray-800 hover:bg-gray-100 sm:gap-1.5 sm:px-2.5"
         >
-          <span aria-hidden style={{ fontSize: 18 }}>
-            📎
-          </span>
+          <span aria-hidden>📎</span>
+          <span className="hidden min-[380px]:inline">Examen</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => photoInputRef.current?.click()}
+          aria-label="Tomar o elegir foto"
+          title="Foto"
+          className="premium-tap flex min-h-11 shrink-0 items-center gap-1 rounded-md border border-gray-200 bg-gray-50 px-2 py-2 text-xs font-semibold text-gray-800 hover:bg-gray-100 sm:gap-1.5 sm:px-2.5"
+        >
+          <span aria-hidden>📷</span>
+          <span className="hidden min-[380px]:inline">Foto</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => audioInputRef.current?.click()}
+          aria-label="Grabar o adjuntar audio"
+          title="Audio"
+          className="premium-tap flex min-h-11 shrink-0 items-center gap-1 rounded-md border border-gray-200 bg-gray-50 px-2 py-2 text-xs font-semibold text-gray-800 hover:bg-gray-100 sm:gap-1.5 sm:px-2.5"
+        >
+          <span aria-hidden>🎤</span>
+          <span className="hidden min-[380px]:inline">Audio</span>
         </button>
         <textarea
           value={bodyInput}
@@ -494,13 +564,13 @@ export function ChatPanel({
           onKeyDown={onKeyDown}
           placeholder="Escribe un mensaje…"
           rows={1}
-          className="flex-1 resize-none px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-indigo-300"
+          className="min-h-11 flex-1 min-w-[140px] resize-none rounded-md border border-gray-300 px-3 py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
         />
         <button
           type="button"
           onClick={() => void handleSend()}
           disabled={sending || (!bodyInput.trim() && !pendingAttachment)}
-          className="px-3 py-1.5 bg-teal-600 text-white rounded-md text-sm hover:bg-teal-700 disabled:opacity-50"
+          className="premium-tap min-h-11 shrink-0 rounded-md bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-50"
         >
           {sending ? "Enviando…" : "Enviar"}
         </button>
@@ -547,7 +617,7 @@ function ChatMessageRow({
       data-message-pending={message.pending ? "true" : "false"}
     >
       <div
-        className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${
+        className={`chat-bubble-in max-w-[min(92%,520px)] rounded-2xl px-3 py-2 text-sm shadow-sm ${
           mine
             ? "bg-teal-600 text-white"
             : "bg-gray-100 text-gray-800 border border-gray-200"
@@ -617,24 +687,26 @@ function AttachmentPreview({
   if (kind === "audio" && (attachment.url || attachment.dataUrl)) {
     if (small) {
       return (
-        <span
-          className="inline-flex items-center gap-1 text-xs"
-          aria-label="Audio adjunto"
-        >
-          <span aria-hidden>🎙️</span>
-        </span>
+        <div className="inline-flex max-w-[min(100vw-4rem,220px)] items-center align-middle">
+          <audio
+            controls
+            preload="metadata"
+            src={href}
+            className="h-9 w-full min-w-[120px]"
+          />
+        </div>
       );
     }
     return (
-      <div className="mb-1">
+      <div className="mb-1 min-w-0 max-w-[min(100%,280px)]">
         <audio
           controls
           preload="metadata"
           src={href}
-          style={{ maxWidth: 240, width: "100%" }}
+          className="h-10 w-full"
         />
         <span
-          className={`inline-block text-[10px] mt-1 px-1.5 py-0.5 rounded font-medium ${badge.color}`}
+          className={`mt-1 inline-block rounded px-1.5 py-0.5 text-[10px] font-medium ${badge.color}`}
         >
           {badge.label}
         </span>
@@ -642,7 +714,44 @@ function AttachmentPreview({
     );
   }
 
-  if (kind === "pdf" || kind === "lab_result") {
+  if (kind === "pdf" || (kind === "lab_result" && attachment.mimeType === "application/pdf")) {
+    const canEmbed =
+      !small && href.startsWith("data:application/pdf") && href.length < 2_500_000;
+    if (canEmbed) {
+      return (
+        <div className="mb-1 min-w-0 max-w-[280px]">
+          <object
+            data={href}
+            type="application/pdf"
+            title={attachment.name}
+            className="h-[128px] w-full rounded-md border border-gray-200 bg-gray-50"
+          >
+            <a
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs underline"
+            >
+              Abrir PDF
+            </a>
+          </object>
+          <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-1 inline-flex max-w-full items-center gap-1 truncate text-xs underline"
+          >
+            <span aria-hidden>{kind === "lab_result" ? "🧪" : "📄"}</span>
+            <span className="truncate">{attachment.name}</span>
+            <span
+              className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium no-underline ${badge.color}`}
+            >
+              {badge.label}
+            </span>
+          </a>
+        </div>
+      );
+    }
     return (
       <a
         href={href}

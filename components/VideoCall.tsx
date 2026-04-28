@@ -5,6 +5,7 @@ import React, {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -13,6 +14,15 @@ import { getBackendOrigin } from "@/lib/api-base";
 import { logger } from "@/lib/logger";
 import { useTelemedicineCall } from "@/hooks/useTelemedicineCall";
 import { useIsMobile } from "@/lib/hooks/useIsMobile";
+
+function safeVibrate(pattern?: number | number[]): void {
+  if (typeof navigator === "undefined" || !navigator.vibrate) return;
+  try {
+    navigator.vibrate(pattern ?? 35);
+  } catch {
+    /* ignorar: política del navegador o permisos */
+  }
+}
 
 export type VideoCallProps = {
   consultationId: string;
@@ -71,8 +81,10 @@ export const VideoCall = forwardRef<
   const mountedRef = useRef(true);
 
   const isMobile = useIsMobile();
+  const mobileShellRef = useRef<HTMLDivElement>(null);
+  const controlsHideTimerRef = useRef<number | null>(null);
+  const prevInCallRef = useRef(false);
 
-  const [status, setStatus] = useState<string>("Preparando cámara…");
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -89,6 +101,22 @@ export const VideoCall = forwardRef<
    */
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
+
+  const clearControlsHideTimer = useCallback(() => {
+    if (controlsHideTimerRef.current !== null) {
+      window.clearTimeout(controlsHideTimerRef.current);
+      controlsHideTimerRef.current = null;
+    }
+  }, []);
+
+  const showControlsWithAutoHide = useCallback(() => {
+    setControlsVisible(true);
+    clearControlsHideTimer();
+    controlsHideTimerRef.current = window.setTimeout(() => {
+      controlsHideTimerRef.current = null;
+      setControlsVisible(false);
+    }, 2500);
+  }, [clearControlsHideTimer]);
 
   const {
     localStream,
@@ -307,44 +335,107 @@ export const VideoCall = forwardRef<
     }
   }, [remoteStream]);
 
-  useEffect(() => {
+  const callStatusLabel = useMemo(() => {
     if (error) {
-      return;
+      return "Conectando...";
     }
     if (!localStream) {
-      setStatus("Preparando cámara…");
-      return;
+      return "Conectando...";
     }
     const hasRemote =
-      !!remoteStream && remoteStream.getTracks().some((t) => t.readyState === "live");
+      !!remoteStream &&
+      remoteStream.getTracks().some((t) => t.readyState === "live");
     if (connectionState === "connected" && hasRemote) {
-      setStatus("En llamada");
-      return;
+      return "Paciente conectado";
     }
-    if (
-      connectionState === "connecting" ||
-      iceConnectionState === "checking" ||
-      iceConnectionState === "connected"
+    return "Conectando...";
+  }, [localStream, remoteStream, connectionState, error]);
+
+  useEffect(() => {
+    const hasRemote =
+      !!remoteStream &&
+      remoteStream.getTracks().some((t) => t.readyState === "live");
+    const inCall = connectionState === "connected" && hasRemote && !error;
+    if (inCall && !prevInCallRef.current) {
+      safeVibrate([35, 40, 35]);
+    } else if (
+      !inCall &&
+      prevInCallRef.current &&
+      (connectionState === "disconnected" ||
+        connectionState === "failed" ||
+        iceConnectionState === "disconnected" ||
+        iceConnectionState === "failed")
     ) {
-      if (!hasRemote) {
-        setStatus("Conectando medios…");
-        return;
-      }
+      safeVibrate(55);
     }
-    if (iceConnectionState === "disconnected" || connectionState === "disconnected") {
-      setStatus("Conexión inestable…");
+    prevInCallRef.current = inCall;
+  }, [connectionState, iceConnectionState, remoteStream, error]);
+
+  useEffect(() => {
+    if (!mediaReady || !(isMobile || isFullscreen)) {
+      clearControlsHideTimer();
       return;
     }
-    setStatus("Esperando participante…");
+    showControlsWithAutoHide();
+    return () => {
+      clearControlsHideTimer();
+    };
   }, [
-    localStream,
-    remoteStream,
-    connectionState,
-    iceConnectionState,
-    error,
+    consultationId,
+    mediaReady,
+    isMobile,
+    isFullscreen,
+    showControlsWithAutoHide,
+    clearControlsHideTimer,
   ]);
 
+  useEffect(() => {
+    if (!isMobile || !mediaReady || typeof document === "undefined") {
+      return;
+    }
+    const node = mobileShellRef.current;
+    if (!node?.requestFullscreen) {
+      return;
+    }
+
+    let cancelled = false;
+    const tid = window.setTimeout(() => {
+      if (cancelled) return;
+      void (async () => {
+        try {
+          if (document.fullscreenElement == null) {
+            await node.requestFullscreen({ navigationUI: "hide" });
+          }
+        } catch {
+          /* sin gesto o política del navegador */
+        }
+      })();
+    }, 500);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(tid);
+      if (document.fullscreenElement === node) {
+        void document.exitFullscreen?.().catch(() => {});
+      }
+    };
+  }, [isMobile, mediaReady, consultationId]);
+
+  useEffect(() => {
+    return () => {
+      clearControlsHideTimer();
+      if (
+        typeof document !== "undefined" &&
+        mobileShellRef.current &&
+        document.fullscreenElement === mobileShellRef.current
+      ) {
+        void document.exitFullscreen?.().catch(() => {});
+      }
+    };
+  }, [clearControlsHideTimer]);
+
   const toggleMic = () => {
+    if (isMobile || isFullscreen) showControlsWithAutoHide();
     const stream = localStream;
     const audio = stream?.getAudioTracks()[0];
     if (audio) {
@@ -354,6 +445,7 @@ export const VideoCall = forwardRef<
   };
 
   const toggleCam = () => {
+    if (isMobile || isFullscreen) showControlsWithAutoHide();
     const stream = localStream;
     const video = stream?.getVideoTracks()[0];
     if (video) {
@@ -363,6 +455,7 @@ export const VideoCall = forwardRef<
   };
 
   const handleEnd = () => {
+    clearControlsHideTimer();
     stopMediaRecorderIfActive();
     endCall();
     onEndCall();
@@ -388,15 +481,6 @@ export const VideoCall = forwardRef<
   };
   useEffect(() => () => clearTapTimeout(), []);
 
-  /**
-   * Al entrar/salir de fullscreen, garantizamos que los controles aparezcan:
-   * el usuario probablemente quiere verlos para orientarse, y siempre puede
-   * volver a inmersivo con un tap.
-   */
-  useEffect(() => {
-    setControlsVisible(true);
-  }, [isFullscreen]);
-
   const handleRemoteTap = useCallback(() => {
     if (tapTimeoutRef.current !== null) {
       clearTapTimeout();
@@ -405,9 +489,13 @@ export const VideoCall = forwardRef<
     }
     tapTimeoutRef.current = window.setTimeout(() => {
       tapTimeoutRef.current = null;
-      setControlsVisible((v) => !v);
+      if (isMobile || isFullscreen) {
+        showControlsWithAutoHide();
+      } else {
+        setControlsVisible((v) => !v);
+      }
     }, 260);
-  }, []);
+  }, [isFullscreen, isMobile, showControlsWithAutoHide]);
 
   if (!mediaReady && error) {
     return (
@@ -438,6 +526,7 @@ export const VideoCall = forwardRef<
 
   const renderFullscreenLayout = () => (
     <div
+      ref={mobileShellRef}
       data-call-recording={isRecording ? "true" : "false"}
       data-call-variant={isMobile ? "mobile" : "desktop-fullscreen"}
       data-controls-visible={controlsVisible ? "true" : "false"}
@@ -476,12 +565,20 @@ export const VideoCall = forwardRef<
         }}
         aria-hidden={!controlsVisible}
       >
-        <span style={mobileStatusPillStyle}>{status}</span>
+        <span style={mobileStatusPillStyle}>
+          <span key={callStatusLabel} className="call-status-enter inline-block">
+            {callStatusLabel}
+          </span>
+        </span>
         <ConnectionQualityBadge quality={connectionQuality} showWhenIdle />
         {!isMobile && (
           <button
             type="button"
-            onClick={() => setIsFullscreen(false)}
+            className="premium-tap"
+            onClick={() => {
+              showControlsWithAutoHide();
+              setIsFullscreen(false);
+            }}
             aria-label="Salir de pantalla completa"
             style={fullscreenCloseBtnStyle}
           >
@@ -509,6 +606,7 @@ export const VideoCall = forwardRef<
         <button
           type="button"
           onClick={toggleMic}
+          className="premium-tap"
           aria-pressed={!micOn}
           aria-label={micOn ? "Silenciar micrófono" : "Activar micrófono"}
           tabIndex={controlsVisible ? 0 : -1}
@@ -525,6 +623,7 @@ export const VideoCall = forwardRef<
         <button
           type="button"
           onClick={toggleCam}
+          className="premium-tap"
           aria-pressed={!camOn}
           aria-label={camOn ? "Apagar cámara" : "Encender cámara"}
           tabIndex={controlsVisible ? 0 : -1}
@@ -541,7 +640,11 @@ export const VideoCall = forwardRef<
         {!isMobile && (
           <button
             type="button"
-            onClick={() => setIsFullscreen(false)}
+            className="premium-tap"
+            onClick={() => {
+              showControlsWithAutoHide();
+              setIsFullscreen(false);
+            }}
             aria-label="Salir de pantalla completa"
             tabIndex={controlsVisible ? 0 : -1}
             style={mobileCircleBtnStyle}
@@ -554,6 +657,7 @@ export const VideoCall = forwardRef<
         <button
           type="button"
           onClick={handleEnd}
+          className="premium-tap"
           aria-label="Finalizar llamada"
           tabIndex={controlsVisible ? 0 : -1}
           style={mobileHangupBtnStyle}
@@ -585,7 +689,7 @@ export const VideoCall = forwardRef<
           transitionDelay: controlsVisible ? "0ms" : "260ms",
         }}
       >
-        Toca para mostrar controles · doble toque para fullscreen
+        Toca para mostrar controles · doble toque: pantalla completa
       </span>
     </div>
   );
@@ -665,7 +769,9 @@ export const VideoCall = forwardRef<
             maxWidth: "min(280px, 55%)",
           }}
         >
-          {status}
+          <span key={callStatusLabel} className="call-status-enter inline-block">
+            {callStatusLabel}
+          </span>
         </div>
         <div
           style={{
@@ -708,6 +814,7 @@ export const VideoCall = forwardRef<
         <button
           type="button"
           onClick={toggleMic}
+          className="premium-tap"
           style={btnStyle}
           aria-pressed={!micOn}
         >
@@ -716,6 +823,7 @@ export const VideoCall = forwardRef<
         <button
           type="button"
           onClick={toggleCam}
+          className="premium-tap"
           style={btnStyle}
           aria-pressed={!camOn}
         >
@@ -725,6 +833,7 @@ export const VideoCall = forwardRef<
           type="button"
           onClick={() => setIsFullscreen(true)}
           aria-label="Activar pantalla completa"
+          className="premium-tap"
           style={btnStyle}
         >
           ⛶ Pantalla completa
@@ -732,6 +841,7 @@ export const VideoCall = forwardRef<
         <button
           type="button"
           onClick={handleEnd}
+          className="premium-tap"
           style={{
             ...btnStyle,
             background: "#dc2626",
@@ -756,6 +866,7 @@ const btnStyle: React.CSSProperties = {
   color: "#f1f5f9",
   cursor: "pointer",
   fontSize: 13,
+  transition: "all 180ms ease",
 };
 
 /* ───────────────────────── Mobile fullscreen layout ───────────────────────── */

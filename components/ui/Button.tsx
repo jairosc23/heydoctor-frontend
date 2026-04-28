@@ -2,13 +2,13 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 const base =
-  "inline-flex items-center justify-center rounded-xl px-6 py-3 text-center font-semibold transition-all duration-200 hover:scale-105 disabled:pointer-events-none disabled:opacity-50 disabled:hover:scale-100";
+  "inline-flex items-center justify-center rounded-xl px-6 py-3 text-center font-semibold transition-all duration-[180ms] ease hover:scale-[1.02] active:scale-[0.96] disabled:pointer-events-none disabled:opacity-50 disabled:hover:scale-100";
 
 const variants = {
   primary:
     "bg-gradient-to-r from-primaryMid to-primary text-white shadow-soft hover:shadow-premium",
   secondary:
-    "border border-gray-300 bg-white text-gray-700 shadow-none hover:scale-[1.02] hover:bg-gray-50",
+    "border border-gray-300 bg-white text-gray-700 shadow-none hover:bg-gray-50",
 } as const;
 
 export type ButtonVariant = keyof typeof variants;

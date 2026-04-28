@@ -22,6 +22,28 @@ export function getApiBase(): string {
   return `${origin}/api`.replace(/([^:]\/)\/+/g, "$1");
 }
 
+/**
+ * Base `/api` del Nest para Route Handlers (servidor).
+ * Si `NEXT_PUBLIC_HEYDOCTOR_API_URL` apunta al mismo host que Next (error típico),
+ * define `HEYDOCTOR_API_INTERNAL_URL` (p. ej. `http://localhost:3001`) para que
+ * el proxy servidor llegue al Nest real.
+ */
+export function getServerNestApiBase(): string {
+  const internal = process.env.HEYDOCTOR_API_INTERNAL_URL?.trim();
+  if (!internal) {
+    return getApiBase();
+  }
+  let s = internal.replace(/\/+$/, "");
+  if (!s) return getApiBase();
+  if (!/^https?:\/\//i.test(s)) {
+    s = `https://${s}`;
+  }
+  if (/\/api$/i.test(s)) {
+    return s.replace(/([^:]\/)\/+/g, "$1");
+  }
+  return `${s}/api`.replace(/([^:]\/)\/+/g, "$1");
+}
+
 /** URL absoluta GET /api/auth/me. */
 export function getAuthMeUrl(): string {
   return `${getApiBase()}/auth/me`;

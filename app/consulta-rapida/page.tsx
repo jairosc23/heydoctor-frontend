@@ -2,41 +2,60 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import HeyDoctorLogo from "@/components/ui/HeyDoctorLogo";
 import Container from "@/components/ui/Container";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
-import {
-  createGuestConsultation,
-  GuestConsultationError,
-} from "@/lib/services/public-consultations";
+import { GuestConsultationError } from "@/lib/services/public-consultations";
 import { getWhatsAppBookingUrl } from "@/lib/whatsapp-url";
+import { useConsultationEngine } from "@/hooks/useConsultationEngine";
 
 const FONT_HEADING = "Montserrat, sans-serif";
 const NAME_MAX = 120;
 const REASON_MAX = 4000;
 
 /**
- * Formulario público para que un paciente sin cuenta pueda iniciar una
- * teleconsulta. La página es client-only porque hace POST a un endpoint
- * público y redirige tras crear la consulta.
+ * Flujo público en 3 pasos (sin login): nombre → motivo → confirmar y entrar.
  */
 export default function GuestConsultationPage() {
   const router = useRouter();
-  const whatsAppUrl = getWhatsAppBookingUrl();
+  const { createGuestConsultation } = useConsultationEngine();
+  const [whatsAppUrl, setWhatsAppUrl] = useState<string | null>(null);
+  const [step, setStepRaw] = useState(1);
   const [name, setName] = useState("");
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const reasonInputRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    setWhatsAppUrl(getWhatsAppBookingUrl(window.location.origin));
+  }, []);
+
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      if (step === 1) nameInputRef.current?.focus();
+      else if (step === 2) reasonInputRef.current?.focus();
+    }, 50);
+    return () => window.clearTimeout(t);
+  }, [step]);
+
+  const setStep = (n: number) => {
+    setError(null);
+    setStepRaw(n);
+  };
+
   const trimmedName = name.trim();
   const trimmedReason = reason.trim();
-  const valid = trimmedName.length > 0 && trimmedReason.length > 0;
+  const step1Ok = trimmedName.length > 0;
+  const step2Ok = trimmedReason.length > 0;
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!valid || submitting) return;
+    if (!step1Ok || !step2Ok || submitting) return;
     setSubmitting(true);
     setError(null);
     try {
@@ -56,7 +75,7 @@ export default function GuestConsultationPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-primaryLight/30 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-primaryLight/30 to-white pb-[env(safe-area-inset-bottom)]">
       <header className="border-b border-gray-100 bg-white/80 backdrop-blur-md">
         <Container className="flex h-16 items-center justify-between">
           <Link
@@ -76,116 +95,197 @@ export default function GuestConsultationPage() {
         </Container>
       </header>
 
-      <main className="py-10 sm:py-14">
+      <main className="py-8 sm:py-12">
         <Container className="max-w-xl">
-          <div className="mb-6 text-center">
+          <div className="mb-8 text-center">
             <h1
-              className="mb-3 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl"
+              className="mb-3 text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl"
               style={{ fontFamily: FONT_HEADING }}
             >
-              Consulta sin registrarte
+              Médico online en menos de 1 minuto
             </h1>
             <p className="mx-auto max-w-md text-sm leading-relaxed text-gray-600">
-              Cuéntanos tu nombre y el motivo. Te conectamos con un médico por
-              videollamada en minutos. Sin formularios, sin cuenta.
+              Tres pasos. Sin cuenta. Te llevamos directo a la videollamada segura.
             </p>
           </div>
 
+          <StepIndicator step={step} />
+
           <Card className="p-6 sm:p-8">
-            <form onSubmit={onSubmit} className="space-y-4" noValidate>
-              <div>
-                <label
-                  htmlFor="guest-name"
-                  className="mb-1 block text-sm font-semibold text-gray-700"
-                >
-                  Tu nombre
-                </label>
-                <input
-                  id="guest-name"
-                  type="text"
-                  value={name}
-                  onChange={(e) =>
-                    setName(e.target.value.slice(0, NAME_MAX))
-                  }
-                  placeholder="Ej: María González"
-                  required
-                  autoComplete="name"
-                  maxLength={NAME_MAX}
-                  disabled={submitting}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="guest-reason"
-                  className="mb-1 block text-sm font-semibold text-gray-700"
-                >
-                  Motivo de la consulta
-                </label>
-                <textarea
-                  id="guest-reason"
-                  value={reason}
-                  onChange={(e) =>
-                    setReason(e.target.value.slice(0, REASON_MAX))
-                  }
-                  placeholder="Describe brevemente cómo te sientes o qué te ocurre."
-                  required
-                  rows={5}
-                  maxLength={REASON_MAX}
-                  disabled={submitting}
-                  className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
-                />
-                <p className="mt-1 text-[11px] text-gray-400">
-                  {trimmedReason.length}/{REASON_MAX}
-                </p>
-              </div>
-
-              {error && (
-                <p
-                  role="alert"
-                  className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
-                >
-                  {error}
-                </p>
+            <form onSubmit={onSubmit} noValidate>
+              {step === 1 && (
+                <div className="space-y-4">
+                  <div>
+                    <label
+                      htmlFor="guest-name"
+                      className="mb-1 block text-sm font-semibold text-gray-700"
+                    >
+                      Paso 1 · Tu nombre
+                    </label>
+                    <input
+                      ref={nameInputRef}
+                      id="guest-name"
+                      type="text"
+                      value={name}
+                      onChange={(e) =>
+                        setName(e.target.value.slice(0, NAME_MAX))
+                      }
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          if (step1Ok && !submitting) setStep(2);
+                        }
+                      }}
+                      placeholder="Ej: María González"
+                      required
+                      autoComplete="name"
+                      maxLength={NAME_MAX}
+                      disabled={submitting}
+                      className="w-full min-h-12 rounded-lg border border-gray-300 px-3 py-3 text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="primary"
+                    disabled={!step1Ok || submitting}
+                    className="w-full min-h-12 text-base"
+                    onClick={() => step1Ok && setStep(2)}
+                  >
+                    Continuar
+                  </Button>
+                </div>
               )}
 
-              <Button
-                type="submit"
-                variant="primary"
-                disabled={!valid || submitting}
-                className="w-full"
-              >
-                {submitting ? "Creando consulta…" : "Iniciar consulta"}
-              </Button>
+              {step === 2 && (
+                <div className="space-y-4">
+                  <div>
+                    <label
+                      htmlFor="guest-reason"
+                      className="mb-1 block text-sm font-semibold text-gray-700"
+                    >
+                      Paso 2 · Motivo de la consulta
+                    </label>
+                    <textarea
+                      ref={reasonInputRef}
+                      id="guest-reason"
+                      value={reason}
+                      onChange={(e) =>
+                        setReason(e.target.value.slice(0, REASON_MAX))
+                      }
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          if (step2Ok && !submitting) setStep(3);
+                        }
+                      }}
+                      placeholder="Describe brevemente cómo te sientes o qué necesitas."
+                      required
+                      rows={5}
+                      maxLength={REASON_MAX}
+                      disabled={submitting}
+                      className="w-full resize-none rounded-lg border border-gray-300 px-3 py-3 text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
+                    />
+                    <p className="mt-1 text-[11px] text-gray-400">
+                      {trimmedReason.length}/{REASON_MAX}
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-3 sm:flex-row-reverse sm:justify-between">
+                    <Button
+                      type="button"
+                      variant="primary"
+                      disabled={!step2Ok || submitting}
+                      className="w-full min-h-12 text-base sm:flex-1"
+                      onClick={() => step2Ok && setStep(3)}
+                    >
+                      Revisar
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="w-full min-h-12"
+                      onClick={() => setStep(1)}
+                    >
+                      Atrás
+                    </Button>
+                  </div>
+                </div>
+              )}
 
-              <p className="text-center text-[11px] leading-relaxed text-gray-500">
-                Al enviar aceptas los{" "}
-                <Link href="/terms" className="text-primary hover:underline">
-                  Términos
-                </Link>{" "}
-                y la{" "}
-                <Link
-                  href="/privacy"
-                  className="text-primary hover:underline"
-                >
-                  Política de Privacidad
-                </Link>
-                .
-              </p>
+              {step === 3 && (
+                <div className="space-y-5">
+                  <div className="rounded-xl border border-gray-100 bg-gray-50/80 p-4 text-sm">
+                    <p className="m-0 mb-2 font-semibold text-gray-900">
+                      Paso 3 · Confirma y entra
+                    </p>
+                    <dl className="m-0 space-y-3">
+                      <div>
+                        <dt className="text-[11px] font-bold uppercase tracking-wide text-gray-500">
+                          Nombre
+                        </dt>
+                        <dd className="m-0 text-gray-900">{trimmedName}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-[11px] font-bold uppercase tracking-wide text-gray-500">
+                          Motivo
+                        </dt>
+                        <dd className="m-0 whitespace-pre-wrap text-gray-800">
+                          {trimmedReason}
+                        </dd>
+                      </div>
+                    </dl>
+                  </div>
+
+                  {error && (
+                    <p
+                      role="alert"
+                      className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+                    >
+                      {error}
+                    </p>
+                  )}
+
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    disabled={!step1Ok || !step2Ok || submitting}
+                    className="w-full min-h-12 text-base"
+                  >
+                    {submitting ? "Entrando…" : "Entrar a la videollamada"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="w-full min-h-12"
+                    disabled={submitting}
+                    onClick={() => setStep(2)}
+                  >
+                    Editar motivo
+                  </Button>
+
+                  <p className="text-center text-[11px] leading-relaxed text-gray-500">
+                    Al continuar aceptas los{" "}
+                    <Link href="/terms" className="text-primary hover:underline">
+                      Términos
+                    </Link>{" "}
+                    y la{" "}
+                    <Link href="/privacy" className="text-primary hover:underline">
+                      Política de Privacidad
+                    </Link>
+                    .
+                  </p>
+                </div>
+              )}
             </form>
           </Card>
 
           {whatsAppUrl && (
             <div className="mt-6 text-center">
-              <p className="mb-2 text-xs text-gray-500">
-                ¿Prefieres WhatsApp?
-              </p>
+              <p className="mb-2 text-xs text-gray-500">¿Prefieres WhatsApp?</p>
               <a
                 href={whatsAppUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-lg bg-[#25d366] px-4 py-2 text-sm font-semibold text-white no-underline hover:bg-[#1fb957]"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#25d366] px-4 py-2 text-sm font-semibold text-white no-underline hover:bg-[#1fb957]"
               >
                 <WhatsappIcon />
                 Chatear por WhatsApp
@@ -195,6 +295,55 @@ export default function GuestConsultationPage() {
         </Container>
       </main>
     </div>
+  );
+}
+
+function StepIndicator({ step }: { step: number }) {
+  const labels = ["Nombre", "Motivo", "Entrar"];
+  return (
+    <ol
+      className="mb-6 flex items-center justify-center gap-2 sm:gap-4"
+      aria-label="Progreso"
+    >
+      {labels.map((label, i) => {
+        const n = i + 1;
+        const active = step === n;
+        const done = step > n;
+        return (
+          <li key={label} className="flex items-center gap-2 sm:gap-4">
+            <div className="flex flex-col items-center gap-1">
+              <span
+                className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold ${
+                  done
+                    ? "bg-primary text-white"
+                    : active
+                      ? "bg-primaryMid text-white ring-2 ring-primary/30"
+                      : "bg-gray-200 text-gray-600"
+                }`}
+                aria-current={active ? "step" : undefined}
+              >
+                {done ? "✓" : n}
+              </span>
+              <span
+                className={`hidden text-[10px] font-semibold uppercase tracking-wide sm:block ${
+                  active ? "text-primary" : "text-gray-500"
+                }`}
+              >
+                {label}
+              </span>
+            </div>
+            {i < labels.length - 1 ? (
+              <span
+                className={`mb-4 hidden h-0.5 w-6 sm:mb-5 sm:inline-block sm:w-10 ${
+                  step > n ? "bg-primary" : "bg-gray-200"
+                }`}
+                aria-hidden
+              />
+            ) : null}
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 
