@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useConsultation } from "@/context/ConsultationContext";
 import { fetchConsultation } from "@/lib/services";
+import type { NestConsultation } from "@/lib/services/consultations";
+import { ApiError } from "@/lib/heydoctor-api";
 import { CallQualityDashboard } from "@/components/CallQualityDashboard";
 import { TeleconsultaVideoSession } from "@/components/webrtc/TeleconsultaVideoSession";
 import { useIsMobile } from "@/lib/hooks/useIsMobile";
@@ -38,17 +40,36 @@ export default function TeleconsultaPanelPage() {
     let cancelled = false;
     setLoading(true);
 
+    console.log("[heydoctor] teleconsulta gate", {
+      consultationId,
+      doctorId: doctorId ?? null,
+      ctxBootLoading,
+    });
+
     void fetchConsultation(consultationId)
-      .then(() => {
+      .then((data: NestConsultation) => {
         if (cancelled) return;
         /**
          * Si GET /consultations/:id responde 200, el backend ya validó sesión
          * y pertenencia a la clínica. Evita falsos negativos por carrera de
          * `doctorId` en el contexto o consulta abierta sin `startConsultation`.
          */
+        console.log("[heydoctor] teleconsulta fetchConsultation 200", {
+          consultationId,
+          doctorId: doctorId ?? null,
+          consultationRecordId: data.id,
+        });
         setAllowed(true);
       })
-      .catch(() => {
+      .catch((error: unknown) => {
+        console.error("[heydoctor] teleconsulta fetchConsultation failed", {
+          consultationId,
+          doctorId: doctorId ?? null,
+          error,
+          ...(error instanceof ApiError
+            ? { status: error.status, body: error.body }
+            : {}),
+        });
         if (!cancelled) setAllowed(false);
       })
       .finally(() => {
@@ -59,6 +80,16 @@ export default function TeleconsultaPanelPage() {
       cancelled = true;
     };
   }, [consultationId, ctxBootLoading]);
+
+  useEffect(() => {
+    if (allowed === true && !loading) {
+      console.log("[heydoctor] teleconsulta session allowed", {
+        consultationId,
+        doctorId: doctorId ?? null,
+        allowed: true,
+      });
+    }
+  }, [allowed, loading, consultationId, doctorId]);
 
   if (loading) {
     return (
