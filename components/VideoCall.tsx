@@ -93,22 +93,6 @@ export const VideoCall = forwardRef<
   const [controlsVisible, setControlsVisible] = useState(true);
   const [chatPanelOpen, setChatPanelOpen] = useState(false);
 
-  const clearControlsHideTimer = useCallback(() => {
-    if (controlsHideTimerRef.current !== null) {
-      window.clearTimeout(controlsHideTimerRef.current);
-      controlsHideTimerRef.current = null;
-    }
-  }, []);
-
-  const showControlsWithAutoHide = useCallback(() => {
-    setControlsVisible(true);
-    clearControlsHideTimer();
-    controlsHideTimerRef.current = window.setTimeout(() => {
-      controlsHideTimerRef.current = null;
-      setControlsVisible(false);
-    }, 2500);
-  }, [clearControlsHideTimer]);
-
   const {
     localStream,
     remoteStream,
@@ -129,9 +113,28 @@ export const VideoCall = forwardRef<
   });
 
   const canShareScreen = useMemo(() => {
-    if (typeof navigator === 'undefined') return false;
-    return typeof navigator.mediaDevices?.getDisplayMedia === 'function';
+    if (typeof window === "undefined") return false;
+    if (typeof navigator === "undefined") return false;
+    return typeof navigator.mediaDevices?.getDisplayMedia === "function";
   }, []);
+
+  const clearControlsHideTimer = useCallback(() => {
+    if (typeof window === "undefined") return;
+    if (controlsHideTimerRef.current !== null) {
+      window.clearTimeout(controlsHideTimerRef.current);
+      controlsHideTimerRef.current = null;
+    }
+  }, []);
+
+  const showControlsWithAutoHide = useCallback(() => {
+    if (typeof window === "undefined") return;
+    setControlsVisible(true);
+    clearControlsHideTimer();
+    controlsHideTimerRef.current = window.setTimeout(() => {
+      controlsHideTimerRef.current = null;
+      setControlsVisible(false);
+    }, 2500);
+  }, [clearControlsHideTimer]);
 
   useEffect(() => {
     if (process.env.NODE_ENV === "development") {
@@ -390,6 +393,9 @@ export const VideoCall = forwardRef<
 
   useEffect(() => {
     if (!isMobile || !mediaReady || typeof document === "undefined") {
+      return;
+    }
+    if (typeof window === "undefined") {
       return;
     }
     const node = mobileShellRef.current;
