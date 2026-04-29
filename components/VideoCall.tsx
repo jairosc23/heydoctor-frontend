@@ -82,7 +82,7 @@ export const VideoCall = forwardRef<
 
   const isMobile = useIsMobile();
   const mobileShellRef = useRef<HTMLDivElement>(null);
-  const controlsHideTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const controlsHideTimerRef = useRef<number | null>(null);
   const prevInCallRef = useRef(false);
 
   const [micOn, setMicOn] = useState(true);
@@ -92,6 +92,23 @@ export const VideoCall = forwardRef<
   const [isRecording, setIsRecording] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
   const [chatPanelOpen, setChatPanelOpen] = useState(false);
+
+  const clearControlsHideTimer = useCallback(() => {
+    if (controlsHideTimerRef.current !== null) {
+      clearTimeout(controlsHideTimerRef.current);
+      controlsHideTimerRef.current = null;
+    }
+  }, []);
+
+  const showControlsWithAutoHide = useCallback(() => {
+    if (typeof window === "undefined") return;
+    setControlsVisible(true);
+    clearControlsHideTimer();
+    controlsHideTimerRef.current = window.setTimeout(() => {
+      controlsHideTimerRef.current = null;
+      setControlsVisible(false);
+    }, 2500);
+  }, [clearControlsHideTimer]);
 
   const {
     localStream,
@@ -117,22 +134,6 @@ export const VideoCall = forwardRef<
     if (typeof navigator === "undefined") return false;
     return typeof navigator.mediaDevices?.getDisplayMedia === "function";
   }, []);
-
-  const clearControlsHideTimer = useCallback(() => {
-    if (controlsHideTimerRef.current !== null) {
-      clearTimeout(controlsHideTimerRef.current);
-      controlsHideTimerRef.current = null;
-    }
-  }, []);
-
-  const showControlsWithAutoHide = useCallback(() => {
-    setControlsVisible(true);
-    clearControlsHideTimer();
-    controlsHideTimerRef.current = setTimeout(() => {
-      controlsHideTimerRef.current = null;
-      setControlsVisible(false);
-    }, 2500);
-  }, [clearControlsHideTimer]);
 
   useEffect(() => {
     if (process.env.NODE_ENV === "development") {
