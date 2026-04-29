@@ -28,6 +28,7 @@ import {
 } from "@/lib/consultation-pricing";
 import { useConsultationPrice } from "@/lib/hooks/useConsultationPrice";
 import { ApiError } from "@/lib/heydoctor-api";
+import { getWhatsAppUrlWithCustomMessage } from "@/lib/whatsapp-url";
 import {
   AiInsightsPanel,
   ClinicalRecordPanel,
@@ -313,6 +314,20 @@ export default function ConsultationDetailPage() {
 
     try {
       await startCall(consultation.id);
+      if (typeof window !== "undefined" && consultation.publicToken) {
+        try {
+          const inviteLink = `${window.location.origin}/teleconsulta/invitado/${consultation.publicToken}`;
+          const whatsappUrl = getWhatsAppUrlWithCustomMessage(
+            `Hola 👋, tu médico ha iniciado la consulta. Ingresa aquí: ${inviteLink}`,
+          );
+          console.log("[heydoctor] sending patient link", inviteLink);
+          if (whatsappUrl) {
+            window.open(whatsappUrl, "_blank");
+          }
+        } catch (err) {
+          console.warn("[heydoctor] failed to send patient link", err);
+        }
+      }
     } catch (error) {
       console.warn("[heydoctor] startCall failed, continuing anyway", error);
     }

@@ -498,6 +498,20 @@ export function useTelemedicineCall(
           }
         }
 
+        if (s === 'failed' || s === 'disconnected') {
+          const last = lastQualityInputsRef.current;
+          setConnectionQuality(
+            deriveConnectionQuality({
+              reconnecting: reconnectingIceRef.current,
+              iceConnectionState: s,
+              lossRatio: last?.lossRatio ?? 0,
+              rttMs: last?.rttMs,
+              outboundBitrateBps: last?.outboundBitrateBps,
+              videoSuspendedForNetwork: last?.videoSuspendedForNetwork ?? false,
+            }),
+          );
+        }
+
         if (s === 'failed') {
           scheduleIceRestartDebounced();
         } else if (s === 'disconnected') {
