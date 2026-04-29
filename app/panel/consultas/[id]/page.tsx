@@ -307,20 +307,28 @@ export default function ConsultationDetailPage() {
     }
   }
 
-  async function handleStartCall() {
+  const handleStartCall = async () => {
+    if (!consultation?.id) {
+      console.error(
+        "[heydoctor][teleconsulta] handleStartCall: consultation not loaded",
+      );
+      return;
+    }
+    console.log("[heydoctor] starting call", consultation.id);
     setStartingCall(true);
     setSaveMsg("");
     try {
-      await startCall(id);
-      router.push(`/panel/consultas/${id}/teleconsulta`);
-    } catch (err) {
+      await startCall(consultation.id);
+      router.push(`/panel/consultas/${consultation.id}/teleconsulta`);
+    } catch (error) {
+      console.error("[heydoctor][teleconsulta] error starting call", error);
       setSaveMsg(
-        err instanceof Error ? err.message : "Error al iniciar videollamada"
+        error instanceof Error ? error.message : "Error al iniciar videollamada",
       );
     } finally {
       setStartingCall(false);
     }
-  }
+  };
 
   async function handleDiagnosisConfirm(item: {
     code: string;

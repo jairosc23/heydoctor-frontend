@@ -326,8 +326,12 @@ export type UseTelemedicineCallResult = {
   connectionQuality: ConnectionQuality | null;
   /** Vídeo detenido en envío por política de red (audio activo). */
   videoSuspendedForNetwork: boolean;
+  /** True mientras el vídeo enviado es pantalla compartida (`getDisplayMedia`). */
+  screenSharing: boolean;
   startCall: () => Promise<void>;
   endCall: () => void;
+  startScreenShare: () => Promise<void>;
+  stopScreenShare: () => Promise<void>;
   startRecording: (userConsent: boolean) => Promise<void>;
   stopRecording: (userConsent: boolean) => Promise<void>;
 };
@@ -368,6 +372,7 @@ export function useTelemedicineCall(
   >(null);
   const [videoSuspendedForNetwork, setVideoSuspendedForNetwork] =
     useState(false);
+  const [screenSharing, setScreenSharing] = useState(false);
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const socketRef = useRef<Socket | null>(null);
@@ -386,6 +391,7 @@ export function useTelemedicineCall(
   const iceConnectionStateRef = useRef<RTCIceConnectionState | null>(null);
   const reconnectingIceRef = useRef(false);
   const capturedVideoTrackRef = useRef<MediaStreamTrack | null>(null);
+  const screenShareTrackRef = useRef<MediaStreamTrack | null>(null);
   const videoSuspendedByPolicyRef = useRef(false);
   const metricsSamplesRef = useRef(0);
   const poorNetworkStreakRef = useRef(0);
@@ -647,6 +653,13 @@ export function useTelemedicineCall(
     detachMonitor();
     reconnectingIceRef.current = false;
     videoSuspendedByPolicyRef.current = false;
+    try {
+      screenShareTrackRef.current?.stop();
+    } catch {
+      /* ignore */
+    }
+    screenShareTrackRef.current = null;
+    setScreenSharing(false);
     capturedVideoTrackRef.current = null;
     metricsSamplesRef.current = 0;
     poorNetworkStreakRef.current = 0;
@@ -684,6 +697,66 @@ export function useTelemedicineCall(
     setVideoTier(0);
     videoTierRef.current = 0;
   }, [consultationId, detachMonitor]);
+
+  const stopScreenShare = useCallback(async () => {
+    const st = screenShareTrackRef.current;
+    screenShareTrackRef.current = null;
+    try {
+      st?.stop();
+    } catch {
+      /* ignore */
+    }
+    setScreenSharing(false);
+    const pc = pcRef.current;
+    const videoSender = pc?.getSenders().find((s) => s.track?.kind === 'video');
+    if (!videoSender) return;
+    const cam = capturedVideoTrackRef.current;
+    try {
+      if (videoSuspendedByPolicyRef.current) {
+        await videoSender.replaceTrack(null);
+      } else if (cam) {
+        await videoSender.replaceTrack(cam);
+        if (pc) await prioritizeAudioOverVideo(pc, videoTierRef.current);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const startScreenShare = useCallback(async () => {
+    if (
+      typeof navigator === 'undefined' ||
+      typeof navigator.mediaDevices?.getDisplayMedia !== 'function'
+    ) {
+      return;
+    }
+    const pc = pcRef.current;
+    if (!pc) return;
+    const videoSender = pc.getSenders().find((s) => s.track?.kind === 'video');
+    if (!videoSender) return;
+    try {
+      const dm = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: false,
+      });
+      const track = dm.getVideoTracks()[0];
+      if (!track) return;
+      try {
+        screenShareTrackRef.current?.stop();
+      } catch {
+        /* ignore */
+      }
+      screenShareTrackRef.current = track;
+      await videoSender.replaceTrack(track);
+      setScreenSharing(true);
+      track.addEventListener('ended', () => {
+        void stopScreenShare();
+      });
+      await prioritizeAudioOverVideo(pc, videoTierRef.current);
+    } catch {
+      /* Usuario canceló o API no disponible: sin onError ni banner rojo */
+    }
+  }, [stopScreenShare]);
 
   const startRecording = useCallback(
     async (userConsent: boolean) => {
@@ -952,8 +1025,11 @@ export function useTelemedicineCall(
     videoTier,
     connectionQuality,
     videoSuspendedForNetwork,
+    screenSharing,
     startCall,
     endCall,
+    startScreenShare,
+    stopScreenShare,
     startRecording,
     stopRecording,
   };
