@@ -25,6 +25,13 @@ export interface PublicConsultationStatus {
   isGuest: boolean;
 }
 
+/** Respuesta de GET /public/teleconsultation/:token (acceso invitado sin login). */
+export interface PublicTeleconsultationInvite {
+  consultationId: string;
+  roomId: string;
+  patientName?: string;
+}
+
 export class GuestConsultationError extends Error {
   readonly status: number;
   constructor(message: string, status: number) {
@@ -124,5 +131,50 @@ export async function fetchPublicConsultationStatus(
     id: data.id,
     status: data.status ?? "unknown",
     isGuest: !!data.isGuest,
+  };
+}
+
+/**
+ * Valida un enlace mágico de teleconsulta. Sin cookies (invitado).
+ * Devuelve `null` si el token no existe o expiró (404).
+ */
+export async function fetchPublicTeleconsultationByToken(
+  token: string,
+): Promise<PublicTeleconsultationInvite | null> {
+  const t = token.trim();
+  if (!t) return null;
+
+  const url = `${getApiBase()}/public/teleconsultation/${encodeURIComponent(t)}`;
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "GET",
+      credentials: "omit",
+      headers: { Accept: "application/json" },
+    });
+  } catch (e) {
+    throw new GuestConsultationError(
+      e instanceof Error
+        ? `No se pudo contactar al servidor: ${e.message}`
+        : "No se pudo contactar al servidor.",
+      0,
+    );
+  }
+
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    throw new GuestConsultationError(
+      `Error al validar el enlace (${res.status}).`,
+      res.status,
+    );
+  }
+
+  const data = (await res.json()) as Partial<PublicTeleconsultationInvite>;
+  if (!data.consultationId || !data.roomId) return null;
+  return {
+    consultationId: data.consultationId,
+    roomId: data.roomId,
+    patientName:
+      typeof data.patientName === "string" ? data.patientName : undefined,
   };
 }

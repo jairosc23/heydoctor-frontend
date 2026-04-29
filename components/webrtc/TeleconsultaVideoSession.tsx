@@ -34,6 +34,7 @@ export function TeleconsultaVideoSession({
   consultationId,
   onEndCall,
   mode = "auth",
+  isDoctor = true,
 }: TeleconsultaVideoSessionProps) {
   const searchParams = useSearchParams();
   const accessTokenPending = !!searchParams.get("access_token")?.trim();
@@ -194,6 +195,7 @@ export function TeleconsultaVideoSession({
     <VideoCall
       consultationId={roomId || consultationId}
       onEndCall={onEndCall}
+      isInitiator={isDoctor}
     />
   );
 }
