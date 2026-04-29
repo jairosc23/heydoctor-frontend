@@ -724,6 +724,7 @@ export function useTelemedicineCall(
   }, []);
 
   const startScreenShare = useCallback(async () => {
+    if (typeof window === 'undefined') return;
     if (
       typeof navigator === 'undefined' ||
       typeof navigator.mediaDevices?.getDisplayMedia !== 'function'
