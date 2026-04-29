@@ -118,23 +118,28 @@ export const VideoCall = forwardRef<
     return typeof navigator.mediaDevices?.getDisplayMedia === "function";
   }, []);
 
-  const clearControlsHideTimer = useCallback(() => {
-    if (typeof window === "undefined") return;
-    if (controlsHideTimerRef.current !== null) {
-      window.clearTimeout(controlsHideTimerRef.current);
-      controlsHideTimerRef.current = null;
-    }
+  /** Una sola construcción de handlers de auto-ocultar (evita TS2451 por duplicados). */
+  const { clearControlsHideTimer, showControlsWithAutoHide } = useMemo(() => {
+    const clearControlsHideTimer = (): void => {
+      if (typeof window === "undefined") return;
+      if (controlsHideTimerRef.current !== null) {
+        window.clearTimeout(controlsHideTimerRef.current);
+        controlsHideTimerRef.current = null;
+      }
+    };
+    const showControlsWithAutoHide = (): void => {
+      if (typeof window === "undefined") return;
+      setControlsVisible(true);
+      clearControlsHideTimer();
+      controlsHideTimerRef.current = window.setTimeout(() => {
+        controlsHideTimerRef.current = null;
+        setControlsVisible(false);
+      }, 2500);
+    };
+    return { clearControlsHideTimer, showControlsWithAutoHide };
+    // setState de useState es estable; el ref persiste entre renders.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const showControlsWithAutoHide = useCallback(() => {
-    if (typeof window === "undefined") return;
-    setControlsVisible(true);
-    clearControlsHideTimer();
-    controlsHideTimerRef.current = window.setTimeout(() => {
-      controlsHideTimerRef.current = null;
-      setControlsVisible(false);
-    }, 2500);
-  }, [clearControlsHideTimer]);
 
   useEffect(() => {
     if (process.env.NODE_ENV === "development") {
