@@ -102,6 +102,14 @@ export default function PanelLayout({
     router.refresh();
   }
 
+  /** Teleconsulta: pantalla completa sin sidebar ni cabecera del panel (Meet/WhatsApp). */
+  const isPanelTeleconsultaRoute =
+    !!pathname && /\/panel\/consultas\/[^/]+\/teleconsulta$/.test(pathname);
+
+  if (isPanelTeleconsultaRoute) {
+    return <>{children}</>;
+  }
+
   return (
     <div className="flex min-h-screen overflow-hidden bg-[#eef4f7] font-sans">
       <aside className="fixed bottom-0 left-0 top-0 z-40 flex h-screen w-64 flex-col border-r border-gray-100 bg-white p-4 shadow-soft">

@@ -126,7 +126,6 @@ export default function ConsultationDetailPage() {
 
   const [transitioning, setTransitioning] = useState(false);
   const [signing, setSigning] = useState(false);
-  const [startingCall, setStartingCall] = useState(false);
   const [creatingPayment, setCreatingPayment] = useState(false);
   const [paymentStep, setPaymentStep] = useState<"idle" | "confirm">("idle");
 
@@ -308,26 +307,17 @@ export default function ConsultationDetailPage() {
   }
 
   const handleStartCall = async () => {
-    if (!consultation?.id) {
-      console.error(
-        "[heydoctor][teleconsulta] handleStartCall: consultation not loaded",
-      );
-      return;
-    }
+    if (!consultation?.id) return;
+
     console.log("[heydoctor] starting call", consultation.id);
-    setStartingCall(true);
-    setSaveMsg("");
+
     try {
       await startCall(consultation.id);
-      router.push(`/panel/consultas/${consultation.id}/teleconsulta`);
     } catch (error) {
-      console.error("[heydoctor][teleconsulta] error starting call", error);
-      setSaveMsg(
-        error instanceof Error ? error.message : "Error al iniciar videollamada",
-      );
-    } finally {
-      setStartingCall(false);
+      console.warn("[heydoctor] startCall failed, continuing anyway", error);
     }
+
+    router.push(`/panel/consultas/${consultation.id}/teleconsulta`);
   };
 
   async function handleDiagnosisConfirm(item: {
@@ -692,7 +682,7 @@ export default function ConsultationDetailPage() {
         isEditing={editMode}
         patientId={consultation.patientId ?? null}
         loading={{
-          starting: startingCall,
+          starting: false,
           invoice: actionLoading.invoice,
           pdf: actionLoading.pdf,
           deleting: actionLoading.deleting,
@@ -976,14 +966,13 @@ export default function ConsultationDetailPage() {
           </p>
           <button
             onClick={handleStartCall}
-            disabled={startingCall}
             style={{
               padding: "12px 24px",
               background: "#0284c7",
               color: "white",
               border: "none",
               borderRadius: 8,
-              cursor: startingCall ? "not-allowed" : "pointer",
+              cursor: "pointer",
               fontSize: 14,
               fontWeight: 600,
               display: "flex",
@@ -992,7 +981,7 @@ export default function ConsultationDetailPage() {
             }}
           >
             <span style={{ fontSize: 18 }}>&#x1F4F9;</span>
-            {startingCall ? "Conectando..." : "Iniciar Teleconsulta"}
+            Iniciar Teleconsulta
           </button>
         </div>
       )}
