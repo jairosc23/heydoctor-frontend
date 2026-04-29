@@ -130,6 +130,12 @@ export const VideoCall = forwardRef<
     onError: (message) => setError(message),
   });
 
+  const canShareScreen = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    if (typeof navigator === "undefined") return false;
+    return typeof navigator.mediaDevices?.getDisplayMedia === "function";
+  }, []);
+
   useEffect(() => {
     if (process.env.NODE_ENV === "development") {
       console.log({
@@ -331,6 +337,28 @@ export const VideoCall = forwardRef<
       remoteStream ? "Paciente conectado" : "Esperando al paciente...",
     [remoteStream],
   );
+
+  const hasRemoteLive = useMemo(
+    () =>
+      !!remoteStream &&
+      remoteStream.getTracks().some((t) => t.readyState === "live"),
+    [remoteStream],
+  );
+  const callStatusLabel = useMemo(() => {
+    if (error) {
+      return "Esperando al otro participante…";
+    }
+    if (!localStream) {
+      return "Esperando al otro participante…";
+    }
+    const hasRemote =
+      !!remoteStream &&
+      remoteStream.getTracks().some((t) => t.readyState === "live");
+    if (connectionState === "connected" && hasRemote) {
+      return "Paciente conectado";
+    }
+    return "Esperando al otro participante…";
+  }, [localStream, remoteStream, connectionState, error]);
 
   const hasRemoteLive = useMemo(
     () =>
@@ -745,6 +773,22 @@ export const VideoCall = forwardRef<
             </span>
           </button>
         ) : null}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleChatToggle();
+          }}
+          className="premium-tap"
+          aria-pressed={chatPanelOpen}
+          aria-label="Chat"
+          tabIndex={controlsVisible ? 0 : -1}
+          style={mobileCircleBtnStyle}
+        >
+          <span aria-hidden style={{ fontSize: 22 }}>
+            💬
+          </span>
+        </button>
         <button
           type="button"
           onClick={(e) => {

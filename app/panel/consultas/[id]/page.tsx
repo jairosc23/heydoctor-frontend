@@ -333,6 +333,26 @@ export default function ConsultationDetailPage() {
     }
 
     router.push(`/panel/consultas/${consultation.id}/teleconsulta`);
+    if (!consultation?.id) {
+      console.error(
+        "[heydoctor][teleconsulta] handleStartCall: consultation not loaded",
+      );
+      return;
+    }
+    console.log("[heydoctor] starting call", consultation.id);
+    setStartingCall(true);
+    setSaveMsg("");
+    try {
+      await startCall(consultation.id);
+      router.push(`/panel/consultas/${consultation.id}/teleconsulta`);
+    } catch (error) {
+      console.error("[heydoctor][teleconsulta] error starting call", error);
+      setSaveMsg(
+        error instanceof Error ? error.message : "Error al iniciar videollamada",
+      );
+    } finally {
+      setStartingCall(false);
+    }
   };
 
   async function handleDiagnosisConfirm(item: {

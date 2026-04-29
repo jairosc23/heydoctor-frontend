@@ -749,6 +749,10 @@ export function useTelemedicineCall(
 
   const startScreenShare = useCallback(async () => {
     if (!canShareScreen) {
+    if (
+      typeof navigator === 'undefined' ||
+      typeof navigator.mediaDevices?.getDisplayMedia !== 'function'
+    ) {
       return;
     }
     const pc = pcRef.current;
@@ -778,6 +782,10 @@ export function useTelemedicineCall(
       console.warn('[heydoctor] screen share failed', err);
     }
   }, [canShareScreen, stopScreenShare]);
+    } catch {
+      /* Usuario canceló o API no disponible: sin onError ni banner rojo */
+    }
+  }, [stopScreenShare]);
 
   const startRecording = useCallback(
     async (userConsent: boolean) => {
