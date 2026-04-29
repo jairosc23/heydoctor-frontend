@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   deriveConnectionQuality,
   type ConnectionQuality,
@@ -328,6 +328,8 @@ export type UseTelemedicineCallResult = {
   videoSuspendedForNetwork: boolean;
   /** True mientras el vídeo enviado es pantalla compartida (`getDisplayMedia`). */
   screenSharing: boolean;
+  /** `getDisplayMedia` disponible (p. ej. no en muchos móviles / iOS). */
+  canShareScreen: boolean;
   startCall: () => Promise<void>;
   endCall: () => void;
   startScreenShare: () => Promise<void>;
@@ -373,6 +375,14 @@ export function useTelemedicineCall(
   const [videoSuspendedForNetwork, setVideoSuspendedForNetwork] =
     useState(false);
   const [screenSharing, setScreenSharing] = useState(false);
+
+  const canShareScreen = useMemo(
+    () =>
+      typeof navigator !== 'undefined' &&
+      !!navigator.mediaDevices &&
+      'getDisplayMedia' in navigator.mediaDevices,
+    [],
+  );
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const socketRef = useRef<Socket | null>(null);
@@ -724,11 +734,7 @@ export function useTelemedicineCall(
   }, []);
 
   const startScreenShare = useCallback(async () => {
-    if (typeof window === 'undefined') return;
-    if (
-      typeof navigator === 'undefined' ||
-      typeof navigator.mediaDevices?.getDisplayMedia !== 'function'
-    ) {
+    if (!canShareScreen) {
       return;
     }
     const pc = pcRef.current;
@@ -754,10 +760,10 @@ export function useTelemedicineCall(
         void stopScreenShare();
       });
       await prioritizeAudioOverVideo(pc, videoTierRef.current);
-    } catch {
-      /* Usuario canceló o API no disponible: sin onError ni banner rojo */
+    } catch (err) {
+      console.warn('[heydoctor] screen share failed', err);
     }
-  }, [stopScreenShare]);
+  }, [canShareScreen, stopScreenShare]);
 
   const startRecording = useCallback(
     async (userConsent: boolean) => {
@@ -1027,6 +1033,7 @@ export function useTelemedicineCall(
     connectionQuality,
     videoSuspendedForNetwork,
     screenSharing,
+    canShareScreen,
     startCall,
     endCall,
     startScreenShare,
