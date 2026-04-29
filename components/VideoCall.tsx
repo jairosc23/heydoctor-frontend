@@ -82,7 +82,7 @@ export const VideoCall = forwardRef<
 
   const isMobile = useIsMobile();
   const mobileShellRef = useRef<HTMLDivElement>(null);
-  const controlsHideTimerRef = useRef<number | null>(null);
+  const controlsHideTimerRef = useRef<NodeJS.Timeout | null>(null);
   const prevInCallRef = useRef(false);
 
   const [micOn, setMicOn] = useState(true);
@@ -118,28 +118,21 @@ export const VideoCall = forwardRef<
     return typeof navigator.mediaDevices?.getDisplayMedia === "function";
   }, []);
 
-  /** Una sola construcción de handlers de auto-ocultar (evita TS2451 por duplicados). */
-  const { clearControlsHideTimer, showControlsWithAutoHide } = useMemo(() => {
-    const clearControlsHideTimer = (): void => {
-      if (typeof window === "undefined") return;
-      if (controlsHideTimerRef.current !== null) {
-        window.clearTimeout(controlsHideTimerRef.current);
-        controlsHideTimerRef.current = null;
-      }
-    };
-    const showControlsWithAutoHide = (): void => {
-      if (typeof window === "undefined") return;
-      setControlsVisible(true);
-      clearControlsHideTimer();
-      controlsHideTimerRef.current = window.setTimeout(() => {
-        controlsHideTimerRef.current = null;
-        setControlsVisible(false);
-      }, 2500);
-    };
-    return { clearControlsHideTimer, showControlsWithAutoHide };
-    // setState de useState es estable; el ref persiste entre renders.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  const clearControlsHideTimer = useCallback(() => {
+    if (controlsHideTimerRef.current !== null) {
+      clearTimeout(controlsHideTimerRef.current);
+      controlsHideTimerRef.current = null;
+    }
   }, []);
+
+  const showControlsWithAutoHide = useCallback(() => {
+    setControlsVisible(true);
+    clearControlsHideTimer();
+    controlsHideTimerRef.current = setTimeout(() => {
+      controlsHideTimerRef.current = null;
+      setControlsVisible(false);
+    }, 2500);
+  }, [clearControlsHideTimer]);
 
   useEffect(() => {
     if (process.env.NODE_ENV === "development") {
