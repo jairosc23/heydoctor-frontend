@@ -7,16 +7,13 @@ import { useConsultation } from "@/context/ConsultationContext";
 import { fetchConsultation } from "@/lib/services";
 import type { NestConsultation } from "@/lib/services/consultations";
 import { ApiError } from "@/lib/heydoctor-api";
-import { CallQualityDashboard } from "@/components/CallQualityDashboard";
 import { TeleconsultaVideoSession } from "@/components/webrtc/TeleconsultaVideoSession";
-import { useIsMobile } from "@/lib/hooks/useIsMobile";
 
 export default function TeleconsultaPanelPage() {
   const params = useParams();
   const router = useRouter();
   const consultationId = params?.id as string;
   const { doctorId, isLoading: ctxBootLoading } = useConsultation();
-  const isMobile = useIsMobile();
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -116,57 +113,12 @@ export default function TeleconsultaPanelPage() {
     );
   }
 
-  if (isMobile) {
-    /**
-     * Mobile: el `VideoCall` interno usa `position: fixed; inset: 0; z-index:
-     * 50` y cubre el sidebar/header del panel. No renderizamos chrome del
-     * dashboard ni el panel de calidad; los controles flotan sobre el video.
-     */
-    return (
-      <TeleconsultaVideoSession
-        roomId={consultationId}
-        consultationId={consultationId}
-        isDoctor={!!doctorId}
-        onEndCall={() => router.push("/panel/consultas")}
-      />
-    );
-  }
-
   return (
-    <div style={{ padding: 20, minHeight: "calc(100vh - 100px)" }}>
-      <div
-        style={{
-          marginBottom: 16,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <Link
-          href="/panel/consultas"
-          style={{ color: "#078a92", textDecoration: "none", fontSize: 14 }}
-        >
-          ← Volver a consulta
-        </Link>
-      </div>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "minmax(0, 1fr) minmax(260px, 320px)",
-          gap: 16,
-          alignItems: "start",
-        }}
-      >
-        <div style={{ minHeight: 360 }}>
-          <TeleconsultaVideoSession
-            roomId={consultationId}
-            consultationId={consultationId}
-            isDoctor={!!doctorId}
-            onEndCall={() => router.push("/panel/consultas")}
-          />
-        </div>
-        <CallQualityDashboard consultationId={consultationId} />
-      </div>
-    </div>
+    <TeleconsultaVideoSession
+      roomId={consultationId}
+      consultationId={consultationId}
+      isDoctor={!!doctorId}
+      onEndCall={() => router.push("/panel/consultas")}
+    />
   );
 }
