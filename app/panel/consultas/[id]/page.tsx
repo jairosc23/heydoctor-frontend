@@ -333,26 +333,6 @@ export default function ConsultationDetailPage() {
     }
 
     router.push(`/panel/consultas/${consultation.id}/teleconsulta`);
-    if (!consultation?.id) {
-      console.error(
-        "[heydoctor][teleconsulta] handleStartCall: consultation not loaded",
-      );
-      return;
-    }
-    console.log("[heydoctor] starting call", consultation.id);
-    setStartingCall(true);
-    setSaveMsg("");
-    try {
-      await startCall(consultation.id);
-      router.push(`/panel/consultas/${consultation.id}/teleconsulta`);
-    } catch (error) {
-      console.error("[heydoctor][teleconsulta] error starting call", error);
-      setSaveMsg(
-        error instanceof Error ? error.message : "Error al iniciar videollamada",
-      );
-    } finally {
-      setStartingCall(false);
-    }
   };
 
   async function handleDiagnosisConfirm(item: {
@@ -1031,41 +1011,18 @@ export default function ConsultationDetailPage() {
           marginBottom: 20,
         }}
       >
-        <h3
-          style={{
-            margin: "0 0 20px",
-            fontSize: 17,
-            fontWeight: 700,
-            color: "#0f172a",
-            letterSpacing: "-0.02em",
-          }}
-        >
+        <h3 style={{ margin: "0 0 16px", fontSize: 16, color: "#333" }}>
           Datos clínicos
         </h3>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 20,
-          }}
-        >
-          <div
-            style={{
-              background: "#f8fafc",
-              border: "1px solid #e2e8f0",
-              borderRadius: 12,
-              padding: 18,
-            }}
-          >
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div>
             <label
               style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: "#334155",
+                fontSize: 13,
+                fontWeight: 600,
+                color: "#475569",
                 display: "block",
-                marginBottom: 8,
-                letterSpacing: "0.02em",
-                textTransform: "uppercase",
+                marginBottom: 4,
               }}
             >
               Diagnóstico
@@ -1082,29 +1039,19 @@ export default function ConsultationDetailPage() {
                 borderRadius: 8,
                 fontSize: 14,
                 resize: "vertical",
-                background: isEditable ? "white" : "#f1f5f9",
-                lineHeight: 1.45,
+                background: isEditable ? "white" : "#f8fafc",
               }}
               placeholder="Ingrese el diagnóstico..."
             />
           </div>
-          <div
-            style={{
-              background: "#f8fafc",
-              border: "1px solid #e2e8f0",
-              borderRadius: 12,
-              padding: 18,
-            }}
-          >
+          <div>
             <label
               style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: "#334155",
+                fontSize: 13,
+                fontWeight: 600,
+                color: "#475569",
                 display: "block",
-                marginBottom: 8,
-                letterSpacing: "0.02em",
-                textTransform: "uppercase",
+                marginBottom: 4,
               }}
             >
               Notas de consulta
@@ -1121,29 +1068,19 @@ export default function ConsultationDetailPage() {
                 borderRadius: 8,
                 fontSize: 14,
                 resize: "vertical",
-                background: isEditable ? "white" : "#f1f5f9",
-                lineHeight: 1.45,
+                background: isEditable ? "white" : "#f8fafc",
               }}
               placeholder="Evolución, hallazgos, plan..."
             />
           </div>
-          <div
-            style={{
-              background: "#f8fafc",
-              border: "1px solid #e2e8f0",
-              borderRadius: 12,
-              padding: 18,
-            }}
-          >
+          <div>
             <label
               style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: "#334155",
+                fontSize: 13,
+                fontWeight: 600,
+                color: "#475569",
                 display: "block",
-                marginBottom: 8,
-                letterSpacing: "0.02em",
-                textTransform: "uppercase",
+                marginBottom: 4,
               }}
             >
               Tratamiento
@@ -1160,8 +1097,7 @@ export default function ConsultationDetailPage() {
                 borderRadius: 8,
                 fontSize: 14,
                 resize: "vertical",
-                background: isEditable ? "white" : "#f1f5f9",
-                lineHeight: 1.45,
+                background: isEditable ? "white" : "#f8fafc",
               }}
               placeholder="Indicaciones, medicación, seguimiento..."
             />
@@ -1170,10 +1106,8 @@ export default function ConsultationDetailPage() {
           {isEditable && (
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <button
-                type="button"
                 onClick={handleSave}
                 disabled={saving}
-                className="premium-tap"
                 style={{
                   padding: "10px 24px",
                   background: "#078a92",
