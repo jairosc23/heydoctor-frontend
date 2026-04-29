@@ -1,4 +1,9 @@
-export type ConnectionQuality = 'good' | 'weak' | 'poor' | 'reconnecting';
+export type ConnectionQuality =
+  | 'good'
+  | 'weak'
+  | 'poor'
+  | 'reconnecting'
+  | 'failed';
 
 export function deriveConnectionQuality(params: {
   reconnecting: boolean;
@@ -21,11 +26,12 @@ export function deriveConnectionQuality(params: {
     return 'reconnecting';
   }
 
-  if (
-    iceConnectionState === 'failed' ||
-    iceConnectionState === 'disconnected'
-  ) {
-    return 'poor';
+  if (iceConnectionState === 'failed') {
+    return 'failed';
+  }
+
+  if (iceConnectionState === 'disconnected') {
+    return 'reconnecting';
   }
 
   if (

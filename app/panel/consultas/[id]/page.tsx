@@ -28,6 +28,7 @@ import {
 } from "@/lib/consultation-pricing";
 import { useConsultationPrice } from "@/lib/hooks/useConsultationPrice";
 import { ApiError } from "@/lib/heydoctor-api";
+import { getWhatsAppUrlWithCustomMessage } from "@/lib/whatsapp-url";
 import {
   AiInsightsPanel,
   ClinicalRecordPanel,
@@ -126,7 +127,6 @@ export default function ConsultationDetailPage() {
 
   const [transitioning, setTransitioning] = useState(false);
   const [signing, setSigning] = useState(false);
-  const [startingCall, setStartingCall] = useState(false);
   const [creatingPayment, setCreatingPayment] = useState(false);
   const [paymentStep, setPaymentStep] = useState<"idle" | "confirm">("idle");
 
@@ -308,6 +308,31 @@ export default function ConsultationDetailPage() {
   }
 
   const handleStartCall = async () => {
+    if (!consultation?.id) return;
+
+    console.log("[heydoctor] starting call", consultation.id);
+
+    try {
+      await startCall(consultation.id);
+      if (typeof window !== "undefined" && consultation.publicToken) {
+        try {
+          const inviteLink = `${window.location.origin}/teleconsulta/invitado/${consultation.publicToken}`;
+          const whatsappUrl = getWhatsAppUrlWithCustomMessage(
+            `Hola 👋, tu médico ha iniciado la consulta. Ingresa aquí: ${inviteLink}`,
+          );
+          console.log("[heydoctor] sending patient link", inviteLink);
+          if (whatsappUrl) {
+            window.open(whatsappUrl, "_blank");
+          }
+        } catch (err) {
+          console.warn("[heydoctor] failed to send patient link", err);
+        }
+      }
+    } catch (error) {
+      console.warn("[heydoctor] startCall failed, continuing anyway", error);
+    }
+
+    router.push(`/panel/consultas/${consultation.id}/teleconsulta`);
     if (!consultation?.id) {
       console.error(
         "[heydoctor][teleconsulta] handleStartCall: consultation not loaded",
@@ -692,7 +717,7 @@ export default function ConsultationDetailPage() {
         isEditing={editMode}
         patientId={consultation.patientId ?? null}
         loading={{
-          starting: startingCall,
+          starting: false,
           invoice: actionLoading.invoice,
           pdf: actionLoading.pdf,
           deleting: actionLoading.deleting,
@@ -976,14 +1001,13 @@ export default function ConsultationDetailPage() {
           </p>
           <button
             onClick={handleStartCall}
-            disabled={startingCall}
             style={{
               padding: "12px 24px",
               background: "#0284c7",
               color: "white",
               border: "none",
               borderRadius: 8,
-              cursor: startingCall ? "not-allowed" : "pointer",
+              cursor: "pointer",
               fontSize: 14,
               fontWeight: 600,
               display: "flex",
@@ -992,7 +1016,7 @@ export default function ConsultationDetailPage() {
             }}
           >
             <span style={{ fontSize: 18 }}>&#x1F4F9;</span>
-            {startingCall ? "Conectando..." : "Iniciar Teleconsulta"}
+            Iniciar Teleconsulta
           </button>
         </div>
       )}

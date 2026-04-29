@@ -4,10 +4,11 @@ import React from 'react';
 import type { ConnectionQuality } from '@/lib/webrtc-connection-quality';
 
 const LABELS: Record<Exclude<ConnectionQuality, null>, string> = {
-  good: 'Conexión buena',
+  good: 'Conectado',
   weak: 'Conexión débil',
-  poor: 'Conexión mala',
-  reconnecting: 'Reconectando…',
+  poor: 'Conexión débil',
+  reconnecting: 'Reconectando...',
+  failed: 'Sin conexión',
 };
 
 const STYLES: Record<Exclude<ConnectionQuality, null>, React.CSSProperties> = {
@@ -17,19 +18,24 @@ const STYLES: Record<Exclude<ConnectionQuality, null>, React.CSSProperties> = {
     border: '1px solid rgba(22, 163, 74, 0.35)',
   },
   weak: {
-    backgroundColor: 'rgba(234, 179, 8, 0.15)',
-    color: '#a16207',
-    border: '1px solid rgba(234, 179, 8, 0.4)',
+    backgroundColor: 'rgba(249, 115, 22, 0.14)',
+    color: '#c2410c',
+    border: '1px solid rgba(249, 115, 22, 0.38)',
   },
   poor: {
+    backgroundColor: 'rgba(249, 115, 22, 0.14)',
+    color: '#c2410c',
+    border: '1px solid rgba(249, 115, 22, 0.38)',
+  },
+  reconnecting: {
+    backgroundColor: 'rgba(234, 179, 8, 0.18)',
+    color: '#a16207',
+    border: '1px solid rgba(234, 179, 8, 0.45)',
+  },
+  failed: {
     backgroundColor: 'rgba(220, 38, 38, 0.12)',
     color: '#b91c1c',
     border: '1px solid rgba(220, 38, 38, 0.35)',
-  },
-  reconnecting: {
-    backgroundColor: 'rgba(59, 130, 246, 0.12)',
-    color: '#1d4ed8',
-    border: '1px solid rgba(59, 130, 246, 0.35)',
   },
 };
 
@@ -71,6 +77,9 @@ export function ConnectionQualityBadge({
     fontSize: '0.75rem',
     fontWeight: 600,
     lineHeight: 1.2,
+    transition: 'opacity 220ms ease, transform 220ms ease',
+    opacity: 1,
+    transform: 'scale(1)',
     ...styleBlock,
   };
 
@@ -81,7 +90,9 @@ export function ConnectionQualityBadge({
       role="status"
       aria-live="polite"
     >
-      {quality === null ? 'Sin sesión' : LABELS[quality]}
+      <span key={quality ?? 'idle'} style={{ display: 'inline-block' }}>
+        {quality === null ? 'Sin sesión' : LABELS[quality]}
+      </span>
     </span>
   );
 }

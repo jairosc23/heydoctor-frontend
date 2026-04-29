@@ -64,6 +64,8 @@ export interface NestConsultation {
   status?: string;
   createdAt?: string;
   updatedAt?: string;
+  /** Token para enlace de invitado a teleconsulta (si el backend lo expone). */
+  publicToken?: string | null;
   /** Snapshot legal al crear la consulta (solo lectura en UI). */
   consentVersion?: string | null;
   consentGivenAt?: string | null;

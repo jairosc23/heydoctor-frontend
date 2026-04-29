@@ -88,32 +88,55 @@ export default function TeleconsultaPanelPage() {
     }
   }, [allowed, loading, consultationId, doctorId]);
 
+  const shellStyle: React.CSSProperties = {
+    position: "fixed",
+    inset: 0,
+    background: "#0b1120",
+    zIndex: 9999,
+  };
+
   if (loading) {
     return (
-      <div style={{ padding: 40, textAlign: "center" }}>
-        <p>Verificando acceso...</p>
+      <div style={shellStyle}>
+        <div
+          style={{ padding: 40, textAlign: "center", color: "#e2e8f0" }}
+        >
+          <p>Verificando acceso...</p>
+        </div>
       </div>
     );
   }
 
   if (!allowed) {
     return (
-      <div style={{ padding: 40 }}>
-        <h2 style={{ color: "#c00", marginBottom: 16 }}>Acceso denegado</h2>
-        <p style={{ color: "#666", marginBottom: 16 }}>
-          No tienes permiso para acceder a esta teleconsulta.
-        </p>
-        <Link
-          href="/panel/consultas"
-          style={{ color: "#078a92", textDecoration: "none" }}
-        >
-          ← Volver a consultas
-        </Link>
+      <div style={shellStyle}>
+        <div style={{ padding: 40 }}>
+          <h2 style={{ color: "#fecaca", marginBottom: 16 }}>
+            Acceso denegado
+          </h2>
+          <p style={{ color: "#94a3b8", marginBottom: 16 }}>
+            No tienes permiso para acceder a esta teleconsulta.
+          </p>
+          <Link
+            href="/panel/consultas"
+            style={{ color: "#5eead4", textDecoration: "none" }}
+          >
+            ← Volver a consultas
+          </Link>
+        </div>
       </div>
     );
   }
 
   return (
+    <div style={shellStyle}>
+      <TeleconsultaVideoSession
+        roomId={consultationId}
+        consultationId={consultationId}
+        isDoctor={!!doctorId}
+        onEndCall={() => router.push("/panel/consultas")}
+      />
+    </div>
     <TeleconsultaVideoSession
       roomId={consultationId}
       consultationId={consultationId}
