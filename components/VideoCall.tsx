@@ -117,6 +117,7 @@ export const VideoCall = forwardRef<
     connectionState,
     iceConnectionState,
     screenSharing,
+    canShareScreen,
     startCall,
     endCall,
     startScreenShare,
@@ -128,12 +129,6 @@ export const VideoCall = forwardRef<
     socketPath: "/socket.io",
     onError: (message) => setError(message),
   });
-
-  const canShareScreen = useMemo(() => {
-    if (typeof window === "undefined") return false;
-    if (typeof navigator === "undefined") return false;
-    return typeof navigator.mediaDevices?.getDisplayMedia === "function";
-  }, []);
 
   useEffect(() => {
     if (process.env.NODE_ENV === "development") {
@@ -331,21 +326,11 @@ export const VideoCall = forwardRef<
     }
   }, [remoteStream]);
 
-  const callStatusLabel = useMemo(() => {
-    if (error) {
-      return "Esperando al otro participante…";
-    }
-    if (!localStream) {
-      return "Esperando al otro participante…";
-    }
-    const hasRemote =
-      !!remoteStream &&
-      remoteStream.getTracks().some((t) => t.readyState === "live");
-    if (connectionState === "connected" && hasRemote) {
-      return "Paciente conectado";
-    }
-    return "Esperando al otro participante…";
-  }, [localStream, remoteStream, connectionState, error]);
+  const callStatusLabel = useMemo(
+    () =>
+      remoteStream ? "Paciente conectado" : "Esperando al paciente...",
+    [remoteStream],
+  );
 
   const hasRemoteLive = useMemo(
     () =>
