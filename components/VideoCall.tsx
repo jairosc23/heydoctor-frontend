@@ -1,5 +1,10 @@
 "use client";
 
+/**
+ * Única implementación de videollamada UI de la app. Importar siempre desde
+ * `@/components/VideoCall` (no duplicar este componente en otras rutas).
+ */
+
 import React, {
   forwardRef,
   useCallback,
@@ -143,6 +148,11 @@ export const VideoCall = forwardRef<
     return () => {
       mountedRef.current = false;
     };
+  }, []);
+
+  /** Debug: confirma que carga esta implementación de UI (quitar cuando estabilice). */
+  useEffect(() => {
+    console.log("VIDEO CALL UI: NEW VERSION ACTIVE");
   }, []);
 
   const stopMediaRecorderIfActive = useCallback(() => {
@@ -503,9 +513,7 @@ export const VideoCall = forwardRef<
     ? "translateY(0)"
     : "translateY(16px)";
 
-  const pipShellStyle: React.CSSProperties = isMobile
-    ? pipShellStyleMobile
-    : pipShellStyleDesktop;
+  const pipShellStyle: React.CSSProperties = pipShellStyleUnified;
 
   const localVideoEl = (
     <video
@@ -536,7 +544,7 @@ export const VideoCall = forwardRef<
     <div
       ref={mobileShellRef}
       data-call-recording={isRecording ? "true" : "false"}
-      data-call-variant={isMobile ? "mobile" : "desktop"}
+      data-call-variant="fullscreen-pip"
       data-controls-visible={controlsVisible ? "true" : "false"}
       style={mobileShellStyle}
       role="dialog"
@@ -766,12 +774,12 @@ const chatSidePanelStyle: React.CSSProperties = {
 
 const mobileShellStyle: React.CSSProperties = {
   position: "fixed",
-  inset: 0,
-  width: "100%",
-  maxWidth: "100vw",
-  height: "var(--app-vh, 100dvh)",
-  minHeight: "var(--app-vh, 100dvh)",
-  maxHeight: "var(--app-vh, 100dvh)",
+  top: 0,
+  left: 0,
+  width: "100vw",
+  height: "100dvh",
+  minHeight: "100dvh",
+  maxHeight: "100dvh",
   background: "#000",
   overflow: "hidden",
   zIndex: 9999,
@@ -779,7 +787,7 @@ const mobileShellStyle: React.CSSProperties = {
   boxSizing: "border-box",
 };
 
-/** Recorte “cover” estable en móvil (evita bandas cuando el contenedor y el stream difieren en ratio). */
+/** Recorte “cover” centrado: sin letterboxing en contenedores de cualquier ratio. */
 const videoCoverBase: React.CSSProperties = {
   position: "absolute",
   left: "50%",
@@ -816,30 +824,19 @@ const remoteWaitingTextStyle: React.CSSProperties = {
   fontWeight: 600,
 };
 
-const pipShellStyleMobile: React.CSSProperties = {
+/** PiP local única (sin ramas desktop/móvil que confundan con layout split). */
+const pipShellStyleUnified: React.CSSProperties = {
   position: "absolute",
-  bottom: "max(calc(env(safe-area-inset-bottom) + 108px), 116px)",
-  right: "max(env(safe-area-inset-right), 14px)",
-  width: 112,
-  height: 149,
+  bottom: "max(calc(env(safe-area-inset-bottom) + 112px), 120px)",
+  right: "max(env(safe-area-inset-right), 16px)",
+  width: "min(148px, 28vw)",
+  height: "min(198px, 37.5vw)",
+  minWidth: 96,
+  minHeight: 128,
   borderRadius: 16,
   overflow: "hidden",
   border: "2px solid rgba(255,255,255,0.22)",
   boxShadow: "0 10px 40px rgba(0,0,0,0.55), 0 0 0 1px rgba(0,0,0,0.35)",
-  zIndex: 2,
-  background: "#000",
-};
-
-const pipShellStyleDesktop: React.CSSProperties = {
-  position: "absolute",
-  bottom: "max(calc(env(safe-area-inset-bottom) + 120px), 128px)",
-  right: "max(env(safe-area-inset-right), 24px)",
-  width: 148,
-  height: 198,
-  borderRadius: 16,
-  overflow: "hidden",
-  border: "2px solid rgba(255,255,255,0.22)",
-  boxShadow: "0 12px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(0,0,0,0.3)",
   zIndex: 2,
   background: "#000",
 };
