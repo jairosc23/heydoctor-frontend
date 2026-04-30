@@ -1,7 +1,3 @@
-const DEFAULT_BACKEND_DEV = "http://localhost:3001";
-/** Si no hay env en build de producción (Vercel), usar API pública (evita POST a localhost). */
-const DEFAULT_BACKEND_PROD = "https://pro-api.heydoctor.health";
-
 /**
  * Origen del backend (sin `/api` final).
  * Variables: `NEXT_PUBLIC_HEYDOCTOR_API_URL` (preferida) o `NEXT_PUBLIC_API_URL` (alias).
@@ -12,12 +8,8 @@ export function getBackendOrigin(): string {
     process.env.NEXT_PUBLIC_HEYDOCTOR_API_URL?.trim() ||
     process.env.NEXT_PUBLIC_API_URL?.trim() ||
     "";
-  const fallback =
-    process.env.NODE_ENV === "production"
-      ? DEFAULT_BACKEND_PROD
-      : DEFAULT_BACKEND_DEV;
-  let s = (fromEnv || fallback).replace(/\/+$/, "");
-  if (!s) s = fallback;
+  let s = (fromEnv || "http://localhost:3001").replace(/\/+$/, "");
+  if (!s) s = "http://localhost:3001";
   if (!/^https?:\/\//i.test(s)) {
     s = `https://${s}`;
   }
