@@ -171,6 +171,9 @@ function TeleconsultaDeepLinkContent() {
         isDoctor={!!doctorId}
         onEndCall={onEndCall}
         mode={sessionMode}
+        peerDisplayName={
+          !!doctorId && isGuest && guestName ? guestName : undefined
+        }
       />
       {isGuest && guestName ? (
         <span style={mobileGuestBadgeStyle} aria-label="Modo invitado">
