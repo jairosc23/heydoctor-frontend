@@ -129,13 +129,11 @@ export default function TeleconsultaPanelPage() {
   }
 
   return (
-    <div style={shellStyle}>
-      <TeleconsultaVideoSession
-        roomId={consultationId}
-        consultationId={consultationId}
-        isDoctor={!!doctorId}
-        onEndCall={() => router.push("/panel/consultas")}
-      />
-    </div>
+    <TeleconsultaVideoSession
+      roomId={consultationId}
+      consultationId={consultationId}
+      isDoctor={!!doctorId}
+      onEndCall={() => router.push("/panel/consultas")}
+    />
   );
 }
