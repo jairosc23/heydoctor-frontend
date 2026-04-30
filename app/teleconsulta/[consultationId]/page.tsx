@@ -10,7 +10,6 @@ import {
 } from "@/lib/services";
 import { TeleconsultaVideoSession } from "@/components/webrtc/TeleconsultaVideoSession";
 import { GuestNamePrompt } from "@/components/telemedicine/GuestNamePrompt";
-import { useIsMobile } from "@/lib/hooks/useIsMobile";
 import { getGuestName, setGuestName } from "@/lib/guest-session";
 
 function TeleconsultaDeepLinkContent() {
@@ -18,7 +17,6 @@ function TeleconsultaDeepLinkContent() {
   const router = useRouter();
   const consultationId = params?.consultationId as string;
   const { doctorId, patientId } = useConsultation();
-  const isMobile = useIsMobile();
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const [isGuest, setIsGuest] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -156,89 +154,24 @@ function TeleconsultaDeepLinkContent() {
     );
   }
 
-  if (isMobile) {
-    return (
-      <>
-        <TeleconsultaVideoSession
-          roomId={consultationId}
-          consultationId={consultationId}
-          isDoctor={!!doctorId}
-          onEndCall={onEndCall}
-          mode={sessionMode}
-        />
-        {isGuest && guestName && (
-          <span style={mobileGuestBadgeStyle} aria-label="Modo invitado">
-            🎫 Invitado · {guestName}
-          </span>
-        )}
-      </>
-    );
-  }
-
-  return (
-    <div style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
-      <div
-        style={{
-          padding: "12px 16px",
-          background: isGuest ? "#fef3c7" : "#fff",
-          borderBottom: isGuest ? "1px solid #fde68a" : "1px solid #eee",
-          display: "flex",
-          alignItems: "center",
-          gap: 16,
-        }}
-      >
-        <Link
-          href={exitHref}
-          style={{
-            color: isGuest ? "#92400e" : "#078a92",
-            textDecoration: "none",
-            fontSize: 14,
-            fontWeight: 600,
-          }}
-        >
-          ← Salir
-        </Link>
-        {isGuest ? (
-          <span
-            style={{
-              fontSize: 13,
-              color: "#92400e",
-              background: "#fde68a",
-              padding: "4px 12px",
-              borderRadius: 999,
-              fontWeight: 700,
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-            }}
-          >
-            <span aria-hidden>🎫</span>
-            Modo invitado{guestName ? ` · ${guestName}` : ""}
-          </span>
-        ) : null}
-        {isGuest ? (
-          <span
-            style={{
-              fontSize: 11,
-              color: "#92400e",
-              opacity: 0.85,
-            }}
-          >
-            Sesión temporal · sin cuenta
-          </span>
-        ) : null}
-      </div>
-      <div style={{ flex: 1, padding: 20, minHeight: 0 }}>
-        <TeleconsultaVideoSession
-          roomId={consultationId}
-          consultationId={consultationId}
-          isDoctor={!!doctorId}
-          onEndCall={onEndCall}
-          mode={sessionMode}
-        />
-      </div>
-    </div>
+  const sessionBlock = (
+    <>
+      <TeleconsultaVideoSession
+        roomId={consultationId}
+        consultationId={consultationId}
+        isDoctor={!!doctorId}
+        onEndCall={onEndCall}
+        mode={sessionMode}
+      />
+      {isGuest && guestName ? (
+        <span style={mobileGuestBadgeStyle} aria-label="Modo invitado">
+          🎫 Invitado · {guestName}
+        </span>
+      ) : null}
+    </>
   );
+
+  return sessionBlock;
 }
 
 const mobileGuestBadgeStyle: React.CSSProperties = {

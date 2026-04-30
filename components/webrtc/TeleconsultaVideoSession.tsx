@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ConsentModal } from "@/components/ConsentModal";
+/** Única fuente de UI de llamada: `@/components/VideoCall` (no usar alternativas duplicadas). */
 import { VideoCall } from "@/components/VideoCall";
 import { refreshAccessToken } from "@/lib/auth-client";
 import {
@@ -10,6 +11,17 @@ import {
   postTelemedicineConsent,
   setTelemedicineConsent,
 } from "@/lib/telemedicine-consent";
+
+/** Espacio reservado para la capa fixed de VideoCall (evita saltos de layout). */
+const teleconsultaVideoRootStyle: React.CSSProperties = {
+  width: "100vw",
+  minHeight: "100dvh",
+  height: "100dvh",
+  maxWidth: "100%",
+  overflow: "hidden",
+  background: "#000",
+  isolation: "isolate",
+};
 
 export interface TeleconsultaVideoSessionProps {
   /** Mismo valor que consultationId — sala WebRTC / signaling */
@@ -192,10 +204,15 @@ export function TeleconsultaVideoSession({
   }
 
   return (
-    <VideoCall
-      consultationId={roomId || consultationId}
-      onEndCall={onEndCall}
-      isInitiator={isDoctor}
-    />
+    <div
+      style={teleconsultaVideoRootStyle}
+      data-teleconsulta-video-root="true"
+    >
+      <VideoCall
+        consultationId={roomId || consultationId}
+        onEndCall={onEndCall}
+        isInitiator={isDoctor}
+      />
+    </div>
   );
 }
