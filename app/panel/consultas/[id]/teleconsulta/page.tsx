@@ -16,6 +16,7 @@ export default function TeleconsultaPanelPage() {
   const { doctorId, isLoading: ctxBootLoading } = useConsultation();
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
+  const [peerDisplayName, setPeerDisplayName] = useState<string | undefined>();
 
   useEffect(() => {
     if (!consultationId) {
@@ -56,6 +57,11 @@ export default function TeleconsultaPanelPage() {
           doctorId: doctorId ?? null,
           consultationRecordId: data.id,
         });
+        setPeerDisplayName(
+          data.patient?.name?.trim() ||
+            data.patient?.email?.trim() ||
+            undefined,
+        );
         setAllowed(true);
       })
       .catch((error: unknown) => {
@@ -134,6 +140,7 @@ export default function TeleconsultaPanelPage() {
       consultationId={consultationId}
       isDoctor={!!doctorId}
       onEndCall={() => router.push("/panel/consultas")}
+      peerDisplayName={peerDisplayName}
     />
   );
 }

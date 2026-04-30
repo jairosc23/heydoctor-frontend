@@ -41,6 +41,8 @@ export type VideoCallProps = {
    * Grabación local (WebM). Distinto de los stubs de API del hook.
    */
   enableCallRecording?: boolean;
+  /** Nombre del participante remoto (p. ej. paciente) para el encabezado. */
+  peerDisplayName?: string;
 };
 
 /** API imperativa cuando `enableCallRecording` es true (sin UI en el componente). */
@@ -74,6 +76,7 @@ export const VideoCall = forwardRef<
     onEndCall,
     isInitiator = true,
     enableCallRecording = false,
+    peerDisplayName,
   },
   ref
 ) {
@@ -331,17 +334,65 @@ export const VideoCall = forwardRef<
     }
   }, [remoteStream]);
 
-  const callStatusLabel = useMemo(
-    () =>
-      remoteStream ? "Paciente conectado" : "Esperando al paciente...",
-    [remoteStream],
-  );
-
   const hasRemoteLive = useMemo(
     () =>
       !!remoteStream &&
       remoteStream.getTracks().some((t) => t.readyState === "live"),
     [remoteStream],
+  );
+
+  const isConnectingPhase = useMemo(() => {
+    if (hasRemoteLive) return false;
+    if (connectionState === "connecting") return true;
+    if (iceConnectionState === "checking") return true;
+    if (
+      remoteStream &&
+      !remoteStream.getTracks().some((t) => t.readyState === "live")
+    ) {
+      return true;
+    }
+    return false;
+  }, [hasRemoteLive, connectionState, iceConnectionState, remoteStream]);
+
+  const remoteOverlayMessage = isConnectingPhase
+    ? "Conectando…"
+    : "Esperando al participante…";
+
+  const statusPillLabel = hasRemoteLive
+    ? "En llamada"
+    : isConnectingPhase
+      ? "Conectando"
+      : "Esperando";
+
+  const statusPillAccent = useMemo(() => {
+    if (hasRemoteLive) {
+      return {
+        borderColor: "rgba(45, 212, 191, 0.45)",
+        background: "rgba(13, 148, 136, 0.42)",
+        color: "#ecfdf5",
+      };
+    }
+    if (isConnectingPhase) {
+      return {
+        borderColor: "rgba(251, 191, 36, 0.55)",
+        background: "rgba(146, 64, 14, 0.38)",
+        color: "#fffbeb",
+      };
+    }
+    return {
+      borderColor: "rgba(148, 163, 184, 0.4)",
+      background: "rgba(30, 41, 59, 0.75)",
+      color: "#f1f5f9",
+    };
+  }, [hasRemoteLive, isConnectingPhase]);
+
+  const pipShellStyleComputed = useMemo(
+    () => ({
+      ...pipShellBaseStyle,
+      width: isMobile ? 140 : 200,
+      height: isMobile ? Math.round((140 * 4) / 3) : Math.round((200 * 4) / 3),
+    }),
+    [isMobile],
   );
 
   useEffect(() => {
@@ -508,7 +559,7 @@ export const VideoCall = forwardRef<
     ? "translateY(0)"
     : "translateY(16px)";
 
-  const pipShellStyle: React.CSSProperties = pipShellStyleUnified;
+  const pipShellStyle: React.CSSProperties = pipShellStyleComputed;
 
   const localVideoEl = (
     <video
@@ -553,13 +604,33 @@ export const VideoCall = forwardRef<
         {remoteVideoEl}
         {!hasRemoteLive && (
           <div style={remoteWaitingOverlayStyle}>
-            <span style={remoteWaitingTextStyle}>Esperando…</span>
+            <p
+              key={remoteOverlayMessage}
+              className="videocall-remote-overlay-text call-status-enter"
+              style={remoteWaitingTextStyle}
+            >
+              {remoteOverlayMessage}
+            </p>
           </div>
         )}
       </div>
 
-      <div style={pipShellStyle} onClick={handleSurfaceTap} role="presentation">
-        {localVideoEl}
+      <div
+        style={pipShellStyle}
+        onClick={handleSurfaceTap}
+        role="presentation"
+      >
+        <div style={{ position: "absolute", inset: 0, background: "#000" }}>
+          {localVideoEl}
+          {!camOn ? (
+            <div style={pipCameraOffOverlayStyle}>
+              <span style={pipCameraOffIconStyle} aria-hidden>
+                📷
+              </span>
+              <span style={pipCameraOffLabelStyle}>Cámara apagada</span>
+            </div>
+          ) : null}
+        </div>
       </div>
 
       {chatPanelOpen ? (
@@ -601,11 +672,21 @@ export const VideoCall = forwardRef<
         }}
         aria-hidden={!controlsVisible}
       >
-        <span style={mobileStatusPillStyle}>
-          <span key={callStatusLabel} className="call-status-enter inline-block">
-            {callStatusLabel}
+        <div style={topBarLeftClusterStyle}>
+          <span
+            key={statusPillLabel}
+            style={{
+              ...mobileStatusPillStyle,
+              ...statusPillAccent,
+            }}
+            className="call-status-enter"
+          >
+            {statusPillLabel}
           </span>
-        </span>
+          {peerDisplayName?.trim() ? (
+            <span style={peerNameHeaderStyle}>{peerDisplayName.trim()}</span>
+          ) : null}
+        </div>
         <div style={{ pointerEvents: "none", alignSelf: "flex-start" }}>
           <ConnectionQualityBadge quality={connectionQuality} showWhenIdle />
         </div>
@@ -632,14 +713,14 @@ export const VideoCall = forwardRef<
             e.stopPropagation();
             toggleCam();
           }}
-          className="premium-tap"
+          className="videocall-dock-btn premium-tap"
           aria-pressed={!camOn}
           aria-label={camOn ? "Apagar cámara" : "Encender cámara"}
           tabIndex={controlsVisible ? 0 : -1}
           style={
             camOn
-              ? mobileCircleBtnStyle
-              : { ...mobileCircleBtnStyle, ...mobileCircleBtnOffStyle }
+              ? { ...mobileDockBtnBase, ...dockBtnActiveStyle }
+              : { ...mobileDockBtnBase, ...dockBtnMutedStyle }
           }
         >
           <span aria-hidden style={{ fontSize: 22 }}>
@@ -652,14 +733,14 @@ export const VideoCall = forwardRef<
             e.stopPropagation();
             toggleMic();
           }}
-          className="premium-tap"
+          className="videocall-dock-btn premium-tap"
           aria-pressed={!micOn}
           aria-label={micOn ? "Silenciar micrófono" : "Activar micrófono"}
           tabIndex={controlsVisible ? 0 : -1}
           style={
             micOn
-              ? mobileCircleBtnStyle
-              : { ...mobileCircleBtnStyle, ...mobileCircleBtnOffStyle }
+              ? { ...mobileDockBtnBase, ...dockBtnActiveStyle }
+              : { ...mobileDockBtnBase, ...dockBtnMutedStyle }
           }
         >
           <span aria-hidden style={{ fontSize: 22 }}>
@@ -673,7 +754,7 @@ export const VideoCall = forwardRef<
               e.stopPropagation();
               handleToggleScreenShare();
             }}
-            className="premium-tap"
+            className="videocall-dock-btn premium-tap"
             aria-pressed={screenSharing}
             aria-label={
               screenSharing ? "Dejar de compartir pantalla" : "Compartir pantalla"
@@ -681,8 +762,8 @@ export const VideoCall = forwardRef<
             tabIndex={controlsVisible ? 0 : -1}
             style={
               screenSharing
-                ? { ...mobileCircleBtnStyle, ...screenShareActiveBtnStyle }
-                : mobileCircleBtnStyle
+                ? { ...mobileDockBtnBase, ...screenShareActiveBtnStyle }
+                : { ...mobileDockBtnBase, ...dockBtnActiveStyle }
             }
           >
             <span aria-hidden style={{ fontSize: 22 }}>
@@ -696,11 +777,11 @@ export const VideoCall = forwardRef<
             e.stopPropagation();
             handleChatToggle();
           }}
-          className="premium-tap"
+          className="videocall-dock-btn premium-tap"
           aria-pressed={chatPanelOpen}
           aria-label="Chat"
           tabIndex={controlsVisible ? 0 : -1}
-          style={mobileCircleBtnStyle}
+          style={{ ...mobileDockBtnBase, ...dockBtnActiveStyle }}
         >
           <span aria-hidden style={{ fontSize: 22 }}>
             💬
@@ -712,7 +793,7 @@ export const VideoCall = forwardRef<
             e.stopPropagation();
             handleEnd();
           }}
-          className="premium-tap"
+          className="videocall-dock-btn premium-tap"
           aria-label="Finalizar llamada"
           tabIndex={controlsVisible ? 0 : -1}
           style={mobileHangupBtnStyle}
@@ -750,7 +831,7 @@ export const VideoCall = forwardRef<
 
 VideoCall.displayName = "VideoCall";
 
-/* ───────────────────────── Meet / WhatsApp layout ───────────────────────── */
+/* ─── Estilos auxiliares (panel lateral chat, PiP, controles) ─── */
 
 const chatSidePanelStyle: React.CSSProperties = {
   position: "absolute",
@@ -811,31 +892,84 @@ const remoteWaitingOverlayStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  background: "rgba(15, 23, 42, 0.92)",
+  padding: "24px 32px",
+  background: "radial-gradient(ellipse at center, rgba(15,23,42,0.5) 0%, rgba(0,0,0,0.75) 100%)",
   pointerEvents: "none",
+  transition: "opacity 380ms ease",
 };
 
 const remoteWaitingTextStyle: React.CSSProperties = {
-  color: "#94a3b8",
-  fontSize: 15,
+  margin: 0,
+  color: "rgba(255,255,255,0.85)",
+  fontSize: 17,
   fontWeight: 600,
+  letterSpacing: "0.01em",
+  lineHeight: 1.45,
+  textAlign: "center",
+  maxWidth: 320,
+  textShadow: "0 2px 12px rgba(0,0,0,0.45)",
 };
 
-/** PiP local única (sin ramas desktop/móvil que confundan con layout split). */
-const pipShellStyleUnified: React.CSSProperties = {
+/** PiP: posición fija; width/height en `pipShellStyleComputed` (móvil vs desktop). */
+const pipShellBaseStyle: React.CSSProperties = {
   position: "absolute",
   bottom: "max(calc(env(safe-area-inset-bottom) + 112px), 120px)",
   right: "max(env(safe-area-inset-right), 16px)",
-  width: "min(148px, 28vw)",
-  height: "min(198px, 37.5vw)",
-  minWidth: 96,
-  minHeight: 128,
   borderRadius: 16,
   overflow: "hidden",
-  border: "2px solid rgba(255,255,255,0.22)",
-  boxShadow: "0 10px 40px rgba(0,0,0,0.55), 0 0 0 1px rgba(0,0,0,0.35)",
+  border: "1px solid rgba(255,255,255,0.28)",
+  boxShadow:
+    "0 12px 40px rgba(0,0,0,0.55), 0 0 0 1px rgba(0,0,0,0.35)",
   zIndex: 2,
   background: "#000",
+};
+
+const pipCameraOffOverlayStyle: React.CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 6,
+  background: "linear-gradient(180deg, rgba(15,23,42,0.92) 0%, rgba(0,0,0,0.88) 100%)",
+  pointerEvents: "none",
+  transition: "opacity 220ms ease",
+};
+
+const pipCameraOffIconStyle: React.CSSProperties = {
+  fontSize: 28,
+  opacity: 0.92,
+  filter: "grayscale(0.2)",
+};
+
+const pipCameraOffLabelStyle: React.CSSProperties = {
+  fontSize: 10,
+  fontWeight: 600,
+  letterSpacing: "0.04em",
+  textTransform: "uppercase",
+  color: "rgba(248,250,252,0.72)",
+};
+
+const topBarLeftClusterStyle: React.CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "flex-start",
+  gap: 6,
+  maxWidth: "min(58vw, 380px)",
+  minWidth: 0,
+};
+
+const peerNameHeaderStyle: React.CSSProperties = {
+  fontSize: 14,
+  fontWeight: 600,
+  color: "rgba(255,255,255,0.92)",
+  lineHeight: 1.25,
+  textShadow: "0 1px 8px rgba(0,0,0,0.55)",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+  maxWidth: "100%",
 };
 
 const mobileTopBarStyle: React.CSSProperties = {
@@ -846,32 +980,31 @@ const mobileTopBarStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "flex-start",
   justifyContent: "space-between",
-  gap: 10,
-  padding: "max(env(safe-area-inset-top), 10px) 14px 12px",
+  gap: 12,
+  padding: "max(env(safe-area-inset-top), 12px) 16px 14px",
   background:
-    "linear-gradient(to bottom, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0) 100%)",
+    "linear-gradient(to bottom, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.35) 52%, rgba(0,0,0,0) 100%)",
   zIndex: 5,
   transition:
-    "opacity 240ms ease, transform 240ms cubic-bezier(0.4, 0, 0.2, 1)",
+    "opacity 260ms ease, transform 260ms cubic-bezier(0.4, 0, 0.2, 1)",
   willChange: "opacity, transform",
 };
 
 const mobileStatusPillStyle: React.CSSProperties = {
-  color: "#f1f5f9",
   fontSize: 12,
-  fontWeight: 600,
-  letterSpacing: "0.02em",
-  background: "rgba(15,23,42,0.72)",
-  backdropFilter: "blur(16px)",
-  WebkitBackdropFilter: "blur(16px)",
-  border: "1px solid rgba(255,255,255,0.12)",
-  padding: "6px 14px",
+  fontWeight: 700,
+  letterSpacing: "0.04em",
+  textTransform: "uppercase",
+  backdropFilter: "blur(14px)",
+  WebkitBackdropFilter: "blur(14px)",
+  border: "1px solid rgba(255,255,255,0.14)",
+  padding: "7px 14px",
   borderRadius: 999,
-  maxWidth: "min(68vw, 320px)",
+  maxWidth: "100%",
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
-  boxShadow: "0 4px 24px rgba(0,0,0,0.35)",
+  boxShadow: "0 4px 20px rgba(0,0,0,0.4)",
 };
 
 const mobileErrorBannerStyle: React.CSSProperties = {
@@ -897,12 +1030,13 @@ const floatingControlsDockStyle: React.CSSProperties = {
   display: "flex",
   justifyContent: "center",
   alignItems: "flex-end",
-  padding: "0 12px max(calc(env(safe-area-inset-bottom) + 18px), 22px)",
+  padding:
+    "0 16px max(calc(env(safe-area-inset-bottom) + 24px), 24px)",
   pointerEvents: "none",
   background:
-    "linear-gradient(to top, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 55%)",
+    "linear-gradient(to top, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0) 56%)",
   transition:
-    "opacity 240ms ease, transform 240ms cubic-bezier(0.4, 0, 0.2, 1)",
+    "opacity 260ms ease, transform 260ms cubic-bezier(0.4, 0, 0.2, 1)",
   willChange: "opacity, transform",
 };
 
@@ -911,16 +1045,16 @@ const floatingControlsPillStyle: React.CSSProperties = {
   flexWrap: "wrap",
   justifyContent: "center",
   alignItems: "center",
-  gap: 11,
+  gap: 10,
   pointerEvents: "auto",
-  padding: "10px 14px",
+  padding: "8px 12px",
   borderRadius: 999,
-  background: "rgba(15,23,42,0.58)",
-  backdropFilter: "blur(20px) saturate(160%)",
-  WebkitBackdropFilter: "blur(20px) saturate(160%)",
-  border: "1px solid rgba(255,255,255,0.14)",
+  background: "rgba(20,20,20,0.6)",
+  backdropFilter: "blur(12px) saturate(140%)",
+  WebkitBackdropFilter: "blur(12px) saturate(140%)",
+  border: "1px solid rgba(255,255,255,0.12)",
   boxShadow:
-    "0 12px 40px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.1)",
+    "0 16px 44px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)",
 };
 
 const immersiveHintStyle: React.CSSProperties = {
@@ -938,41 +1072,45 @@ const immersiveHintStyle: React.CSSProperties = {
   zIndex: 4,
   pointerEvents: "none",
   whiteSpace: "nowrap",
-  transition: "opacity 220ms ease",
+  transition: "opacity 240ms ease",
   border: "1px solid rgba(255,255,255,0.08)",
 };
 
-const mobileCircleBtnStyle: React.CSSProperties = {
+const mobileDockBtnBase: React.CSSProperties = {
   width: 52,
   height: 52,
   minWidth: 52,
   minHeight: 52,
   borderRadius: "50%",
   border: "none",
-  background: "rgba(255,255,255,0.22)",
-  color: "#fff",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
   cursor: "pointer",
-  boxShadow: "0 2px 12px rgba(0,0,0,0.25)",
+  color: "#fff",
 };
 
-const mobileCircleBtnOffStyle: React.CSSProperties = {
-  background: "rgba(220,38,38,0.88)",
+const dockBtnActiveStyle: React.CSSProperties = {
+  background: "rgba(13, 148, 136, 0.88)",
+  boxShadow: "0 2px 16px rgba(13, 148, 136, 0.38)",
+};
+
+const dockBtnMutedStyle: React.CSSProperties = {
+  background: "rgba(220, 38, 38, 0.9)",
+  boxShadow: "0 2px 14px rgba(220, 38, 38, 0.35)",
 };
 
 const screenShareActiveBtnStyle: React.CSSProperties = {
-  background: "rgba(59,130,246,0.55)",
-  boxShadow: "0 0 0 2px rgba(96,165,250,0.45)",
+  background: "rgba(37, 99, 235, 0.88)",
+  boxShadow: "0 0 0 2px rgba(96, 165, 250, 0.42)",
 };
 
 const mobileHangupBtnStyle: React.CSSProperties = {
-  ...mobileCircleBtnStyle,
-  width: 58,
-  height: 58,
-  minWidth: 58,
-  minHeight: 58,
-  background: "#ef4444",
-  boxShadow: "0 6px 20px rgba(239,68,68,0.45)",
+  ...mobileDockBtnBase,
+  width: 56,
+  height: 56,
+  minWidth: 56,
+  minHeight: 56,
+  background: "linear-gradient(180deg, #fb7185 0%, #dc2626 100%)",
+  boxShadow: "0 8px 24px rgba(220,38,38,0.48)",
 };

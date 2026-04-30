@@ -24,6 +24,8 @@ export interface TeleconsultaVideoSessionProps {
    * al crear la consulta vía `/api/public/consultations`.
    */
   mode?: "auth" | "guest";
+  /** Nombre del participante remoto (p. ej. paciente) para la barra superior. */
+  peerDisplayName?: string;
 }
 
 /**
@@ -36,6 +38,7 @@ export function TeleconsultaVideoSession({
   onEndCall,
   mode = "auth",
   isDoctor = true,
+  peerDisplayName,
 }: TeleconsultaVideoSessionProps) {
   const searchParams = useSearchParams();
   const accessTokenPending = !!searchParams.get("access_token")?.trim();
@@ -197,6 +200,7 @@ export function TeleconsultaVideoSession({
       consultationId={roomId || consultationId}
       onEndCall={onEndCall}
       isInitiator={isDoctor}
+      peerDisplayName={peerDisplayName}
     />
   );
 }
