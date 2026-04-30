@@ -117,15 +117,13 @@ function InvitadoTeleconsultaContent() {
   }
 
   return (
-    <div style={shellStyle}>
-      <TeleconsultaVideoSession
-        roomId={data.roomId}
-        consultationId={data.consultationId}
-        isDoctor={false}
-        mode="guest"
-        onEndCall={() => router.push("/")}
-      />
-    </div>
+    <TeleconsultaVideoSession
+      roomId={data.roomId}
+      consultationId={data.consultationId}
+      isDoctor={false}
+      mode="guest"
+      onEndCall={() => router.push("/")}
+    />
   );
 }
 

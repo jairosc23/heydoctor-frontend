@@ -150,11 +150,6 @@ export const VideoCall = forwardRef<
     };
   }, []);
 
-  /** Debug: confirma que carga esta implementación de UI (quitar cuando estabilice). */
-  useEffect(() => {
-    console.log("VIDEO CALL UI: NEW VERSION ACTIVE");
-  }, []);
-
   const stopMediaRecorderIfActive = useCallback(() => {
     const r = mediaRecorderRef.current;
     if (r && (r.state === "recording" || r.state === "paused")) {
@@ -772,17 +767,19 @@ const chatSidePanelStyle: React.CSSProperties = {
   WebkitBackdropFilter: "blur(10px)",
 };
 
+/** Raíz única de la llamada: fullscreen viewport, por encima del resto de la app. */
 const mobileShellStyle: React.CSSProperties = {
   position: "fixed",
-  top: 0,
-  left: 0,
+  inset: 0,
   width: "100vw",
   height: "100dvh",
   minHeight: "100dvh",
   maxHeight: "100dvh",
+  margin: 0,
+  padding: 0,
   background: "#000",
   overflow: "hidden",
-  zIndex: 9999,
+  zIndex: 2147483000,
   touchAction: "manipulation",
   boxSizing: "border-box",
 };
