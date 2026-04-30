@@ -1,11 +1,14 @@
 /**
- * Origen del backend (sin `/api` final). Única variable pública: `NEXT_PUBLIC_HEYDOCTOR_API_URL`.
+ * Origen del backend (sin `/api` final).
+ * Variables: `NEXT_PUBLIC_HEYDOCTOR_API_URL` (preferida) o `NEXT_PUBLIC_API_URL` (alias).
  * Añade `https://` si falta el esquema; quita sufijo `/api` si ya venía en la variable.
  */
 export function getBackendOrigin(): string {
-  let s = (process.env.NEXT_PUBLIC_HEYDOCTOR_API_URL ?? "http://localhost:3001")
-    .trim()
-    .replace(/\/+$/, "");
+  const fromEnv =
+    process.env.NEXT_PUBLIC_HEYDOCTOR_API_URL?.trim() ||
+    process.env.NEXT_PUBLIC_API_URL?.trim() ||
+    "";
+  let s = (fromEnv || "http://localhost:3001").replace(/\/+$/, "");
   if (!s) s = "http://localhost:3001";
   if (!/^https?:\/\//i.test(s)) {
     s = `https://${s}`;
