@@ -490,17 +490,22 @@ export const VideoCall = forwardRef<
   }
 
   /**
-   * Meet / WhatsApp: capa fija única; vídeos en grid (desktop) o remoto + PiP (móvil).
+   * Layout unificado: remoto a pantalla completa + PiP local (misma UX médico/paciente).
+   * Vídeo con recorte tipo “cover” real para evitar bandas en móvil.
    */
   const overlayHiddenStyle: React.CSSProperties = controlsVisible
     ? { opacity: 1, pointerEvents: "auto" as const }
     : { opacity: 0, pointerEvents: "none" as const };
   const topBarTransform = controlsVisible
     ? "translateY(0)"
-    : "translateY(-8px)";
+    : "translateY(-10px)";
   const bottomBarTransform = controlsVisible
     ? "translateY(0)"
-    : "translateY(12px)";
+    : "translateY(16px)";
+
+  const pipShellStyle: React.CSSProperties = isMobile
+    ? pipShellStyleMobile
+    : pipShellStyleDesktop;
 
   const localVideoEl = (
     <video
@@ -509,15 +514,8 @@ export const VideoCall = forwardRef<
       playsInline
       muted
       style={{
-        position: "absolute",
-        left: 0,
-        right: 0,
-        top: 0,
-        bottom: 0,
-        width: "100%",
-        height: "100%",
-        objectFit: "cover",
-        transform: "scaleX(-1)",
+        ...videoCoverBase,
+        transform: "translate(-50%, -50%) scaleX(-1)",
       }}
     />
   );
@@ -528,10 +526,8 @@ export const VideoCall = forwardRef<
       autoPlay
       playsInline
       style={{
-        width: "100%",
-        height: "100%",
-        objectFit: "cover",
-        background: "#000",
+        ...videoCoverBase,
+        transform: "translate(-50%, -50%)",
       }}
     />
   );
@@ -540,83 +536,28 @@ export const VideoCall = forwardRef<
     <div
       ref={mobileShellRef}
       data-call-recording={isRecording ? "true" : "false"}
-      data-call-variant={isMobile ? "mobile" : "desktop-meet"}
+      data-call-variant={isMobile ? "mobile" : "desktop"}
       data-controls-visible={controlsVisible ? "true" : "false"}
       style={mobileShellStyle}
       role="dialog"
       aria-label="Videollamada"
     >
-      {isMobile ? (
-        <>
-          <div
-            style={{ position: "absolute", inset: 0, zIndex: 0 }}
-            onClick={handleSurfaceTap}
-            role="presentation"
-          >
-            {remoteVideoEl}
+      <div
+        style={remoteStageStyle}
+        onClick={handleSurfaceTap}
+        role="presentation"
+      >
+        {remoteVideoEl}
+        {!hasRemoteLive && (
+          <div style={remoteWaitingOverlayStyle}>
+            <span style={remoteWaitingTextStyle}>Esperando…</span>
           </div>
-          <div style={mobileSelfViewStyle} onClick={handleSurfaceTap}>
-            {localVideoEl}
-          </div>
-        </>
-      ) : (
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            zIndex: 0,
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: 12,
-            padding:
-              "max(env(safe-area-inset-top), 12px) max(env(safe-area-inset-right), 12px) max(env(safe-area-inset-bottom), 88px) max(env(safe-area-inset-left), 12px)",
-            boxSizing: "border-box",
-          }}
-          onClick={handleSurfaceTap}
-          role="presentation"
-        >
-          <div
-            style={{
-              position: "relative",
-              borderRadius: 12,
-              overflow: "hidden",
-              background: "#000",
-              minHeight: 0,
-            }}
-          >
-            {localVideoEl}
-          </div>
-          <div
-            style={{
-              position: "relative",
-              borderRadius: 12,
-              overflow: "hidden",
-              background: "#000",
-              minHeight: 0,
-            }}
-          >
-            {remoteVideoEl}
-            {!hasRemoteLive && (
-              <div
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "#94a3b8",
-                  fontSize: 15,
-                  fontWeight: 500,
-                  background: "#0f172a",
-                  pointerEvents: "none",
-                }}
-              >
-                Esperando…
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+        )}
+      </div>
+
+      <div style={pipShellStyle} onClick={handleSurfaceTap} role="presentation">
+        {localVideoEl}
+      </div>
 
       {chatPanelOpen ? (
         <div
@@ -636,7 +577,7 @@ export const VideoCall = forwardRef<
             style={{
               marginTop: 16,
               padding: "10px 16px",
-              borderRadius: 10,
+              borderRadius: 12,
               border: "none",
               background: "rgba(255,255,255,0.12)",
               color: "#fff",
@@ -662,7 +603,7 @@ export const VideoCall = forwardRef<
             {callStatusLabel}
           </span>
         </span>
-        <div style={{ pointerEvents: "none" }}>
+        <div style={{ pointerEvents: "none", alignSelf: "flex-start" }}>
           <ConnectionQualityBadge quality={connectionQuality} showWhenIdle />
         </div>
       </div>
@@ -675,12 +616,13 @@ export const VideoCall = forwardRef<
 
       <div
         style={{
-          ...mobileControlsBarStyle,
+          ...floatingControlsDockStyle,
           ...overlayHiddenStyle,
           transform: bottomBarTransform,
         }}
         aria-hidden={!controlsVisible}
       >
+        <div style={floatingControlsPillStyle}>
         <button
           type="button"
           onClick={(e) => {
@@ -736,7 +678,7 @@ export const VideoCall = forwardRef<
             tabIndex={controlsVisible ? 0 : -1}
             style={
               screenSharing
-                ? { ...mobileCircleBtnStyle, background: "rgba(59,130,246,0.45)" }
+                ? { ...mobileCircleBtnStyle, ...screenShareActiveBtnStyle }
                 : mobileCircleBtnStyle
             }
           >
@@ -783,6 +725,7 @@ export const VideoCall = forwardRef<
             📞
           </span>
         </button>
+        </div>
       </div>
 
       <span
@@ -824,26 +767,79 @@ const chatSidePanelStyle: React.CSSProperties = {
 const mobileShellStyle: React.CSSProperties = {
   position: "fixed",
   inset: 0,
-  width: "100vw",
+  width: "100%",
+  maxWidth: "100vw",
   height: "var(--app-vh, 100dvh)",
   minHeight: "var(--app-vh, 100dvh)",
   maxHeight: "var(--app-vh, 100dvh)",
-  background: "#0b1120",
+  background: "#000",
   overflow: "hidden",
   zIndex: 9999,
   touchAction: "manipulation",
+  boxSizing: "border-box",
 };
 
-const mobileSelfViewStyle: React.CSSProperties = {
+/** Recorte “cover” estable en móvil (evita bandas cuando el contenedor y el stream difieren en ratio). */
+const videoCoverBase: React.CSSProperties = {
   position: "absolute",
-  bottom: 100,
-  right: 16,
-  width: 96,
-  height: 128,
-  borderRadius: 12,
+  left: "50%",
+  top: "50%",
+  width: "100%",
+  height: "100%",
+  minWidth: "100%",
+  minHeight: "100%",
+  objectFit: "cover",
+  backgroundColor: "#000",
+};
+
+const remoteStageStyle: React.CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  zIndex: 0,
   overflow: "hidden",
-  border: "2px solid rgba(255,255,255,0.35)",
-  boxShadow: "0 8px 28px rgba(0,0,0,0.45)",
+  background: "#000",
+};
+
+const remoteWaitingOverlayStyle: React.CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  background: "rgba(15, 23, 42, 0.92)",
+  pointerEvents: "none",
+};
+
+const remoteWaitingTextStyle: React.CSSProperties = {
+  color: "#94a3b8",
+  fontSize: 15,
+  fontWeight: 600,
+};
+
+const pipShellStyleMobile: React.CSSProperties = {
+  position: "absolute",
+  bottom: "max(calc(env(safe-area-inset-bottom) + 108px), 116px)",
+  right: "max(env(safe-area-inset-right), 14px)",
+  width: 112,
+  height: 149,
+  borderRadius: 16,
+  overflow: "hidden",
+  border: "2px solid rgba(255,255,255,0.22)",
+  boxShadow: "0 10px 40px rgba(0,0,0,0.55), 0 0 0 1px rgba(0,0,0,0.35)",
+  zIndex: 2,
+  background: "#000",
+};
+
+const pipShellStyleDesktop: React.CSSProperties = {
+  position: "absolute",
+  bottom: "max(calc(env(safe-area-inset-bottom) + 120px), 128px)",
+  right: "max(env(safe-area-inset-right), 24px)",
+  width: 148,
+  height: 198,
+  borderRadius: 16,
+  overflow: "hidden",
+  border: "2px solid rgba(255,255,255,0.22)",
+  boxShadow: "0 12px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(0,0,0,0.3)",
   zIndex: 2,
   background: "#000",
 };
@@ -854,27 +850,34 @@ const mobileTopBarStyle: React.CSSProperties = {
   left: 0,
   right: 0,
   display: "flex",
-  alignItems: "center",
+  alignItems: "flex-start",
   justifyContent: "space-between",
-  gap: 8,
-  padding: "max(env(safe-area-inset-top), 12px) 12px 12px",
+  gap: 10,
+  padding: "max(env(safe-area-inset-top), 10px) 14px 12px",
   background:
-    "linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 100%)",
-  zIndex: 3,
-  transition: "opacity 220ms ease, transform 220ms ease",
+    "linear-gradient(to bottom, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0) 100%)",
+  zIndex: 5,
+  transition:
+    "opacity 240ms ease, transform 240ms cubic-bezier(0.4, 0, 0.2, 1)",
   willChange: "opacity, transform",
 };
 
 const mobileStatusPillStyle: React.CSSProperties = {
-  color: "#e2e8f0",
+  color: "#f1f5f9",
   fontSize: 12,
-  background: "rgba(15,23,42,0.55)",
-  padding: "4px 10px",
+  fontWeight: 600,
+  letterSpacing: "0.02em",
+  background: "rgba(15,23,42,0.72)",
+  backdropFilter: "blur(16px)",
+  WebkitBackdropFilter: "blur(16px)",
+  border: "1px solid rgba(255,255,255,0.12)",
+  padding: "6px 14px",
   borderRadius: 999,
-  maxWidth: "60%",
+  maxWidth: "min(68vw, 320px)",
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
+  boxShadow: "0 4px 24px rgba(0,0,0,0.35)",
 };
 
 const mobileErrorBannerStyle: React.CSSProperties = {
@@ -887,64 +890,87 @@ const mobileErrorBannerStyle: React.CSSProperties = {
   color: "#fecaca",
   fontSize: 12,
   borderRadius: 10,
-  zIndex: 4,
+  zIndex: 6,
   textAlign: "center",
 };
 
-const mobileControlsBarStyle: React.CSSProperties = {
+const floatingControlsDockStyle: React.CSSProperties = {
   position: "absolute",
-  bottom: 0,
   left: 0,
   right: 0,
+  bottom: 0,
+  zIndex: 5,
   display: "flex",
   justifyContent: "center",
-  alignItems: "center",
-  flexWrap: "wrap",
-  gap: 14,
-  padding:
-    "12px 12px max(calc(env(safe-area-inset-bottom) + 8px), 16px)",
+  alignItems: "flex-end",
+  padding: "0 12px max(calc(env(safe-area-inset-bottom) + 18px), 22px)",
+  pointerEvents: "none",
   background:
-    "linear-gradient(to top, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0) 100%)",
-  zIndex: 3,
-  transition: "opacity 220ms ease, transform 220ms ease",
+    "linear-gradient(to top, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 55%)",
+  transition:
+    "opacity 240ms ease, transform 240ms cubic-bezier(0.4, 0, 0.2, 1)",
   willChange: "opacity, transform",
+};
+
+const floatingControlsPillStyle: React.CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  justifyContent: "center",
+  alignItems: "center",
+  gap: 11,
+  pointerEvents: "auto",
+  padding: "10px 14px",
+  borderRadius: 999,
+  background: "rgba(15,23,42,0.58)",
+  backdropFilter: "blur(20px) saturate(160%)",
+  WebkitBackdropFilter: "blur(20px) saturate(160%)",
+  border: "1px solid rgba(255,255,255,0.14)",
+  boxShadow:
+    "0 12px 40px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.1)",
 };
 
 const immersiveHintStyle: React.CSSProperties = {
   position: "absolute",
-  bottom: "max(calc(env(safe-area-inset-bottom) + 96px), 104px)",
+  bottom: "max(calc(env(safe-area-inset-bottom) + 120px), 128px)",
   left: "50%",
   transform: "translateX(-50%)",
   fontSize: 11,
-  color: "rgba(255,255,255,0.55)",
-  background: "rgba(0,0,0,0.35)",
-  padding: "5px 12px",
+  color: "rgba(255,255,255,0.62)",
+  background: "rgba(0,0,0,0.45)",
+  backdropFilter: "blur(8px)",
+  WebkitBackdropFilter: "blur(8px)",
+  padding: "6px 14px",
   borderRadius: 999,
   zIndex: 4,
   pointerEvents: "none",
   whiteSpace: "nowrap",
   transition: "opacity 220ms ease",
+  border: "1px solid rgba(255,255,255,0.08)",
 };
 
 const mobileCircleBtnStyle: React.CSSProperties = {
-  width: 56,
-  height: 56,
-  minWidth: 56,
-  minHeight: 56,
+  width: 52,
+  height: 52,
+  minWidth: 52,
+  minHeight: 52,
   borderRadius: "50%",
   border: "none",
-  background: "rgba(255,255,255,0.18)",
+  background: "rgba(255,255,255,0.22)",
   color: "#fff",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
   cursor: "pointer",
-  backdropFilter: "blur(6px)",
-  WebkitBackdropFilter: "blur(6px)",
+  boxShadow: "0 2px 12px rgba(0,0,0,0.25)",
 };
 
 const mobileCircleBtnOffStyle: React.CSSProperties = {
-  background: "rgba(220,38,38,0.85)",
+  background: "rgba(220,38,38,0.88)",
+};
+
+const screenShareActiveBtnStyle: React.CSSProperties = {
+  background: "rgba(59,130,246,0.55)",
+  boxShadow: "0 0 0 2px rgba(96,165,250,0.45)",
 };
 
 const mobileHangupBtnStyle: React.CSSProperties = {
