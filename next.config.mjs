@@ -25,7 +25,9 @@ function connectSrcDirective() {
     "https://*.ingest.sentry.io",
     "https://*.sentry.io",
   ];
-  const raw = process.env.NEXT_PUBLIC_HEYDOCTOR_API_URL?.trim();
+  const raw =
+    process.env.NEXT_PUBLIC_HEYDOCTOR_API_URL?.trim() ||
+    process.env.NEXT_PUBLIC_API_URL?.trim();
   if (raw) {
     try {
       const normalized = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;

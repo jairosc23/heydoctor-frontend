@@ -285,15 +285,21 @@ export async function authLogin(
 ): Promise<AuthLoginResult> {
   const url = getAuthLoginUrl();
 
-  if (process.env.NODE_ENV === "development") {
-    console.log("[auth] POST login URL:", url);
-  }
+  await bootstrapApiCsrf();
 
   const normalizedEmail = email.trim().toLowerCase();
   const loginBody: { email: string; password: string } = {
     email: normalizedEmail,
     password,
   };
+
+  if (typeof window !== "undefined") {
+    console.log("LOGIN REQUEST", {
+      url,
+      credentials: "include",
+      hasCsrfHeader: Boolean(getApiCsrfToken()),
+    });
+  }
 
   let res: Response;
   try {
@@ -302,7 +308,7 @@ export async function authLogin(
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
-        [API_X_REQUESTED_WITH]: API_XRW_XMLHTTPREQUEST,
+        ...buildCsrfHeaders(),
       },
       body: JSON.stringify(loginBody),
       credentials: "include",
@@ -316,6 +322,14 @@ export async function authLogin(
         `Revisa CORS con credenciales en el backend, la política CSP connect-src del frontend y NEXT_PUBLIC_HEYDOCTOR_API_URL. ` +
         `URL usada: ${url}. Detalle: ${detail}`,
     );
+  }
+
+  if (typeof window !== "undefined") {
+    console.log("LOGIN RESPONSE", {
+      status: res.status,
+      ok: res.ok,
+      url: res.url,
+    });
   }
 
   let data: Record<string, unknown> = {};
