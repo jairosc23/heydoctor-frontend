@@ -100,7 +100,7 @@ export const VideoCall = forwardRef<
   },
   ref
 ) {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading } = useAuth();
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const remoteStreamRef = useRef<MediaStream | null>(null);
@@ -111,7 +111,6 @@ export const VideoCall = forwardRef<
 
   const isMobile = useIsMobile();
   const mobileShellRef = useRef<HTMLDivElement>(null);
-  const controlsHideTimerRef = useRef<number | null>(null);
   const prevInCallRef = useRef(false);
 
   const [micOn, setMicOn] = useState(true);
@@ -119,25 +118,7 @@ export const VideoCall = forwardRef<
   const [error, setError] = useState<string | null>(null);
   const [mediaReady, setMediaReady] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
-  const [controlsVisible, setControlsVisible] = useState(true);
   const [chatPanelOpen, setChatPanelOpen] = useState(false);
-
-  const clearControlsHideTimer = useCallback(() => {
-    if (controlsHideTimerRef.current !== null) {
-      clearTimeout(controlsHideTimerRef.current);
-      controlsHideTimerRef.current = null;
-    }
-  }, []);
-
-  const showControlsWithAutoHide = useCallback(() => {
-    if (typeof window === "undefined") return;
-    setControlsVisible(true);
-    clearControlsHideTimer();
-    controlsHideTimerRef.current = window.setTimeout(() => {
-      controlsHideTimerRef.current = null;
-      setControlsVisible(false);
-    }, 2500);
-  }, [clearControlsHideTimer]);
 
   const {
     localStream,
@@ -166,14 +147,13 @@ export const VideoCall = forwardRef<
     setMediaReady(false);
 
     if (!guestCall) {
-      if (authLoading) {
+      if (loading) {
         return () => {
           cancelled = true;
           endCall();
         };
       }
       if (!user) {
-        setError("Inicia sesión para usar la videollamada.");
         return () => {
           cancelled = true;
           endCall();
@@ -202,7 +182,7 @@ export const VideoCall = forwardRef<
       endCall();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- startCall/endCall dependen de muchos refs internos del hook
-  }, [consultationId, guestCall, authLoading, user]);
+  }, [consultationId, guestCall, loading, user]);
 
   useEffect(() => {
     if (process.env.NODE_ENV === "development") {
@@ -314,34 +294,6 @@ export const VideoCall = forwardRef<
     [enableCallRecording, startRecordingInternal, stopRecordingInternal]
   );
 
-  useEffect(() => {
-    let cancelled = false;
-    setError(null);
-    setMediaReady(false);
-    void (async () => {
-      try {
-        await startCall();
-        if (!cancelled) {
-          setMediaReady(true);
-        }
-      } catch (e) {
-        if (!cancelled) {
-          setError(
-            e instanceof Error
-              ? e.message
-              : "No se pudo acceder a cámara o micrófono"
-          );
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-      endCall();
-    };
-    // Solo reiniciar sesión cuando cambia la consulta.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- startCall/endCall dependen de muchos refs internos del hook
-  }, [consultationId]);
-
   /**
    * Scroll del documento bloqueado mientras la llamada está activa (capa fixed).
    */
@@ -421,36 +373,8 @@ export const VideoCall = forwardRef<
   }, [hasRemoteLive, connectionState, iceConnectionState, remoteStream]);
 
   const remoteOverlayMessage = isConnectingPhase
-    ? "Conectando…"
-    : "Esperando al otro participante…";
-
-  const statusPillLabel = hasRemoteLive
-    ? "En llamada"
-    : isConnectingPhase
-      ? "Conectando"
-      : "Esperando";
-
-  const statusPillAccent = useMemo(() => {
-    if (hasRemoteLive) {
-      return {
-        borderColor: "rgba(45, 212, 191, 0.45)",
-        background: "rgba(13, 148, 136, 0.42)",
-        color: "#ecfdf5",
-      };
-    }
-    if (isConnectingPhase) {
-      return {
-        borderColor: "rgba(251, 191, 36, 0.55)",
-        background: "rgba(146, 64, 14, 0.38)",
-        color: "#fffbeb",
-      };
-    }
-    return {
-      borderColor: "rgba(148, 163, 184, 0.4)",
-      background: "rgba(30, 41, 59, 0.75)",
-      color: "#f1f5f9",
-    };
-  }, [hasRemoteLive, isConnectingPhase]);
+    ? "Conectando..."
+    : "Esperando al otro participante...";
 
   const displayTitle =
     callChrome.title?.trim() ||
@@ -477,22 +401,6 @@ export const VideoCall = forwardRef<
     }
     prevInCallRef.current = inCall;
   }, [connectionState, iceConnectionState, remoteStream, error]);
-
-  useEffect(() => {
-    if (!mediaReady) {
-      clearControlsHideTimer();
-      return;
-    }
-    showControlsWithAutoHide();
-    return () => {
-      clearControlsHideTimer();
-    };
-  }, [
-    consultationId,
-    mediaReady,
-    showControlsWithAutoHide,
-    clearControlsHideTimer,
-  ]);
 
   useEffect(() => {
     if (!isMobile || !mediaReady || typeof document === "undefined") {
@@ -531,7 +439,6 @@ export const VideoCall = forwardRef<
 
   useEffect(() => {
     return () => {
-      clearControlsHideTimer();
       if (typeof document === "undefined") return;
       const nodes = [mobileShellRef.current].filter(Boolean) as HTMLDivElement[];
       const fs = document.fullscreenElement;
@@ -539,10 +446,9 @@ export const VideoCall = forwardRef<
         void document.exitFullscreen?.().catch(() => {});
       }
     };
-  }, [clearControlsHideTimer]);
+  }, []);
 
   const toggleMic = () => {
-    if (mediaReady) showControlsWithAutoHide();
     const stream = localStream;
     const audio = stream?.getAudioTracks()[0];
     if (audio) {
@@ -552,7 +458,6 @@ export const VideoCall = forwardRef<
   };
 
   const toggleCam = () => {
-    if (mediaReady) showControlsWithAutoHide();
     const stream = localStream;
     const video = stream?.getVideoTracks()[0];
     if (video) {
@@ -562,164 +467,41 @@ export const VideoCall = forwardRef<
   };
 
   const handleEnd = () => {
-    clearControlsHideTimer();
     stopMediaRecorderIfActive();
     endCall();
     onEndCall();
   };
 
-  const handleSurfaceTap = useCallback(() => {
-    if (mediaReady) {
-      showControlsWithAutoHide();
-    }
-  }, [mediaReady, showControlsWithAutoHide]);
-
   const handleToggleScreenShare = useCallback(() => {
     if (!canShareScreen) return;
-    if (mediaReady) showControlsWithAutoHide();
     if (screenSharing) {
       void stopScreenShare();
     } else {
       void startScreenShare();
     }
-  }, [
-    canShareScreen,
-    mediaReady,
-    screenSharing,
-    showControlsWithAutoHide,
-    startScreenShare,
-    stopScreenShare,
-  ]);
+  }, [canShareScreen, screenSharing, startScreenShare, stopScreenShare]);
 
   const handleChatToggle = useCallback(() => {
-    if (mediaReady) showControlsWithAutoHide();
     setChatPanelOpen((v) => !v);
-  }, [mediaReady, showControlsWithAutoHide]);
+  }, []);
 
-  const renderDockButtons = () => (
-    <>
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          toggleCam();
-        }}
-        className="videocall-dock-btn premium-tap"
-        aria-pressed={!camOn}
-        aria-label={camOn ? "Apagar cámara" : "Encender cámara"}
-        tabIndex={controlsVisible ? 0 : -1}
-        style={
-          camOn
-            ? { ...mobileDockBtnBase, ...dockBtnActiveStyle }
-            : { ...mobileDockBtnBase, ...dockBtnMutedStyle }
-        }
-      >
-        <span aria-hidden style={{ fontSize: 22 }}>
-          {camOn ? "📷" : "📵"}
-        </span>
-      </button>
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          toggleMic();
-        }}
-        className="videocall-dock-btn premium-tap"
-        aria-pressed={!micOn}
-        aria-label={micOn ? "Silenciar micrófono" : "Activar micrófono"}
-        tabIndex={controlsVisible ? 0 : -1}
-        style={
-          micOn
-            ? { ...mobileDockBtnBase, ...dockBtnActiveStyle }
-            : { ...mobileDockBtnBase, ...dockBtnMutedStyle }
-        }
-      >
-        <span aria-hidden style={{ fontSize: 22 }}>
-          {micOn ? "🎤" : "🔇"}
-        </span>
-      </button>
-      {canShareScreen ? (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleToggleScreenShare();
-          }}
-          className="videocall-dock-btn premium-tap"
-          aria-pressed={screenSharing}
-          aria-label={
-            screenSharing ? "Dejar de compartir pantalla" : "Compartir pantalla"
-          }
-          tabIndex={controlsVisible ? 0 : -1}
-          style={
-            screenSharing
-              ? { ...mobileDockBtnBase, ...screenShareActiveBtnStyle }
-              : { ...mobileDockBtnBase, ...dockBtnActiveStyle }
-          }
-        >
-          <span aria-hidden style={{ fontSize: 22 }}>
-            🖥️
-          </span>
-        </button>
-      ) : null}
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          handleChatToggle();
-        }}
-        className="videocall-dock-btn premium-tap"
-        aria-pressed={chatPanelOpen}
-        aria-label="Chat"
-        tabIndex={controlsVisible ? 0 : -1}
-        style={{ ...mobileDockBtnBase, ...dockBtnActiveStyle }}
-      >
-        <span aria-hidden style={{ fontSize: 22 }}>
-          💬
-        </span>
-      </button>
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          handleEnd();
-        }}
-        className="videocall-dock-btn premium-tap"
-        aria-label="Finalizar llamada"
-        tabIndex={controlsVisible ? 0 : -1}
-        style={mobileHangupBtnStyle}
-      >
-        <span
-          aria-hidden
-          style={{
-            fontSize: 26,
-            transform: "rotate(135deg)",
-            display: "inline-block",
-          }}
-        >
-          📞
-        </span>
-      </button>
-    </>
-  );
+  const dockBtnClass =
+    "w-12 h-12 rounded-full flex items-center justify-center text-white shadow-md shrink-0 premium-tap";
 
-  if (!guestCall && authLoading && !mediaReady && !error) {
+  if (!guestCall && loading) {
+    return null;
+  }
+  if (!guestCall && !user) {
+    return null;
+  }
+
+  if (!mediaReady && !error) {
     return (
       <div
-        style={{
-          position: "fixed",
-          inset: 0,
-          margin: 0,
-          background: "#000",
-          color: "#94a3b8",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          zIndex: 2147482900,
-          fontFamily: '"Open Sans", sans-serif',
-        }}
+        className="fixed inset-0 z-[2147483000] flex items-center justify-center bg-[#0B0F14] text-gray-400 overflow-hidden"
+        aria-busy="true"
       >
-        <p style={{ margin: 0 }}>Preparando sesión…</p>
+        <p className="m-0">Preparando…</p>
       </div>
     );
   }
@@ -734,44 +516,6 @@ export const VideoCall = forwardRef<
       </div>
     );
   }
-
-  /**
-   * Barra flotante tipo Meet + grid dual a pantalla completa (una sola raíz visual).
-   */
-  const overlayHiddenStyle: React.CSSProperties = controlsVisible
-    ? { opacity: 1, pointerEvents: "auto" as const }
-    : { opacity: 0, pointerEvents: "none" as const };
-  const topBarTransform = controlsVisible
-    ? "translateY(0)"
-    : "translateY(-10px)";
-  const bottomBarTransform = controlsVisible
-    ? "translateY(0)"
-    : "translateY(16px)";
-
-  const localVideoEl = (
-    <video
-      ref={localVideoRef}
-      autoPlay
-      playsInline
-      muted
-      style={{
-        ...videoCoverBase,
-        transform: "translate(-50%, -50%) scaleX(-1)",
-      }}
-    />
-  );
-
-  const remoteVideoEl = (
-    <video
-      ref={remoteVideoRef}
-      autoPlay
-      playsInline
-      style={{
-        ...videoCoverBase,
-        transform: "translate(-50%, -50%)",
-      }}
-    />
-  );
 
   const chatPanelEl = chatPanelOpen ? (
     <div
@@ -806,130 +550,185 @@ export const VideoCall = forwardRef<
 
   const errorBannerEl =
     error && mediaReady ? (
-      <div style={mobileErrorBannerStyle} role="alert">
+      <div
+        className="absolute left-3 right-3 top-[max(env(safe-area-inset-top),68px)] z-[7] rounded-lg bg-red-900/90 px-3 py-2 text-center text-xs text-red-100"
+        role="alert"
+      >
         {error}
       </div>
     ) : null;
 
-  const immersiveHintEl = (
-    <span
-      aria-hidden
-      data-immersive-hint="true"
-      style={{
-        ...immersiveHintStyle,
-        opacity: controlsVisible ? 0 : 1,
-        transitionDelay: controlsVisible ? "0ms" : "260ms",
-      }}
-    >
-      Toca para mostrar controles
-    </span>
-  );
+  const videoCornerLabelClass =
+    "pointer-events-none absolute bottom-3 left-3 rounded-full bg-black/60 px-3 py-1 text-sm font-medium text-white";
 
   return (
     <div
       ref={mobileShellRef}
       data-call-recording={isRecording ? "true" : "false"}
-      data-call-variant="meet-immersive"
-      data-controls-visible={controlsVisible ? "true" : "false"}
-      style={mobileShellStyle}
+      data-call-variant="structured-fullscreen"
+      className="fixed inset-0 z-[2147483000] flex flex-col overflow-hidden bg-[#0B0F14]"
       role="dialog"
       aria-label="Videollamada"
+      style={{
+        height: "100dvh",
+        minHeight: "100dvh",
+        maxHeight: "100dvh",
+        width: "100vw",
+        touchAction: "manipulation",
+        margin: 0,
+        padding: 0,
+        boxSizing: "border-box",
+      }}
     >
-      <div
-        style={meetStageStyle}
-        onClick={handleSurfaceTap}
-        role="presentation"
-      >
-        <div
-          style={{
-            ...meetGridStyle,
-            gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
-            gridTemplateRows: isMobile ? "1fr 1fr" : "1fr",
-          }}
+      <header className="flex shrink-0 items-center justify-between gap-3 border-b border-gray-200 bg-white px-4 py-3 pt-[max(env(safe-area-inset-top),12px)]">
+        <Link
+          href={callChrome.backHref}
+          className="premium-tap shrink-0 text-[15px] font-semibold text-emerald-600 no-underline"
         >
-          <div style={meetTileStyle}>
-            <div style={meetTileInnerStyle}>
-              {localVideoEl}
-              {!camOn ? (
-                <div style={pipCameraOffOverlayStyle}>
-                  <span style={pipCameraOffIconStyle} aria-hidden>
-                    📷
-                  </span>
-                  <span style={pipCameraOffLabelStyle}>Cámara apagada</span>
-                </div>
-              ) : null}
-            </div>
-          </div>
-
-          <div style={meetTileStyle}>
-            <div style={meetTileInnerStyle}>
-              {remoteVideoEl}
-              {!hasRemoteLive && (
-                <div style={remoteWaitingOverlayStyle}>
-                  <p
-                    key={remoteOverlayMessage}
-                    className="videocall-remote-overlay-text call-status-enter"
-                    style={remoteWaitingTextStyle}
-                  >
-                    {remoteOverlayMessage}
-                  </p>
-                </div>
-              )}
-            </div>
+          ← {callChrome.backLabel}
+        </Link>
+        <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
+          <h1 className="m-0 min-w-0 truncate text-right text-[15px] font-semibold text-emerald-600">
+            {displayTitle}
+          </h1>
+          <div className="pointer-events-none shrink-0">
+            <ConnectionQualityBadge
+              quality={connectionQuality}
+              showWhenIdle
+            />
           </div>
         </div>
+      </header>
 
-        <div
-          style={{
-            ...meetFloatingTopBarStyle,
-            ...overlayHiddenStyle,
-            transform: topBarTransform,
-          }}
-          aria-hidden={!controlsVisible}
-        >
-          <Link
-            href={callChrome.backHref}
-            style={meetBackLinkStyle}
-            className="premium-tap"
-          >
-            ← {callChrome.backLabel}
-          </Link>
-          <h1 style={meetTitleStyle}>{displayTitle}</h1>
-          <div style={meetTopBarRightClusterStyle}>
-            <span
-              key={statusPillLabel}
-              style={{
-                ...mobileStatusPillStyle,
-                ...statusPillAccent,
-              }}
-              className="call-status-enter"
-            >
-              {statusPillLabel}
-            </span>
-            <div style={{ pointerEvents: "none" }}>
-              <ConnectionQualityBadge
-                quality={connectionQuality}
-                showWhenIdle
-              />
-            </div>
+      <div className="relative flex min-h-0 flex-1 flex-col">
+        <div className="flex min-h-0 flex-1 flex-col gap-4 p-4 md:flex-row">
+          <div className="relative min-h-0 flex-1 overflow-hidden rounded-2xl bg-black">
+            <video
+              ref={localVideoRef}
+              autoPlay
+              playsInline
+              muted
+              className="h-full w-full object-cover [transform:scaleX(-1)]"
+            />
+            <span className={videoCornerLabelClass}>Tú</span>
+            {!camOn ? (
+              <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-gradient-to-b from-slate-900/90 to-black/90">
+                <span className="text-[28px] opacity-90" aria-hidden>
+                  📷
+                </span>
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-200/70">
+                  Cámara apagada
+                </span>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="relative flex min-h-0 flex-1 overflow-hidden rounded-2xl bg-black">
+            <video
+              ref={remoteVideoRef}
+              autoPlay
+              playsInline
+              className="h-full w-full object-cover"
+            />
+            {!hasRemoteLive ? (
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-8 text-center text-gray-400">
+                <p
+                  key={remoteOverlayMessage}
+                  className="call-status-enter videocall-remote-overlay-text m-0 text-base font-medium"
+                >
+                  {remoteOverlayMessage}
+                </p>
+              </div>
+            ) : null}
+            <span className={videoCornerLabelClass}>Remoto</span>
           </div>
         </div>
 
         {chatPanelEl}
         {errorBannerEl}
 
-        <div
-          style={{
-            ...floatingControlsDockStyle,
-            ...overlayHiddenStyle,
-            transform: bottomBarTransform,
-          }}
-          aria-hidden={!controlsVisible}
-        >
-          <div style={floatingControlsRowStyle}>{renderDockButtons()}</div>
+        <div className="pointer-events-none absolute bottom-6 left-1/2 z-[8] flex max-w-[calc(100vw-24px)] -translate-x-1/2 items-center rounded-full bg-[#111827]/80 px-5 py-3 shadow-lg backdrop-blur-md">
+          <div className="pointer-events-auto flex flex-wrap items-center justify-center gap-3">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleCam();
+              }}
+              className={`${dockBtnClass} ${camOn ? "bg-emerald-500" : "bg-gray-500"}`}
+              aria-pressed={!camOn}
+              aria-label={camOn ? "Apagar cámara" : "Encender cámara"}
+            >
+              <span aria-hidden className="text-[22px]">
+                {camOn ? "📷" : "📵"}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleMic();
+              }}
+              className={`${dockBtnClass} ${micOn ? "bg-emerald-500" : "bg-gray-500"}`}
+              aria-pressed={!micOn}
+              aria-label={micOn ? "Silenciar micrófono" : "Activar micrófono"}
+            >
+              <span aria-hidden className="text-[22px]">
+                {micOn ? "🎤" : "🔇"}
+              </span>
+            </button>
+            {canShareScreen ? (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleToggleScreenShare();
+                }}
+                className={`${dockBtnClass} bg-emerald-500`}
+                aria-pressed={screenSharing}
+                aria-label={
+                  screenSharing
+                    ? "Dejar de compartir pantalla"
+                    : "Compartir pantalla"
+                }
+              >
+                <span aria-hidden className="text-[22px]">
+                  🖥️
+                </span>
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleChatToggle();
+              }}
+              className={`${dockBtnClass} bg-emerald-500`}
+              aria-pressed={chatPanelOpen}
+              aria-label="Chat"
+            >
+              <span aria-hidden className="text-[22px]">
+                💬
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleEnd();
+              }}
+              className={`${dockBtnClass} bg-red-500`}
+              aria-label="Finalizar llamada"
+            >
+              <span
+                aria-hidden
+                className="inline-block rotate-[135deg] text-[22px]"
+              >
+                📞
+              </span>
+            </button>
+          </div>
         </div>
-
-        {immersiveHintEl}
       </div>
     </div>
   );
@@ -937,8 +736,7 @@ export const VideoCall = forwardRef<
 
 VideoCall.displayName = "VideoCall";
 
-/* ─── Estilos auxiliares (panel lateral chat, grid Meet, controles) ─── */
-
+/** Panel lateral del botón chat (estilos inline compartidos). */
 const chatSidePanelStyle: React.CSSProperties = {
   position: "absolute",
   top: 0,
@@ -952,293 +750,4 @@ const chatSidePanelStyle: React.CSSProperties = {
   borderLeft: "1px solid rgba(255,255,255,0.08)",
   backdropFilter: "blur(10px)",
   WebkitBackdropFilter: "blur(10px)",
-};
-
-/** Escenario único: grid edge-to-edge bajo la barra flotante. */
-const meetStageStyle: React.CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  overflow: "hidden",
-  touchAction: "manipulation",
-  background: "#000",
-};
-
-const meetGridStyle: React.CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  display: "grid",
-  gap: 0,
-  boxSizing: "border-box",
-  width: "100%",
-  height: "100%",
-  minHeight: 0,
-};
-
-const meetTileStyle: React.CSSProperties = {
-  position: "relative",
-  minHeight: 0,
-  overflow: "hidden",
-  background: "#000",
-};
-
-const meetTileInnerStyle: React.CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  background: "#000",
-};
-
-const meetFloatingTopBarStyle: React.CSSProperties = {
-  position: "absolute",
-  top: 0,
-  left: 0,
-  right: 0,
-  zIndex: 6,
-  display: "flex",
-  alignItems: "center",
-  gap: 12,
-  padding: "max(env(safe-area-inset-top), 10px) 14px 12px",
-  boxSizing: "border-box",
-  background: "rgba(0,0,0,0.4)",
-  backdropFilter: "blur(10px)",
-  WebkitBackdropFilter: "blur(10px)",
-  transition:
-    "opacity 260ms ease, transform 260ms cubic-bezier(0.4, 0, 0.2, 1)",
-  willChange: "opacity, transform",
-};
-
-const meetBackLinkStyle: React.CSSProperties = {
-  fontFamily: '"Open Sans", Georgia, "Times New Roman", serif',
-  fontSize: 15,
-  fontWeight: 600,
-  color: "#e2e8f0",
-  textDecoration: "none",
-  flexShrink: 0,
-  whiteSpace: "nowrap",
-  textShadow: "0 1px 6px rgba(0,0,0,0.5)",
-};
-
-const meetTitleStyle: React.CSSProperties = {
-  flex: 1,
-  margin: 0,
-  minWidth: 0,
-  fontFamily: '"Open Sans", Georgia, "Times New Roman", serif',
-  fontSize: 16,
-  fontWeight: 600,
-  color: "#f8fafc",
-  textAlign: "center",
-  lineHeight: 1.3,
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  textShadow: "0 1px 8px rgba(0,0,0,0.55)",
-};
-
-const meetTopBarRightClusterStyle: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: 8,
-  flexShrink: 0,
-};
-
-/** Raíz única de la llamada: fullscreen viewport, por encima del resto de la app. */
-const mobileShellStyle: React.CSSProperties = {
-  position: "fixed",
-  inset: 0,
-  width: "100vw",
-  height: "100dvh",
-  minHeight: "100dvh",
-  maxHeight: "100dvh",
-  margin: 0,
-  padding: 0,
-  background: "#000",
-  overflow: "hidden",
-  zIndex: 2147483000,
-  touchAction: "manipulation",
-  boxSizing: "border-box",
-};
-
-/** Recorte “cover” centrado: sin letterboxing en contenedores de cualquier ratio. */
-const videoCoverBase: React.CSSProperties = {
-  position: "absolute",
-  left: "50%",
-  top: "50%",
-  width: "100%",
-  height: "100%",
-  minWidth: "100%",
-  minHeight: "100%",
-  objectFit: "cover",
-  backgroundColor: "#000",
-};
-
-const remoteWaitingOverlayStyle: React.CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  padding: "24px 32px",
-  background: "radial-gradient(ellipse at center, rgba(15,23,42,0.5) 0%, rgba(0,0,0,0.75) 100%)",
-  pointerEvents: "none",
-  transition: "opacity 380ms ease",
-};
-
-const remoteWaitingTextStyle: React.CSSProperties = {
-  margin: 0,
-  color: "rgba(255,255,255,0.85)",
-  fontSize: 17,
-  fontWeight: 600,
-  letterSpacing: "0.01em",
-  lineHeight: 1.45,
-  textAlign: "center",
-  maxWidth: 320,
-  textShadow: "0 2px 12px rgba(0,0,0,0.45)",
-};
-
-const pipCameraOffOverlayStyle: React.CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: 6,
-  background: "linear-gradient(180deg, rgba(15,23,42,0.92) 0%, rgba(0,0,0,0.88) 100%)",
-  pointerEvents: "none",
-  transition: "opacity 220ms ease",
-};
-
-const pipCameraOffIconStyle: React.CSSProperties = {
-  fontSize: 28,
-  opacity: 0.92,
-  filter: "grayscale(0.2)",
-};
-
-const pipCameraOffLabelStyle: React.CSSProperties = {
-  fontSize: 10,
-  fontWeight: 600,
-  letterSpacing: "0.04em",
-  textTransform: "uppercase",
-  color: "rgba(248,250,252,0.72)",
-};
-
-const mobileStatusPillStyle: React.CSSProperties = {
-  fontSize: 12,
-  fontWeight: 700,
-  letterSpacing: "0.04em",
-  textTransform: "uppercase",
-  backdropFilter: "blur(14px)",
-  WebkitBackdropFilter: "blur(14px)",
-  border: "1px solid rgba(255,255,255,0.14)",
-  padding: "7px 14px",
-  borderRadius: 999,
-  maxWidth: "100%",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  boxShadow: "0 4px 20px rgba(0,0,0,0.4)",
-};
-
-const mobileErrorBannerStyle: React.CSSProperties = {
-  position: "absolute",
-  bottom: 220,
-  left: 12,
-  right: 12,
-  padding: "8px 12px",
-  background: "rgba(127,29,29,0.92)",
-  color: "#fecaca",
-  fontSize: 12,
-  borderRadius: 10,
-  zIndex: 6,
-  textAlign: "center",
-};
-
-const floatingControlsDockStyle: React.CSSProperties = {
-  position: "absolute",
-  left: 0,
-  right: 0,
-  bottom: 0,
-  zIndex: 5,
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "flex-end",
-  padding:
-    "0 16px max(calc(env(safe-area-inset-bottom) + 24px), 24px)",
-  pointerEvents: "none",
-  background:
-    "linear-gradient(to top, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0) 56%)",
-  transition:
-    "opacity 260ms ease, transform 260ms cubic-bezier(0.4, 0, 0.2, 1)",
-  willChange: "opacity, transform",
-};
-
-/** Botonera inferior sin contenedor pill oscuro (solo fila de círculos). */
-const floatingControlsRowStyle: React.CSSProperties = {
-  display: "flex",
-  flexWrap: "wrap",
-  justifyContent: "center",
-  alignItems: "center",
-  gap: 10,
-  pointerEvents: "auto",
-  padding: 0,
-  background: "transparent",
-  border: "none",
-  boxShadow: "none",
-};
-
-const immersiveHintStyle: React.CSSProperties = {
-  position: "absolute",
-  bottom: "max(calc(env(safe-area-inset-bottom) + 120px), 128px)",
-  left: "50%",
-  transform: "translateX(-50%)",
-  fontSize: 11,
-  color: "rgba(255,255,255,0.62)",
-  background: "rgba(0,0,0,0.45)",
-  backdropFilter: "blur(8px)",
-  WebkitBackdropFilter: "blur(8px)",
-  padding: "6px 14px",
-  borderRadius: 999,
-  zIndex: 4,
-  pointerEvents: "none",
-  whiteSpace: "nowrap",
-  transition: "opacity 240ms ease",
-  border: "1px solid rgba(255,255,255,0.08)",
-};
-
-const mobileDockBtnBase: React.CSSProperties = {
-  width: 52,
-  height: 52,
-  minWidth: 52,
-  minHeight: 52,
-  borderRadius: "50%",
-  border: "none",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  cursor: "pointer",
-  color: "#fff",
-};
-
-const dockBtnActiveStyle: React.CSSProperties = {
-  background: "rgba(13, 148, 136, 0.88)",
-  boxShadow: "0 2px 16px rgba(13, 148, 136, 0.38)",
-};
-
-const dockBtnMutedStyle: React.CSSProperties = {
-  background: "rgba(220, 38, 38, 0.9)",
-  boxShadow: "0 2px 14px rgba(220, 38, 38, 0.35)",
-};
-
-const screenShareActiveBtnStyle: React.CSSProperties = {
-  background: "rgba(37, 99, 235, 0.88)",
-  boxShadow: "0 0 0 2px rgba(96, 165, 250, 0.42)",
-};
-
-const mobileHangupBtnStyle: React.CSSProperties = {
-  ...mobileDockBtnBase,
-  width: 56,
-  height: 56,
-  minWidth: 56,
-  minHeight: 56,
-  background: "linear-gradient(180deg, #fb7185 0%, #dc2626 100%)",
-  boxShadow: "0 8px 24px rgba(220,38,38,0.48)",
 };
