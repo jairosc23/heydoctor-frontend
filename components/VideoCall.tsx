@@ -14,8 +14,6 @@ import React, {
   useRef,
   useState,
 } from "react";
-import Link from "next/link";
-import { ConnectionQualityBadge } from "@/components/ConnectionQualityBadge";
 import { getBackendOrigin } from "@/lib/api-base";
 import { logger } from "@/lib/logger";
 import { useTelemedicineCall } from "@/hooks/useTelemedicineCall";
@@ -461,13 +459,10 @@ export const VideoCall = forwardRef<
     setChatPanelOpen((v) => !v);
   }, []);
 
-  const dockBtnClass =
-    "w-12 h-12 rounded-full flex items-center justify-center text-white shadow-md shrink-0 premium-tap";
-
   if (!mediaReady && !error) {
     return (
       <div
-        className="fixed inset-0 z-[2147483000] flex items-center justify-center bg-[#0B0F14] text-gray-400 overflow-hidden"
+        className="flex min-h-0 flex-1 flex-col items-center justify-center bg-transparent text-gray-400"
         aria-busy="true"
       >
         <p className="m-0">Preparando…</p>
@@ -477,9 +472,9 @@ export const VideoCall = forwardRef<
 
   if (!mediaReady && error) {
     return (
-      <div style={{ padding: 24, color: "#b91c1c" }}>
+      <div className="flex min-h-0 flex-1 flex-col justify-center p-6 text-red-700">
         <p>{error}</p>
-        <button type="button" onClick={onEndCall} style={{ marginTop: 12 }}>
+        <button type="button" onClick={onEndCall} className="mt-3">
           Volver
         </button>
       </div>
@@ -520,7 +515,7 @@ export const VideoCall = forwardRef<
   const errorBannerEl =
     error && mediaReady ? (
       <div
-        className="absolute left-3 right-3 top-[max(env(safe-area-inset-top),68px)] z-[7] rounded-lg bg-red-900/90 px-3 py-2 text-center text-xs text-red-100"
+        className="absolute left-3 right-3 top-3 z-[7] rounded-lg bg-red-900/90 px-3 py-2 text-center text-xs text-red-100 sm:left-4 sm:right-4"
         role="alert"
       >
         {error}
@@ -528,175 +523,141 @@ export const VideoCall = forwardRef<
     ) : null;
 
   const videoCornerLabelClass =
-    "pointer-events-none absolute bottom-3 left-3 rounded-full bg-black/60 px-3 py-1 text-sm font-medium text-white";
+    "pointer-events-none absolute bottom-3 left-3 z-[2] rounded-full bg-black/60 px-3 py-1 text-sm font-medium text-white";
 
   return (
     <div
       ref={mobileShellRef}
       data-call-recording={isRecording ? "true" : "false"}
-      data-call-variant="structured-fullscreen"
-      className="fixed inset-0 z-[2147483000] flex flex-col overflow-hidden bg-[#0B0F14]"
+      data-call-variant="pro-meet-layout"
+      className="flex flex-1 flex-col relative min-h-0 w-full touch-manipulation"
       role="dialog"
-      aria-label="Videollamada"
-      style={{
-        height: "100dvh",
-        minHeight: "100dvh",
-        maxHeight: "100dvh",
-        width: "100vw",
-        touchAction: "manipulation",
-        margin: 0,
-        padding: 0,
-        boxSizing: "border-box",
-      }}
+      aria-label={displayTitle}
     >
-      <header className="flex shrink-0 items-center justify-between gap-3 border-b border-gray-200 bg-white px-4 py-3 pt-[max(env(safe-area-inset-top),12px)]">
-        <Link
-          href={callChrome.backHref}
-          className="premium-tap shrink-0 text-[15px] font-semibold text-emerald-600 no-underline"
-        >
-          ← {callChrome.backLabel}
-        </Link>
-        <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
-          <h1 className="m-0 min-w-0 truncate text-right text-[15px] font-semibold text-emerald-600">
-            {displayTitle}
-          </h1>
-          <div className="pointer-events-none shrink-0">
-            <ConnectionQualityBadge
-              quality={connectionQuality}
-              showWhenIdle
-            />
-          </div>
-        </div>
-      </header>
-
-      <div className="relative flex min-h-0 flex-1 flex-col">
-        <div className="flex min-h-0 flex-1 flex-col gap-4 p-4 md:flex-row">
-          <div className="relative min-h-0 flex-1 overflow-hidden rounded-2xl bg-black">
-            <video
-              ref={localVideoRef}
-              autoPlay
-              playsInline
-              muted
-              className="h-full w-full object-cover [transform:scaleX(-1)]"
-            />
-            <span className={videoCornerLabelClass}>Tú</span>
-            {!camOn ? (
-              <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-gradient-to-b from-slate-900/90 to-black/90">
-                <span className="text-[28px] opacity-90" aria-hidden>
-                  📷
-                </span>
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-200/70">
-                  Cámara apagada
-                </span>
-              </div>
-            ) : null}
-          </div>
-
-          <div className="relative flex min-h-0 flex-1 overflow-hidden rounded-2xl bg-black">
-            <video
-              ref={remoteVideoRef}
-              autoPlay
-              playsInline
-              className="h-full w-full object-cover"
-            />
-            {!hasRemoteLive ? (
-              <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-8 text-center text-gray-400">
-                <p
-                  key={remoteOverlayMessage}
-                  className="call-status-enter videocall-remote-overlay-text m-0 text-base font-medium"
-                >
-                  {remoteOverlayMessage}
-                </p>
-              </div>
-            ) : null}
-            <span className={videoCornerLabelClass}>Remoto</span>
-          </div>
+      <div className="flex flex-1 gap-4 p-4 flex-col md:flex-row min-h-0">
+        <div className="relative flex-1 overflow-hidden rounded-2xl bg-black">
+          <video
+            ref={localVideoRef}
+            autoPlay
+            playsInline
+            muted
+            className="h-full w-full object-cover [transform:scaleX(-1)]"
+          />
+          <span className={videoCornerLabelClass}>Tú</span>
+          {!camOn ? (
+            <div className="pointer-events-none absolute inset-0 z-[1] flex flex-col items-center justify-center gap-1.5 bg-gradient-to-b from-slate-900/90 to-black/90">
+              <span className="text-[28px] opacity-90" aria-hidden>
+                📷
+              </span>
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-200/70">
+                Cámara apagada
+              </span>
+            </div>
+          ) : null}
         </div>
 
-        {chatPanelEl}
-        {errorBannerEl}
+        <div className="relative flex flex-1 items-center justify-center overflow-hidden rounded-2xl bg-black text-gray-400">
+          <video
+            ref={remoteVideoRef}
+            autoPlay
+            playsInline
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+          {!hasRemoteLive ? (
+            <span
+              key={remoteOverlayMessage}
+              className="call-status-enter videocall-remote-overlay-text relative z-[1] px-4 text-center text-base font-medium"
+            >
+              {remoteOverlayMessage}
+            </span>
+          ) : null}
+          <span className={videoCornerLabelClass}>Remoto</span>
+        </div>
+      </div>
 
-        <div className="pointer-events-none absolute bottom-6 left-1/2 z-[8] flex max-w-[calc(100vw-24px)] -translate-x-1/2 items-center rounded-full bg-[#111827]/80 px-5 py-3 shadow-lg backdrop-blur-md">
-          <div className="pointer-events-auto flex flex-wrap items-center justify-center gap-3">
+      {chatPanelEl}
+      {errorBannerEl}
+
+      <div className="pointer-events-none absolute bottom-6 left-1/2 z-[8] flex -translate-x-1/2 items-center gap-3 rounded-full bg-[#111827]/80 px-5 py-3 shadow-lg backdrop-blur-md">
+        <div className="pointer-events-auto flex items-center gap-3">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleCam();
+            }}
+            className={`w-12 h-12 rounded-full flex items-center justify-center text-white ${camOn ? "bg-emerald-500" : "bg-gray-500"} premium-tap`}
+            aria-pressed={!camOn}
+            aria-label={camOn ? "Apagar cámara" : "Encender cámara"}
+          >
+            <span aria-hidden className="text-[22px]">
+              {camOn ? "📷" : "📵"}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleMic();
+            }}
+            className={`w-12 h-12 rounded-full flex items-center justify-center text-white ${micOn ? "bg-emerald-500" : "bg-gray-500"} premium-tap`}
+            aria-pressed={!micOn}
+            aria-label={micOn ? "Silenciar micrófono" : "Activar micrófono"}
+          >
+            <span aria-hidden className="text-[22px]">
+              {micOn ? "🎤" : "🔇"}
+            </span>
+          </button>
+          {canShareScreen ? (
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                toggleCam();
+                handleToggleScreenShare();
               }}
-              className={`${dockBtnClass} ${camOn ? "bg-emerald-500" : "bg-gray-500"}`}
-              aria-pressed={!camOn}
-              aria-label={camOn ? "Apagar cámara" : "Encender cámara"}
+              className="w-12 h-12 rounded-full flex items-center justify-center bg-emerald-500 text-white premium-tap"
+              aria-pressed={screenSharing}
+              aria-label={
+                screenSharing
+                  ? "Dejar de compartir pantalla"
+                  : "Compartir pantalla"
+              }
             >
               <span aria-hidden className="text-[22px]">
-                {camOn ? "📷" : "📵"}
+                🖥️
               </span>
             </button>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleMic();
-              }}
-              className={`${dockBtnClass} ${micOn ? "bg-emerald-500" : "bg-gray-500"}`}
-              aria-pressed={!micOn}
-              aria-label={micOn ? "Silenciar micrófono" : "Activar micrófono"}
+          ) : null}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleChatToggle();
+            }}
+            className="w-12 h-12 rounded-full flex items-center justify-center bg-emerald-500 text-white premium-tap"
+            aria-pressed={chatPanelOpen}
+            aria-label="Chat"
+          >
+            <span aria-hidden className="text-[22px]">
+              💬
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleEnd();
+            }}
+            className="w-12 h-12 rounded-full flex items-center justify-center bg-red-500 text-white premium-tap"
+            aria-label="Finalizar llamada"
+          >
+            <span
+              aria-hidden
+              className="inline-block rotate-[135deg] text-[22px]"
             >
-              <span aria-hidden className="text-[22px]">
-                {micOn ? "🎤" : "🔇"}
-              </span>
-            </button>
-            {canShareScreen ? (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleToggleScreenShare();
-                }}
-                className={`${dockBtnClass} bg-emerald-500`}
-                aria-pressed={screenSharing}
-                aria-label={
-                  screenSharing
-                    ? "Dejar de compartir pantalla"
-                    : "Compartir pantalla"
-                }
-              >
-                <span aria-hidden className="text-[22px]">
-                  🖥️
-                </span>
-              </button>
-            ) : null}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleChatToggle();
-              }}
-              className={`${dockBtnClass} bg-emerald-500`}
-              aria-pressed={chatPanelOpen}
-              aria-label="Chat"
-            >
-              <span aria-hidden className="text-[22px]">
-                💬
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleEnd();
-              }}
-              className={`${dockBtnClass} bg-red-500`}
-              aria-label="Finalizar llamada"
-            >
-              <span
-                aria-hidden
-                className="inline-block rotate-[135deg] text-[22px]"
-              >
-                📞
-              </span>
-            </button>
-          </div>
+              📞
+            </span>
+          </button>
         </div>
       </div>
     </div>
