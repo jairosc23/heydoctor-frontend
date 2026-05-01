@@ -10,7 +10,6 @@ import React, {
   useCallback,
   useEffect,
   useImperativeHandle,
-  useMemo,
   useRef,
   useState,
 } from "react";
@@ -326,30 +325,6 @@ export const VideoCall = forwardRef<
     }
   }, [remoteStream]);
 
-  const hasRemoteLive = useMemo(
-    () =>
-      !!remoteStream &&
-      remoteStream.getTracks().some((t) => t.readyState === "live"),
-    [remoteStream],
-  );
-
-  const isConnectingPhase = useMemo(() => {
-    if (hasRemoteLive) return false;
-    if (connectionState === "connecting") return true;
-    if (iceConnectionState === "checking") return true;
-    if (
-      remoteStream &&
-      !remoteStream.getTracks().some((t) => t.readyState === "live")
-    ) {
-      return true;
-    }
-    return false;
-  }, [hasRemoteLive, connectionState, iceConnectionState, remoteStream]);
-
-  const remoteOverlayMessage = isConnectingPhase
-    ? "Conectando..."
-    : "Esperando al otro participante...";
-
   const displayTitle =
     callChrome.title?.trim() ||
     (peerDisplayName?.trim()
@@ -522,57 +497,50 @@ export const VideoCall = forwardRef<
       </div>
     ) : null;
 
-  const videoCornerLabelClass =
-    "pointer-events-none absolute bottom-3 left-3 z-[2] rounded-full bg-black/60 px-3 py-1 text-sm font-medium text-white";
-
   return (
     <div
       ref={mobileShellRef}
       data-call-recording={isRecording ? "true" : "false"}
-      data-call-variant="pro-meet-layout"
-      className="flex flex-1 flex-col relative min-h-0 w-full touch-manipulation"
+      data-call-variant="pip-layout"
+      className="relative flex-1 bg-black min-h-0 w-full touch-manipulation"
       role="dialog"
       aria-label={displayTitle}
     >
-      <div className="flex flex-1 gap-4 p-4 flex-col md:flex-row min-h-0">
-        <div className="relative flex-1 overflow-hidden rounded-2xl bg-black">
-          <video
-            ref={localVideoRef}
-            autoPlay
-            playsInline
-            muted
-            className="h-full w-full object-cover [transform:scaleX(-1)]"
-          />
-          <span className={videoCornerLabelClass}>Tú</span>
-          {!camOn ? (
-            <div className="pointer-events-none absolute inset-0 z-[1] flex flex-col items-center justify-center gap-1.5 bg-gradient-to-b from-slate-900/90 to-black/90">
-              <span className="text-[28px] opacity-90" aria-hidden>
-                📷
-              </span>
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-200/70">
-                Cámara apagada
-              </span>
-            </div>
-          ) : null}
-        </div>
+      <div className="absolute inset-0">
+        <video
+          ref={remoteVideoRef}
+          autoPlay
+          playsInline
+          className="h-full w-full object-cover"
+        />
+        {!remoteStream ? (
+          <div className="absolute inset-0 flex items-center justify-center text-gray-400">
+            Esperando al otro participante...
+          </div>
+        ) : null}
+      </div>
 
-        <div className="relative flex flex-1 items-center justify-center overflow-hidden rounded-2xl bg-black text-gray-400">
-          <video
-            ref={remoteVideoRef}
-            autoPlay
-            playsInline
-            className="absolute inset-0 h-full w-full object-cover"
-          />
-          {!hasRemoteLive ? (
-            <span
-              key={remoteOverlayMessage}
-              className="call-status-enter videocall-remote-overlay-text relative z-[1] px-4 text-center text-base font-medium"
-            >
-              {remoteOverlayMessage}
+      <div className="absolute bottom-24 right-4 z-[6] h-36 w-28 overflow-hidden rounded-xl border border-white/10 bg-black shadow-xl md:h-52 md:w-40">
+        <video
+          ref={localVideoRef}
+          autoPlay
+          playsInline
+          muted
+          className="h-full w-full object-cover [transform:scaleX(-1)]"
+        />
+        <span className="pointer-events-none absolute bottom-1 left-1 z-[2] rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-medium text-white">
+          Tú
+        </span>
+        {!camOn ? (
+          <div className="pointer-events-none absolute inset-0 z-[1] flex flex-col items-center justify-center gap-1 bg-gradient-to-b from-slate-900/90 to-black/90">
+            <span className="text-lg opacity-90" aria-hidden>
+              📷
             </span>
-          ) : null}
-          <span className={videoCornerLabelClass}>Remoto</span>
-        </div>
+            <span className="text-[8px] font-semibold uppercase tracking-wider text-slate-200/70">
+              Apagada
+            </span>
+          </div>
+        ) : null}
       </div>
 
       {chatPanelEl}
