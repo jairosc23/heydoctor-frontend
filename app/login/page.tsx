@@ -37,8 +37,7 @@ function LoginContent() {
 
     try {
       await login(email.trim(), password);
-      router.replace(redirect);
-      router.refresh();
+      router.push(redirect);
     } catch (err) {
       const msg =
         err instanceof Error ? err.message : "Error desconocido al iniciar sesión.";

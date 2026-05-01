@@ -55,7 +55,8 @@ export default function PanelLayout({
       : undefined) ??
     "Panel";
   const router = useRouter();
-  const { isAuthenticated, logout, user, refreshUser } = useAuth();
+  const { isAuthenticated, logout, user, refreshUser, loading: authLoading } =
+    useAuth();
   const [dark, setDark] = useState(false);
   const [panelSessionChecked, setPanelSessionChecked] = useState(false);
 
@@ -67,6 +68,9 @@ export default function PanelLayout({
   }, []);
 
   useEffect(() => {
+    if (authLoading) {
+      return;
+    }
     if (user) {
       setPanelSessionChecked(true);
       return;
@@ -74,13 +78,16 @@ export default function PanelLayout({
     if (!panelSessionChecked) {
       void refreshUser().finally(() => setPanelSessionChecked(true));
     }
-  }, [user, panelSessionChecked, refreshUser]);
+  }, [user, panelSessionChecked, refreshUser, authLoading]);
 
   useEffect(() => {
+    if (authLoading) {
+      return;
+    }
     if (panelSessionChecked && !isAuthenticated) {
       router.push("/login");
     }
-  }, [panelSessionChecked, isAuthenticated, router]);
+  }, [authLoading, panelSessionChecked, isAuthenticated, router]);
 
   function toggleTheme() {
     setDark((d) => !d);
@@ -93,12 +100,15 @@ export default function PanelLayout({
   async function handleLogout() {
     await logout();
     router.push("/login");
-    router.refresh();
   }
 
   /** Teleconsulta: pantalla completa sin sidebar ni cabecera del panel (Meet/WhatsApp). */
   const isPanelTeleconsultaRoute =
     !!pathname && /\/panel\/consultas\/[^/]+\/teleconsulta$/.test(pathname);
+
+  if (authLoading) {
+    return null;
+  }
 
   if (isPanelTeleconsultaRoute) {
     return <>{children}</>;
