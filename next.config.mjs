@@ -15,6 +15,9 @@ function connectSrcDirective() {
     "https://vitals.vercel-insights.com",
     "https://vercel.live",
     "wss://vercel.live",
+    /** Vercel Toolbar / Comments (Pusher) — ver docs CSP de Vercel. */
+    "https://ws-us3.pusher.com",
+    "wss://ws-us3.pusher.com",
     "https://*.railway.app",
     "wss://*.railway.app",
     "https://*.heydoctor.health",
@@ -22,7 +25,9 @@ function connectSrcDirective() {
     "https://*.ingest.sentry.io",
     "https://*.sentry.io",
   ];
-  const raw = process.env.NEXT_PUBLIC_HEYDOCTOR_API_URL?.trim();
+  const raw =
+    process.env.NEXT_PUBLIC_HEYDOCTOR_API_URL?.trim() ||
+    process.env.NEXT_PUBLIC_API_URL?.trim();
   if (raw) {
     try {
       const normalized = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
@@ -47,9 +52,10 @@ function contentSecurityPolicy() {
   return [
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live https://va.vercel-scripts.com",
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-    "font-src 'self' https://fonts.gstatic.com",
-    "img-src 'self' data: blob:",
+    /** Toolbar: https://vercel.com/docs/vercel-toolbar/managing-toolbar#using-a-content-security-policy */
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://vercel.live",
+    "font-src 'self' https://fonts.gstatic.com https://vercel.live https://assets.vercel.com",
+    "img-src 'self' data: blob: https://vercel.live https://vercel.com https://assets.vercel.com",
     "media-src 'self' blob:",
     "worker-src 'self' blob:",
     `connect-src ${connectSrcDirective()}`,
