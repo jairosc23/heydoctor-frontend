@@ -1,23 +1,17 @@
 const DEFAULT_BACKEND_DEV = "http://localhost:3001";
-/** Si no hay env en build de producción (Vercel), usar API pública (evita POST a localhost). */
-const DEFAULT_BACKEND_PROD = "https://pro-api.heydoctor.health";
 
 /**
- * Origen del backend (sin `/api` final).
- * Variables: `NEXT_PUBLIC_HEYDOCTOR_API_URL` (preferida) o `NEXT_PUBLIC_API_URL` (alias).
- * Añade `https://` si falta el esquema; quita sufijo `/api` si ya venía en la variable.
+ * Origen del backend Nest (sin `/api` final). Única variable soportada:
+ * `NEXT_PUBLIC_HEYDOCTOR_API_URL` (inyectada en build por Next/Vercel).
+ *
+ * - Desarrollo: si falta, `http://localhost:3001`.
+ * - Producción: obligatoria; sin ella falla de forma explícita (no hay fallback a otro host).
  */
-export function getBackendOrigin(): string {
-  const fromEnv =
-    process.env.NEXT_PUBLIC_HEYDOCTOR_API_URL?.trim() ||
-    process.env.NEXT_PUBLIC_API_URL?.trim() ||
-    "";
-  const fallback =
-    process.env.NODE_ENV === "production"
-      ? DEFAULT_BACKEND_PROD
-      : DEFAULT_BACKEND_DEV;
-  let s = (fromEnv || fallback).replace(/\/+$/, "");
-  if (!s) s = fallback;
+function normalizeBackendOrigin(raw: string): string {
+  let s = raw.replace(/\/+$/, "");
+  if (!s) {
+    throw new Error("NEXT_PUBLIC_HEYDOCTOR_API_URL no puede estar vacía.");
+  }
   if (!/^https?:\/\//i.test(s)) {
     s = `https://${s}`;
   }
@@ -25,6 +19,19 @@ export function getBackendOrigin(): string {
     s = s.replace(/\/api$/i, "");
   }
   return s.replace(/\/+$/, "");
+}
+
+export function getBackendOrigin(): string {
+  const fromEnv = process.env.NEXT_PUBLIC_HEYDOCTOR_API_URL?.trim();
+  if (fromEnv) {
+    return normalizeBackendOrigin(fromEnv);
+  }
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "Falta NEXT_PUBLIC_HEYDOCTOR_API_URL. Defínela en el build (p. ej. https://pro-api.heydoctor.health).",
+    );
+  }
+  return normalizeBackendOrigin(DEFAULT_BACKEND_DEV);
 }
 
 /** Base con prefijo `/api` (Nest). */
