@@ -55,7 +55,8 @@ export default function PanelLayout({
       : undefined) ??
     "Panel";
   const router = useRouter();
-  const { isAuthenticated, logout, user, refreshUser } = useAuth();
+  const { isAuthenticated, logout, user, refreshUser, loading: authLoading } =
+    useAuth();
   const [dark, setDark] = useState(false);
   const [panelSessionChecked, setPanelSessionChecked] = useState(false);
 
@@ -67,6 +68,9 @@ export default function PanelLayout({
   }, []);
 
   useEffect(() => {
+    if (authLoading) {
+      return;
+    }
     if (user) {
       setPanelSessionChecked(true);
       return;
@@ -74,13 +78,24 @@ export default function PanelLayout({
     if (!panelSessionChecked) {
       void refreshUser().finally(() => setPanelSessionChecked(true));
     }
-  }, [user, panelSessionChecked, refreshUser]);
+  }, [user, panelSessionChecked, refreshUser, authLoading]);
 
   useEffect(() => {
-    if (panelSessionChecked && !isAuthenticated) {
-      router.push("/login");
+    if (authLoading) {
+      return;
     }
-  }, [panelSessionChecked, isAuthenticated, router]);
+    if (panelSessionChecked && !isAuthenticated) {
+      const path = pathname ?? "";
+      const dest =
+        path &&
+        path !== "/login" &&
+        path.startsWith("/") &&
+        !path.startsWith("//")
+          ? `/login?redirect=${encodeURIComponent(path)}`
+          : "/login";
+      router.push(dest);
+    }
+  }, [authLoading, panelSessionChecked, isAuthenticated, router, pathname]);
 
   function toggleTheme() {
     setDark((d) => !d);
@@ -93,15 +108,18 @@ export default function PanelLayout({
   async function handleLogout() {
     await logout();
     router.push("/login");
-    router.refresh();
   }
 
-  /** Teleconsulta: pantalla completa sin sidebar ni cabecera del panel (Meet/WhatsApp). */
+  /** Teleconsulta a pantalla completa: montar siempre (la sesión gestiona loaders y auth). */
   const isPanelTeleconsultaRoute =
     !!pathname && /\/panel\/consultas\/[^/]+\/teleconsulta$/.test(pathname);
 
   if (isPanelTeleconsultaRoute) {
     return <>{children}</>;
+  }
+
+  if (authLoading) {
+    return null;
   }
 
   return (

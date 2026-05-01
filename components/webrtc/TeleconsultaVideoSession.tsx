@@ -72,7 +72,7 @@ export interface TeleconsultaVideoSessionProps {
    * al crear la consulta vía `/api/public/consultations`.
    */
   mode?: "auth" | "guest";
-  /** Nombre del participante remoto (p. ej. paciente) para la barra superior. */
+  /** Nombre del participante remoto (p. ej. paciente) para el encabezado. */
   peerDisplayName?: string;
   /**
    * Navegación y título dentro de {@link VideoCall}. Campos omitidos se
@@ -232,6 +232,11 @@ export function TeleconsultaVideoSession({
     }
 
     const hasSession = !!deepLinkGate.doctorId || !!deepLinkGate.patientId;
+    if (hasSession && loading) {
+      setDeepLinkLoading(true);
+      return;
+    }
+
     let cancelled = false;
     setDeepLinkLoading(true);
 
@@ -287,6 +292,7 @@ export function TeleconsultaVideoSession({
     deepLinkGate?.consultationId,
     deepLinkGate?.doctorId,
     deepLinkGate?.patientId,
+    loading,
   ]);
 
   useEffect(() => {
@@ -297,6 +303,10 @@ export function TeleconsultaVideoSession({
     if (!id) {
       setPanelAllowed(false);
       setPanelAccessLoading(false);
+      return;
+    }
+    if (loading) {
+      setPanelAccessLoading(true);
       return;
     }
     if (panelGate.ctxBootLoading) {
@@ -326,7 +336,7 @@ export function TeleconsultaVideoSession({
     return () => {
       cancelled = true;
     };
-  }, [panelGate?.consultationId, panelGate?.ctxBootLoading]);
+  }, [panelGate?.consultationId, panelGate?.ctxBootLoading, loading]);
 
   useEffect(() => {
     if (effectiveMode === "guest") {
@@ -656,6 +666,7 @@ export function TeleconsultaVideoSession({
         onEndCall={handleEndCall}
         isInitiator={effectiveIsDoctor}
         peerDisplayName={effectivePeerName}
+        guestCall={effectiveIsGuest}
         callChrome={resolvedCallChrome}
       />
     </div>

@@ -39,6 +39,47 @@ export const DEFAULT_CALL_CONSTRAINTS: MediaStreamConstraints = {
   },
 };
 
+/** Mensajes UX en español para fallos de WebRTC / getUserMedia / socket. */
+export function humanizeCallError(err: unknown): string {
+  if (err instanceof DOMException) {
+    if (
+      err.name === 'NotAllowedError' ||
+      err.name === 'PermissionDeniedError'
+    ) {
+      return 'Permiso denegado: permite cámara y micrófono en el navegador y en los ajustes del sistema.';
+    }
+    if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+      return 'No se encontró cámara o micrófono. Comprueba que estén conectados.';
+    }
+    if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+      return 'La cámara o el micrófono están en uso por otra aplicación.';
+    }
+    if (err.name === 'OverconstrainedError') {
+      return 'El dispositivo no admite la configuración de vídeo solicitada.';
+    }
+    if (err.name === 'AbortError') {
+      return 'Acceso a cámara o micrófono cancelado.';
+    }
+    return err.message || 'Error al acceder a cámara o micrófono.';
+  }
+  if (err instanceof Error) {
+    const m = err.message.toLowerCase();
+    if (m.includes('timeout')) {
+      return 'Tiempo de espera agotado al unirse a la videollamada. Inténtalo de nuevo.';
+    }
+    if (
+      m.includes('websocket') ||
+      m.includes('xhr poll error') ||
+      m.includes('network') ||
+      m.includes('econnrefused')
+    ) {
+      return 'No se pudo conectar al servidor de videollamada. Comprueba tu red e inicia sesión de nuevo.';
+    }
+    return err.message;
+  }
+  return 'No se pudo iniciar la videollamada.';
+}
+
 type AdaptationTier = 0 | 1 | 2;
 
 /** Bitrate / resolution ladder: higher index = more aggressive save for poor networks */
@@ -315,6 +356,8 @@ export type UseTelemedicineCallOptions = {
   onVideoTierChange?: (tier: AdaptationTier) => void;
   /** default true — POST /api/webrtc/metrics cada ~7.5s (ticks de 2.5s × 3) */
   sendCallMetricsToBackend?: boolean;
+  /** Invitado: omitir `ensureAccessToken` antes de abrir el socket (cookies / refresh no aplican). */
+  guestCall?: boolean;
 };
 
 export type UseTelemedicineCallResult = {
@@ -360,6 +403,7 @@ export function useTelemedicineCall(
     onRemoteUserId,
     onVideoTierChange,
     sendCallMetricsToBackend = true,
+    guestCall = false,
   } = options;
 
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
@@ -776,8 +820,17 @@ export function useTelemedicineCall(
       await prioritizeAudioOverVideo(pc, videoTierRef.current);
     } catch (err) {
       console.warn('[heydoctor] screen share failed', err);
+      const denied =
+        err instanceof DOMException &&
+        (err.name === 'NotAllowedError' ||
+          err.name === 'PermissionDeniedError');
+      onError?.(
+        denied
+          ? 'Permiso denegado para compartir pantalla.'
+          : humanizeCallError(err),
+      );
     }
-  }, [canShareScreen, stopScreenShare]);
+  }, [canShareScreen, onError, stopScreenShare]);
 
   const startRecording = useCallback(
     async (userConsent: boolean) => {
@@ -806,12 +859,15 @@ export function useTelemedicineCall(
     remoteIdRef.current = null;
     onRemoteUserId?.(null);
 
-    let socket = externalSocket ?? null;
-    if (!socket) {
-      const sessionOk = await ensureAccessToken();
-      if (!sessionOk) {
-        onError?.('Inicia sesión para usar la videollamada.');
-        return;
+    let socket: Socket;
+    if (!externalSocket) {
+      if (!guestCall) {
+        const sessionOk = await ensureAccessToken();
+        if (!sessionOk) {
+          const msg = 'Inicia sesión para usar la videollamada.';
+          onError?.(msg);
+          throw new Error(msg);
+        }
       }
       const origin = backendOrigin.replace(/\/$/, '');
       const mem = getAccessToken()?.trim();
@@ -824,172 +880,204 @@ export function useTelemedicineCall(
       });
       ownSocketRef.current = true;
     } else {
+      socket = externalSocket;
       ownSocketRef.current = false;
     }
 
-    await new Promise<void>((resolve, reject) => {
-      if (socket.connected) {
-        resolve();
-        return;
-      }
-      socket.once('connect', () => resolve());
-      socket.once('connect_error', (err) => reject(err));
-    });
-
     socketRef.current = socket;
 
-    const iceServers = await fetchWebrtcIceServers({
-      backendOrigin,
-      consultationId,
-    });
+    try {
+      await new Promise<void>((resolve, reject) => {
+        if (socket.connected) {
+          resolve();
+          return;
+        }
+        socket.once('connect', () => resolve());
+        socket.once('connect_error', (err) => reject(err));
+      });
 
-    const pc = new RTCPeerConnection(createProRtcConfiguration(iceServers));
-    pcRef.current = pc;
-    wirePeerConnection(pc);
+      const iceServers = await fetchWebrtcIceServers({
+        backendOrigin,
+        consultationId,
+      });
 
-    const stream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
-    setLocalStream(stream);
+      const pc = new RTCPeerConnection(createProRtcConfiguration(iceServers));
+      pcRef.current = pc;
+      wirePeerConnection(pc);
 
-    capturedVideoTrackRef.current = stream.getVideoTracks()[0] ?? null;
-    videoSuspendedByPolicyRef.current = false;
-    setVideoSuspendedForNetwork(false);
-    metricsSamplesRef.current = 0;
-    poorNetworkStreakRef.current = 0;
-    goodNetworkStreakRef.current = 0;
-    setConnectionQuality('good');
+      const stream = await navigator.mediaDevices.getUserMedia(
+        mediaConstraints,
+      );
+      setLocalStream(stream);
 
-    for (const track of stream.getAudioTracks()) {
-      pc.addTrack(track, stream);
-    }
-    for (const track of stream.getVideoTracks()) {
-      pc.addTrack(track, stream);
-    }
+      capturedVideoTrackRef.current = stream.getVideoTracks()[0] ?? null;
+      videoSuspendedByPolicyRef.current = false;
+      setVideoSuspendedForNetwork(false);
+      metricsSamplesRef.current = 0;
+      poorNetworkStreakRef.current = 0;
+      goodNetworkStreakRef.current = 0;
+      setConnectionQuality('good');
 
-    await prioritizeAudioOverVideo(pc, videoTierRef.current);
-
-    attachSignalingHandlers(socket, pc);
-
-    socket.emit('join-consultation', { consultationId }, (ack: unknown) => {
-      if (ack && typeof ack === 'object' && 'ok' in ack && (ack as { ok?: boolean }).ok !== true) {
-        onError?.('join-consultation rejected');
+      for (const track of stream.getAudioTracks()) {
+        pc.addTrack(track, stream);
       }
-    });
-
-    stopStatsRef.current = createAdaptiveVideoMonitor(
-      pc,
-      () => pc.getSenders().find((s) => s.track?.kind === 'video'),
-      {
-        intervalMs: 2500,
-        onTierChange: (tier) => {
-          setVideoTier(tier);
-          onVideoTierChange?.(tier);
-        },
-        onStatsSample: async ({ snap, lossRatio }) => {
-          const qualityInputs = {
-            reconnecting: reconnectingIceRef.current,
-            iceConnectionState: iceConnectionStateRef.current,
-            lossRatio,
-            rttMs: snap.roundTripTime,
-            outboundBitrateBps: snap.outboundBitrateBps,
-            videoSuspendedForNetwork: videoSuspendedByPolicyRef.current,
-          };
-          lastQualityInputsRef.current = qualityInputs;
-          setConnectionQuality(deriveConnectionQuality(qualityInputs));
-
-          const lowBitrate =
-            snap.outboundBitrateBps !== undefined &&
-            snap.outboundBitrateBps > 0 &&
-            snap.outboundBitrateBps < 100_000;
-
-          if (lossRatio > 0.12 || lowBitrate) {
-            poorNetworkStreakRef.current += 1;
-            goodNetworkStreakRef.current = 0;
-          } else {
-            poorNetworkStreakRef.current = 0;
-          }
-
-          if (
-            lossRatio < 0.02 &&
-            (snap.roundTripTime === undefined || snap.roundTripTime < 280)
-          ) {
-            goodNetworkStreakRef.current += 1;
-          } else {
-            goodNetworkStreakRef.current = 0;
-          }
-
-          const videoSender = pc
-            .getSenders()
-            .find((s) => s.track?.kind === 'video');
-
-          if (
-            poorNetworkStreakRef.current >= 2 &&
-            !videoSuspendedByPolicyRef.current &&
-            capturedVideoTrackRef.current &&
-            videoSender
-          ) {
-            videoSuspendedByPolicyRef.current = true;
-            setVideoSuspendedForNetwork(true);
-            try {
-              await videoSender.replaceTrack(null);
-            } catch {
-              /* ignore */
-            }
-          }
-
-          if (
-            goodNetworkStreakRef.current >= 4 &&
-            videoSuspendedByPolicyRef.current &&
-            capturedVideoTrackRef.current &&
-            videoSender
-          ) {
-            videoSuspendedByPolicyRef.current = false;
-            setVideoSuspendedForNetwork(false);
-            goodNetworkStreakRef.current = 0;
-            try {
-              await videoSender.replaceTrack(capturedVideoTrackRef.current);
-              await prioritizeAudioOverVideo(pc, videoTierRef.current);
-            } catch {
-              /* ignore */
-            }
-          }
-
-          if (sendCallMetricsToBackend) {
-            metricsSamplesRef.current += 1;
-            if (metricsSamplesRef.current >= 3) {
-              metricsSamplesRef.current = 0;
-              void sendCallMetrics({
-                backendOrigin,
-                consultationId,
-                rtt: snap.roundTripTime,
-                packetsLost: snap.packetsLost,
-                bitrate: snap.outboundBitrateBps,
-                jitter: snap.jitter,
-                packetLossRatio: lossRatio,
-              }).catch(() => {
-                /* no UX spam */
-              });
-            }
-          }
-        },
-      },
-    );
-
-    if (isInitiator && remoteIdRef.current) {
-      /* peer already in room */
-      makingOfferRef.current = true;
-      try {
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-        socket.emit('offer', {
-          consultationId,
-          sdp: pc.localDescription,
-        });
-      } catch (e) {
-        onError?.((e as Error).message);
-      } finally {
-        makingOfferRef.current = false;
+      for (const track of stream.getVideoTracks()) {
+        pc.addTrack(track, stream);
       }
+
+      await prioritizeAudioOverVideo(pc, videoTierRef.current);
+
+      attachSignalingHandlers(socket, pc);
+
+      await new Promise<void>((resolve, reject) => {
+        socket
+          .timeout(20_000)
+          .emit(
+            'join-consultation',
+            { consultationId },
+            (err: Error | null, ack: unknown) => {
+              if (err) {
+                reject(err);
+                return;
+              }
+              if (
+                ack &&
+                typeof ack === 'object' &&
+                'ok' in ack &&
+                (ack as { ok?: boolean }).ok !== true
+              ) {
+                reject(
+                  new Error(
+                    'No se pudo unir a la sala de videollamada (rechazado por el servidor).',
+                  ),
+                );
+                return;
+              }
+              resolve();
+            },
+          );
+      });
+
+      stopStatsRef.current = createAdaptiveVideoMonitor(
+        pc,
+        () => pc.getSenders().find((s) => s.track?.kind === 'video'),
+        {
+          intervalMs: 2500,
+          onTierChange: (tier) => {
+            setVideoTier(tier);
+            onVideoTierChange?.(tier);
+          },
+          onStatsSample: async ({ snap, lossRatio }) => {
+            const qualityInputs = {
+              reconnecting: reconnectingIceRef.current,
+              iceConnectionState: iceConnectionStateRef.current,
+              lossRatio,
+              rttMs: snap.roundTripTime,
+              outboundBitrateBps: snap.outboundBitrateBps,
+              videoSuspendedForNetwork: videoSuspendedByPolicyRef.current,
+            };
+            lastQualityInputsRef.current = qualityInputs;
+            setConnectionQuality(deriveConnectionQuality(qualityInputs));
+
+            const lowBitrate =
+              snap.outboundBitrateBps !== undefined &&
+              snap.outboundBitrateBps > 0 &&
+              snap.outboundBitrateBps < 100_000;
+
+            if (lossRatio > 0.12 || lowBitrate) {
+              poorNetworkStreakRef.current += 1;
+              goodNetworkStreakRef.current = 0;
+            } else {
+              poorNetworkStreakRef.current = 0;
+            }
+
+            if (
+              lossRatio < 0.02 &&
+              (snap.roundTripTime === undefined || snap.roundTripTime < 280)
+            ) {
+              goodNetworkStreakRef.current += 1;
+            } else {
+              goodNetworkStreakRef.current = 0;
+            }
+
+            const videoSender = pc
+              .getSenders()
+              .find((s) => s.track?.kind === 'video');
+
+            if (
+              poorNetworkStreakRef.current >= 2 &&
+              !videoSuspendedByPolicyRef.current &&
+              capturedVideoTrackRef.current &&
+              videoSender
+            ) {
+              videoSuspendedByPolicyRef.current = true;
+              setVideoSuspendedForNetwork(true);
+              try {
+                await videoSender.replaceTrack(null);
+              } catch {
+                /* ignore */
+              }
+            }
+
+            if (
+              goodNetworkStreakRef.current >= 4 &&
+              videoSuspendedByPolicyRef.current &&
+              capturedVideoTrackRef.current &&
+              videoSender
+            ) {
+              videoSuspendedByPolicyRef.current = false;
+              setVideoSuspendedForNetwork(false);
+              goodNetworkStreakRef.current = 0;
+              try {
+                await videoSender.replaceTrack(capturedVideoTrackRef.current);
+                await prioritizeAudioOverVideo(pc, videoTierRef.current);
+              } catch {
+                /* ignore */
+              }
+            }
+
+            if (sendCallMetricsToBackend) {
+              metricsSamplesRef.current += 1;
+              if (metricsSamplesRef.current >= 3) {
+                metricsSamplesRef.current = 0;
+                void sendCallMetrics({
+                  backendOrigin,
+                  consultationId,
+                  rtt: snap.roundTripTime,
+                  packetsLost: snap.packetsLost,
+                  bitrate: snap.outboundBitrateBps,
+                  jitter: snap.jitter,
+                  packetLossRatio: lossRatio,
+                }).catch(() => {
+                  /* no UX spam */
+                });
+              }
+            }
+          },
+        },
+      );
+
+      if (isInitiator && remoteIdRef.current) {
+        /* peer already in room */
+        makingOfferRef.current = true;
+        try {
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+          socket.emit('offer', {
+            consultationId,
+            sdp: pc.localDescription,
+          });
+        } finally {
+          makingOfferRef.current = false;
+        }
+      }
+    } catch (e) {
+      const msg = humanizeCallError(e);
+      onError?.(msg);
+      endCall();
+      throw new Error(msg);
     }
+
   }, [
     attachSignalingHandlers,
     backendOrigin,
@@ -1002,6 +1090,7 @@ export function useTelemedicineCall(
     onRemoteUserId,
     onVideoTierChange,
     sendCallMetricsToBackend,
+    guestCall,
     socketPath,
     wirePeerConnection,
   ]);

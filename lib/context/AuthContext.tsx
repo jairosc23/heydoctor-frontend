@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -39,13 +40,24 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+/** Invalida `refreshUser` en vuelo para que no llame a `clearSession` tras un login concurrente. */
+function useSessionGeneration() {
+  const gen = useRef(0);
+  const bump = useCallback(() => {
+    gen.current += 1;
+  }, []);
+  const snapshot = useCallback(() => gen.current, []);
+  return { bump, snapshot };
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
-  /** Sin hidratación al mount: no refresh ni getMe al cargar (evita carreras con login). */
-  const [loading, setLoading] = useState(false);
+  /** Hidratación inicial: refresh + getMe antes de tratar “no hay usuario” en rutas protegidas. */
+  const [loading, setLoading] = useState(true);
   const [sessionRevalidating, setSessionRevalidating] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+  const { bump: bumpSessionGen, snapshot: sessionGen } = useSessionGeneration();
 
   useEffect(() => {
     return subscribeRefreshState(setSessionRevalidating);
@@ -53,6 +65,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     void bootstrapApiCsrf();
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const genAtStart = sessionGen();
+    void (async () => {
+      try {
+        await refreshAccessToken();
+        const me = await getMe();
+        if (cancelled || sessionGen() !== genAtStart) return;
+        setUser(me);
+        const t = getAccessToken()?.trim();
+        if (t) {
+          await syncMiddlewareSession(t);
+        }
+      } catch {
+        if (cancelled || sessionGen() !== genAtStart) return;
+        setUser(null);
+        setAccessToken(null);
+        await clearMiddlewareSession();
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // Solo al montar: cookies cross-site + getMe para estado inicial.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -70,18 +113,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refreshUser = useCallback(async () => {
+    const g0 = sessionGen();
     try {
       await refreshAccessToken();
       const me = await getMe();
+      if (g0 !== sessionGen()) return;
       setUser(me);
       const t = getAccessToken()?.trim();
       if (t) {
         await syncMiddlewareSession(t);
       }
     } catch {
+      if (g0 !== sessionGen()) return;
       await clearSession();
     }
-  }, [clearSession]);
+  }, [clearSession, sessionGen]);
 
   /**
    * Tras login exitoso: `?redirect=` → ir al destino sin depender de estado async global previo.
@@ -105,6 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, pathname, router]);
 
   const login = useCallback(async (email: string, password: string) => {
+    bumpSessionGen();
     try {
       await loginRequest(email, password);
     } catch (e) {
@@ -114,6 +161,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const me = await getMe();
       setUser(me);
+      setLoading(false);
       const t = getAccessToken()?.trim();
       if (t) {
         await syncMiddlewareSession(t);
@@ -126,12 +174,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         `Inicio de sesión correcto, pero falló cargar el perfil (GET /api/auth/me): ${detail}`,
       );
     }
-  }, []);
+  }, [bumpSessionGen, clearMiddlewareSession]);
 
   const logout = useCallback(async () => {
+    bumpSessionGen();
     await logoutRequest();
     setUser(null);
-  }, []);
+  }, [bumpSessionGen]);
 
   const value = useMemo<AuthContextValue>(
     () => ({

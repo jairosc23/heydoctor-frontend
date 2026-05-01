@@ -10,11 +10,13 @@ import React, {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
 import Link from "next/link";
+import { ConnectionQualityBadge } from "@/components/ConnectionQualityBadge";
 import {
   MessageCircle,
   Mic,
@@ -25,8 +27,9 @@ import {
   VideoOff,
 } from "lucide-react";
 import { getBackendOrigin } from "@/lib/api-base";
+import { useAuth } from "@/lib/context/AuthContext";
 import { logger } from "@/lib/logger";
-import { useTelemedicineCall } from "@/hooks/useTelemedicineCall";
+import { humanizeCallError, useTelemedicineCall } from "@/hooks/useTelemedicineCall";
 import { useIsMobile } from "@/lib/hooks/useIsMobile";
 
 function safeVibrate(pattern?: number | number[]): void {
@@ -41,32 +44,22 @@ function safeVibrate(pattern?: number | number[]): void {
 export type VideoCallProps = {
   consultationId: string;
   onEndCall: () => void;
-  /**
-   * Quien emite oferta tras `peer-joined`. Por defecto `true` para ambos lados:
-   * solo quien ya estaba en sala recibe el evento y negocia.
-   */
   isInitiator?: boolean;
-  /**
-   * Grabación local (WebM). Distinto de los stubs de API del hook.
-   */
   enableCallRecording?: boolean;
-  /** Nombre del participante remoto (p. ej. paciente) para el encabezado. */
   peerDisplayName?: string;
   /**
-   * Navegación y título dentro de la propia llamada (barra flotante tipo Meet).
-   * {@link TeleconsultaVideoSession} siempre lo rellena.
+   * Invitado: el hook no exige `ensureAccessToken` antes del socket WebRTC.
    */
+  guestCall?: boolean;
   callChrome: VideoCallCallChrome;
 };
 
 export type VideoCallCallChrome = {
   backHref: string;
   backLabel: string;
-  /** Si se omite, se arma con `peerDisplayName` o «Teleconsulta». */
   title?: string;
 };
 
-/** API imperativa cuando `enableCallRecording` es true (sin UI en el componente). */
 export type VideoCallRecordingHandle = {
   startRecording: () => void;
   stopRecording: () => void;
@@ -85,9 +78,6 @@ function pickWebmMimeType(): string {
   return "video/webm";
 }
 
-/**
- * WebRTC 1:1 sobre signaling Nest (`/webrtc`) vía {@link useTelemedicineCall}.
- */
 export const VideoCall = forwardRef<
   VideoCallRecordingHandle,
   VideoCallProps
@@ -98,10 +88,12 @@ export const VideoCall = forwardRef<
     isInitiator = true,
     enableCallRecording = false,
     peerDisplayName,
+    guestCall = false,
     callChrome,
   },
   ref
 ) {
+  const { user, loading } = useAuth();
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const remoteStreamRef = useRef<MediaStream | null>(null);
@@ -138,26 +130,41 @@ export const VideoCall = forwardRef<
     isInitiator,
     backendOrigin: getBackendOrigin(),
     socketPath: "/socket.io",
+    guestCall,
     onError: (message) => setError(message),
   });
+
+  localStreamRef.current = localStream;
 
   useEffect(() => {
     let cancelled = false;
     setError(null);
     setMediaReady(false);
+
+    if (!guestCall) {
+      if (loading) {
+        return () => {
+          cancelled = true;
+          endCall();
+        };
+      }
+      if (!user) {
+        return () => {
+          cancelled = true;
+          endCall();
+        };
+      }
+    }
+
     void (async () => {
       try {
         await startCall();
         if (!cancelled) {
-          setMediaReady(true);
+          /* mediaReady lo fija el efecto que observa localStream */
         }
       } catch (e) {
         if (!cancelled) {
-          setError(
-            e instanceof Error
-              ? e.message
-              : "No se pudo acceder a cámara o micrófono"
-          );
+          setError(humanizeCallError(e));
         }
       }
     })();
@@ -166,7 +173,15 @@ export const VideoCall = forwardRef<
       endCall();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- startCall/endCall dependen de muchos refs internos del hook
-  }, [consultationId]);
+  }, [consultationId, guestCall, loading, user]);
+
+  useEffect(() => {
+    if (localStream) {
+      setMediaReady(true);
+    } else {
+      setMediaReady(false);
+    }
+  }, [localStream]);
 
   useEffect(() => {
     if (process.env.NODE_ENV === "development") {
@@ -278,9 +293,6 @@ export const VideoCall = forwardRef<
     [enableCallRecording, startRecordingInternal, stopRecordingInternal]
   );
 
-  /**
-   * Scroll del documento bloqueado mientras la llamada está activa (capa fixed).
-   */
   useEffect(() => {
     if (typeof document === "undefined" || !mediaReady) return;
     const previous = document.body.style.overflow;
@@ -290,9 +302,6 @@ export const VideoCall = forwardRef<
     };
   }, [mediaReady]);
 
-  /**
-   * `--app-vh` como fallback junto a `100dvh` (Safari iOS, barras dinámicas).
-   */
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -320,21 +329,35 @@ export const VideoCall = forwardRef<
     };
   }, []);
 
-  useEffect(() => {
-    localStreamRef.current = localStream;
+  useLayoutEffect(() => {
     const el = localVideoRef.current;
-    if (el) {
-      el.srcObject = localStream;
+    if (!el) return;
+    el.srcObject = localStream;
+    if (localStream) {
+      el.muted = true;
+      void el.play().catch(() => {});
     }
   }, [localStream]);
 
-  useEffect(() => {
-    remoteStreamRef.current = remoteStream;
+  useLayoutEffect(() => {
     const el = remoteVideoRef.current;
-    if (el) {
-      el.srcObject = remoteStream;
+    if (!el) return;
+    el.srcObject = remoteStream;
+    if (remoteStream) {
+      void el.play().catch(() => {});
     }
   }, [remoteStream]);
+
+  useEffect(() => {
+    remoteStreamRef.current = remoteStream;
+  }, [remoteStream]);
+
+  useEffect(() => {
+    const v = localStream?.getVideoTracks()[0];
+    const a = localStream?.getAudioTracks()[0];
+    if (v) setCamOn(v.enabled);
+    if (a) setMicOn(a.enabled);
+  }, [localStream]);
 
   const displayTitle =
     callChrome.title?.trim() ||
@@ -346,7 +369,7 @@ export const VideoCall = forwardRef<
     () =>
       !!remoteStream &&
       remoteStream.getTracks().some((t) => t.readyState === "live"),
-    [remoteStream],
+    [remoteStream]
   );
 
   const isConnectingPhase = useMemo(() => {
@@ -433,21 +456,20 @@ export const VideoCall = forwardRef<
   }, []);
 
   const toggleMic = () => {
-    const stream = localStream;
+    const stream = localStreamRef.current;
     const audio = stream?.getAudioTracks()[0];
-    if (audio) {
-      audio.enabled = !audio.enabled;
-      setMicOn(audio.enabled);
-    }
+    if (!audio) return;
+    audio.enabled = !audio.enabled;
+    setMicOn(audio.enabled);
   };
 
   const toggleCam = () => {
-    const stream = localStream;
+    const stream = localStreamRef.current;
     const video = stream?.getVideoTracks()[0];
-    if (video) {
-      video.enabled = !video.enabled;
-      setCamOn(video.enabled);
-    }
+    if (!video) return;
+    video.enabled = !video.enabled;
+    setCamOn(video.enabled);
+    void localVideoRef.current?.play().catch(() => {});
   };
 
   const handleEnd = () => {
@@ -468,6 +490,13 @@ export const VideoCall = forwardRef<
   const handleChatToggle = useCallback(() => {
     setChatPanelOpen((v) => !v);
   }, []);
+
+  if (!guestCall && loading) {
+    return null;
+  }
+  if (!guestCall && !user) {
+    return null;
+  }
 
   if (!mediaReady && !error) {
     return (
@@ -525,7 +554,7 @@ export const VideoCall = forwardRef<
   const errorBannerEl =
     error && mediaReady ? (
       <div
-        className="absolute left-3 right-3 top-3 z-[7] rounded-lg bg-red-900/90 px-3 py-2 text-center text-xs text-red-100 sm:left-4 sm:right-4"
+        className="absolute left-3 right-3 top-[max(env(safe-area-inset-top),12px)] z-[7] rounded-lg bg-red-900/90 px-3 py-2 text-center text-xs text-red-100 sm:left-4 sm:right-4"
         role="alert"
       >
         {error}
@@ -535,7 +564,8 @@ export const VideoCall = forwardRef<
   const videoPillClass =
     "pointer-events-none absolute bottom-3 left-3 z-[2] rounded-full bg-black/60 px-3 py-1 text-sm font-medium text-white";
 
-  const iconClass = "h-5 w-5 shrink-0 text-white";
+  const iconClass =
+    "pointer-events-none h-5 w-5 shrink-0 stroke-white text-white";
 
   return (
     <div
@@ -553,20 +583,25 @@ export const VideoCall = forwardRef<
         >
           ← {callChrome.backLabel}
         </Link>
-        <h1 className="m-0 min-w-0 flex-1 truncate text-right text-[15px] font-semibold text-emerald-700">
-          {displayTitle}
-        </h1>
+        <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
+          <h1 className="m-0 min-w-0 truncate text-right text-[15px] font-semibold text-emerald-700">
+            {displayTitle}
+          </h1>
+          <div className="pointer-events-none shrink-0">
+            <ConnectionQualityBadge quality={connectionQuality} showWhenIdle />
+          </div>
+        </div>
       </header>
 
       <div className="relative flex min-h-0 flex-1 flex-col bg-[#0B0F14]">
-        <div className="flex min-h-0 flex-1 flex-col gap-4 p-4 md:flex-row">
-          <div className="relative min-h-0 flex-1 overflow-hidden rounded-2xl bg-black">
+        <div className="relative z-0 flex min-h-0 flex-1 flex-col gap-4 p-4 md:flex-row">
+          <div className="relative min-h-[200px] min-w-0 flex-1 overflow-hidden rounded-2xl bg-black md:min-h-0">
             <video
               ref={localVideoRef}
               autoPlay
               playsInline
               muted
-              className="h-full w-full object-cover [transform:scaleX(-1)]"
+              className="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover [transform:scaleX(-1)]"
             />
             <span className={videoPillClass}>Tú</span>
             {!camOn ? (
@@ -579,19 +614,19 @@ export const VideoCall = forwardRef<
             ) : null}
           </div>
 
-          <div className="relative min-h-0 flex-1 overflow-hidden rounded-2xl bg-black">
+          <div className="relative min-h-[200px] min-w-0 flex-1 overflow-hidden rounded-2xl bg-black md:min-h-0">
             <video
               ref={remoteVideoRef}
               autoPlay
               playsInline
-              className="h-full w-full object-cover"
+              className="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover"
             />
             {!remoteStream ? (
-              <div className="absolute inset-0 flex items-center justify-center text-gray-400">
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-gray-400">
                 <span>Esperando al otro participante...</span>
               </div>
             ) : !hasRemoteLive ? (
-              <div className="absolute inset-0 flex items-center justify-center text-gray-400">
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-gray-400">
                 <span
                   key={remoteOverlayMessage}
                   className="call-status-enter videocall-remote-overlay-text px-4 text-center text-base font-medium"
@@ -607,15 +642,22 @@ export const VideoCall = forwardRef<
         {chatPanelEl}
         {errorBannerEl}
 
-        <div className="pointer-events-none absolute bottom-6 left-1/2 z-[8] flex -translate-x-1/2 items-center gap-3 rounded-full bg-[#111827]/80 px-5 py-3 shadow-lg backdrop-blur-md">
-          <div className="pointer-events-auto flex items-center gap-3">
+        <div
+          className="pointer-events-auto absolute bottom-6 left-1/2 z-[235] flex max-w-[calc(100vw-1.5rem)] -translate-x-1/2 touch-manipulation items-center gap-3 rounded-full bg-[#111827]/90 px-4 py-3 shadow-lg backdrop-blur-md sm:bottom-8"
+          style={{
+            paddingBottom: "max(12px, env(safe-area-inset-bottom, 0px))",
+          }}
+        >
+          <div className="flex items-center gap-2 sm:gap-3">
             <button
               type="button"
               onClick={(e) => {
+                e.preventDefault();
                 e.stopPropagation();
                 toggleCam();
               }}
-              className={`flex h-12 w-12 items-center justify-center rounded-full text-white premium-tap ${camOn ? "bg-emerald-500" : "bg-gray-500"}`}
+              onPointerDown={(e) => e.stopPropagation()}
+              className={`relative z-10 flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-full text-white premium-tap ${camOn ? "bg-emerald-500" : "bg-gray-500"}`}
               aria-pressed={!camOn}
               aria-label={camOn ? "Apagar cámara" : "Encender cámara"}
             >
@@ -628,10 +670,12 @@ export const VideoCall = forwardRef<
             <button
               type="button"
               onClick={(e) => {
+                e.preventDefault();
                 e.stopPropagation();
                 toggleMic();
               }}
-              className={`flex h-12 w-12 items-center justify-center rounded-full text-white premium-tap ${micOn ? "bg-emerald-500" : "bg-gray-500"}`}
+              onPointerDown={(e) => e.stopPropagation()}
+              className={`relative z-10 flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-full text-white premium-tap ${micOn ? "bg-emerald-500" : "bg-gray-500"}`}
               aria-pressed={!micOn}
               aria-label={micOn ? "Silenciar micrófono" : "Activar micrófono"}
             >
@@ -645,10 +689,12 @@ export const VideoCall = forwardRef<
               <button
                 type="button"
                 onClick={(e) => {
+                  e.preventDefault();
                   e.stopPropagation();
                   handleToggleScreenShare();
                 }}
-                className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500 text-white premium-tap"
+                onPointerDown={(e) => e.stopPropagation()}
+                className="relative z-10 flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-full bg-emerald-500 text-white premium-tap"
                 aria-pressed={screenSharing}
                 aria-label={
                   screenSharing
@@ -662,10 +708,12 @@ export const VideoCall = forwardRef<
             <button
               type="button"
               onClick={(e) => {
+                e.preventDefault();
                 e.stopPropagation();
                 handleChatToggle();
               }}
-              className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500 text-white premium-tap"
+              onPointerDown={(e) => e.stopPropagation()}
+              className="relative z-10 flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-full bg-emerald-500 text-white premium-tap"
               aria-pressed={chatPanelOpen}
               aria-label="Chat"
             >
@@ -678,10 +726,12 @@ export const VideoCall = forwardRef<
             <button
               type="button"
               onClick={(e) => {
+                e.preventDefault();
                 e.stopPropagation();
                 handleEnd();
               }}
-              className="flex h-12 w-12 items-center justify-center rounded-full bg-red-500 text-white premium-tap"
+              onPointerDown={(e) => e.stopPropagation()}
+              className="relative z-10 flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-full bg-red-500 text-white premium-tap"
               aria-label="Finalizar llamada"
             >
               <PhoneOff className={iconClass} strokeWidth={2} aria-hidden />
@@ -695,14 +745,13 @@ export const VideoCall = forwardRef<
 
 VideoCall.displayName = "VideoCall";
 
-/** Panel lateral del botón chat (estilos inline compartidos). */
 const chatSidePanelStyle: React.CSSProperties = {
   position: "absolute",
   top: 0,
   right: 0,
   bottom: 0,
   width: "min(360px, 92vw)",
-  zIndex: 20,
+  zIndex: 240,
   padding: "max(env(safe-area-inset-top), 20px) 20px max(env(safe-area-inset-bottom), 20px)",
   boxSizing: "border-box",
   background: "rgba(11,17,32,0.94)",
