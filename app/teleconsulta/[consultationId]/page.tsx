@@ -163,47 +163,19 @@ function TeleconsultaDeepLinkContent() {
     );
   }
 
-  const sessionBlock = (
-    <>
-      <TeleconsultaVideoSession
-        roomId={consultationId}
-        consultationId={consultationId}
-        isDoctor={!!doctorId}
-        onEndCall={onEndCall}
-        mode={sessionMode}
-        peerDisplayName={
-          !!doctorId && isGuest && guestName ? guestName : undefined
-        }
-      />
-      {isGuest && guestName ? (
-        <span style={mobileGuestBadgeStyle} aria-label="Modo invitado">
-          🎫 Invitado · {guestName}
-        </span>
-      ) : null}
-    </>
+  return (
+    <TeleconsultaVideoSession
+      roomId={consultationId}
+      consultationId={consultationId}
+      isDoctor={!!doctorId}
+      onEndCall={onEndCall}
+      mode={sessionMode}
+      peerDisplayName={
+        !!doctorId && isGuest && guestName ? guestName : undefined
+      }
+    />
   );
-
-  return sessionBlock;
 }
-
-const mobileGuestBadgeStyle: React.CSSProperties = {
-  position: "fixed",
-  top: "max(env(safe-area-inset-top), 12px)",
-  left: "50%",
-  transform: "translateX(-50%)",
-  zIndex: 2147483646,
-  fontSize: 11,
-  fontWeight: 700,
-  color: "#92400e",
-  background: "rgba(254,243,199,0.92)",
-  padding: "4px 12px",
-  borderRadius: 999,
-  pointerEvents: "none",
-  whiteSpace: "nowrap",
-  maxWidth: "80vw",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-};
 
 export default function TeleconsultaDeepLinkPage() {
   return (

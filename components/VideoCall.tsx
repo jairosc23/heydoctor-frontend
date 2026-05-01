@@ -139,14 +139,6 @@ export const VideoCall = forwardRef<
   });
 
   useEffect(() => {
-    if (process.env.NODE_ENV === "development") {
-      console.log({
-        quality: connectionQuality,
-      });
-    }
-  }, [connectionQuality]);
-
-  useEffect(() => {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
