@@ -8,6 +8,7 @@ import { GuestNamePrompt } from "@/components/telemedicine/GuestNamePrompt";
 /** Única fuente de UI de llamada: `@/components/VideoCall` (no usar alternativas duplicadas). */
 import { VideoCall, type VideoCallCallChrome } from "@/components/VideoCall";
 import { refreshAccessToken } from "@/lib/auth-client";
+import { useAuth } from "@/lib/context/AuthContext";
 import { getGuestName, setGuestName } from "@/lib/guest-session";
 import {
   fetchConsultation,
@@ -112,6 +113,7 @@ export function TeleconsultaVideoSession({
 }: TeleconsultaVideoSessionProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { loading: authLoading } = useAuth();
   const accessTokenPending = !!searchParams.get("access_token")?.trim();
 
   const inviteRouteActive = inviteTokenGate !== undefined;
@@ -230,6 +232,11 @@ export function TeleconsultaVideoSession({
     }
 
     const hasSession = !!deepLinkGate.doctorId || !!deepLinkGate.patientId;
+    if (hasSession && authLoading) {
+      setDeepLinkLoading(true);
+      return;
+    }
+
     let cancelled = false;
     setDeepLinkLoading(true);
 
@@ -285,6 +292,7 @@ export function TeleconsultaVideoSession({
     deepLinkGate?.consultationId,
     deepLinkGate?.doctorId,
     deepLinkGate?.patientId,
+    authLoading,
   ]);
 
   useEffect(() => {
@@ -295,6 +303,10 @@ export function TeleconsultaVideoSession({
     if (!id) {
       setPanelAllowed(false);
       setPanelAccessLoading(false);
+      return;
+    }
+    if (authLoading) {
+      setPanelAccessLoading(true);
       return;
     }
     if (panelGate.ctxBootLoading) {
@@ -324,7 +336,7 @@ export function TeleconsultaVideoSession({
     return () => {
       cancelled = true;
     };
-  }, [panelGate?.consultationId, panelGate?.ctxBootLoading]);
+  }, [panelGate?.consultationId, panelGate?.ctxBootLoading, authLoading]);
 
   useEffect(() => {
     if (effectiveMode === "guest") {
@@ -651,6 +663,7 @@ export function TeleconsultaVideoSession({
       onEndCall={handleEndCall}
       isInitiator={effectiveIsDoctor}
       peerDisplayName={effectivePeerName}
+      guestCall={effectiveIsGuest}
       callChrome={resolvedCallChrome}
     />
   );

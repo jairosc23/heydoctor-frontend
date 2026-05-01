@@ -85,9 +85,17 @@ export default function PanelLayout({
       return;
     }
     if (panelSessionChecked && !isAuthenticated) {
-      router.push("/login");
+      const path = pathname ?? "";
+      const dest =
+        path &&
+        path !== "/login" &&
+        path.startsWith("/") &&
+        !path.startsWith("//")
+          ? `/login?redirect=${encodeURIComponent(path)}`
+          : "/login";
+      router.push(dest);
     }
-  }, [authLoading, panelSessionChecked, isAuthenticated, router]);
+  }, [authLoading, panelSessionChecked, isAuthenticated, router, pathname]);
 
   function toggleTheme() {
     setDark((d) => !d);
@@ -102,16 +110,16 @@ export default function PanelLayout({
     router.push("/login");
   }
 
-  /** Teleconsulta: pantalla completa sin sidebar ni cabecera del panel (Meet/WhatsApp). */
+  /** Teleconsulta a pantalla completa: montar siempre (la sesión gestiona loaders y auth). */
   const isPanelTeleconsultaRoute =
     !!pathname && /\/panel\/consultas\/[^/]+\/teleconsulta$/.test(pathname);
 
-  if (authLoading) {
-    return null;
-  }
-
   if (isPanelTeleconsultaRoute) {
     return <>{children}</>;
+  }
+
+  if (authLoading) {
+    return null;
   }
 
   return (

@@ -17,6 +17,7 @@ import React, {
 import Link from "next/link";
 import { ConnectionQualityBadge } from "@/components/ConnectionQualityBadge";
 import { getBackendOrigin } from "@/lib/api-base";
+import { useAuth } from "@/lib/context/AuthContext";
 import { logger } from "@/lib/logger";
 import { useTelemedicineCall } from "@/hooks/useTelemedicineCall";
 import { useIsMobile } from "@/lib/hooks/useIsMobile";
@@ -44,6 +45,10 @@ export type VideoCallProps = {
   enableCallRecording?: boolean;
   /** Nombre del participante remoto (p. ej. paciente) para el encabezado. */
   peerDisplayName?: string;
+  /**
+   * Invitado: no exigir sesión AuthContext ni `ensureAccessToken` antes del socket WebRTC.
+   */
+  guestCall?: boolean;
   /**
    * Navegación y título dentro de la propia llamada (barra flotante tipo Meet).
    * {@link TeleconsultaVideoSession} siempre lo rellena.
@@ -90,10 +95,12 @@ export const VideoCall = forwardRef<
     isInitiator = true,
     enableCallRecording = false,
     peerDisplayName,
+    guestCall = false,
     callChrome,
   },
   ref
 ) {
+  const { user, loading: authLoading } = useAuth();
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const remoteStreamRef = useRef<MediaStream | null>(null);
@@ -149,8 +156,53 @@ export const VideoCall = forwardRef<
     isInitiator,
     backendOrigin: getBackendOrigin(),
     socketPath: "/socket.io",
+    guestCall,
     onError: (message) => setError(message),
   });
+
+  useEffect(() => {
+    let cancelled = false;
+    setError(null);
+    setMediaReady(false);
+
+    if (!guestCall) {
+      if (authLoading) {
+        return () => {
+          cancelled = true;
+          endCall();
+        };
+      }
+      if (!user) {
+        setError("Inicia sesión para usar la videollamada.");
+        return () => {
+          cancelled = true;
+          endCall();
+        };
+      }
+    }
+
+    void (async () => {
+      try {
+        await startCall();
+        if (!cancelled) {
+          setMediaReady(true);
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setError(
+            e instanceof Error
+              ? e.message
+              : "No se pudo acceder a cámara o micrófono"
+          );
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+      endCall();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- startCall/endCall dependen de muchos refs internos del hook
+  }, [consultationId, guestCall, authLoading, user]);
 
   useEffect(() => {
     if (process.env.NODE_ENV === "development") {
@@ -650,6 +702,27 @@ export const VideoCall = forwardRef<
       </button>
     </>
   );
+
+  if (!guestCall && authLoading && !mediaReady && !error) {
+    return (
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          margin: 0,
+          background: "#000",
+          color: "#94a3b8",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 2147482900,
+          fontFamily: '"Open Sans", sans-serif',
+        }}
+      >
+        <p style={{ margin: 0 }}>Preparando sesión…</p>
+      </div>
+    );
+  }
 
   if (!mediaReady && error) {
     return (

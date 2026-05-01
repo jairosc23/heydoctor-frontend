@@ -315,6 +315,8 @@ export type UseTelemedicineCallOptions = {
   onVideoTierChange?: (tier: AdaptationTier) => void;
   /** default true — POST /api/webrtc/metrics cada ~7.5s (ticks de 2.5s × 3) */
   sendCallMetricsToBackend?: boolean;
+  /** Invitado: omitir `ensureAccessToken` antes de abrir el socket (cookies / refresh no aplican). */
+  guestCall?: boolean;
 };
 
 export type UseTelemedicineCallResult = {
@@ -360,6 +362,7 @@ export function useTelemedicineCall(
     onRemoteUserId,
     onVideoTierChange,
     sendCallMetricsToBackend = true,
+    guestCall = false,
   } = options;
 
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
@@ -808,10 +811,12 @@ export function useTelemedicineCall(
 
     let socket = externalSocket ?? null;
     if (!socket) {
-      const sessionOk = await ensureAccessToken();
-      if (!sessionOk) {
-        onError?.('Inicia sesión para usar la videollamada.');
-        return;
+      if (!guestCall) {
+        const sessionOk = await ensureAccessToken();
+        if (!sessionOk) {
+          onError?.('Inicia sesión para usar la videollamada.');
+          return;
+        }
       }
       const origin = backendOrigin.replace(/\/$/, '');
       const mem = getAccessToken()?.trim();
@@ -1002,6 +1007,7 @@ export function useTelemedicineCall(
     onRemoteUserId,
     onVideoTierChange,
     sendCallMetricsToBackend,
+    guestCall,
     socketPath,
     wirePeerConnection,
   ]);
