@@ -12,17 +12,6 @@ import {
   setTelemedicineConsent,
 } from "@/lib/telemedicine-consent";
 
-/** Espacio reservado para la capa fixed de VideoCall (evita saltos de layout). */
-const teleconsultaVideoRootStyle: React.CSSProperties = {
-  width: "100vw",
-  minHeight: "100dvh",
-  height: "100dvh",
-  maxWidth: "100%",
-  overflow: "hidden",
-  background: "#000",
-  isolation: "isolate",
-};
-
 export interface TeleconsultaVideoSessionProps {
   /** Mismo valor que consultationId — sala WebRTC / signaling */
   roomId: string;
@@ -35,6 +24,8 @@ export interface TeleconsultaVideoSessionProps {
    * al crear la consulta vía `/api/public/consultations`.
    */
   mode?: "auth" | "guest";
+  /** Nombre del participante remoto (p. ej. paciente) para la barra superior. */
+  peerDisplayName?: string;
 }
 
 /**
@@ -47,6 +38,7 @@ export function TeleconsultaVideoSession({
   onEndCall,
   mode = "auth",
   isDoctor = true,
+  peerDisplayName,
 }: TeleconsultaVideoSessionProps) {
   const searchParams = useSearchParams();
   const accessTokenPending = !!searchParams.get("access_token")?.trim();
@@ -204,15 +196,11 @@ export function TeleconsultaVideoSession({
   }
 
   return (
-    <div
-      style={teleconsultaVideoRootStyle}
-      data-teleconsulta-video-root="true"
-    >
-      <VideoCall
-        consultationId={roomId || consultationId}
-        onEndCall={onEndCall}
-        isInitiator={isDoctor}
-      />
-    </div>
+    <VideoCall
+      consultationId={roomId || consultationId}
+      onEndCall={onEndCall}
+      isInitiator={isDoctor}
+      peerDisplayName={peerDisplayName}
+    />
   );
 }

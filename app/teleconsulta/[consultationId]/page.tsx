@@ -94,15 +94,18 @@ function TeleconsultaDeepLinkContent() {
     return (
       <div
         style={{
-          minHeight: "100vh",
+          position: "fixed",
+          inset: 0,
+          margin: 0,
+          background: "#000",
+          color: "#94a3b8",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          flexDirection: "column",
-          gap: 16,
+          fontFamily: "Open Sans, sans-serif",
         }}
       >
-        <p>Verificando acceso...</p>
+        <p style={{ margin: 0 }}>Verificando acceso…</p>
       </div>
     );
   }
@@ -111,9 +114,15 @@ function TeleconsultaDeepLinkContent() {
     return (
       <div
         style={{
-          minHeight: "100vh",
-          padding: 40,
-          fontFamily: "Open Sans",
+          position: "fixed",
+          inset: 0,
+          margin: 0,
+          padding: 24,
+          background: "#000",
+          color: "#e2e8f0",
+          fontFamily: "Open Sans, sans-serif",
+          boxSizing: "border-box",
+          overflow: "auto",
         }}
       >
         <h2 style={{ color: "#c00", marginBottom: 16 }}>Acceso denegado</h2>
@@ -154,48 +163,41 @@ function TeleconsultaDeepLinkContent() {
     );
   }
 
-  const sessionBlock = (
-    <>
-      <TeleconsultaVideoSession
-        roomId={consultationId}
-        consultationId={consultationId}
-        isDoctor={!!doctorId}
-        onEndCall={onEndCall}
-        mode={sessionMode}
-      />
-      {isGuest && guestName ? (
-        <span style={mobileGuestBadgeStyle} aria-label="Modo invitado">
-          🎫 Invitado · {guestName}
-        </span>
-      ) : null}
-    </>
+  return (
+    <TeleconsultaVideoSession
+      roomId={consultationId}
+      consultationId={consultationId}
+      isDoctor={!!doctorId}
+      onEndCall={onEndCall}
+      mode={sessionMode}
+      peerDisplayName={
+        !!doctorId && isGuest && guestName ? guestName : undefined
+      }
+    />
   );
-
-  return sessionBlock;
 }
-
-const mobileGuestBadgeStyle: React.CSSProperties = {
-  position: "fixed",
-  top: "max(env(safe-area-inset-top), 12px)",
-  left: "50%",
-  transform: "translateX(-50%)",
-  zIndex: 60,
-  fontSize: 11,
-  fontWeight: 700,
-  color: "#92400e",
-  background: "rgba(254,243,199,0.92)",
-  padding: "4px 12px",
-  borderRadius: 999,
-  pointerEvents: "none",
-  whiteSpace: "nowrap",
-  maxWidth: "80vw",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-};
 
 export default function TeleconsultaDeepLinkPage() {
   return (
-    <Suspense fallback={<p style={{ padding: 40 }}>Cargando…</p>}>
+    <Suspense
+      fallback={
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "#000",
+            color: "#94a3b8",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            margin: 0,
+            fontFamily: "Open Sans, sans-serif",
+          }}
+        >
+          Cargando…
+        </div>
+      }
+    >
       <TeleconsultaDeepLinkContent />
     </Suspense>
   );

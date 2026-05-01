@@ -133,6 +133,34 @@ body {
   animation: spin 1s linear infinite;
 }
 
+/* VideoCall: overlay estado remoto + botonera */
+@keyframes videocallRemoteOverlayPulse {
+  0%,
+  100% {
+    opacity: 0.72;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.videocall-remote-overlay-text {
+  animation: videocallRemoteOverlayPulse 2.8s ease-in-out infinite;
+}
+
+.videocall-dock-btn {
+  transition: transform 0.18s ease, background-color 0.18s ease,
+    box-shadow 0.18s ease, filter 0.18s ease;
+}
+
+.videocall-dock-btn:hover {
+  transform: scale(1.06);
+}
+
+.videocall-dock-btn:active {
+  transform: scale(0.97);
+}
+
 /* Landing: accesibilidad teclado en botón WhatsApp */
 .whatsapp-cta-button:focus-visible {
   outline: 3px solid #14532d;
