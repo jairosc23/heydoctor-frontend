@@ -294,11 +294,7 @@ export async function authLogin(
   };
 
   if (typeof window !== "undefined") {
-    console.log("LOGIN REQUEST", {
-      url,
-      credentials: "include",
-      hasCsrfHeader: Boolean(getApiCsrfToken()),
-    });
+    console.log("LOGIN URL", url);
   }
 
   let res: Response;
