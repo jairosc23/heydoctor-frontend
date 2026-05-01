@@ -8,7 +8,6 @@ import { GuestNamePrompt } from "@/components/telemedicine/GuestNamePrompt";
 /** Única fuente de UI de llamada: `@/components/VideoCall` (no usar alternativas duplicadas). */
 import { VideoCall, type VideoCallCallChrome } from "@/components/VideoCall";
 import { refreshAccessToken } from "@/lib/auth-client";
-import { useAuth } from "@/lib/context/AuthContext";
 import { getGuestName, setGuestName } from "@/lib/guest-session";
 import {
   fetchConsultation,
@@ -25,13 +24,14 @@ import {
   postTelemedicineConsent,
   setTelemedicineConsent,
 } from "@/lib/telemedicine-consent";
+import { useAuth } from "@/lib/context/AuthContext";
 
 /** Shell común para loaders, denegación y Suspense en rutas de teleconsulta. */
 export const teleconsultaFullscreenGateShell: React.CSSProperties = {
   position: "fixed",
   inset: 0,
   margin: 0,
-  background: "#000",
+  background: "#0B0F14",
   color: "#e2e8f0",
   zIndex: 2147482900,
   display: "flex",
@@ -72,7 +72,7 @@ export interface TeleconsultaVideoSessionProps {
    * al crear la consulta vía `/api/public/consultations`.
    */
   mode?: "auth" | "guest";
-  /** Nombre del participante remoto (p. ej. paciente) para la barra superior. */
+  /** Nombre del participante remoto (p. ej. paciente) para el encabezado. */
   peerDisplayName?: string;
   /**
    * Navegación y título dentro de {@link VideoCall}. Campos omitidos se
@@ -111,9 +111,9 @@ export function TeleconsultaVideoSession({
   deepLinkDeniedLoginHref = "/login",
   inviteTokenGate,
 }: TeleconsultaVideoSessionProps) {
+  const { user, loading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { loading: authLoading } = useAuth();
   const accessTokenPending = !!searchParams.get("access_token")?.trim();
 
   const inviteRouteActive = inviteTokenGate !== undefined;
@@ -232,7 +232,7 @@ export function TeleconsultaVideoSession({
     }
 
     const hasSession = !!deepLinkGate.doctorId || !!deepLinkGate.patientId;
-    if (hasSession && authLoading) {
+    if (hasSession && loading) {
       setDeepLinkLoading(true);
       return;
     }
@@ -292,7 +292,7 @@ export function TeleconsultaVideoSession({
     deepLinkGate?.consultationId,
     deepLinkGate?.doctorId,
     deepLinkGate?.patientId,
-    authLoading,
+    loading,
   ]);
 
   useEffect(() => {
@@ -305,7 +305,7 @@ export function TeleconsultaVideoSession({
       setPanelAccessLoading(false);
       return;
     }
-    if (authLoading) {
+    if (loading) {
       setPanelAccessLoading(true);
       return;
     }
@@ -336,7 +336,7 @@ export function TeleconsultaVideoSession({
     return () => {
       cancelled = true;
     };
-  }, [panelGate?.consultationId, panelGate?.ctxBootLoading, authLoading]);
+  }, [panelGate?.consultationId, panelGate?.ctxBootLoading, loading]);
 
   useEffect(() => {
     if (effectiveMode === "guest") {
@@ -453,15 +453,8 @@ export function TeleconsultaVideoSession({
       return (
         <div style={teleconsultaFullscreenGateShell}>
           <p
-            style={{
-              margin: 0,
-              fontSize: 16,
-              color: "#94a3b8",
-              textAlign: "center",
-              maxWidth: 360,
-              lineHeight: 1.5,
-              padding: 24,
-            }}
+            className="w-full px-6 text-center text-base text-slate-400"
+            style={{ margin: 0, lineHeight: 1.5, padding: 24 }}
           >
             Este enlace ya no es válido o expiró
           </p>
@@ -481,7 +474,7 @@ export function TeleconsultaVideoSession({
     if (!deepLinkAllowed) {
       return (
         <div style={teleconsultaFullscreenGateShell}>
-          <div style={{ padding: 24, maxWidth: 440, textAlign: "center" }}>
+          <div className="w-full px-6 text-center" style={{ padding: 24 }}>
             <h2 style={{ color: "#fecaca", margin: "0 0 12px", fontSize: 20 }}>
               Acceso denegado
             </h2>
@@ -535,7 +528,7 @@ export function TeleconsultaVideoSession({
   if (panelGate && !panelAllowed) {
     return (
       <div style={teleconsultaFullscreenGateShell}>
-        <div style={{ padding: 24, maxWidth: 420, textAlign: "center" }}>
+        <div className="w-full px-6 text-center" style={{ padding: 24 }}>
           <h2 style={{ color: "#fecaca", margin: "0 0 12px", fontSize: 20 }}>
             Acceso denegado
           </h2>
@@ -574,7 +567,7 @@ export function TeleconsultaVideoSession({
   if (consentBootstrapError) {
     return (
       <div style={teleconsultaFullscreenGateShell}>
-        <div style={{ padding: 24, maxWidth: 420, textAlign: "center" }}>
+        <div className="w-full px-6 text-center" style={{ padding: 24 }}>
           <p style={{ color: "#fecaca", marginBottom: 20, lineHeight: 1.5 }}>
             {consentBootstrapError}
           </p>
@@ -657,14 +650,25 @@ export function TeleconsultaVideoSession({
     );
   }
 
+  if (effectiveMode === "auth") {
+    if (loading) {
+      return null;
+    }
+    if (!user) {
+      return null;
+    }
+  }
+
   return (
-    <VideoCall
-      consultationId={callConsultationId}
-      onEndCall={handleEndCall}
-      isInitiator={effectiveIsDoctor}
-      peerDisplayName={effectivePeerName}
-      guestCall={effectiveIsGuest}
-      callChrome={resolvedCallChrome}
-    />
+    <div className="fixed inset-0 bg-[#0B0F14] flex flex-col overflow-hidden">
+      <VideoCall
+        consultationId={callConsultationId}
+        onEndCall={handleEndCall}
+        isInitiator={effectiveIsDoctor}
+        peerDisplayName={effectivePeerName}
+        guestCall={effectiveIsGuest}
+        callChrome={resolvedCallChrome}
+      />
+    </div>
   );
 }
