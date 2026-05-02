@@ -8,6 +8,7 @@
  */
 
 import { bootstrapApiCsrf, refreshAccessToken } from "./auth-client";
+import { apiFetch as fetchWithIncludedCredentials } from "./api-fetch-include";
 import { handleAuthError } from "./auth/auth-guard";
 import { getApiBase } from "./api-base";
 import {
@@ -118,10 +119,9 @@ export async function fetchWithAuth(
   };
 
   const doFetch = async (): Promise<Response> =>
-    fetch(url, {
+    fetchWithIncludedCredentials(url, {
       ...init,
       headers: buildHeaders(),
-      credentials: "include",
       cache: "no-store",
     });
 

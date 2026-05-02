@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getApiBase } from "@/lib/api-base";
+import { apiFetch as fetchWithIncludedCredentials } from "@/lib/api-fetch-include";
 
 /** El Nest exige JWT; el Bearer se reenvía desde el cliente. Sin caché CDN por usuario. */
 export const dynamic = "force-dynamic";
@@ -13,10 +14,13 @@ export async function GET(request: Request) {
       headers.Authorization = incomingAuth.trim();
     }
 
-    const upstream = await fetch(`${base}/consultations/consultation-price`, {
-      headers,
-      cache: "no-store",
-    });
+    const upstream = await fetchWithIncludedCredentials(
+      `${base}/consultations/consultation-price`,
+      {
+        headers,
+        cache: "no-store",
+      },
+    );
 
     const text = await upstream.text();
     let body: unknown = null;

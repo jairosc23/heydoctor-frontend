@@ -4,6 +4,8 @@
  * no reenvía el login ni llama al API desde el servidor.
  */
 
+import { apiFetch as fetchWithIncludedCredentials } from "./api-fetch-include";
+
 export async function setFirstPartySessionFromAccessToken(
   accessToken: string,
 ): Promise<void> {
@@ -11,10 +13,9 @@ export async function setFirstPartySessionFromAccessToken(
   const token = accessToken.trim();
   if (!token) return;
 
-  const res = await fetch("/api/auth/session", {
+  const res = await fetchWithIncludedCredentials("/api/auth/session", {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
-    credentials: "include",
   });
 
   if (!res.ok && process.env.NODE_ENV === "development") {

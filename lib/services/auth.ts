@@ -8,6 +8,7 @@ import {
   authLogout as authLogoutClient,
   getAccessToken,
 } from "../auth-client";
+import { apiFetch as fetchWithIncludedCredentials } from "../api-fetch-include";
 import { ApiError, apiFetch } from "../heydoctor-api";
 import { setFirstPartySessionFromAccessToken } from "../first-party-session-cookie";
 
@@ -36,9 +37,8 @@ export async function syncMiddlewareSession(accessToken: string): Promise<void> 
 
 export async function clearMiddlewareSession(): Promise<void> {
   if (typeof window === "undefined") return;
-  await fetch("/api/auth/session", {
+  await fetchWithIncludedCredentials("/api/auth/session", {
     method: "DELETE",
-    credentials: "include",
   }).catch(() => {});
 }
 

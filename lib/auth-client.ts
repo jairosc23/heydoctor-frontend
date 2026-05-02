@@ -1,5 +1,6 @@
 /**
- * Auth client — login/register/refresh/logout al Nest con `credentials: 'include'`.
+ * Auth client — login/register/refresh/logout al Nest con `credentials: 'include'`
+ * vía `apiFetch` de `./api-fetch-include` (reexportado aquí).
  * Cookies HttpOnly en el origen del API (`access_token`, `refresh_token`); sin JWT en localStorage.
  * Cookie de primer partido (`heydoctor_session`) si el backend devuelve JWT en JSON (legacy) o
  * con `COOKIE_DOMAIN` compartido; CSRF vía `csrfToken` en JSON + cabecera `X-CSRF-Token`
@@ -17,6 +18,10 @@ import {
   API_X_REQUESTED_WITH,
   API_XRW_XMLHTTPREQUEST,
 } from "./api-csrf";
+import { apiFetch as fetchWithIncludedCredentials } from "./api-fetch-include";
+
+/** Reexport: peticiones al API Nest desde el cliente con cookies cross-site. */
+export { apiFetch } from "./api-fetch-include";
 
 // ── In-memory access token (opcional; p. ej. magic-link legacy). No localStorage. ──
 
@@ -124,9 +129,8 @@ function attachMultiTabAuthSync(): void {
 
 async function clearFirstPartySessionCookie(): Promise<void> {
   if (typeof window === "undefined") return;
-  await fetch("/api/auth/session", {
+  await fetchWithIncludedCredentials("/api/auth/session", {
     method: "DELETE",
-    credentials: "include",
   }).catch(() => {});
 }
 
@@ -153,9 +157,8 @@ export async function bootstrapApiCsrf(): Promise<void> {
 
   _bootstrapPromise = (async () => {
     try {
-      const res = await fetch(getAuthCsrfUrl(), {
+      const res = await fetchWithIncludedCredentials(getAuthCsrfUrl(), {
         method: "GET",
-        credentials: "include",
         headers: { Accept: "application/json" },
       });
       if (!res.ok) return;
@@ -218,9 +221,8 @@ async function _doRefresh(): Promise<boolean> {
   const accessTokenSnapshot = _accessToken;
   emitRefreshState(true);
   try {
-    const res = await fetch(`${getApiBase()}/auth/refresh`, {
+    const res = await fetchWithIncludedCredentials(`${getApiBase()}/auth/refresh`, {
       method: "POST",
-      credentials: "include",
       headers: {
         Accept: "application/json",
         ...buildCsrfHeaders(),
@@ -317,7 +319,7 @@ export async function authLogin(
 
   let res: Response;
   try {
-    res = await fetch(url, {
+    res = await fetchWithIncludedCredentials(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -325,7 +327,6 @@ export async function authLogin(
         ...buildCsrfHeaders(),
       },
       body: JSON.stringify(loginBody),
-      credentials: "include",
     });
   } catch (cause) {
     emitAuthTelemetry("login_fail", { status: 0, network: true });
@@ -414,9 +415,8 @@ export async function authLogout(options?: AuthLogoutOptions): Promise<void> {
 
   try {
     if (!options?.skipRemote) {
-      await fetch(`${getApiBase()}/auth/logout`, {
+      await fetchWithIncludedCredentials(`${getApiBase()}/auth/logout`, {
         method: "POST",
-        credentials: "include",
         headers: {
           Accept: "application/json",
           ...buildCsrfHeaders(),
