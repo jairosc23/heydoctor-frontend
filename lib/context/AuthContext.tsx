@@ -40,7 +40,7 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-/** Invalida `refreshUser` en vuelo para que no llame a `clearSession` tras un login concurrente. */
+/** Invalida operaciones en vuelo tras login/logout concurrente. */
 function useSessionGeneration() {
   const gen = useRef(0);
   const bump = useCallback(() => {
@@ -74,6 +74,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void (async () => {
       try {
         await refreshAccessToken();
+      } catch {
+        /* ignorar: cookie aún no aplicada o sin refresh posible */
+      }
+      try {
         const me = await getMe();
         if (!mounted || sessionGen() !== genAtStart) return;
         setUser(me);
@@ -81,9 +85,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (t) {
           await syncMiddlewareSession(t);
         }
-      } catch (e) {
-        if (!mounted || sessionGen() !== genAtStart) return;
-        console.warn("init auth failed", e);
+      } catch {
+        /* NO limpiar sesión en hidratación */
       } finally {
         if (mounted) {
           setLoading(false);
@@ -130,9 +133,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (t) {
           await syncMiddlewareSession(t);
         }
-      } catch (e: any) {
+      } catch (e) {
         if (g0 !== sessionGen()) return;
-        if (e?.status === 401) await clearSession();
+        console.warn("refreshUser failed, skipping clearSession:", e);
       }
     })();
     refreshUserInFlightRef.current = p;
@@ -142,7 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
     return p;
-  }, [clearSession, sessionGen, loading]);
+  }, [sessionGen, loading]);
 
   /**
    * Tras login exitoso: `?redirect=` → ir al destino sin depender de estado async global previo.
@@ -169,6 +172,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     bumpSessionGen();
     try {
       await loginRequest(email, password);
+      await new Promise((res) => setTimeout(res, 150));
     } catch (e) {
       await clearMiddlewareSession();
       throw e;
@@ -194,8 +198,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(async () => {
     bumpSessionGen();
     await logoutRequest();
-    setUser(null);
-  }, [bumpSessionGen]);
+    await clearSession();
+  }, [bumpSessionGen, clearSession]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
