@@ -26,6 +26,22 @@ import {
   setAccessToken,
   bootstrapApiCsrf,
 } from "@/lib/auth-client";
+import { ApiError } from "@/lib/heydoctor-api";
+
+function isUnauthorizedError(e: unknown): boolean {
+  if (e instanceof ApiError && e.status === 401) return true;
+  if (
+    typeof e === "object" &&
+    e !== null &&
+    "status" in e &&
+    (e as { status: unknown }).status === 401
+  ) {
+    return true;
+  }
+  const msg =
+    e instanceof Error ? e.message : typeof e === "string" ? e : String(e ?? "");
+  return msg.includes("401");
+}
 
 type AuthContextValue = {
   user: AuthUser | null;
@@ -58,6 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { bump: bumpSessionGen, snapshot: sessionGen } = useSessionGeneration();
+  const refreshUserInFlightRef = useRef<Promise<void> | null>(null);
 
   useEffect(() => {
     return subscribeRefreshState(setSessionRevalidating);
@@ -80,11 +97,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (t) {
           await syncMiddlewareSession(t);
         }
-      } catch {
+      } catch (e) {
         if (cancelled || sessionGen() !== genAtStart) return;
-        setUser(null);
-        setAccessToken(null);
-        await clearMiddlewareSession();
+        if (isUnauthorizedError(e)) {
+          setUser(null);
+          setAccessToken(null);
+          await clearMiddlewareSession();
+        } else {
+          console.warn("Initial auth hydrate failed (non-fatal):", e);
+        }
       } finally {
         if (!cancelled) {
           setLoading(false);
@@ -113,21 +134,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refreshUser = useCallback(async () => {
-    const g0 = sessionGen();
-    try {
-      await refreshAccessToken();
-      const me = await getMe();
-      if (g0 !== sessionGen()) return;
-      setUser(me);
-      const t = getAccessToken()?.trim();
-      if (t) {
-        await syncMiddlewareSession(t);
-      }
-    } catch {
-      if (g0 !== sessionGen()) return;
-      await clearSession();
+    if (loading) {
+      return;
     }
-  }, [clearSession, sessionGen]);
+    const existing = refreshUserInFlightRef.current;
+    if (existing) {
+      return existing;
+    }
+    const g0 = sessionGen();
+    const p = (async () => {
+      try {
+        await refreshAccessToken();
+        const me = await getMe();
+        if (g0 !== sessionGen()) return;
+        setUser(me);
+        const t = getAccessToken()?.trim();
+        if (t) {
+          await syncMiddlewareSession(t);
+        }
+      } catch (e) {
+        if (g0 !== sessionGen()) return;
+        if (isUnauthorizedError(e)) {
+          await clearSession();
+        } else {
+          console.warn("refreshUser failed (no logout):", e);
+        }
+      }
+    })();
+    refreshUserInFlightRef.current = p;
+    p.finally(() => {
+      if (refreshUserInFlightRef.current === p) {
+        refreshUserInFlightRef.current = null;
+      }
+    });
+    return p;
+  }, [clearSession, sessionGen, loading]);
 
   /**
    * Tras login exitoso: `?redirect=` → ir al destino sin depender de estado async global previo.
