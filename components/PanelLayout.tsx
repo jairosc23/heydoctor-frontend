@@ -55,8 +55,7 @@ export default function PanelLayout({
       : undefined) ??
     "Panel";
   const router = useRouter();
-  const { isAuthenticated, logout, user, loading: authLoading } =
-    useAuth();
+  const { logout, user, loading: authLoading } = useAuth();
   const [dark, setDark] = useState(false);
 
   useEffect(() => {
@@ -70,7 +69,7 @@ export default function PanelLayout({
     if (authLoading) {
       return;
     }
-    if (!isAuthenticated) {
+    if (!user) {
       const path = pathname ?? "";
       const dest =
         path &&
@@ -81,7 +80,7 @@ export default function PanelLayout({
           : "/login";
       router.push(dest);
     }
-  }, [authLoading, isAuthenticated, router, pathname]);
+  }, [authLoading, user, router, pathname]);
 
   function toggleTheme() {
     setDark((d) => !d);

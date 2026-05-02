@@ -26,22 +26,6 @@ import {
   setAccessToken,
   bootstrapApiCsrf,
 } from "@/lib/auth-client";
-import { ApiError } from "@/lib/heydoctor-api";
-
-function isUnauthorizedError(e: unknown): boolean {
-  if (e instanceof ApiError && e.status === 401) return true;
-  if (
-    typeof e === "object" &&
-    e !== null &&
-    "status" in e &&
-    (e as { status: unknown }).status === 401
-  ) {
-    return true;
-  }
-  const msg =
-    e instanceof Error ? e.message : typeof e === "string" ? e : String(e ?? "");
-  return msg.includes("401");
-}
 
 type AuthContextValue = {
   user: AuthUser | null;
@@ -146,13 +130,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (t) {
           await syncMiddlewareSession(t);
         }
-      } catch (e) {
+      } catch (e: any) {
         if (g0 !== sessionGen()) return;
-        if (isUnauthorizedError(e)) {
-          await clearSession();
-        } else {
-          console.warn("Transient refresh error:", e);
-        }
+        if (e?.status === 401) await clearSession();
       }
     })();
     refreshUserInFlightRef.current = p;
