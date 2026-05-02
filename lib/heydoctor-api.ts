@@ -135,7 +135,12 @@ export async function fetchWithAuth(
     if (process.env.NODE_ENV === "development" && typeof console !== "undefined" && console.error) {
       console.error("[heydoctor-api] 401 Unauthorized — attempting refresh:", url);
     }
-    const refreshed = await refreshAccessToken();
+    const refreshedOnce = await refreshAccessToken();
+    let refreshed = refreshedOnce;
+    if (!refreshed) {
+      await new Promise((r) => setTimeout(r, 150));
+      refreshed = await refreshAccessToken();
+    }
     if (refreshed) {
       res = await doFetch();
     }

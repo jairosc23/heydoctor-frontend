@@ -22,7 +22,8 @@ import {
 
 let _accessToken: string | null = null;
 let _refreshPromise: Promise<boolean> | null = null;
-let _lastRefreshFailedAt = 0;
+/** Solo tras 401 en POST /auth/refresh (sesión realmente inválida). */
+let _lastHardRefreshFailAt = 0;
 
 const REFRESH_COOLDOWN_MS = 3_000;
 const AUTH_TAB_CHANNEL = "heydoctor-auth-v1";
@@ -110,7 +111,13 @@ function attachMultiTabAuthSync(): void {
       const now = Date.now();
       if (now < remoteRefreshCooldownUntil) return;
       remoteRefreshCooldownUntil = now + 1_500;
-      void refreshAccessToken();
+      /**
+       * No llamar otra vez a POST /auth/refresh: las cookies ya se actualizaron en la pestaña
+       * que ganó la rotación; un segundo refresh reusa el cookie revocado → 401 → logout en bucle.
+       * Solo re-sincroniza CSRF en memoria para mutaciones.
+       */
+      void bootstrapApiCsrf();
+      return;
     }
   };
 }
@@ -196,7 +203,7 @@ function releaseRefreshPromiseDeferred(run: Promise<boolean>): void {
  * (nuevas cookies aplicadas por el navegador).
  */
 export async function refreshAccessToken(): Promise<boolean> {
-  if (Date.now() - _lastRefreshFailedAt < REFRESH_COOLDOWN_MS) {
+  if (Date.now() - _lastHardRefreshFailAt < REFRESH_COOLDOWN_MS) {
     return false;
   }
 
@@ -223,13 +230,11 @@ async function _doRefresh(): Promise<boolean> {
     if (!res.ok) {
       emitAuthTelemetry("refresh_fail", { status: res.status });
       if (res.status === 401) {
-        _lastRefreshFailedAt = Date.now();
+        _lastHardRefreshFailAt = Date.now();
         if (_accessToken === accessTokenSnapshot) {
           setAccessToken(null);
         }
         await clearFirstPartySessionCookie();
-      } else {
-        _lastRefreshFailedAt = Date.now();
       }
       return false;
     }
@@ -243,11 +248,10 @@ async function _doRefresh(): Promise<boolean> {
 
     applyCsrfFromPayload(data);
 
-    _lastRefreshFailedAt = 0;
+    _lastHardRefreshFailAt = 0;
     broadcastAuthMessage("token-refreshed");
     return true;
   } catch {
-    _lastRefreshFailedAt = Date.now();
     emitAuthTelemetry("refresh_fail", { status: 0 });
     return false;
   } finally {
@@ -385,7 +389,7 @@ export async function authLogin(
     throw new Error("Respuesta de login inválida: falta user");
   }
 
-  _lastRefreshFailedAt = 0;
+  _lastHardRefreshFailAt = 0;
   emitAuthTelemetry("login_success", { userId });
 
   return {
@@ -425,7 +429,7 @@ export async function authLogout(options?: AuthLogoutOptions): Promise<void> {
 
   setAccessToken(null);
   setApiCsrfToken(null);
-  _lastRefreshFailedAt = 0;
+  _lastHardRefreshFailAt = 0;
   await clearFirstPartySessionCookie();
 }
 
