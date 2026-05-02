@@ -55,10 +55,9 @@ export default function PanelLayout({
       : undefined) ??
     "Panel";
   const router = useRouter();
-  const { isAuthenticated, logout, user, refreshUser, loading: authLoading } =
+  const { isAuthenticated, logout, user, loading: authLoading } =
     useAuth();
   const [dark, setDark] = useState(false);
-  const [panelSessionChecked, setPanelSessionChecked] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined" && localStorage.getItem("theme") === "dark") {
@@ -71,20 +70,7 @@ export default function PanelLayout({
     if (authLoading) {
       return;
     }
-    if (user) {
-      setPanelSessionChecked(true);
-      return;
-    }
-    if (!panelSessionChecked) {
-      void refreshUser().finally(() => setPanelSessionChecked(true));
-    }
-  }, [user, panelSessionChecked, refreshUser, authLoading]);
-
-  useEffect(() => {
-    if (authLoading) {
-      return;
-    }
-    if (panelSessionChecked && !isAuthenticated) {
+    if (!isAuthenticated) {
       const path = pathname ?? "";
       const dest =
         path &&
@@ -95,7 +81,7 @@ export default function PanelLayout({
           : "/login";
       router.push(dest);
     }
-  }, [authLoading, panelSessionChecked, isAuthenticated, router, pathname]);
+  }, [authLoading, isAuthenticated, router, pathname]);
 
   function toggleTheme() {
     setDark((d) => !d);

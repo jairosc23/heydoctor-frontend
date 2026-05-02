@@ -175,6 +175,22 @@ export async function bootstrapApiCsrf(): Promise<void> {
 
 // ── Refresh (cookies HttpOnly; cuerpo puede incluir `csrfToken` y opcionalmente JWT) ──
 
+/** Libera el lock en un macrotask: evita segundo refresh con el mismo cookie ya revocado. */
+function chainRefreshPromise(run: Promise<boolean>): Promise<boolean> {
+  releaseRefreshPromiseDeferred(run);
+  return run;
+}
+
+function releaseRefreshPromiseDeferred(run: Promise<boolean>): void {
+  run.finally(() => {
+    setTimeout(() => {
+      if (_refreshPromise === run) {
+        _refreshPromise = null;
+      }
+    }, 0);
+  });
+}
+
 /**
  * Rota access/refresh vía cookie `refresh_token`. Devuelve true si la respuesta fue OK
  * (nuevas cookies aplicadas por el navegador).
@@ -186,12 +202,9 @@ export async function refreshAccessToken(): Promise<boolean> {
 
   if (_refreshPromise) return _refreshPromise;
 
-  _refreshPromise = _doRefresh();
-  try {
-    return await _refreshPromise;
-  } finally {
-    _refreshPromise = null;
-  }
+  const run = _doRefresh();
+  _refreshPromise = run;
+  return chainRefreshPromise(run);
 }
 
 async function _doRefresh(): Promise<boolean> {
@@ -208,12 +221,16 @@ async function _doRefresh(): Promise<boolean> {
     });
 
     if (!res.ok) {
-      _lastRefreshFailedAt = Date.now();
       emitAuthTelemetry("refresh_fail", { status: res.status });
-      if (_accessToken === accessTokenSnapshot) {
-        setAccessToken(null);
+      if (res.status === 401) {
+        _lastRefreshFailedAt = Date.now();
+        if (_accessToken === accessTokenSnapshot) {
+          setAccessToken(null);
+        }
+        await clearFirstPartySessionCookie();
+      } else {
+        _lastRefreshFailedAt = Date.now();
       }
-      await clearFirstPartySessionCookie();
       return false;
     }
 
@@ -232,9 +249,6 @@ async function _doRefresh(): Promise<boolean> {
   } catch {
     _lastRefreshFailedAt = Date.now();
     emitAuthTelemetry("refresh_fail", { status: 0 });
-    if (_accessToken === accessTokenSnapshot) {
-      setAccessToken(null);
-    }
     return false;
   } finally {
     emitRefreshState(false);

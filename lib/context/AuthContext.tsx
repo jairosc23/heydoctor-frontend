@@ -85,35 +85,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
+    let mounted = true;
     const genAtStart = sessionGen();
     void (async () => {
       try {
         await refreshAccessToken();
         const me = await getMe();
-        if (cancelled || sessionGen() !== genAtStart) return;
+        if (!mounted || sessionGen() !== genAtStart) return;
         setUser(me);
         const t = getAccessToken()?.trim();
         if (t) {
           await syncMiddlewareSession(t);
         }
       } catch (e) {
-        if (cancelled || sessionGen() !== genAtStart) return;
-        if (isUnauthorizedError(e)) {
-          setUser(null);
-          setAccessToken(null);
-          await clearMiddlewareSession();
-        } else {
-          console.warn("Initial auth hydrate failed (non-fatal):", e);
-        }
+        if (!mounted || sessionGen() !== genAtStart) return;
+        console.warn("init auth failed", e);
       } finally {
-        if (!cancelled) {
+        if (mounted) {
           setLoading(false);
         }
       }
     })();
     return () => {
-      cancelled = true;
+      mounted = false;
     };
     // Solo al montar: cookies cross-site + getMe para estado inicial.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -157,7 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (isUnauthorizedError(e)) {
           await clearSession();
         } else {
-          console.warn("refreshUser failed (no logout):", e);
+          console.warn("Transient refresh error:", e);
         }
       }
     })();
