@@ -253,9 +253,10 @@ async function _doRefresh(): Promise<boolean> {
     _lastHardRefreshFailAt = 0;
     broadcastAuthMessage("token-refreshed");
     return true;
-  } catch {
+  } catch (e) {
     emitAuthTelemetry("refresh_fail", { status: 0 });
-    return false;
+    console.error("REFRESH FAILED → forcing logout", e);
+    throw e;
   } finally {
     emitRefreshState(false);
   }

@@ -862,7 +862,12 @@ export function useTelemedicineCall(
     let socket: Socket;
     if (!externalSocket) {
       if (!guestCall) {
-        const sessionOk = await ensureAccessToken();
+        let sessionOk = false;
+        try {
+          sessionOk = await ensureAccessToken();
+        } catch {
+          sessionOk = false;
+        }
         if (!sessionOk) {
           const msg = 'Inicia sesión para usar la videollamada.';
           onError?.(msg);

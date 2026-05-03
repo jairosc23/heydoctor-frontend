@@ -68,25 +68,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void bootstrapApiCsrf();
   }, []);
 
+  const clearSession = useCallback(async () => {
+    setUser(null);
+    setAccessToken(null);
+    await clearMiddlewareSession();
+  }, []);
+
+  const logout = useCallback(async () => {
+    bumpSessionGen();
+    await logoutRequest();
+    await clearSession();
+  }, [bumpSessionGen, clearSession]);
+
   useEffect(() => {
     let mounted = true;
     const genAtStart = sessionGen();
     void (async () => {
       try {
-        await refreshAccessToken();
-      } catch {
-        /* ignorar: cookie aún no aplicada o sin refresh posible */
-      }
-      try {
-        const me = await getMe();
-        if (!mounted || sessionGen() !== genAtStart) return;
-        setUser(me);
-        const t = getAccessToken()?.trim();
-        if (t) {
-          await syncMiddlewareSession(t);
+        try {
+          const refreshed = await refreshAccessToken();
+          if (!refreshed) {
+            console.warn("refresh failed on mount → logout");
+            await logout();
+            return;
+          }
+        } catch (e) {
+          console.warn("refresh failed on mount → logout", e);
+          await logout();
+          return;
         }
-      } catch {
-        /* NO limpiar sesión en hidratación */
+        try {
+          const me = await getMe();
+          if (!mounted || sessionGen() !== genAtStart) return;
+          setUser(me);
+          const t = getAccessToken()?.trim();
+          if (t) {
+            await syncMiddlewareSession(t);
+          }
+        } catch {
+          /* NO limpiar sesión en hidratación */
+        }
       } finally {
         if (mounted) {
           setLoading(false);
@@ -108,12 +129,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       window.removeEventListener("heydoctor:session-cleared", onSessionCleared);
   }, []);
 
-  const clearSession = useCallback(async () => {
-    setUser(null);
-    setAccessToken(null);
-    await clearMiddlewareSession();
-  }, []);
-
   const refreshUser = useCallback(async () => {
     if (loading) {
       return;
@@ -125,7 +140,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const g0 = sessionGen();
     const p = (async () => {
       try {
-        await refreshAccessToken();
+        let refreshed = false;
+        try {
+          refreshed = await refreshAccessToken();
+        } catch (e) {
+          if (g0 !== sessionGen()) return;
+          console.warn("refreshUser: refresh threw → logout", e);
+          await logout();
+          return;
+        }
+        if (!refreshed) {
+          if (g0 !== sessionGen()) return;
+          console.warn("refreshUser: refresh not ok → logout");
+          await logout();
+          return;
+        }
         const me = await getMe();
         if (g0 !== sessionGen()) return;
         setUser(me);
@@ -135,7 +164,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } catch (e) {
         if (g0 !== sessionGen()) return;
-        console.warn("refreshUser failed, skipping clearSession:", e);
+        console.warn("refreshUser failed:", e);
       }
     })();
     refreshUserInFlightRef.current = p;
@@ -145,7 +174,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
     return p;
-  }, [sessionGen, loading]);
+  }, [sessionGen, loading, logout]);
 
   /**
    * Tras login exitoso: `?redirect=` → ir al destino sin depender de estado async global previo.
@@ -194,12 +223,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       );
     }
   }, [bumpSessionGen, clearMiddlewareSession]);
-
-  const logout = useCallback(async () => {
-    bumpSessionGen();
-    await logoutRequest();
-    await clearSession();
-  }, [bumpSessionGen, clearSession]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
