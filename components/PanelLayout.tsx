@@ -66,16 +66,20 @@ export default function PanelLayout({
   }, []);
 
   useEffect(() => {
-    if (authLoading || user) return;
-    const path = pathname ?? "";
-    const dest =
-      path &&
-      path !== "/login" &&
-      path.startsWith("/") &&
-      !path.startsWith("//")
-        ? `/login?redirect=${encodeURIComponent(path)}`
-        : "/login";
-    router.replace(dest);
+    if (authLoading) {
+      return;
+    }
+    if (!user) {
+      const path = pathname ?? "";
+      const dest =
+        path &&
+        path !== "/login" &&
+        path.startsWith("/") &&
+        !path.startsWith("//")
+          ? `/login?redirect=${encodeURIComponent(path)}`
+          : "/login";
+      router.replace(dest);
+    }
   }, [authLoading, user, router, pathname]);
 
   function toggleTheme() {
@@ -91,16 +95,26 @@ export default function PanelLayout({
     router.replace("/login");
   }
 
-  /** Teleconsulta a pantalla completa: montar siempre (la sesión gestiona loaders y auth). */
+  /** Teleconsulta a pantalla completa: mismo bloqueo de hidratación; sin sidebar. */
   const isPanelTeleconsultaRoute =
     !!pathname && /\/panel\/consultas\/[^/]+\/teleconsulta$/.test(pathname);
 
-  if (isPanelTeleconsultaRoute) {
-    return <>{children}</>;
+  if (authLoading) {
+    return (
+      <div
+        aria-busy="true"
+        aria-live="polite"
+        className="fixed inset-0 z-[2147483646] bg-[#0B0F14] h-screen w-screen"
+      />
+    );
   }
 
-  if (authLoading) {
+  if (!user) {
     return null;
+  }
+
+  if (isPanelTeleconsultaRoute) {
+    return <>{children}</>;
   }
 
   return (
