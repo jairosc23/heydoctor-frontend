@@ -88,13 +88,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const refreshed = await refreshAccessToken();
           if (!refreshed) {
-            console.warn("refresh failed on mount → logout");
-            await logout();
+            console.warn(
+              "refresh failed on mount → clear local session (no remote logout)",
+            );
+            await clearSession();
             return;
           }
         } catch (e) {
-          console.warn("refresh failed on mount → logout", e);
-          await logout();
+          console.warn(
+            "refresh failed on mount → clear local session (no remote logout)",
+            e,
+          );
+          await clearSession();
           return;
         }
         try {
@@ -119,7 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
     // Solo al montar: cookies cross-site + getMe para estado inicial.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [clearSession]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -145,14 +150,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           refreshed = await refreshAccessToken();
         } catch (e) {
           if (g0 !== sessionGen()) return;
-          console.warn("refreshUser: refresh threw → logout", e);
-          await logout();
+          console.warn("refreshUser: refresh threw → clear session", e);
+          await clearSession();
           return;
         }
         if (!refreshed) {
           if (g0 !== sessionGen()) return;
-          console.warn("refreshUser: refresh not ok → logout");
-          await logout();
+          console.warn("refreshUser: refresh not ok → clear session");
+          await clearSession();
           return;
         }
         const me = await getMe();
@@ -174,7 +179,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
     return p;
-  }, [sessionGen, loading, logout]);
+  }, [sessionGen, loading, clearSession]);
 
   /**
    * Tras login exitoso: `?redirect=` → ir al destino sin depender de estado async global previo.

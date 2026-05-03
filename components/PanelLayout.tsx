@@ -66,20 +66,16 @@ export default function PanelLayout({
   }, []);
 
   useEffect(() => {
-    if (authLoading) {
-      return;
-    }
-    if (!user) {
-      const path = pathname ?? "";
-      const dest =
-        path &&
-        path !== "/login" &&
-        path.startsWith("/") &&
-        !path.startsWith("//")
-          ? `/login?redirect=${encodeURIComponent(path)}`
-          : "/login";
-      router.push(dest);
-    }
+    if (authLoading || user) return;
+    const path = pathname ?? "";
+    const dest =
+      path &&
+      path !== "/login" &&
+      path.startsWith("/") &&
+      !path.startsWith("//")
+        ? `/login?redirect=${encodeURIComponent(path)}`
+        : "/login";
+    router.replace(dest);
   }, [authLoading, user, router, pathname]);
 
   function toggleTheme() {
@@ -92,7 +88,7 @@ export default function PanelLayout({
 
   async function handleLogout() {
     await logout();
-    router.push("/login");
+    router.replace("/login");
   }
 
   /** Teleconsulta a pantalla completa: montar siempre (la sesión gestiona loaders y auth). */
