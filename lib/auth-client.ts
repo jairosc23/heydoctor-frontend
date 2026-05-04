@@ -1,13 +1,13 @@
 /**
  * Auth client — login/register/refresh/logout al Nest con `credentials: 'include'`
  * vía `apiFetch` de `./api-fetch-include` (reexportado aquí).
- * Cookies HttpOnly en el origen del API (`access_token`, `refresh_token`); sin JWT en localStorage.
- * Cookie de primer partido (`heydoctor_session`) si el backend devuelve JWT en JSON (legacy) o
- * con `COOKIE_DOMAIN` compartido; CSRF vía `csrfToken` en JSON + cabecera `X-CSRF-Token`
- * (necesario con front en Vercel y API en otro dominio).
+ *
+ * Híbrido: cookies HttpOnly primero; el backend también devuelve `access_token` en JSON y el
+ * cliente lo guarda solo en RAM (`auth-access-memory`) y lo envía como `Authorization: Bearer`
+ * si falta cookie (p.ej. navegadores que bloquean third-party cookies). Sin JWT en localStorage.
+ * CSRF vía `csrfToken` en JSON + cabecera `X-CSRF-Token`.
  */
 
-import { invalidateJwtPayloadCache } from "./auth-token";
 import { emitAuthTelemetry } from "./auth-telemetry";
 import { getApiBase, getAuthCsrfUrl, getAuthLoginUrl } from "./api-base";
 import {
@@ -20,12 +20,16 @@ import {
 } from "./api-csrf";
 import { apiFetch as fetchWithIncludedCredentials } from "./api-fetch-include";
 
-/** Reexport: peticiones al API Nest desde el cliente con cookies cross-site. */
+import {
+  getAccessToken,
+  setAccessToken,
+} from "./auth-access-memory";
+
+export { getAccessToken, setAccessToken };
+
+/** Reexport: peticiones al API Nest desde el cliente con cookies cross-site (+ Bearer fallback). */
 export { apiFetch } from "./api-fetch-include";
 
-// ── In-memory access token (opcional; p. ej. magic-link legacy). No localStorage. ──
-
-let _accessToken: string | null = null;
 let _refreshPromise: Promise<boolean> | null = null;
 /** Solo tras 401 en POST /auth/refresh (sesión realmente inválida). */
 let _lastHardRefreshFailAt = 0;
@@ -51,18 +55,6 @@ function emitRefreshState(isRefreshing: boolean): void {
       /* noop */
     }
   });
-}
-
-export function getAccessToken(): string | null {
-  return _accessToken?.trim() ? _accessToken : null;
-}
-
-export function setAccessToken(token: string | null): void {
-  const next = token?.trim() ? token.trim() : null;
-  if (_accessToken !== next) {
-    invalidateJwtPayloadCache();
-  }
-  _accessToken = next;
 }
 
 function getTabId(): string {
@@ -218,7 +210,7 @@ export async function refreshAccessToken(): Promise<boolean> {
 }
 
 async function _doRefresh(): Promise<boolean> {
-  const accessTokenSnapshot = _accessToken;
+  const accessTokenSnapshot = getAccessToken();
   emitRefreshState(true);
   try {
     const res = await fetchWithIncludedCredentials(`${getApiBase()}/auth/refresh`, {
@@ -233,7 +225,7 @@ async function _doRefresh(): Promise<boolean> {
       emitAuthTelemetry("refresh_fail", { status: res.status });
       if (res.status === 401) {
         _lastHardRefreshFailAt = Date.now();
-        if (_accessToken === accessTokenSnapshot) {
+        if (getAccessToken() === accessTokenSnapshot) {
           setAccessToken(null);
         }
         await clearFirstPartySessionCookie();
@@ -241,7 +233,7 @@ async function _doRefresh(): Promise<boolean> {
       return false;
     }
 
-    let data: { csrfToken?: string; ok?: boolean } = {};
+    let data: { csrfToken?: string; ok?: boolean; access_token?: string } = {};
     try {
       data = (await res.json()) as typeof data;
     } catch {
@@ -249,6 +241,11 @@ async function _doRefresh(): Promise<boolean> {
     }
 
     applyCsrfFromPayload(data);
+
+    const newAccess = data.access_token;
+    if (typeof newAccess === "string" && newAccess.trim()) {
+      setAccessToken(newAccess.trim());
+    }
 
     _lastHardRefreshFailAt = 0;
     broadcastAuthMessage("token-refreshed");
@@ -306,6 +303,7 @@ export async function authLogin(
 ): Promise<AuthLoginResult> {
   const url = getAuthLoginUrl();
 
+  setAccessToken(null);
   await bootstrapApiCsrf();
 
   const normalizedEmail = email.trim().toLowerCase();
@@ -373,13 +371,18 @@ export async function authLogin(
 
   applyCsrfFromPayload(data);
 
+  const accessFromBody = data.access_token;
+  if (typeof accessFromBody === "string" && accessFromBody.trim()) {
+    setAccessToken(accessFromBody.trim());
+  } else {
+    setAccessToken(null);
+  }
+
   const u = (data.user ?? null) as Record<string, unknown> | null;
   if (!u || typeof u !== "object") {
     emitAuthTelemetry("login_fail", { status: res.status, reason: "no_user" });
     throw new Error("Respuesta de login inválida: falta user");
   }
-
-  setAccessToken(null);
 
   const fromNames = [u.firstName, u.lastName].filter(Boolean).join(" ").trim();
   const fallback = fromNames || (u.email as string) || "";
