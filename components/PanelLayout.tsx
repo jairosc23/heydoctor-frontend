@@ -70,17 +70,9 @@ export default function PanelLayout({
       return;
     }
     if (!user) {
-      const path = pathname ?? "";
-      const dest =
-        path &&
-        path !== "/login" &&
-        path.startsWith("/") &&
-        !path.startsWith("//")
-          ? `/login?redirect=${encodeURIComponent(path)}`
-          : "/login";
-      router.replace(dest);
+      router.replace("/login");
     }
-  }, [authLoading, user, router, pathname]);
+  }, [authLoading, user, router]);
 
   function toggleTheme() {
     setDark((d) => !d);
