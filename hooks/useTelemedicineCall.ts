@@ -65,7 +65,12 @@ export function humanizeCallError(err: unknown): string {
   if (err instanceof Error) {
     const m = err.message.toLowerCase();
     if (m.includes('timeout')) {
-      return 'Tiempo de espera agotado al unirse a la videollamada. Inténtalo de nuevo.';
+      return (
+        'Tiempo de espera agotado al unirse a la videollamada (signaling). ' +
+        'Comprueba en Network → WS que el socket a `…/webrtc` esté conectado, ' +
+        'que el plan sea PRO y, con varias réplicas en Railway, Redis/sticky para Socket.IO. ' +
+        'Si la red es restrictiva, configura TURN en el backend (WEBRTC_TURN_*).'
+      );
     }
     if (
       m.includes('websocket') ||
@@ -78,6 +83,18 @@ export function humanizeCallError(err: unknown): string {
     return err.message;
   }
   return 'No se pudo iniciar la videollamada.';
+}
+
+const JOIN_CONSULTATION_ACK_MS = 45_000;
+
+const WEBRTC_DEBUG =
+  typeof process !== "undefined" &&
+  process.env.NEXT_PUBLIC_WEBRTC_DEBUG === "1";
+
+function webrtcLog(...args: unknown[]): void {
+  if (WEBRTC_DEBUG && typeof console !== "undefined") {
+    console.info("[heydoctor:webrtc]", ...args);
+  }
 }
 
 type AdaptationTier = 0 | 1 | 2;
@@ -508,6 +525,7 @@ export function useTelemedicineCall(
   const wirePeerConnection = useCallback(
     (pc: RTCPeerConnection) => {
       pc.onsignalingstatechange = () => {
+        webrtcLog("signalingState", pc.signalingState);
         if (pc.signalingState === 'stable') {
           void prioritizeAudioOverVideo(pc, videoTierRef.current);
         }
@@ -515,6 +533,7 @@ export function useTelemedicineCall(
 
       pc.onconnectionstatechange = () => {
         const s = pc.connectionState;
+        webrtcLog("connectionState", s);
         setConnectionState(s);
         onConnectionState?.(s);
         if (s === 'failed') {
@@ -524,6 +543,7 @@ export function useTelemedicineCall(
 
       pc.oniceconnectionstatechange = () => {
         const s = pc.iceConnectionState;
+        webrtcLog("iceConnectionState", s, "gathering:", pc.iceGatheringState);
         iceConnectionStateRef.current = s;
         setIceConnectionState(s);
         onIceConnectionState?.(s);
@@ -622,6 +642,7 @@ export function useTelemedicineCall(
       socket.off('peer-left');
 
       socket.on('peer-joined', async ({ userId }: { userId: string }) => {
+        webrtcLog("event peer-joined", userId);
         remoteIdRef.current = userId;
         onRemoteUserId?.(userId);
         if (!isInitiator || makingOfferRef.current) return;
@@ -881,6 +902,8 @@ export function useTelemedicineCall(
         transports: ['websocket', 'polling'],
         withCredentials: true,
         autoConnect: true,
+        reconnectionAttempts: 8,
+        reconnectionDelayMax: 10_000,
         auth: mem ? { token: mem } : {},
       });
       ownSocketRef.current = true;
@@ -894,10 +917,19 @@ export function useTelemedicineCall(
     try {
       await new Promise<void>((resolve, reject) => {
         if (socket.connected) {
+          webrtcLog("socket already connected", socket.id);
           resolve();
           return;
         }
-        socket.once('connect', () => resolve());
+        socket.once('connect', () => {
+          webrtcLog(
+            "socket connect",
+            socket.id,
+            "transport",
+            socket.io.engine?.transport?.name,
+          );
+          resolve();
+        });
         socket.once('connect_error', (err) => reject(err));
       });
 
@@ -905,6 +937,7 @@ export function useTelemedicineCall(
         backendOrigin,
         consultationId,
       });
+      webrtcLog("ICE servers count", iceServers?.length ?? 0);
 
       const pc = new RTCPeerConnection(createProRtcConfiguration(iceServers));
       pcRef.current = pc;
@@ -935,16 +968,23 @@ export function useTelemedicineCall(
       attachSignalingHandlers(socket, pc);
 
       await new Promise<void>((resolve, reject) => {
+        webrtcLog(
+          "emit join-consultation",
+          consultationId,
+          `ackDeadlineMs=${JOIN_CONSULTATION_ACK_MS}`,
+        );
         socket
-          .timeout(20_000)
+          .timeout(JOIN_CONSULTATION_ACK_MS)
           .emit(
             'join-consultation',
             { consultationId },
             (err: Error | null, ack: unknown) => {
               if (err) {
+                webrtcLog("join-consultation ack error", err);
                 reject(err);
                 return;
               }
+              webrtcLog("join-consultation ack ok", ack);
               if (
                 ack &&
                 typeof ack === 'object' &&
