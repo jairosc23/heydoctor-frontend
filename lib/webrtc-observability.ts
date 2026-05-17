@@ -1,5 +1,9 @@
 import { logger } from './logger';
 import {
+  captureWebrtcOperationalEvent,
+  sanitizeResilienceReason,
+} from './observability/sentry-webrtc';
+import {
   sendCallMetrics,
   type SendCallMetricsInput,
 } from './send-webrtc-metrics';
@@ -20,13 +24,15 @@ export function reportWebrtcFailure(
   error: unknown,
   context: WebrtcFailureContext,
 ): void {
-  logger.error(event, {
+  const meta = {
     consultationId: context.consultationId ?? null,
-    requestId: context.requestId ?? null,
+    clientTraceId: context.requestId ?? null,
     state: context.state ?? null,
     reason: context.reason ?? null,
     error: error instanceof Error ? error.message : String(error),
-  });
+  };
+  logger.error(event, meta);
+  captureWebrtcOperationalEvent(event, meta, 'error');
 }
 
 export function reportWebrtcState(
@@ -76,12 +82,26 @@ export async function reportWebrtcResilienceMetric(
     return;
   }
 
+  const safeReason = context.reason
+    ? sanitizeResilienceReason(context.reason)
+    : undefined;
+
   const payload: SendCallMetricsInput = {
     backendOrigin: context.backendOrigin,
     consultationId: context.consultationId,
     eventType,
     eventCount: context.count ?? 1,
+    clientTraceId: context.requestId ?? undefined,
+    resilienceReason: safeReason,
   };
+
+  captureWebrtcOperationalEvent('webrtc_resilience_metric', {
+    consultationId: context.consultationId,
+    eventType,
+    count: context.count ?? 1,
+    clientTraceId: context.requestId ?? null,
+    resilienceReason: safeReason ?? null,
+  });
 
   try {
     await sendCallMetrics(payload);

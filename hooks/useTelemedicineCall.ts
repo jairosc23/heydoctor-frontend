@@ -9,6 +9,12 @@ import { fetchWebrtcIceServers } from '@/lib/fetch-webrtc-ice-servers';
 import { requestRecordingStart, requestRecordingStop } from '@/lib/webrtc-recording-api';
 import { sendCallMetrics } from '@/lib/send-webrtc-metrics';
 import { ensureAccessToken, getAccessToken } from '@/lib/auth-client';
+import {
+  clearActiveCallTraceId,
+  createCallTraceId,
+  getOrCreateClientCorrelationId,
+  setActiveCallTraceId,
+} from '@/lib/observability/correlation';
 import { captureWebrtcBrowserDiagnostic } from '@/lib/webrtc-browser-diagnostics';
 import {
   unlockWebrtcAutoplay,
@@ -469,6 +475,7 @@ export function useTelemedicineCall(
   const remoteIdRef = useRef<string | null>(null);
   const makingOfferRef = useRef(false);
   const resilienceRef = useRef<WebrtcResilienceManager | null>(null);
+  const callTraceIdRef = useRef<string>(createCallTraceId());
   const socketHadConnectedRef = useRef(false);
 
   const remoteStreamRef = useRef<MediaStream | null>(null);
@@ -512,6 +519,7 @@ export function useTelemedicineCall(
     const manager = new WebrtcResilienceManager({
       consultationId,
       backendOrigin,
+      requestId: callTraceIdRef.current,
       mediaConstraints,
       stalePeerMs: disconnectedIceRestartMs + 37_000,
       disconnectedGraceMs: disconnectedIceRestartMs,
@@ -755,6 +763,7 @@ export function useTelemedicineCall(
     detachMonitor();
     resilienceRef.current?.cleanupAll();
     resilienceRef.current = null;
+    clearActiveCallTraceId();
     socketHadConnectedRef.current = false;
     reconnectingIceRef.current = false;
     setReconnectPhase('stable');
@@ -967,6 +976,10 @@ export function useTelemedicineCall(
       pcRef.current = pc;
       wirePeerConnection(pc);
 
+      callTraceIdRef.current =
+        getOrCreateClientCorrelationId() || createCallTraceId();
+      setActiveCallTraceId(callTraceIdRef.current);
+
       resilienceRef.current?.cleanupAll();
       resilienceRef.current = createResilienceManager();
       resilienceRef.current.attachPeer(RESILIENCE_PEER_ID, pc);
@@ -1027,6 +1040,17 @@ export function useTelemedicineCall(
                   ),
                 );
                 return;
+              }
+              const serverTraceId =
+                ack &&
+                typeof ack === 'object' &&
+                typeof (ack as { traceId?: string }).traceId === 'string'
+                  ? (ack as { traceId: string }).traceId
+                  : undefined;
+              if (serverTraceId) {
+                callTraceIdRef.current = serverTraceId;
+                setActiveCallTraceId(serverTraceId);
+                resilienceRef.current?.setClientTraceId(serverTraceId);
               }
               resolve();
             },
@@ -1118,6 +1142,7 @@ export function useTelemedicineCall(
                 void sendCallMetrics({
                   backendOrigin,
                   consultationId,
+                  clientTraceId: callTraceIdRef.current,
                   rtt: snap.roundTripTime,
                   packetsLost: snap.packetsLost,
                   bitrate: snap.outboundBitrateBps,

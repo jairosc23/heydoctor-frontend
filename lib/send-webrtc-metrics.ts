@@ -16,6 +16,8 @@ export type SendCallMetricsInput = {
   packetLossRatio?: number;
   eventType?: WebrtcResilienceEventType;
   eventCount?: number;
+  clientTraceId?: string;
+  resilienceReason?: string;
 };
 
 /**
@@ -34,6 +36,8 @@ export async function sendCallMetrics(
     packetLossRatio,
     eventType,
     eventCount,
+    clientTraceId,
+    resilienceReason,
   } = input;
 
   const url = new URL('/api/webrtc/metrics', backendOrigin.replace(/\/$/, '')).toString();
@@ -46,6 +50,10 @@ export async function sendCallMetrics(
   if (packetLossRatio !== undefined) body.packetLossRatio = packetLossRatio;
   if (eventType) body.eventType = eventType;
   if (eventCount !== undefined) body.eventCount = eventCount;
+  if (clientTraceId) body.clientTraceId = clientTraceId.slice(0, 128);
+  if (resilienceReason) {
+    body.resilienceReason = resilienceReason.slice(0, 64);
+  }
 
   const res = await fetchWithAuth(url, {
     method: 'POST',

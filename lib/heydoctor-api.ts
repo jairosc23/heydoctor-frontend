@@ -17,6 +17,10 @@ import {
   API_X_REQUESTED_WITH,
   API_XRW_XMLHTTPREQUEST,
 } from "./api-csrf";
+import {
+  getOrCreateClientCorrelationId,
+  rememberServerRequestId,
+} from "./observability/correlation";
 
 const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
@@ -105,6 +109,10 @@ export async function fetchWithAuth(
     if (unsafe && csrf && !headers.has(API_CSRF_HEADER)) {
       headers.set(API_CSRF_HEADER, csrf);
     }
+    const correlationId = getOrCreateClientCorrelationId();
+    if (correlationId && !headers.has("X-Request-Id")) {
+      headers.set("X-Request-Id", correlationId);
+    }
     if (
       process.env.NODE_ENV === "development" &&
       unsafe &&
@@ -126,6 +134,7 @@ export async function fetchWithAuth(
     });
 
   let res = await doFetch();
+  rememberServerRequestId(res);
 
   if (
     res.status === 401 &&

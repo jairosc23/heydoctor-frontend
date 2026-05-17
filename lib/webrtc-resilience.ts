@@ -124,6 +124,7 @@ export async function unlockWebrtcAutoplay(
 
 export class WebrtcResilienceManager {
   private readonly peers = new Map<WebrtcPeerId, PeerRuntime>();
+  private clientTraceId: string | undefined;
   private localStream: MediaStream | null = null;
   private pageVisibilityHandler: (() => void) | null = null;
   private visibilityDebounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -134,7 +135,17 @@ export class WebrtcResilienceManager {
   private disposed = false;
   private iceRestartCooldownUntil = 0;
 
-  constructor(private readonly options: WebrtcResilienceManagerOptions) {}
+  constructor(private readonly options: WebrtcResilienceManagerOptions) {
+    this.clientTraceId = options.requestId ?? undefined;
+  }
+
+  setClientTraceId(traceId: string): void {
+    this.clientTraceId = traceId;
+  }
+
+  private activeTraceId(): string | undefined {
+    return this.clientTraceId ?? this.options.requestId ?? undefined;
+  }
 
   attachPeer(peerId: WebrtcPeerId, peer: RTCPeerConnection): void {
     if (this.disposed) return;
@@ -152,7 +163,7 @@ export class WebrtcResilienceManager {
       reportWebrtcState('webrtc_ice_state', {
         backendOrigin: this.options.backendOrigin,
         consultationId: this.options.consultationId,
-        requestId: this.options.requestId,
+        requestId: this.activeTraceId(),
         state,
       });
 
@@ -182,7 +193,7 @@ export class WebrtcResilienceManager {
       reportWebrtcState('webrtc_connection_state', {
         backendOrigin: this.options.backendOrigin,
         consultationId: this.options.consultationId,
-        requestId: this.options.requestId,
+        requestId: this.activeTraceId(),
         state,
       });
 
@@ -210,7 +221,7 @@ export class WebrtcResilienceManager {
       reportWebrtcState('webrtc_signaling_state', {
         backendOrigin: this.options.backendOrigin,
         consultationId: this.options.consultationId,
-        requestId: this.options.requestId,
+        requestId: this.activeTraceId(),
         state: peer.signalingState,
       });
       if (peer.signalingState === 'closed') {
@@ -335,7 +346,7 @@ export class WebrtcResilienceManager {
       reportWebrtcFailure('webrtc_reconnect_failed', error, {
         backendOrigin: this.options.backendOrigin,
         consultationId: this.options.consultationId,
-        requestId: this.options.requestId,
+        requestId: this.activeTraceId(),
         reason,
       });
       this.scheduleReconnect(peerId, 'ice_restart_failed');
@@ -353,7 +364,7 @@ export class WebrtcResilienceManager {
       await reportWebrtcResilienceMetric('media_recovery_failures', {
         backendOrigin: this.options.backendOrigin,
         consultationId: this.options.consultationId,
-        requestId: this.options.requestId,
+        requestId: this.activeTraceId(),
         reason: 'get_user_media_unavailable',
       });
       this.setReconnectPhase('stable');
@@ -373,13 +384,13 @@ export class WebrtcResilienceManager {
       await reportWebrtcResilienceMetric('media_recovery_failures', {
         backendOrigin: this.options.backendOrigin,
         consultationId: this.options.consultationId,
-        requestId: this.options.requestId,
+        requestId: this.activeTraceId(),
         reason,
       });
       reportWebrtcFailure('webrtc_reconnect_failed', error, {
         backendOrigin: this.options.backendOrigin,
         consultationId: this.options.consultationId,
-        requestId: this.options.requestId,
+        requestId: this.activeTraceId(),
         reason,
       });
       this.setReconnectPhase('reconnecting');
