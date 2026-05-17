@@ -31,7 +31,6 @@ import { useAuth } from "@/lib/context/AuthContext";
 import { logger } from "@/lib/logger";
 import { humanizeCallError, useTelemedicineCall } from "@/hooks/useTelemedicineCall";
 import { useIsMobile } from "@/lib/hooks/useIsMobile";
-
 function safeVibrate(pattern?: number | number[]): void {
   if (typeof navigator === "undefined" || !navigator.vibrate) return;
   try {
@@ -101,6 +100,8 @@ export const VideoCall = forwardRef<
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordingChunksRef = useRef<BlobPart[]>([]);
   const mountedRef = useRef(true);
+  const mediaPlaybackUnlockRef = useRef<() => void>(() => undefined);
+  const autoplayGestureBoundRef = useRef(false);
 
   const isMobile = useIsMobile();
   const mobileShellRef = useRef<HTMLDivElement>(null);
@@ -119,12 +120,14 @@ export const VideoCall = forwardRef<
     connectionQuality,
     connectionState,
     iceConnectionState,
+    reconnectPhase,
     screenSharing,
     canShareScreen,
     startCall,
     endCall,
     startScreenShare,
     stopScreenShare,
+    unlockMediaPlayback,
   } = useTelemedicineCall({
     consultationId,
     isInitiator,
@@ -132,7 +135,34 @@ export const VideoCall = forwardRef<
     socketPath: "/socket.io",
     guestCall,
     onError: (message) => setError(message),
+    onRequestMediaPlayback: () => mediaPlaybackUnlockRef.current(),
   });
+
+  const ensureMediaPlayback = useCallback(async () => {
+    const elements = [localVideoRef.current, remoteVideoRef.current].filter(
+      Boolean,
+    ) as HTMLVideoElement[];
+    if (!elements.length) return;
+    for (const el of elements) {
+      el.playsInline = true;
+      el.setAttribute("playsinline", "true");
+      el.setAttribute("webkit-playsinline", "true");
+    }
+    const remote = remoteVideoRef.current;
+    if (remote) {
+      remote.muted = false;
+      remote.volume = 1;
+    }
+    const local = localVideoRef.current;
+    if (local) {
+      local.muted = true;
+    }
+    await unlockMediaPlayback(elements);
+  }, [unlockMediaPlayback]);
+
+  mediaPlaybackUnlockRef.current = () => {
+    void ensureMediaPlayback();
+  };
 
   localStreamRef.current = localStream;
 
@@ -182,14 +212,6 @@ export const VideoCall = forwardRef<
       setMediaReady(false);
     }
   }, [localStream]);
-
-  useEffect(() => {
-    if (process.env.NODE_ENV === "development") {
-      console.log({
-        quality: connectionQuality,
-      });
-    }
-  }, [connectionQuality]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -332,21 +354,24 @@ export const VideoCall = forwardRef<
   useLayoutEffect(() => {
     const el = localVideoRef.current;
     if (!el) return;
+    el.dataset.webrtcRole = "local";
     el.srcObject = localStream;
     if (localStream) {
       el.muted = true;
-      void el.play().catch(() => {});
+      void ensureMediaPlayback();
     }
-  }, [localStream]);
+  }, [localStream, ensureMediaPlayback]);
 
   useLayoutEffect(() => {
     const el = remoteVideoRef.current;
     if (!el) return;
+    el.dataset.webrtcRole = "remote";
     el.srcObject = remoteStream;
     if (remoteStream) {
-      void el.play().catch(() => {});
+      el.muted = false;
+      void ensureMediaPlayback();
     }
-  }, [remoteStream]);
+  }, [remoteStream, ensureMediaPlayback]);
 
   useEffect(() => {
     remoteStreamRef.current = remoteStream;
@@ -372,7 +397,10 @@ export const VideoCall = forwardRef<
     [remoteStream]
   );
 
+  const isReconnecting = reconnectPhase !== "stable";
+
   const isConnectingPhase = useMemo(() => {
+    if (isReconnecting) return false;
     if (hasRemoteLive) return false;
     if (connectionState === "connecting") return true;
     if (iceConnectionState === "checking") return true;
@@ -383,11 +411,25 @@ export const VideoCall = forwardRef<
       return true;
     }
     return false;
-  }, [hasRemoteLive, connectionState, iceConnectionState, remoteStream]);
+  }, [
+    hasRemoteLive,
+    connectionState,
+    iceConnectionState,
+    remoteStream,
+    isReconnecting,
+  ]);
 
-  const remoteOverlayMessage = isConnectingPhase
-    ? "Conectando..."
-    : "Esperando al otro participante...";
+  const remoteOverlayMessage = isReconnecting
+    ? reconnectPhase === "recovering_media"
+      ? "Restaurando cámara y micrófono…"
+      : "Reconectando videollamada…"
+    : isConnectingPhase
+      ? "Conectando..."
+      : "Esperando al otro participante...";
+
+  const bindAutoplayGesture = useCallback(() => {
+    void ensureMediaPlayback();
+  }, [ensureMediaPlayback]);
 
   useEffect(() => {
     const hasRemote =
@@ -456,6 +498,7 @@ export const VideoCall = forwardRef<
   }, []);
 
   const toggleMic = () => {
+    bindAutoplayGesture();
     const stream = localStreamRef.current;
     const audio = stream?.getAudioTracks()[0];
     if (!audio) return;
@@ -464,6 +507,7 @@ export const VideoCall = forwardRef<
   };
 
   const toggleCam = () => {
+    bindAutoplayGesture();
     const stream = localStreamRef.current;
     const video = stream?.getVideoTracks()[0];
     if (!video) return;
@@ -575,6 +619,10 @@ export const VideoCall = forwardRef<
       className="flex min-h-0 w-full flex-1 touch-manipulation flex-col"
       role="dialog"
       aria-label={displayTitle}
+      onPointerDownCapture={() => {
+        bindAutoplayGesture();
+        autoplayGestureBoundRef.current = true;
+      }}
     >
       <header className="flex shrink-0 items-center justify-between gap-3 border-b border-gray-200 bg-white px-4 py-3 pt-[max(env(safe-area-inset-top),12px)]">
         <Link
@@ -588,7 +636,12 @@ export const VideoCall = forwardRef<
             {displayTitle}
           </h1>
           <div className="pointer-events-none shrink-0">
-            <ConnectionQualityBadge quality={connectionQuality} showWhenIdle />
+            <ConnectionQualityBadge
+              quality={
+                reconnectPhase !== "stable" ? "reconnecting" : connectionQuality
+              }
+              showWhenIdle
+            />
           </div>
         </div>
       </header>
@@ -625,8 +678,11 @@ export const VideoCall = forwardRef<
               <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-gray-400">
                 <span>Esperando al otro participante...</span>
               </div>
-            ) : !hasRemoteLive ? (
-              <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-gray-400">
+            ) : !hasRemoteLive || isReconnecting ? (
+              <div
+                className="pointer-events-none absolute inset-0 flex items-center justify-center text-gray-400"
+                aria-live="polite"
+              >
                 <span
                   key={remoteOverlayMessage}
                   className="call-status-enter videocall-remote-overlay-text px-4 text-center text-base font-medium"

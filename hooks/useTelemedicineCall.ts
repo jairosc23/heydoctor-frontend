@@ -9,7 +9,12 @@ import { fetchWebrtcIceServers } from '@/lib/fetch-webrtc-ice-servers';
 import { requestRecordingStart, requestRecordingStop } from '@/lib/webrtc-recording-api';
 import { sendCallMetrics } from '@/lib/send-webrtc-metrics';
 import { ensureAccessToken, getAccessToken } from '@/lib/auth-client';
-import { WebrtcResilienceManager } from '@/lib/webrtc-resilience';
+import { captureWebrtcBrowserDiagnostic } from '@/lib/webrtc-browser-diagnostics';
+import {
+  unlockWebrtcAutoplay,
+  WebrtcResilienceManager,
+  type CallReconnectPhase,
+} from '@/lib/webrtc-resilience';
 import type { Socket } from 'socket.io-client';
 import { io } from 'socket.io-client';
 
@@ -378,6 +383,8 @@ export type UseTelemedicineCallOptions = {
   sendCallMetricsToBackend?: boolean;
   /** Invitado: omitir `ensureAccessToken` antes de abrir el socket (cookies / refresh no aplican). */
   guestCall?: boolean;
+  /** Safari/iOS: reintentar .play() en elementos de vídeo registrados por la UI. */
+  onRequestMediaPlayback?: () => void;
 };
 
 export type UseTelemedicineCallResult = {
@@ -385,6 +392,7 @@ export type UseTelemedicineCallResult = {
   remoteStream: MediaStream | null;
   connectionState: RTCPeerConnectionState | null;
   iceConnectionState: RTCIceConnectionState | null;
+  reconnectPhase: CallReconnectPhase;
   videoTier: AdaptationTier;
   connectionQuality: ConnectionQuality | null;
   /** Vídeo detenido en envío por política de red (audio activo). */
@@ -399,6 +407,8 @@ export type UseTelemedicineCallResult = {
   stopScreenShare: () => Promise<void>;
   startRecording: (userConsent: boolean) => Promise<void>;
   stopRecording: (userConsent: boolean) => Promise<void>;
+  /** Desbloquea reproducción remota (Safari/iOS) tras gesto del usuario. */
+  unlockMediaPlayback: (elements: Iterable<HTMLMediaElement>) => Promise<void>;
 };
 
 /**
@@ -424,6 +434,7 @@ export function useTelemedicineCall(
     onVideoTierChange,
     sendCallMetricsToBackend = true,
     guestCall = false,
+    onRequestMediaPlayback,
   } = options;
 
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
@@ -432,6 +443,8 @@ export function useTelemedicineCall(
     useState<RTCPeerConnectionState | null>(null);
   const [iceConnectionState, setIceConnectionState] =
     useState<RTCIceConnectionState | null>(null);
+  const [reconnectPhase, setReconnectPhase] =
+    useState<CallReconnectPhase>('stable');
   const [videoTier, setVideoTier] = useState<AdaptationTier>(0);
   const [connectionQuality, setConnectionQuality] = useState<
     ConnectionQuality | null
@@ -456,6 +469,7 @@ export function useTelemedicineCall(
   const remoteIdRef = useRef<string | null>(null);
   const makingOfferRef = useRef(false);
   const resilienceRef = useRef<WebrtcResilienceManager | null>(null);
+  const socketHadConnectedRef = useRef(false);
 
   const remoteStreamRef = useRef<MediaStream | null>(null);
   const iceConnectionStateRef = useRef<RTCIceConnectionState | null>(null);
@@ -486,18 +500,37 @@ export function useTelemedicineCall(
     [iceRestartInitiatorOnly, isInitiator],
   );
 
+  const logBrowserDiagnostic = useCallback(
+    (reason: string) => {
+      const snapshot = captureWebrtcBrowserDiagnostic(consultationId, reason);
+      webrtcLog('browser_snapshot', snapshot);
+    },
+    [consultationId],
+  );
+
   const createResilienceManager = useCallback(() => {
     const manager = new WebrtcResilienceManager({
       consultationId,
       backendOrigin,
       mediaConstraints,
       stalePeerMs: disconnectedIceRestartMs + 37_000,
+      disconnectedGraceMs: disconnectedIceRestartMs,
       iceRestartAllowed: mayRunIceRestart,
       onSendOffer: (_peerId, description) => {
+        if (
+          !pcRef.current ||
+          pcRef.current.signalingState === 'closed' ||
+          pcRef.current.connectionState === 'closed'
+        ) {
+          return;
+        }
         socketRef.current?.emit('offer', {
           consultationId,
-          sdp: pcRef.current?.localDescription ?? description,
+          sdp: pcRef.current.localDescription ?? description,
         });
+      },
+      onReconnectPhaseChange: (phase) => {
+        setReconnectPhase(phase);
       },
       onReconnectAttempt: () => {
         reconnectingIceRef.current = true;
@@ -512,16 +545,29 @@ export function useTelemedicineCall(
         videoSuspendedByPolicyRef.current = false;
         setVideoSuspendedForNetwork(false);
       },
+      onBrowserDiagnostic: logBrowserDiagnostic,
+      onRequestMediaPlayback,
+      onZombiePeer: () => {
+        webrtcLog('zombie_peer_detected');
+      },
     });
     manager.attachPageVisibilityRecovery();
+    manager.attachNetworkRecovery();
     return manager;
   }, [
     backendOrigin,
     consultationId,
     disconnectedIceRestartMs,
+    logBrowserDiagnostic,
     mayRunIceRestart,
     mediaConstraints,
+    onRequestMediaPlayback,
   ]);
+
+  const unlockMediaPlayback = useCallback(
+    (elements: Iterable<HTMLMediaElement>) => unlockWebrtcAutoplay(elements),
+    [],
+  );
 
   const wirePeerConnection = useCallback(
     (pc: RTCPeerConnection) => {
@@ -688,6 +734,7 @@ export function useTelemedicineCall(
         }) => {
           try {
             if (candidate && pc.remoteDescription) {
+              resilienceRef.current?.markPeerSeen(RESILIENCE_PEER_ID);
               await pc.addIceCandidate(new RTCIceCandidate(candidate));
             }
           } catch {
@@ -708,7 +755,9 @@ export function useTelemedicineCall(
     detachMonitor();
     resilienceRef.current?.cleanupAll();
     resilienceRef.current = null;
+    socketHadConnectedRef.current = false;
     reconnectingIceRef.current = false;
+    setReconnectPhase('stable');
     videoSuspendedByPolicyRef.current = false;
     try {
       screenShareTrackRef.current?.stop();
@@ -725,13 +774,16 @@ export function useTelemedicineCall(
     iceConnectionStateRef.current = null;
     setConnectionQuality(null);
     setVideoSuspendedForNetwork(false);
-    try {
-      pcRef.current?.getSenders().forEach((s) => s.track?.stop());
-      pcRef.current?.close();
-    } catch {
-      /* ignore */
-    }
+    const pc = pcRef.current;
     pcRef.current = null;
+    if (pc && pc.signalingState !== 'closed') {
+      try {
+        pc.getSenders().forEach((s) => s.track?.stop());
+        pc.close();
+      } catch {
+        /* ignore */
+      }
+    }
     remoteStreamRef.current = null;
     setRemoteStream(null);
 
@@ -889,15 +941,19 @@ export function useTelemedicineCall(
           resolve();
           return;
         }
-        socket.once('connect', () => {
+        socket.on('connect', () => {
           webrtcLog(
             "socket connect",
             socket.id,
             "transport",
             socket.io.engine?.transport?.name,
           );
-          resolve();
+          if (socketHadConnectedRef.current) {
+            resilienceRef.current?.handleTransportReconnected();
+          }
+          socketHadConnectedRef.current = true;
         });
+        socket.once('connect', () => resolve());
         socket.once('connect_error', (err) => reject(err));
       });
 
@@ -914,6 +970,7 @@ export function useTelemedicineCall(
       resilienceRef.current?.cleanupAll();
       resilienceRef.current = createResilienceManager();
       resilienceRef.current.attachPeer(RESILIENCE_PEER_ID, pc);
+      logBrowserDiagnostic('call_started');
 
       const stream = await navigator.mediaDevices.getUserMedia(
         mediaConstraints,
@@ -1101,6 +1158,7 @@ export function useTelemedicineCall(
     backendOrigin,
     consultationId,
     createResilienceManager,
+    logBrowserDiagnostic,
     endCall,
     externalSocket,
     isInitiator,
@@ -1121,6 +1179,7 @@ export function useTelemedicineCall(
     remoteStream,
     connectionState,
     iceConnectionState,
+    reconnectPhase,
     videoTier,
     connectionQuality,
     videoSuspendedForNetwork,
@@ -1132,5 +1191,6 @@ export function useTelemedicineCall(
     stopScreenShare,
     startRecording,
     stopRecording,
+    unlockMediaPlayback,
   };
 }

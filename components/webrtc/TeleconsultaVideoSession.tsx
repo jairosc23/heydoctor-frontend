@@ -659,7 +659,10 @@ export function TeleconsultaVideoSession({
   }
 
   return (
-    <div className="fixed inset-0 bg-[#0B0F14] flex flex-col overflow-hidden">
+    <div
+      className="fixed inset-0 bg-[#0B0F14] flex flex-col overflow-hidden"
+      data-teleconsulta-session="active"
+    >
       <VideoCall
         consultationId={callConsultationId}
         onEndCall={handleEndCall}
