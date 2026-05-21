@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import HeyDoctorLogo from "@/components/ui/HeyDoctorLogo";
 import { useRouter } from "next/navigation";
@@ -10,22 +10,51 @@ import {
   URGENCY_AVAILABLE_NOW,
 } from "@/lib/consultation-pricing";
 import { useConsultationPrice } from "@/lib/hooks/useConsultationPrice";
+import { fetchPublicDoctors } from "@/lib/services/doctor-profiles";
 
 const TEAL = "#078a92";
 
 export function ConsultarClient({
   initialDoctors,
 }: {
-  initialDoctors: DoctorProfile[];
+  initialDoctors?: DoctorProfile[];
 }) {
   const router = useRouter();
-  const [doctors] = useState<DoctorProfile[]>(initialDoctors);
+  const [doctors, setDoctors] = useState<DoctorProfile[]>(
+    initialDoctors ?? [],
+  );
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [reason, setReason] = useState("");
   const [selectedDoctor, setSelectedDoctor] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const consultationPrice = useConsultationPrice();
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (initialDoctors && initialDoctors.length > 0) {
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    fetchPublicDoctors()
+      .then((profiles) => {
+        if (!cancelled) {
+          setDoctors(profiles);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setDoctors([]);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [initialDoctors]);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
