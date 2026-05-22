@@ -1,4 +1,5 @@
 import { logger } from './logger';
+import { emitOperationalTelemetry } from './operational-telemetry';
 import {
   captureWebrtcOperationalEvent,
   sanitizeResilienceReason,
@@ -31,6 +32,12 @@ export function reportWebrtcFailure(
     reason: context.reason ?? null,
     error: error instanceof Error ? error.message : String(error),
   };
+  emitOperationalTelemetry('webrtc.degraded', {
+    outcome: 'error',
+    state: context.state ?? undefined,
+    reason: context.reason ?? undefined,
+    requestId: context.requestId ?? null,
+  });
   logger.error(event, meta);
   captureWebrtcOperationalEvent(event, meta, 'error');
 }
@@ -44,6 +51,12 @@ export function reportWebrtcState(
 ): void {
   const state = context.state ?? 'unknown';
   if (state === 'failed' || state === 'disconnected') {
+    emitOperationalTelemetry('webrtc.degraded', {
+      outcome: 'error',
+      state,
+      reason: context.reason ?? undefined,
+      requestId: context.requestId ?? null,
+    });
     logger.warn(event, {
       consultationId: context.consultationId ?? null,
       state,
@@ -77,6 +90,21 @@ export async function reportWebrtcResilienceMetric(
     count: context.count ?? 1,
     reason: context.reason ?? null,
   });
+  if (eventType === 'reconnect_attempts' || eventType === 'reconnect_success') {
+    emitOperationalTelemetry('webrtc.reconnect', {
+      outcome: eventType === 'reconnect_success' ? 'success' : 'error',
+      count: context.count ?? 1,
+      reason: context.reason ?? undefined,
+      requestId: context.requestId ?? null,
+    });
+  }
+  if (eventType === 'ice_restart_count') {
+    emitOperationalTelemetry('webrtc.ice_restart', {
+      count: context.count ?? 1,
+      reason: context.reason ?? undefined,
+      requestId: context.requestId ?? null,
+    });
+  }
 
   if (!context.consultationId) {
     return;

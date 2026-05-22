@@ -1,4 +1,5 @@
-import { heydoctorApi } from "../heydoctor-api";
+import { ApiError, heydoctorApi } from "../heydoctor-api";
+import { emitOperationalTelemetry } from "../operational-telemetry";
 
 const BASE = "/appointments";
 
@@ -79,8 +80,26 @@ export async function transitionAppointment(
   status: AppointmentStatus,
   expectedVersion?: number,
 ) {
-  return heydoctorApi.post<Appointment>(`${BASE}/${appointmentId}/transition`, {
-    status,
-    expectedVersion,
-  });
+  try {
+    return await heydoctorApi.post<Appointment>(
+      `${BASE}/${appointmentId}/transition`,
+      {
+        status,
+        expectedVersion,
+      },
+    );
+  } catch (error) {
+    reportSchedulingError(error);
+    throw error;
+  }
+}
+
+export function reportSchedulingError(error: unknown): void {
+  if (error instanceof ApiError && error.status === 409) {
+    emitOperationalTelemetry("appointments.conflict", {
+      outcome: "conflict",
+      status: error.status,
+      reason: "slot_conflict",
+    });
+  }
 }
