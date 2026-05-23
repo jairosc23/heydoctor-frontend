@@ -1,5 +1,5 @@
-# Comprobaciones previas a merge/release: deps, lint (tsc), build, tests.
-# Bloqueo de merge: Settings → Branches → proteger `main` → requerir "CI / frontend".
+# CI del repositorio frontend: validación Vercel/Next sin Postgres ni backend checkout.
+# Bloqueo de merge: Settings → Branches → proteger `main` → requerir "frontend".
 
 name: CI
 
@@ -15,6 +15,7 @@ concurrency:
 
 jobs:
   frontend:
+    name: frontend
     runs-on: ubuntu-latest
 
     steps:
@@ -31,6 +32,9 @@ jobs:
 
       - name: Lint
         run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
 
       - name: Build
         run: npm run build
