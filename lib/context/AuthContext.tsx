@@ -25,7 +25,21 @@ import {
   subscribeRefreshState,
   setAccessToken,
   bootstrapApiCsrf,
+  cancelInFlightAuthRequests,
+  forceResetRefreshState,
 } from "@/lib/auth-client";
+import {
+  AUTH_HYDRATION_MAX_MS,
+  AUTH_OVERLAY_MAX_MS,
+  AUTH_REQUEST_TIMEOUT_MS,
+} from "@/lib/async/auth-request-config";
+import { withTimeout } from "@/lib/async/with-timeout";
+import { emitAuthTelemetry } from "@/lib/auth-telemetry";
+import { useAuthRuntimeStabilizer } from "@/lib/hooks/useAuthRuntimeStabilizer";
+import {
+  isBootstrapTimeoutError,
+  shouldClearSessionOnBootstrapError,
+} from "@/lib/context/auth-bootstrap";
 
 type AuthContextValue = {
   user: AuthUser | null;
@@ -59,6 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const { bump: bumpSessionGen, snapshot: sessionGen } = useSessionGeneration();
   const refreshUserInFlightRef = useRef<Promise<void> | null>(null);
+  const overlaySinceRef = useRef<number | null>(null);
 
   useEffect(() => {
     return subscribeRefreshState(setSessionRevalidating);
@@ -67,6 +82,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     void bootstrapApiCsrf();
   }, []);
+
+  const handleOverlayRecovery = useCallback(() => {
+    forceResetRefreshState();
+    setSessionRevalidating(false);
+  }, []);
+
+  const handleHydrationRecovery = useCallback(() => {
+    setLoading(false);
+  }, []);
+
+  useAuthRuntimeStabilizer({
+    loading,
+    sessionRevalidating,
+    onOverlayRecovery: handleOverlayRecovery,
+    onHydrationRecovery: handleHydrationRecovery,
+    onStaleLoadingReset: handleHydrationRecovery,
+  });
+
+  /** Watchdog local: overlay atascado aunque emitRefreshState no haya corrido. */
+  useEffect(() => {
+    if (sessionRevalidating) {
+      if (overlaySinceRef.current == null) {
+        overlaySinceRef.current = Date.now();
+      }
+      const watchdogId = setTimeout(() => {
+        if (overlaySinceRef.current == null) return;
+        if (Date.now() - overlaySinceRef.current < AUTH_OVERLAY_MAX_MS) return;
+        emitAuthTelemetry("overlay_recovery", {
+          phase: "watchdog",
+          durationMs: Date.now() - overlaySinceRef.current,
+        });
+        handleOverlayRecovery();
+      }, AUTH_OVERLAY_MAX_MS);
+      return () => clearTimeout(watchdogId);
+    }
+    overlaySinceRef.current = null;
+    return undefined;
+  }, [sessionRevalidating, handleOverlayRecovery]);
 
   const clearSession = useCallback(async () => {
     setUser(null);
@@ -83,11 +136,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true;
     const genAtStart = sessionGen();
+    const hydrationAbort = new AbortController();
+
     void (async () => {
       try {
         try {
-          const refreshed = await refreshAccessToken();
+          const refreshed = await withTimeout(
+            refreshAccessToken(),
+            AUTH_REQUEST_TIMEOUT_MS,
+            "auth-bootstrap-refresh",
+          );
           if (!refreshed) {
+            if (!mounted || hydrationAbort.signal.aborted) return;
             console.warn(
               "refresh failed on mount → clear local session (no remote logout)",
             );
@@ -95,23 +155,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             return;
           }
         } catch (e) {
-          console.warn(
-            "refresh failed on mount → clear local session (no remote logout)",
-            e,
-          );
-          await clearSession();
+          if (!mounted || hydrationAbort.signal.aborted) return;
+          if (isBootstrapTimeoutError(e)) {
+            emitAuthTelemetry("bootstrap_timeout", {
+              phase: "refresh",
+              durationMs: AUTH_REQUEST_TIMEOUT_MS,
+            });
+          }
+          if (shouldClearSessionOnBootstrapError(e, "refresh")) {
+            console.warn(
+              "refresh failed on mount → clear local session (no remote logout)",
+              e,
+            );
+            await clearSession();
+          }
           return;
         }
+
+        if (!mounted || hydrationAbort.signal.aborted) return;
+
         try {
-          const me = await getMe();
-          if (!mounted || sessionGen() !== genAtStart) return;
+          const me = await withTimeout(
+            getMe(),
+            AUTH_REQUEST_TIMEOUT_MS,
+            "auth-bootstrap-getMe",
+          );
+          if (!mounted || sessionGen() !== genAtStart || hydrationAbort.signal.aborted) {
+            return;
+          }
           setUser(me);
           const t = getAccessToken()?.trim();
           if (t) {
             await syncMiddlewareSession(t);
           }
-        } catch {
-          /* NO limpiar sesión en hidratación */
+        } catch (e) {
+          if (isBootstrapTimeoutError(e)) {
+            emitAuthTelemetry("bootstrap_timeout", {
+              phase: "getMe",
+              durationMs: AUTH_REQUEST_TIMEOUT_MS,
+            });
+          }
+          /* NO limpiar sesión en hidratación por fallo de getMe */
         }
       } finally {
         if (mounted) {
@@ -119,8 +203,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
     })();
+
     return () => {
       mounted = false;
+      hydrationAbort.abort();
+      cancelInFlightAuthRequests();
     };
     // Solo al montar: cookies cross-site + getMe para estado inicial.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -147,7 +234,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         let refreshed = false;
         try {
-          refreshed = await refreshAccessToken();
+          refreshed = await withTimeout(
+            refreshAccessToken(),
+            AUTH_REQUEST_TIMEOUT_MS,
+            "refreshUser-refresh",
+          );
         } catch (e) {
           if (g0 !== sessionGen()) return;
           console.warn("refreshUser: refresh threw → clear session", e);
@@ -160,7 +251,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await clearSession();
           return;
         }
-        const me = await getMe();
+        const me = await withTimeout(
+          getMe(),
+          AUTH_REQUEST_TIMEOUT_MS,
+          "refreshUser-getMe",
+        );
         if (g0 !== sessionGen()) return;
         setUser(me);
         const t = getAccessToken()?.trim();
@@ -212,7 +307,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw e;
     }
     try {
-      const me = await getMe();
+      const me = await withTimeout(
+        getMe(),
+        AUTH_REQUEST_TIMEOUT_MS,
+        "login-getMe",
+      );
       setUser(me);
       setLoading(false);
       const t = getAccessToken()?.trim();
@@ -239,13 +338,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logout,
       refreshUser,
     }),
-    [user, loading, sessionRevalidating, login, logout, refreshUser]
+    [user, loading, sessionRevalidating, login, logout, refreshUser],
   );
 
   return (
     <AuthContext.Provider value={value}>
       {sessionRevalidating && (
         <div
+          data-heydoctor-auth-overlay="true"
           aria-live="polite"
           aria-busy="true"
           style={{

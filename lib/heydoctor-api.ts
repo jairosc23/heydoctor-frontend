@@ -7,7 +7,11 @@
  * - 401: `POST /auth/refresh` y reintento; datos dinámicos con `cache: "no-store"`.
  */
 
-import { bootstrapApiCsrf, refreshAccessToken } from "./auth-client";
+import {
+  bootstrapApiCsrf,
+  consumeLastRefreshTimedOut,
+  refreshAccessToken,
+} from "./auth-client";
 import { apiFetch as fetchWithIncludedCredentials } from "./api-fetch-include";
 import { handleAuthError } from "./auth/auth-guard";
 import { getApiBase } from "./api-base";
@@ -151,7 +155,8 @@ export async function fetchWithAuth(
       refreshedOnce = false;
     }
     let refreshed = refreshedOnce;
-    if (!refreshed) {
+    const refreshTimedOut = consumeLastRefreshTimedOut();
+    if (!refreshed && !refreshTimedOut) {
       await new Promise((r) => setTimeout(r, 150));
       try {
         refreshed = await refreshAccessToken();
