@@ -47,8 +47,15 @@ const REFRESH_COOLDOWN_MS = 3_000;
 const REFRESH_TIMEOUT_COOLDOWN_MS = 3_000;
 const AUTH_TAB_CHANNEL = "heydoctor-auth-v1";
 
+export type RefreshAccessTokenOptions = {
+  /** Si true, no monta overlay global (refresh en background). */
+  silent?: boolean;
+};
+
 type RefreshStateListener = (isRefreshing: boolean) => void;
 const refreshStateListeners = new Set<RefreshStateListener>();
+/** Ref-count del overlay visible (solo refreshes no silenciosos). */
+let _refreshOverlayDepth = 0;
 
 export function subscribeRefreshState(
   listener: RefreshStateListener,
@@ -67,6 +74,16 @@ function emitRefreshState(isRefreshing: boolean): void {
   });
 }
 
+function emitRefreshOverlayDelta(delta: number): void {
+  _refreshOverlayDepth = Math.max(0, _refreshOverlayDepth + delta);
+  emitRefreshState(_refreshOverlayDepth > 0);
+}
+
+/** Solo tests: profundidad actual del overlay visible. */
+export function getRefreshOverlayDepthForTests(): number {
+  return _refreshOverlayDepth;
+}
+
 /** Indica si el último refresh falló por timeout (se consume al leer). */
 export function consumeLastRefreshTimedOut(): boolean {
   if (_lastRefreshTimedOutAt === 0) return false;
@@ -80,6 +97,7 @@ export function consumeLastRefreshTimedOut(): boolean {
 export function forceResetRefreshState(): void {
   _refreshAbortController?.abort();
   _refreshAbortController = null;
+  _refreshOverlayDepth = 0;
   emitRefreshState(false);
 }
 
@@ -90,6 +108,7 @@ export function cancelInFlightAuthRequests(): void {
   _bootstrapAbortController?.abort();
   _bootstrapAbortController = null;
   _bootstrapPromise = null;
+  _refreshOverlayDepth = 0;
   emitRefreshState(false);
 }
 
@@ -254,26 +273,33 @@ function releaseRefreshPromiseDeferred(run: Promise<boolean>): void {
  * Rota access/refresh vía cookie `refresh_token`. Devuelve true si la respuesta fue OK
  * (nuevas cookies aplicadas por el navegador).
  */
-export async function refreshAccessToken(): Promise<boolean> {
+export async function refreshAccessToken(
+  options: RefreshAccessTokenOptions = {},
+): Promise<boolean> {
   if (Date.now() - _lastHardRefreshFailAt < REFRESH_COOLDOWN_MS) {
     return false;
   }
 
   if (_refreshPromise) return _refreshPromise;
 
-  const run = _doRefresh();
+  const run = _doRefresh(options);
   _refreshPromise = run;
   return chainRefreshPromise(run);
 }
 
-async function _doRefresh(): Promise<boolean> {
+async function _doRefresh(
+  options: RefreshAccessTokenOptions = {},
+): Promise<boolean> {
+  const silent = options.silent ?? false;
   const accessTokenSnapshot = getAccessToken();
 
   _refreshAbortController?.abort();
   const abortController = new AbortController();
   _refreshAbortController = abortController;
 
-  emitRefreshState(true);
+  if (!silent) {
+    emitRefreshOverlayDelta(+1);
+  }
   try {
     const res = await authFetchWithTimeout(
       `${getApiBase()}/auth/refresh`,
@@ -335,7 +361,9 @@ async function _doRefresh(): Promise<boolean> {
     if (_refreshAbortController === abortController) {
       _refreshAbortController = null;
     }
-    emitRefreshState(false);
+    if (!silent) {
+      emitRefreshOverlayDelta(-1);
+    }
   }
 }
 

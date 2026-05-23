@@ -69,6 +69,8 @@ export type FetchWithAuthContext = {
    * Reservado para rutas públicas (`false`). No implica Bearer; la sesión son cookies.
    */
   requireAuth?: boolean;
+  /** Tras login: no encadenar refresh silencioso ante 401 (Bearer en RAM). */
+  skipRefreshRetry?: boolean;
 };
 
 /** @deprecated Usar FetchWithAuthContext. */
@@ -145,12 +147,15 @@ export async function fetchWithAuth(
     typeof window !== "undefined" &&
     !isRefreshEndpoint
   ) {
+    if (ctx?.skipRefreshRetry) {
+      throw new Error("SESSION_EXPIRED");
+    }
     if (process.env.NODE_ENV === "development" && typeof console !== "undefined" && console.error) {
       console.error("[heydoctor-api] 401 Unauthorized — attempting refresh:", url);
     }
     let refreshedOnce = false;
     try {
-      refreshedOnce = await refreshAccessToken();
+      refreshedOnce = await refreshAccessToken({ silent: true });
     } catch {
       refreshedOnce = false;
     }
@@ -159,7 +164,7 @@ export async function fetchWithAuth(
     if (!refreshed && !refreshTimedOut) {
       await new Promise((r) => setTimeout(r, 150));
       try {
-        refreshed = await refreshAccessToken();
+        refreshed = await refreshAccessToken({ silent: true });
       } catch {
         refreshed = false;
       }
@@ -317,6 +322,7 @@ async function parseResponse<T>(res: Response): Promise<T> {
 function mergeAuthOptions(auth?: ApiAuthOptions): ApiAuthOptions {
   return {
     requireAuth: auth?.requireAuth !== false,
+    skipRefreshRetry: auth?.skipRefreshRetry,
     ...auth,
   };
 }

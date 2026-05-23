@@ -118,3 +118,32 @@ Smoke manual:
 - Overlays legítimos: WebRTC, consentimientos, cookie banner.
 - Suspense/hydration global de Next.js.
 - Endpoints auth del backend Nest/Railway.
+
+---
+
+## Post-merge gaps (PR #32 → hotfix definitivo)
+
+El merge #32 (`b6c40b7`) desplegó timeouts y stabilizer, pero **el blur persistió en producción** porque:
+
+| Gap | Síntoma | Hotfix |
+|-----|---------|--------|
+| Overlay acoplado a **todo** refresh | Blur en `/` y `/login` al cargar | `refreshAccessToken({ silent: true })` para background |
+| Refresh en rutas públicas sin sesión | `POST /auth/refresh` innecesario cross-origin | `shouldSkipAuthBootstrapOnMount()` |
+| `withTimeout` sin cancelar refresh | Overlay hasta 15s tras abandonar bootstrap | `recoverFromBootstrapFailure()` |
+| Login → getMe → retry 401 → refresh | "Ingresando…" + blur durante login | `getMe({ skipRefreshRetry: true })` + `login-transaction` timeout |
+| CI `typecheck` ausente en main | GitHub rojo, Vercel despliega igual | Script `typecheck` en `package.json` |
+
+## Matriz Git / Vercel / CI
+
+| Entorno | Commit esperado tras hotfix | CI |
+|---------|----------------------------|-----|
+| Preview (`fix/frontend-platform-stabilization`) | Último push de la rama | Verde |
+| Production (`main`) | Mismo commit tras merge post-preview | Verde |
+
+## Checklist smoke pre-merge (preview Vercel)
+
+1. `/` — sin blur a los 3s (visitante anónimo).
+2. `/login` — sin blur; formulario usable; **sin** `POST /auth/refresh` en Network.
+3. Login — completa o error claro en ≤ 25s; botón sale de "Ingresando…".
+4. `/panel` — hidratación normal con sesión existente.
+5. `window.__HEYDOCTOR_AUTH_TELEMETRY__` — sin `overlay_recovery` en carga anónima normal.

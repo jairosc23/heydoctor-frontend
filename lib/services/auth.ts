@@ -56,9 +56,17 @@ export async function logout(): Promise<void> {
 }
 
 /** Perfil: GET al Nest solo con cookies (sin Authorization). */
-export async function getMe(): Promise<AuthUser> {
+export type GetMeOptions = {
+  skipRefreshRetry?: boolean;
+};
+
+export async function getMe(options?: GetMeOptions): Promise<AuthUser> {
   try {
-    return await apiFetch<AuthUser>("/auth/me");
+    return await apiFetch<AuthUser>(
+      "/auth/me",
+      {},
+      { skipRefreshRetry: options?.skipRefreshRetry },
+    );
   } catch (err) {
     if (err instanceof ApiError) {
       const hint =
