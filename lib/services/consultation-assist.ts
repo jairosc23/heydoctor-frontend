@@ -8,10 +8,35 @@ export type ConsultationAssistRequest = {
 };
 
 export type ConsultationAssistResponse = {
+  aiRunId?: string;
+  approvalState?: AiApprovalState;
+  generatedByAi?: true;
   assistiveOnlyNotice: string;
   possibleDiagnoses: string[];
   recommendations: string[];
   generalEducation: string[];
+};
+
+export type AiApprovalState = "PENDING_REVIEW" | "APPROVED" | "REJECTED";
+
+export type AiProvenance = {
+  aiRunId: string;
+  workflowType: string;
+  provider: string;
+  modelName: string;
+  promptVersionId: string;
+  promptVersion: string | null;
+  consultationId: string | null;
+  appointmentId: string | null;
+  requestingUserId: string;
+  clinicId: string;
+  approvalState: AiApprovalState;
+  status: string;
+  startedAt: string;
+  completedAt: string | null;
+  reviewedAt?: string | null;
+  reviewerId?: string | null;
+  correlationId: string | null;
 };
 
 /**
@@ -35,4 +60,30 @@ export function requestConsultationAssist(
     body: JSON.stringify(body),
     headers,
   });
+}
+
+export function approveAiOutput(
+  aiRunId: string,
+  overrideReason?: string
+): Promise<AiProvenance> {
+  return apiFetch<AiProvenance>(`/ai/runs/${encodeURIComponent(aiRunId)}/approve`, {
+    method: "POST",
+    body: JSON.stringify({ overrideReason }),
+  });
+}
+
+export function rejectAiOutput(
+  aiRunId: string,
+  rejectionReason: string
+): Promise<AiProvenance> {
+  return apiFetch<AiProvenance>(`/ai/runs/${encodeURIComponent(aiRunId)}/reject`, {
+    method: "POST",
+    body: JSON.stringify({ rejectionReason }),
+  });
+}
+
+export function getAiProvenance(aiRunId: string): Promise<AiProvenance> {
+  return apiFetch<AiProvenance>(
+    `/ai/runs/${encodeURIComponent(aiRunId)}/provenance`
+  );
 }

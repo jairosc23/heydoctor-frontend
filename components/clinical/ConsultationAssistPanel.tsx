@@ -2,7 +2,11 @@
 
 import React, { useEffect, useState } from "react";
 import {
+  approveAiOutput,
+  getAiProvenance,
   requestConsultationAssist,
+  rejectAiOutput,
+  type AiProvenance,
   type ConsultationAssistResponse,
 } from "@/lib/services/consultation-assist";
 import { FALLBACK_CONSULTATION_ASSIST } from "@/lib/clinical-fallbacks";
@@ -39,12 +43,17 @@ export function ConsultationAssistPanel({
   const [assistNotice, setAssistNotice] = useState<string | null>(null);
   const [result, setResult] = useState<ConsultationAssistResponse | null>(null);
   const [usedFallback, setUsedFallback] = useState(false);
+  const [provenance, setProvenance] = useState<AiProvenance | null>(null);
+  const [reviewError, setReviewError] = useState<string | null>(null);
+  const [reviewLoading, setReviewLoading] = useState(false);
 
   const run = async () => {
     setLoading(true);
     setAssistNotice(null);
     setResult(null);
     setUsedFallback(false);
+    setProvenance(null);
+    setReviewError(null);
     try {
       const data = await requestConsultationAssist({
         chiefComplaint: chief.trim() || undefined,
@@ -58,6 +67,65 @@ export function ConsultationAssistPanel({
       setUsedFallback(true);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const refreshProvenance = async (aiRunId: string) => {
+    setReviewLoading(true);
+    setReviewError(null);
+    try {
+      const data = await getAiProvenance(aiRunId);
+      setProvenance(data);
+      setResult((current) =>
+        current
+          ? { ...current, approvalState: data.approvalState }
+          : current
+      );
+    } catch {
+      setReviewError("No se pudo cargar la trazabilidad del resultado IA.");
+    } finally {
+      setReviewLoading(false);
+    }
+  };
+
+  const approve = async (aiRunId: string) => {
+    setReviewLoading(true);
+    setReviewError(null);
+    try {
+      const data = await approveAiOutput(aiRunId, "Clinician reviewed output");
+      setProvenance(data);
+      setResult((current) =>
+        current
+          ? { ...current, approvalState: data.approvalState }
+          : current
+      );
+    } catch {
+      setReviewError("No se pudo aprobar el resultado IA.");
+    } finally {
+      setReviewLoading(false);
+    }
+  };
+
+  const reject = async (aiRunId: string) => {
+    const reason =
+      typeof window !== "undefined"
+        ? window.prompt("Motivo de rechazo (sin PHI):")?.trim()
+        : null;
+    if (!reason) return;
+    setReviewLoading(true);
+    setReviewError(null);
+    try {
+      const data = await rejectAiOutput(aiRunId, reason);
+      setProvenance(data);
+      setResult((current) =>
+        current
+          ? { ...current, approvalState: data.approvalState }
+          : current
+      );
+    } catch {
+      setReviewError("No se pudo rechazar el resultado IA.");
+    } finally {
+      setReviewLoading(false);
     }
   };
 
@@ -229,6 +297,94 @@ export function ConsultationAssistPanel({
           >
             {result.assistiveOnlyNotice}
           </p>
+          {result.generatedByAi && result.aiRunId && (
+            <div
+              style={{
+                marginTop: 10,
+                padding: 10,
+                borderRadius: 8,
+                border: "1px solid #dbeafe",
+                background: "#eff6ff",
+                color: "#1e3a8a",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 8,
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
+                <span style={{ fontSize: 12, fontWeight: 700 }}>
+                  Generado por IA · {formatApprovalState(result.approvalState)}
+                </span>
+                <span style={{ fontSize: 11, color: "#475569" }}>
+                  Run {result.aiRunId.slice(0, 8)}
+                </span>
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 8,
+                  marginTop: 10,
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => void approve(result.aiRunId!)}
+                  disabled={
+                    reviewLoading || result.approvalState === "APPROVED"
+                  }
+                  style={reviewButtonStyle("#047857")}
+                >
+                  Aprobar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void reject(result.aiRunId!)}
+                  disabled={
+                    reviewLoading || result.approvalState === "REJECTED"
+                  }
+                  style={reviewButtonStyle("#b91c1c")}
+                >
+                  Rechazar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void refreshProvenance(result.aiRunId!)}
+                  disabled={reviewLoading}
+                  style={reviewButtonStyle("#334155")}
+                >
+                  Trazabilidad
+                </button>
+              </div>
+              {provenance?.aiRunId === result.aiRunId && (
+                <p
+                  style={{
+                    margin: "10px 0 0",
+                    fontSize: 11,
+                    color: "#334155",
+                    lineHeight: 1.45,
+                  }}
+                >
+                  Proveedor {provenance.provider} · Modelo{" "}
+                  {provenance.modelName} · Prompt{" "}
+                  {provenance.promptVersion ?? provenance.promptVersionId}
+                  {provenance.reviewerId
+                    ? ` · Revisado por ${provenance.reviewerId.slice(0, 8)}`
+                    : ""}
+                </p>
+              )}
+              {reviewError && (
+                <p style={{ margin: "10px 0 0", fontSize: 11, color: "#991b1b" }}>
+                  {reviewError}
+                </p>
+              )}
+            </div>
+          )}
           <Section title="Posibles diagnósticos (diferenciales)" items={result.possibleDiagnoses} />
           <Section title="Recomendaciones generales" items={result.recommendations} />
           <Section title="Educación / contexto" items={result.generalEducation} />
@@ -236,6 +392,25 @@ export function ConsultationAssistPanel({
       )}
     </div>
   );
+}
+
+function formatApprovalState(state?: string) {
+  if (state === "APPROVED") return "aprobado";
+  if (state === "REJECTED") return "rechazado";
+  return "pendiente de revisión";
+}
+
+function reviewButtonStyle(background: string): React.CSSProperties {
+  return {
+    border: "none",
+    borderRadius: 8,
+    background,
+    color: "white",
+    cursor: "pointer",
+    fontSize: 12,
+    fontWeight: 700,
+    padding: "7px 10px",
+  };
 }
 
 function Section({ title, items }: { title: string; items: string[] }) {
