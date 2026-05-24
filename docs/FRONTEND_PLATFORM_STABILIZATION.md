@@ -147,3 +147,7 @@ El merge #32 (`b6c40b7`) desplegó timeouts y stabilizer, pero **el blur persist
 3. Login — completa o error claro en ≤ 25s; botón sale de "Ingresando…".
 4. `/panel` — hidratación normal con sesión existente.
 5. `window.__HEYDOCTOR_AUTH_TELEMETRY__` — sin `overlay_recovery` en carga anónima normal.
+
+## Diagnóstico E2E post-smoke (auth/backend)
+
+Tras el smoke en preview, los síntomas de UI quedaron resueltos pero el login sigue haciendo timeout a los 25s por bloqueo en la API (`GET /api/auth/csrf` cuelga). Ver **[AUTH_E2E_DIAGNOSIS.md](./AUTH_E2E_DIAGNOSIS.md)** — causa raíz: `ThrottlerGuard` + Redis caído en Railway. **No merge a `main` hasta E2E auth OK con fix backend desplegado.**
