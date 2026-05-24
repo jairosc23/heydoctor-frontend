@@ -4,6 +4,7 @@ import {
   subscribeRefreshState,
   forceResetRefreshState,
   consumeLastRefreshTimedOut,
+  getRefreshOverlayDepthForTests,
 } from "./auth-client";
 
 test("forceResetRefreshState emite sessionRevalidating false a listeners", () => {
@@ -14,6 +15,7 @@ test("forceResetRefreshState emite sessionRevalidating false a listeners", () =>
 
   forceResetRefreshState();
   assert.equal(refreshing, false);
+  assert.equal(getRefreshOverlayDepthForTests(), 0);
   unsub();
 });
 

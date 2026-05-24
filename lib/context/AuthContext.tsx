@@ -40,6 +40,7 @@ import {
   isBootstrapTimeoutError,
   shouldClearSessionOnBootstrapError,
 } from "@/lib/context/auth-bootstrap";
+import { shouldSkipAuthBootstrapOnMount } from "@/lib/auth-session-hints";
 
 type AuthContextValue = {
   user: AuthUser | null;
@@ -133,6 +134,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await clearSession();
   }, [bumpSessionGen, clearSession]);
 
+  const recoverFromBootstrapFailure = useCallback(() => {
+    cancelInFlightAuthRequests();
+    forceResetRefreshState();
+    setSessionRevalidating(false);
+  }, []);
+
   useEffect(() => {
     let mounted = true;
     const genAtStart = sessionGen();
@@ -140,9 +147,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     void (async () => {
       try {
+        if (shouldSkipAuthBootstrapOnMount(pathname)) {
+          return;
+        }
+
         try {
           const refreshed = await withTimeout(
-            refreshAccessToken(),
+            refreshAccessToken({ silent: true }),
             AUTH_REQUEST_TIMEOUT_MS,
             "auth-bootstrap-refresh",
           );
@@ -161,6 +172,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               phase: "refresh",
               durationMs: AUTH_REQUEST_TIMEOUT_MS,
             });
+            recoverFromBootstrapFailure();
           }
           if (shouldClearSessionOnBootstrapError(e, "refresh")) {
             console.warn(
@@ -194,6 +206,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               phase: "getMe",
               durationMs: AUTH_REQUEST_TIMEOUT_MS,
             });
+            recoverFromBootstrapFailure();
           }
           /* NO limpiar sesión en hidratación por fallo de getMe */
         }
@@ -211,7 +224,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
     // Solo al montar: cookies cross-site + getMe para estado inicial.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clearSession]);
+  }, [clearSession, pathname, recoverFromBootstrapFailure]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -298,34 +311,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, pathname, router]);
 
   const login = useCallback(async (email: string, password: string) => {
-    bumpSessionGen();
-    try {
-      await loginRequest(email, password);
-      await new Promise((res) => setTimeout(res, 150));
-    } catch (e) {
-      await clearMiddlewareSession();
-      throw e;
-    }
-    try {
-      const me = await withTimeout(
-        getMe(),
-        AUTH_REQUEST_TIMEOUT_MS,
-        "login-getMe",
-      );
-      setUser(me);
-      setLoading(false);
-      const t = getAccessToken()?.trim();
-      if (t) {
-        await syncMiddlewareSession(t);
-      }
-    } catch (e) {
-      await clearMiddlewareSession();
-      setAccessToken(null);
-      const detail = e instanceof Error ? e.message : String(e);
-      throw new Error(
-        `Inicio de sesión correcto, pero falló cargar el perfil (GET /api/auth/me): ${detail}`,
-      );
-    }
+    await withTimeout(
+      (async () => {
+        bumpSessionGen();
+        try {
+          await loginRequest(email, password);
+          await new Promise((res) => setTimeout(res, 150));
+        } catch (e) {
+          await clearMiddlewareSession();
+          throw e;
+        }
+        try {
+          const me = await getMe({ skipRefreshRetry: true });
+          setUser(me);
+          setLoading(false);
+          const t = getAccessToken()?.trim();
+          if (t) {
+            await syncMiddlewareSession(t);
+          }
+        } catch (e) {
+          await clearMiddlewareSession();
+          setAccessToken(null);
+          const detail = e instanceof Error ? e.message : String(e);
+          throw new Error(
+            `Inicio de sesión correcto, pero falló cargar el perfil (GET /api/auth/me): ${detail}`,
+          );
+        }
+      })(),
+      AUTH_HYDRATION_MAX_MS,
+      "login-transaction",
+    );
   }, [bumpSessionGen, clearMiddlewareSession]);
 
   const value = useMemo<AuthContextValue>(
