@@ -16,7 +16,7 @@ import {
   login as loginRequest,
   logout as logoutRequest,
   getMe,
-  syncMiddlewareSession,
+  ensureMiddlewareSessionForSsr,
   clearMiddlewareSession,
 } from "@/lib/services/auth";
 import {
@@ -196,10 +196,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             return;
           }
           setUser(me);
-          const t = getAccessToken()?.trim();
-          if (t) {
-            await syncMiddlewareSession(t);
-          }
+          await ensureMiddlewareSessionForSsr();
         } catch (e) {
           if (isBootstrapTimeoutError(e)) {
             emitAuthTelemetry("bootstrap_timeout", {
@@ -271,10 +268,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         );
         if (g0 !== sessionGen()) return;
         setUser(me);
-        const t = getAccessToken()?.trim();
-        if (t) {
-          await syncMiddlewareSession(t);
-        }
+        await ensureMiddlewareSessionForSsr();
       } catch (e) {
         if (g0 !== sessionGen()) return;
         console.warn("refreshUser failed:", e);
@@ -290,7 +284,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [sessionGen, loading, clearSession]);
 
   /**
-   * Tras login exitoso: `?redirect=` → ir al destino sin depender de estado async global previo.
+   * Sesión API válida pero sin cookie SSR: sincronizar antes de salir de /login (evita loop panel↔login).
    */
   useEffect(() => {
     if (
@@ -307,8 +301,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const raw = params.get("redirect");
     const target =
       raw && raw.startsWith("/") && !raw.startsWith("//") ? raw : "/panel";
-    router.replace(target);
-  }, [user, pathname, router]);
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        await ensureMiddlewareSessionForSsr();
+        if (cancelled) return;
+        window.location.assign(target);
+      } catch (e) {
+        console.warn("SSR session sync before redirect failed:", e);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user, pathname]);
 
   const login = useCallback(async (email: string, password: string) => {
     await withTimeout(
@@ -323,12 +331,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         try {
           const me = await getMe({ skipRefreshRetry: true });
+          await ensureMiddlewareSessionForSsr();
           setUser(me);
           setLoading(false);
-          const t = getAccessToken()?.trim();
-          if (t) {
-            await syncMiddlewareSession(t);
-          }
         } catch (e) {
           await clearMiddlewareSession();
           setAccessToken(null);
