@@ -1,5 +1,11 @@
 import { fetchWithAuth } from './heydoctor-api';
 
+export type WebrtcResilienceEventType =
+  | 'reconnect_attempts'
+  | 'reconnect_success'
+  | 'ice_restart_count'
+  | 'media_recovery_failures';
+
 export type SendCallMetricsInput = {
   backendOrigin: string;
   consultationId: string;
@@ -8,6 +14,10 @@ export type SendCallMetricsInput = {
   bitrate?: number;
   jitter?: number;
   packetLossRatio?: number;
+  eventType?: WebrtcResilienceEventType;
+  eventCount?: number;
+  clientTraceId?: string;
+  resilienceReason?: string;
 };
 
 /**
@@ -24,6 +34,10 @@ export async function sendCallMetrics(
     bitrate,
     jitter,
     packetLossRatio,
+    eventType,
+    eventCount,
+    clientTraceId,
+    resilienceReason,
   } = input;
 
   const url = new URL('/api/webrtc/metrics', backendOrigin.replace(/\/$/, '')).toString();
@@ -34,6 +48,12 @@ export async function sendCallMetrics(
   if (bitrate !== undefined) body.bitrate = bitrate;
   if (jitter !== undefined && !Number.isNaN(jitter)) body.jitter = jitter;
   if (packetLossRatio !== undefined) body.packetLossRatio = packetLossRatio;
+  if (eventType) body.eventType = eventType;
+  if (eventCount !== undefined) body.eventCount = eventCount;
+  if (clientTraceId) body.clientTraceId = clientTraceId.slice(0, 128);
+  if (resilienceReason) {
+    body.resilienceReason = resilienceReason.slice(0, 64);
+  }
 
   const res = await fetchWithAuth(url, {
     method: 'POST',

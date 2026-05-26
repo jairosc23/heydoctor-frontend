@@ -7,6 +7,12 @@ export type AuthTelemetryEvent =
   | "login_success"
   | "login_fail"
   | "refresh_fail"
+  | "refresh_timeout"
+  | "csrf_bootstrap_timeout"
+  | "bootstrap_timeout"
+  | "overlay_recovery"
+  | "stale_loading_reset"
+  | "hydration_recovery"
   | "unauthorized";
 
 declare global {

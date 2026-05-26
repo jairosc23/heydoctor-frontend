@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerNestApiBase } from "@/lib/api-base";
+import { apiFetch as fetchWithIncludedCredentials } from "@/lib/api-fetch-include";
 
 export const dynamic = "force-dynamic";
 
@@ -25,12 +26,15 @@ export async function POST(req: NextRequest) {
     if (csrf?.trim()) headers["X-CSRF-Token"] = csrf.trim();
     if (cookie?.trim()) headers.Cookie = cookie.trim();
 
-    const upstream = await fetch(`${base}/ai/consultation-assist`, {
-      method: "POST",
-      headers,
-      body,
-      cache: "no-store",
-    });
+    const upstream = await fetchWithIncludedCredentials(
+      `${base}/ai/consultation-assist`,
+      {
+        method: "POST",
+        headers,
+        body,
+        cache: "no-store",
+      },
+    );
 
     const text = await upstream.text();
     return new NextResponse(text, {

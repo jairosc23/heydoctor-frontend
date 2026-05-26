@@ -1,12 +1,18 @@
 /**
- * Auth client — login/register/refresh/logout al Nest con `credentials: 'include'`.
- * Cookies HttpOnly en el origen del API (`access_token`, `refresh_token`); sin JWT en localStorage.
- * Cookie de primer partido (`heydoctor_session`) si el backend devuelve JWT en JSON (legacy) o
- * con `COOKIE_DOMAIN` compartido; CSRF vía `csrfToken` en JSON + cabecera `X-CSRF-Token`
- * (necesario con front en Vercel y API en otro dominio).
+ * Auth client — login/register/refresh/logout al Nest con `credentials: 'include'`
+ * vía `apiFetch` de `./api-fetch-include` (reexportado aquí).
+ *
+ * Híbrido: cookies HttpOnly primero; el backend también devuelve `access_token` en JSON y el
+ * cliente lo guarda solo en RAM (`auth-access-memory`) y lo envía como `Authorization: Bearer`
+ * si falta cookie (p.ej. navegadores que bloquean third-party cookies). Sin JWT en localStorage.
+ * CSRF vía `csrfToken` en JSON + cabecera `X-CSRF-Token`.
  */
 
-import { invalidateJwtPayloadCache } from "./auth-token";
+import { AUTH_REQUEST_TIMEOUT_MS } from "./async/auth-request-config";
+import {
+  fetchWithTimeout,
+  FetchTimeoutError,
+} from "./async/fetch-with-timeout";
 import { emitAuthTelemetry } from "./auth-telemetry";
 import { getApiBase, getAuthCsrfUrl, getAuthLoginUrl } from "./api-base";
 import {
@@ -17,18 +23,39 @@ import {
   API_X_REQUESTED_WITH,
   API_XRW_XMLHTTPREQUEST,
 } from "./api-csrf";
+import { apiFetch as fetchWithIncludedCredentials } from "./api-fetch-include";
 
-// ── In-memory access token (opcional; p. ej. magic-link legacy). No localStorage. ──
+import {
+  getAccessToken,
+  setAccessToken,
+} from "./auth-access-memory";
 
-let _accessToken: string | null = null;
+export { getAccessToken, setAccessToken };
+export { FetchTimeoutError };
+
+/** Reexport: peticiones al API Nest desde el cliente con cookies cross-site (+ Bearer fallback). */
+export { apiFetch } from "./api-fetch-include";
+
 let _refreshPromise: Promise<boolean> | null = null;
-let _lastRefreshFailedAt = 0;
+let _refreshAbortController: AbortController | null = null;
+/** Solo tras 401 en POST /auth/refresh (sesión realmente inválida). */
+let _lastHardRefreshFailAt = 0;
+/** Evita doble retry inmediato en heydoctor-api tras timeout de refresh. */
+let _lastRefreshTimedOutAt = 0;
 
 const REFRESH_COOLDOWN_MS = 3_000;
+const REFRESH_TIMEOUT_COOLDOWN_MS = 3_000;
 const AUTH_TAB_CHANNEL = "heydoctor-auth-v1";
+
+export type RefreshAccessTokenOptions = {
+  /** Si true, no monta overlay global (refresh en background). */
+  silent?: boolean;
+};
 
 type RefreshStateListener = (isRefreshing: boolean) => void;
 const refreshStateListeners = new Set<RefreshStateListener>();
+/** Ref-count del overlay visible (solo refreshes no silenciosos). */
+let _refreshOverlayDepth = 0;
 
 export function subscribeRefreshState(
   listener: RefreshStateListener,
@@ -47,16 +74,42 @@ function emitRefreshState(isRefreshing: boolean): void {
   });
 }
 
-export function getAccessToken(): string | null {
-  return _accessToken?.trim() ? _accessToken : null;
+function emitRefreshOverlayDelta(delta: number): void {
+  _refreshOverlayDepth = Math.max(0, _refreshOverlayDepth + delta);
+  emitRefreshState(_refreshOverlayDepth > 0);
 }
 
-export function setAccessToken(token: string | null): void {
-  const next = token?.trim() ? token.trim() : null;
-  if (_accessToken !== next) {
-    invalidateJwtPayloadCache();
-  }
-  _accessToken = next;
+/** Solo tests: profundidad actual del overlay visible. */
+export function getRefreshOverlayDepthForTests(): number {
+  return _refreshOverlayDepth;
+}
+
+/** Indica si el último refresh falló por timeout (se consume al leer). */
+export function consumeLastRefreshTimedOut(): boolean {
+  if (_lastRefreshTimedOutAt === 0) return false;
+  const timedOut =
+    Date.now() - _lastRefreshTimedOutAt < REFRESH_TIMEOUT_COOLDOWN_MS;
+  _lastRefreshTimedOutAt = 0;
+  return timedOut;
+}
+
+/** Fuerza cierre del ciclo overlay/refresh (runtime stabilizer / unmount). */
+export function forceResetRefreshState(): void {
+  _refreshAbortController?.abort();
+  _refreshAbortController = null;
+  _refreshOverlayDepth = 0;
+  emitRefreshState(false);
+}
+
+/** Cancela peticiones auth en vuelo (refresh, CSRF bootstrap). */
+export function cancelInFlightAuthRequests(): void {
+  _refreshAbortController?.abort();
+  _refreshAbortController = null;
+  _bootstrapAbortController?.abort();
+  _bootstrapAbortController = null;
+  _bootstrapPromise = null;
+  _refreshOverlayDepth = 0;
+  emitRefreshState(false);
 }
 
 function getTabId(): string {
@@ -110,16 +163,16 @@ function attachMultiTabAuthSync(): void {
       const now = Date.now();
       if (now < remoteRefreshCooldownUntil) return;
       remoteRefreshCooldownUntil = now + 1_500;
-      void refreshAccessToken();
+      void bootstrapApiCsrf();
+      return;
     }
   };
 }
 
 async function clearFirstPartySessionCookie(): Promise<void> {
   if (typeof window === "undefined") return;
-  await fetch("/api/auth/session", {
+  await fetchWithIncludedCredentials("/api/auth/session", {
     method: "DELETE",
-    credentials: "include",
   }).catch(() => {});
 }
 
@@ -134,7 +187,20 @@ function buildCsrfHeaders(): HeadersInit {
   return headers;
 }
 
+function authFetchWithTimeout(
+  input: RequestInfo | URL,
+  init: RequestInit = {},
+  signal?: AbortSignal,
+): Promise<Response> {
+  return fetchWithTimeout(input, init, {
+    timeoutMs: AUTH_REQUEST_TIMEOUT_MS,
+    signal,
+    fetchImpl: fetchWithIncludedCredentials,
+  });
+}
+
 let _bootstrapPromise: Promise<void> | null = null;
+let _bootstrapAbortController: AbortController | null = null;
 
 /**
  * Obtiene `csrfToken` del API (cookies existentes o nueva cookie). Llamar al montar la app.
@@ -144,18 +210,24 @@ export async function bootstrapApiCsrf(): Promise<void> {
   if (typeof window === "undefined") return;
   if (_bootstrapPromise) return _bootstrapPromise;
 
+  _bootstrapAbortController?.abort();
+  const abortController = new AbortController();
+  _bootstrapAbortController = abortController;
+
   _bootstrapPromise = (async () => {
     try {
-      const res = await fetch(getAuthCsrfUrl(), {
-        method: "GET",
-        credentials: "include",
-        headers: { Accept: "application/json" },
-      });
+      const res = await authFetchWithTimeout(
+        getAuthCsrfUrl(),
+        {
+          method: "GET",
+          headers: { Accept: "application/json" },
+        },
+        abortController.signal,
+      );
       if (!res.ok) return;
       const data = (await res.json()) as { csrfToken?: string };
       applyCsrfFromPayload(data);
       if (process.env.NODE_ENV === "development") {
-        /* HttpOnly del API no aparece en document.cookie; solo cookies legibles del origen actual. */
         console.log(
           "[auth-debug] CSRF bootstrap → memoria:",
           getApiCsrfToken() ? "present" : "missing",
@@ -163,9 +235,16 @@ export async function bootstrapApiCsrf(): Promise<void> {
           document.cookie,
         );
       }
-    } catch {
-      /* noop */
+    } catch (err) {
+      if (err instanceof FetchTimeoutError) {
+        emitAuthTelemetry("csrf_bootstrap_timeout", {
+          durationMs: err.timeoutMs,
+        });
+      }
     } finally {
+      if (_bootstrapAbortController === abortController) {
+        _bootstrapAbortController = null;
+      }
       _bootstrapPromise = null;
     }
   })();
@@ -175,49 +254,78 @@ export async function bootstrapApiCsrf(): Promise<void> {
 
 // ── Refresh (cookies HttpOnly; cuerpo puede incluir `csrfToken` y opcionalmente JWT) ──
 
+function chainRefreshPromise(run: Promise<boolean>): Promise<boolean> {
+  releaseRefreshPromiseDeferred(run);
+  return run;
+}
+
+function releaseRefreshPromiseDeferred(run: Promise<boolean>): void {
+  run.finally(() => {
+    setTimeout(() => {
+      if (_refreshPromise === run) {
+        _refreshPromise = null;
+      }
+    }, 0);
+  });
+}
+
 /**
  * Rota access/refresh vía cookie `refresh_token`. Devuelve true si la respuesta fue OK
  * (nuevas cookies aplicadas por el navegador).
  */
-export async function refreshAccessToken(): Promise<boolean> {
-  if (Date.now() - _lastRefreshFailedAt < REFRESH_COOLDOWN_MS) {
+export async function refreshAccessToken(
+  options: RefreshAccessTokenOptions = {},
+): Promise<boolean> {
+  if (Date.now() - _lastHardRefreshFailAt < REFRESH_COOLDOWN_MS) {
     return false;
   }
 
   if (_refreshPromise) return _refreshPromise;
 
-  _refreshPromise = _doRefresh();
-  try {
-    return await _refreshPromise;
-  } finally {
-    _refreshPromise = null;
-  }
+  const run = _doRefresh(options);
+  _refreshPromise = run;
+  return chainRefreshPromise(run);
 }
 
-async function _doRefresh(): Promise<boolean> {
-  const accessTokenSnapshot = _accessToken;
-  emitRefreshState(true);
+async function _doRefresh(
+  options: RefreshAccessTokenOptions = {},
+): Promise<boolean> {
+  const silent = options.silent ?? false;
+  const accessTokenSnapshot = getAccessToken();
+
+  _refreshAbortController?.abort();
+  const abortController = new AbortController();
+  _refreshAbortController = abortController;
+
+  if (!silent) {
+    emitRefreshOverlayDelta(+1);
+  }
   try {
-    const res = await fetch(`${getApiBase()}/auth/refresh`, {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        Accept: "application/json",
-        ...buildCsrfHeaders(),
+    const res = await authFetchWithTimeout(
+      `${getApiBase()}/auth/refresh`,
+      {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          ...buildCsrfHeaders(),
+        },
       },
-    });
+      abortController.signal,
+    );
 
     if (!res.ok) {
-      _lastRefreshFailedAt = Date.now();
       emitAuthTelemetry("refresh_fail", { status: res.status });
-      if (_accessToken === accessTokenSnapshot) {
-        setAccessToken(null);
+      if (res.status === 401) {
+        _lastHardRefreshFailAt = Date.now();
+        if (getAccessToken() === accessTokenSnapshot) {
+          setAccessToken(null);
+        }
+        await clearFirstPartySessionCookie();
       }
-      await clearFirstPartySessionCookie();
       return false;
     }
 
-    let data: { csrfToken?: string; ok?: boolean } = {};
+    let data: { csrfToken?: string; ok?: boolean; access_token?: string } = {};
     try {
       data = (await res.json()) as typeof data;
     } catch {
@@ -226,18 +334,36 @@ async function _doRefresh(): Promise<boolean> {
 
     applyCsrfFromPayload(data);
 
-    _lastRefreshFailedAt = 0;
+    const newAccess = data.access_token;
+    if (typeof newAccess === "string" && newAccess.trim()) {
+      setAccessToken(newAccess.trim());
+    }
+
+    _lastHardRefreshFailAt = 0;
     broadcastAuthMessage("token-refreshed");
     return true;
-  } catch {
-    _lastRefreshFailedAt = Date.now();
-    emitAuthTelemetry("refresh_fail", { status: 0 });
-    if (_accessToken === accessTokenSnapshot) {
-      setAccessToken(null);
+  } catch (e) {
+    if (e instanceof FetchTimeoutError) {
+      _lastRefreshTimedOutAt = Date.now();
+      emitAuthTelemetry("refresh_timeout", { durationMs: e.timeoutMs });
+      return false;
     }
-    return false;
+    if (
+      e instanceof DOMException &&
+      (e.name === "AbortError" || e.code === 20)
+    ) {
+      return false;
+    }
+    emitAuthTelemetry("refresh_fail", { status: 0 });
+    console.error("REFRESH FAILED → forcing logout", e);
+    throw e;
   } finally {
-    emitRefreshState(false);
+    if (_refreshAbortController === abortController) {
+      _refreshAbortController = null;
+    }
+    if (!silent) {
+      emitRefreshOverlayDelta(-1);
+    }
   }
 }
 
@@ -285,6 +411,7 @@ export async function authLogin(
 ): Promise<AuthLoginResult> {
   const url = getAuthLoginUrl();
 
+  setAccessToken(null);
   await bootstrapApiCsrf();
 
   const normalizedEmail = email.trim().toLowerCase();
@@ -299,7 +426,7 @@ export async function authLogin(
 
   let res: Response;
   try {
-    res = await fetch(url, {
+    res = await authFetchWithTimeout(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -307,16 +434,18 @@ export async function authLogin(
         ...buildCsrfHeaders(),
       },
       body: JSON.stringify(loginBody),
-      credentials: "include",
     });
   } catch (cause) {
     emitAuthTelemetry("login_fail", { status: 0, network: true });
     const detail =
       cause instanceof Error ? cause.message : String(cause);
+    const isTimeout = cause instanceof FetchTimeoutError;
     throw new Error(
-      `Error de red al contactar el API (POST /api/auth/login). ` +
-        `Revisa CORS con credenciales en el backend, la política CSP connect-src del frontend y NEXT_PUBLIC_HEYDOCTOR_API_URL. ` +
-        `URL usada: ${url}. Detalle: ${detail}`,
+      isTimeout
+        ? `Tiempo de espera agotado al contactar el API (POST /api/auth/login). URL: ${url}.`
+        : `Error de red al contactar el API (POST /api/auth/login). ` +
+            `Revisa CORS con credenciales en el backend, la política CSP connect-src del frontend y NEXT_PUBLIC_HEYDOCTOR_API_URL. ` +
+            `URL usada: ${url}. Detalle: ${detail}`,
     );
   }
 
@@ -353,13 +482,18 @@ export async function authLogin(
 
   applyCsrfFromPayload(data);
 
+  const accessFromBody = data.access_token;
+  if (typeof accessFromBody === "string" && accessFromBody.trim()) {
+    setAccessToken(accessFromBody.trim());
+  } else {
+    setAccessToken(null);
+  }
+
   const u = (data.user ?? null) as Record<string, unknown> | null;
   if (!u || typeof u !== "object") {
     emitAuthTelemetry("login_fail", { status: res.status, reason: "no_user" });
     throw new Error("Respuesta de login inválida: falta user");
   }
-
-  setAccessToken(null);
 
   const fromNames = [u.firstName, u.lastName].filter(Boolean).join(" ").trim();
   const fallback = fromNames || (u.email as string) || "";
@@ -371,7 +505,7 @@ export async function authLogin(
     throw new Error("Respuesta de login inválida: falta user");
   }
 
-  _lastRefreshFailedAt = 0;
+  _lastHardRefreshFailAt = 0;
   emitAuthTelemetry("login_success", { userId });
 
   return {
@@ -394,11 +528,12 @@ export async function authLogout(options?: AuthLogoutOptions): Promise<void> {
     broadcastAuthMessage("logout");
   }
 
+  cancelInFlightAuthRequests();
+
   try {
     if (!options?.skipRemote) {
-      await fetch(`${getApiBase()}/auth/logout`, {
+      await fetchWithIncludedCredentials(`${getApiBase()}/auth/logout`, {
         method: "POST",
-        credentials: "include",
         headers: {
           Accept: "application/json",
           ...buildCsrfHeaders(),
@@ -411,7 +546,7 @@ export async function authLogout(options?: AuthLogoutOptions): Promise<void> {
 
   setAccessToken(null);
   setApiCsrfToken(null);
-  _lastRefreshFailedAt = 0;
+  _lastHardRefreshFailAt = 0;
   await clearFirstPartySessionCookie();
 }
 

@@ -7,9 +7,14 @@ import {
   authLogin as authLoginClient,
   authLogout as authLogoutClient,
   getAccessToken,
+  refreshAccessToken,
 } from "../auth-client";
+import { apiFetch as fetchWithIncludedCredentials } from "../api-fetch-include";
 import { ApiError, apiFetch } from "../heydoctor-api";
-import { setFirstPartySessionFromAccessToken } from "../first-party-session-cookie";
+import {
+  FirstPartySessionError,
+  setFirstPartySessionFromAccessToken,
+} from "../first-party-session-cookie";
 
 export type AuthUser = {
   id: string;
@@ -34,11 +39,31 @@ export async function syncMiddlewareSession(accessToken: string): Promise<void> 
   await setFirstPartySessionFromAccessToken(accessToken);
 }
 
+/**
+ * El proxy SSR solo lee `heydoctor_session` (mismo origen). Tras login/refresh/getMe en el API,
+ * sincroniza JWT en memoria → POST /api/auth/session antes de navegar a /panel.
+ */
+export async function ensureMiddlewareSessionForSsr(): Promise<void> {
+  let token = getAccessToken()?.trim() ?? "";
+  if (!token) {
+    const refreshed = await refreshAccessToken({ silent: true });
+    if (refreshed) {
+      token = getAccessToken()?.trim() ?? "";
+    }
+  }
+  if (!token) {
+    throw new FirstPartySessionError(
+      "No hay JWT para cookie heydoctor_session; el API puede tener sesión pero el Edge no.",
+      0,
+    );
+  }
+  await setFirstPartySessionFromAccessToken(token);
+}
+
 export async function clearMiddlewareSession(): Promise<void> {
   if (typeof window === "undefined") return;
-  await fetch("/api/auth/session", {
+  await fetchWithIncludedCredentials("/api/auth/session", {
     method: "DELETE",
-    credentials: "include",
   }).catch(() => {});
 }
 
@@ -56,9 +81,17 @@ export async function logout(): Promise<void> {
 }
 
 /** Perfil: GET al Nest solo con cookies (sin Authorization). */
-export async function getMe(): Promise<AuthUser> {
+export type GetMeOptions = {
+  skipRefreshRetry?: boolean;
+};
+
+export async function getMe(options?: GetMeOptions): Promise<AuthUser> {
   try {
-    return await apiFetch<AuthUser>("/auth/me");
+    return await apiFetch<AuthUser>(
+      "/auth/me",
+      {},
+      { skipRefreshRetry: options?.skipRefreshRetry },
+    );
   } catch (err) {
     if (err instanceof ApiError) {
       const hint =
@@ -73,9 +106,7 @@ export async function getMe(): Promise<AuthUser> {
   }
 }
 
-/** Sincroniza cookie Next si hay JWT en memoria (legacy). */
+/** Sincroniza cookie Next para SSR (panel, rutas protegidas). */
 export async function primeSessionFromAccessToken(): Promise<void> {
-  const t = getAccessToken()?.trim();
-  if (!t) return;
-  await syncMiddlewareSession(t);
+  await ensureMiddlewareSessionForSsr();
 }

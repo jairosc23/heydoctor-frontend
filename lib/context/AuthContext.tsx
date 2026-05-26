@@ -10,24 +10,44 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   type AuthUser,
   login as loginRequest,
   logout as logoutRequest,
   getMe,
-  syncMiddlewareSession,
+  ensureMiddlewareSessionForSsr,
   clearMiddlewareSession,
 } from "@/lib/services/auth";
 import {
   refreshAccessToken,
-  getAccessToken,
   subscribeRefreshState,
   setAccessToken,
   bootstrapApiCsrf,
+  cancelInFlightAuthRequests,
+  forceResetRefreshState,
 } from "@/lib/auth-client";
-import { getSafePostLoginPath } from "@/lib/auth/safe-post-login-path";
+import {
+  AUTH_HYDRATION_MAX_MS,
+  AUTH_OVERLAY_MAX_MS,
+  AUTH_REQUEST_TIMEOUT_MS,
+} from "@/lib/async/auth-request-config";
+import { withTimeout } from "@/lib/async/with-timeout";
+import { emitAuthTelemetry } from "@/lib/auth-telemetry";
+import { useAuthRuntimeStabilizer } from "@/lib/hooks/useAuthRuntimeStabilizer";
+import {
+  isBootstrapTimeoutError,
+  shouldClearSessionOnBootstrapError,
+} from "@/lib/context/auth-bootstrap";
+import { shouldSkipAuthBootstrapOnMount } from "@/lib/auth-session-hints";
 import { ApiError } from "@/lib/heydoctor-api";
+
+function getSafePostLoginPath(redirect: string | null): string {
+  if (redirect && redirect.startsWith("/") && !redirect.startsWith("//")) {
+    return redirect;
+  }
+  return "/panel";
+}
 
 function isUnauthorizedError(e: unknown): boolean {
   if (e instanceof ApiError && e.status === 401) return true;
@@ -57,7 +77,7 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-/** Invalida `refreshUser` en vuelo para que no llame a `clearSession` tras un login concurrente. */
+/** Invalida operaciones en vuelo tras login/logout concurrente. */
 function useSessionGeneration() {
   const gen = useRef(0);
   const bump = useCallback(() => {
@@ -73,9 +93,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [sessionRevalidating, setSessionRevalidating] = useState(false);
   const pathname = usePathname();
-  const router = useRouter();
   const { bump: bumpSessionGen, snapshot: sessionGen } = useSessionGeneration();
   const refreshUserInFlightRef = useRef<Promise<void> | null>(null);
+  const overlaySinceRef = useRef<number | null>(null);
 
   useEffect(() => {
     return subscribeRefreshState(setSessionRevalidating);
@@ -85,40 +105,144 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void bootstrapApiCsrf();
   }, []);
 
+  const handleOverlayRecovery = useCallback(() => {
+    forceResetRefreshState();
+    setSessionRevalidating(false);
+  }, []);
+
+  const handleHydrationRecovery = useCallback(() => {
+    setLoading(false);
+  }, []);
+
+  useAuthRuntimeStabilizer({
+    loading,
+    sessionRevalidating,
+    onOverlayRecovery: handleOverlayRecovery,
+    onHydrationRecovery: handleHydrationRecovery,
+    onStaleLoadingReset: handleHydrationRecovery,
+  });
+
+  /** Watchdog local: overlay atascado aunque emitRefreshState no haya corrido. */
   useEffect(() => {
-    let cancelled = false;
+    if (sessionRevalidating) {
+      if (overlaySinceRef.current == null) {
+        overlaySinceRef.current = Date.now();
+      }
+      const watchdogId = setTimeout(() => {
+        if (overlaySinceRef.current == null) return;
+        if (Date.now() - overlaySinceRef.current < AUTH_OVERLAY_MAX_MS) return;
+        emitAuthTelemetry("overlay_recovery", {
+          phase: "watchdog",
+          durationMs: Date.now() - overlaySinceRef.current,
+        });
+        handleOverlayRecovery();
+      }, AUTH_OVERLAY_MAX_MS);
+      return () => clearTimeout(watchdogId);
+    }
+    overlaySinceRef.current = null;
+    return undefined;
+  }, [sessionRevalidating, handleOverlayRecovery]);
+
+  const clearSession = useCallback(async () => {
+    setUser(null);
+    setAccessToken(null);
+    await clearMiddlewareSession();
+  }, []);
+
+  const logout = useCallback(async () => {
+    bumpSessionGen();
+    await logoutRequest();
+    await clearSession();
+  }, [bumpSessionGen, clearSession]);
+
+  const recoverFromBootstrapFailure = useCallback(() => {
+    cancelInFlightAuthRequests();
+    forceResetRefreshState();
+    setSessionRevalidating(false);
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
     const genAtStart = sessionGen();
+    const hydrationAbort = new AbortController();
+
     void (async () => {
       try {
-        await refreshAccessToken();
-        const me = await getMe();
-        if (cancelled || sessionGen() !== genAtStart) return;
-        setUser(me);
-        const t = getAccessToken()?.trim();
-        if (t) {
-          await syncMiddlewareSession(t);
+        if (shouldSkipAuthBootstrapOnMount(pathname)) {
+          return;
         }
-      } catch (e) {
-        if (cancelled || sessionGen() !== genAtStart) return;
-        if (isUnauthorizedError(e)) {
-          setUser(null);
-          setAccessToken(null);
-          await clearMiddlewareSession();
-        } else {
-          console.warn("Initial auth hydrate failed (non-fatal):", e);
+
+        try {
+          const refreshed = await withTimeout(
+            refreshAccessToken({ silent: true }),
+            AUTH_REQUEST_TIMEOUT_MS,
+            "auth-bootstrap-refresh",
+          );
+          if (!refreshed) {
+            if (!mounted || hydrationAbort.signal.aborted) return;
+            console.warn(
+              "refresh failed on mount → clear local session (no remote logout)",
+            );
+            await clearSession();
+            return;
+          }
+        } catch (e) {
+          if (!mounted || hydrationAbort.signal.aborted) return;
+          if (isBootstrapTimeoutError(e)) {
+            emitAuthTelemetry("bootstrap_timeout", {
+              phase: "refresh",
+              durationMs: AUTH_REQUEST_TIMEOUT_MS,
+            });
+            recoverFromBootstrapFailure();
+          }
+          if (shouldClearSessionOnBootstrapError(e, "refresh")) {
+            console.warn(
+              "refresh failed on mount → clear local session (no remote logout)",
+              e,
+            );
+            await clearSession();
+          }
+          return;
+        }
+
+        if (!mounted || hydrationAbort.signal.aborted) return;
+
+        try {
+          const me = await withTimeout(
+            getMe(),
+            AUTH_REQUEST_TIMEOUT_MS,
+            "auth-bootstrap-getMe",
+          );
+          if (!mounted || sessionGen() !== genAtStart || hydrationAbort.signal.aborted) {
+            return;
+          }
+          setUser(me);
+          await ensureMiddlewareSessionForSsr();
+        } catch (e) {
+          if (isBootstrapTimeoutError(e)) {
+            emitAuthTelemetry("bootstrap_timeout", {
+              phase: "getMe",
+              durationMs: AUTH_REQUEST_TIMEOUT_MS,
+            });
+            recoverFromBootstrapFailure();
+          }
+          /* NO limpiar sesión en hidratación por fallo de getMe */
         }
       } finally {
-        if (!cancelled) {
+        if (mounted) {
           setLoading(false);
         }
       }
     })();
+
     return () => {
-      cancelled = true;
+      mounted = false;
+      hydrationAbort.abort();
+      cancelInFlightAuthRequests();
     };
     // Solo al montar: cookies cross-site + getMe para estado inicial.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [clearSession, pathname, recoverFromBootstrapFailure, sessionGen]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -126,12 +250,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.addEventListener("heydoctor:session-cleared", onSessionCleared);
     return () =>
       window.removeEventListener("heydoctor:session-cleared", onSessionCleared);
-  }, []);
-
-  const clearSession = useCallback(async () => {
-    setUser(null);
-    setAccessToken(null);
-    await clearMiddlewareSession();
   }, []);
 
   const refreshUser = useCallback(async () => {
@@ -145,14 +263,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const g0 = sessionGen();
     const p = (async () => {
       try {
-        await refreshAccessToken();
-        const me = await getMe();
+        let refreshed = false;
+        try {
+          refreshed = await withTimeout(
+            refreshAccessToken(),
+            AUTH_REQUEST_TIMEOUT_MS,
+            "refreshUser-refresh",
+          );
+        } catch (e) {
+          if (g0 !== sessionGen()) return;
+          if (isUnauthorizedError(e)) {
+            await clearSession();
+          } else {
+            console.warn("refreshUser: refresh threw (no logout):", e);
+          }
+          return;
+        }
+        if (!refreshed) {
+          if (g0 !== sessionGen()) return;
+          console.warn("refreshUser: refresh not ok (no logout)");
+          return;
+        }
+        const me = await withTimeout(
+          getMe(),
+          AUTH_REQUEST_TIMEOUT_MS,
+          "refreshUser-getMe",
+        );
         if (g0 !== sessionGen()) return;
         setUser(me);
-        const t = getAccessToken()?.trim();
-        if (t) {
-          await syncMiddlewareSession(t);
-        }
+        await ensureMiddlewareSessionForSsr();
       } catch (e) {
         if (g0 !== sessionGen()) return;
         if (isUnauthorizedError(e)) {
@@ -169,57 +308,64 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
     return p;
-  }, [clearSession, sessionGen, loading]);
+  }, [sessionGen, loading, clearSession]);
 
   /**
-   * Usuario autenticado en /login: ir al destino seguro (o /panel) solo cuando
-   * `user` ya existe (API confirmó sesión), no por cookie Edge sola.
+   * Sesión API válida en /login: sincronizar cookie SSR y navegar con recarga completa.
    */
   useEffect(() => {
-    if (
-      !user ||
-      pathname !== "/login" ||
-      typeof window === "undefined"
-    ) {
+    if (!user || pathname !== "/login" || typeof window === "undefined") {
       return;
     }
     const params = new URLSearchParams(window.location.search);
-    const target = params.has("redirect")
-      ? getSafePostLoginPath(params.get("redirect"))
-      : "/panel";
-    router.replace(target);
-  }, [user, pathname, router]);
+    const target = getSafePostLoginPath(
+      params.has("redirect") ? params.get("redirect") : "/panel",
+    );
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        await ensureMiddlewareSessionForSsr();
+        if (cancelled) return;
+        window.location.assign(target);
+      } catch (e) {
+        console.warn("SSR session sync before redirect failed:", e);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user, pathname]);
 
   const login = useCallback(async (email: string, password: string) => {
-    bumpSessionGen();
-    try {
-      await loginRequest(email, password);
-    } catch (e) {
-      await clearMiddlewareSession();
-      throw e;
-    }
-    try {
-      const me = await getMe();
-      setUser(me);
-      setLoading(false);
-      const t = getAccessToken()?.trim();
-      if (t) {
-        await syncMiddlewareSession(t);
-      }
-    } catch (e) {
-      await clearMiddlewareSession();
-      setAccessToken(null);
-      const detail = e instanceof Error ? e.message : String(e);
-      throw new Error(
-        `Inicio de sesión correcto, pero falló cargar el perfil (GET /api/auth/me): ${detail}`,
-      );
-    }
-  }, [bumpSessionGen, clearMiddlewareSession]);
-
-  const logout = useCallback(async () => {
-    bumpSessionGen();
-    await logoutRequest();
-    setUser(null);
+    await withTimeout(
+      (async () => {
+        bumpSessionGen();
+        try {
+          await loginRequest(email, password);
+          await new Promise((res) => setTimeout(res, 150));
+        } catch (e) {
+          await clearMiddlewareSession();
+          throw e;
+        }
+        try {
+          const me = await getMe({ skipRefreshRetry: true });
+          await ensureMiddlewareSessionForSsr();
+          setUser(me);
+          setLoading(false);
+        } catch (e) {
+          await clearMiddlewareSession();
+          setAccessToken(null);
+          const detail = e instanceof Error ? e.message : String(e);
+          throw new Error(
+            `Inicio de sesión correcto, pero falló cargar el perfil (GET /api/auth/me): ${detail}`,
+          );
+        }
+      })(),
+      AUTH_HYDRATION_MAX_MS,
+      "login-transaction",
+    );
   }, [bumpSessionGen]);
 
   const value = useMemo<AuthContextValue>(
@@ -232,13 +378,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logout,
       refreshUser,
     }),
-    [user, loading, sessionRevalidating, login, logout, refreshUser]
+    [user, loading, sessionRevalidating, login, logout, refreshUser],
   );
 
   return (
     <AuthContext.Provider value={value}>
       {sessionRevalidating && (
         <div
+          data-heydoctor-auth-overlay="true"
           aria-live="polite"
           aria-busy="true"
           style={{

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/context/AuthContext";
 import HeyDoctorLogo from "@/components/ui/HeyDoctorLogo";
@@ -14,7 +14,6 @@ function LoginContent() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
   const searchParams = useSearchParams();
   const { login } = useAuth();
 
@@ -37,7 +36,8 @@ function LoginContent() {
 
     try {
       await login(email.trim(), password);
-      router.push(redirect);
+      /** Navegación completa: el proxy SSR debe recibir `heydoctor_session` (no solo RSC client). */
+      window.location.assign(redirect);
     } catch (err) {
       const msg =
         err instanceof Error ? err.message : "Error desconocido al iniciar sesión.";

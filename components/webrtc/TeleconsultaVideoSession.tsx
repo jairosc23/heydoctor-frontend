@@ -7,7 +7,6 @@ import { ConsentModal } from "@/components/ConsentModal";
 import { GuestNamePrompt } from "@/components/telemedicine/GuestNamePrompt";
 /** Única fuente de UI de llamada: `@/components/VideoCall` (no usar alternativas duplicadas). */
 import { VideoCall, type VideoCallCallChrome } from "@/components/VideoCall";
-import { refreshAccessToken } from "@/lib/auth-client";
 import { getGuestName, setGuestName } from "@/lib/guest-session";
 import {
   fetchConsultation,
@@ -111,7 +110,7 @@ export function TeleconsultaVideoSession({
   deepLinkDeniedLoginHref = "/login",
   inviteTokenGate,
 }: TeleconsultaVideoSessionProps) {
-  const { user, loading } = useAuth();
+  const { user, loading, refreshUser } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const accessTokenPending = !!searchParams.get("access_token")?.trim();
@@ -349,7 +348,7 @@ export function TeleconsultaVideoSession({
     }
     let cancelled = false;
     void (async () => {
-      await refreshAccessToken().catch(() => {});
+      await refreshUser().catch(() => {});
       if (!cancelled) {
         setAuthReady(true);
       }
@@ -357,7 +356,7 @@ export function TeleconsultaVideoSession({
     return () => {
       cancelled = true;
     };
-  }, [accessTokenPending, effectiveMode]);
+  }, [accessTokenPending, effectiveMode, refreshUser]);
 
   useEffect(() => {
     if (effectiveMode === "guest") return;
@@ -660,7 +659,10 @@ export function TeleconsultaVideoSession({
   }
 
   return (
-    <div className="fixed inset-0 bg-[#0B0F14] flex flex-col overflow-hidden">
+    <div
+      className="fixed inset-0 bg-[#0B0F14] flex flex-col overflow-hidden"
+      data-teleconsulta-session="active"
+    >
       <VideoCall
         consultationId={callConsultationId}
         onEndCall={handleEndCall}

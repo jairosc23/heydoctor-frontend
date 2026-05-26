@@ -5,6 +5,7 @@
 
 import { getApiBase } from "./api-base";
 import { getAccessToken } from "./auth-client";
+import { apiFetch as fetchWithIncludedCredentials } from "./api-fetch-include";
 
 const SESSION_KEY = "hd_session_id";
 
@@ -129,12 +130,11 @@ async function postCollect(
      `unload` (no aplica aquí) y privilegiamos `fetch` para detectar el 404 una
      única vez y desactivar el envío hasta el próximo recargo. */
   try {
-    const res = await fetch(url, {
+    const res = await fetchWithIncludedCredentials(url, {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
       body,
       keepalive: true,
-      credentials: "include",
     });
     if (res.status === 404) {
       analyticsDisabled = true;

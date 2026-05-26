@@ -7,7 +7,12 @@
  * - 401: `POST /auth/refresh` y reintento; datos dinámicos con `cache: "no-store"`.
  */
 
-import { bootstrapApiCsrf, refreshAccessToken } from "./auth-client";
+import {
+  bootstrapApiCsrf,
+  consumeLastRefreshTimedOut,
+  refreshAccessToken,
+} from "./auth-client";
+import { apiFetch as fetchWithIncludedCredentials } from "./api-fetch-include";
 import { handleAuthError } from "./auth/auth-guard";
 import { getApiBase } from "./api-base";
 import {
@@ -16,6 +21,10 @@ import {
   API_X_REQUESTED_WITH,
   API_XRW_XMLHTTPREQUEST,
 } from "./api-csrf";
+import {
+  getOrCreateClientCorrelationId,
+  rememberServerRequestId,
+} from "./observability/correlation";
 
 const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
@@ -60,6 +69,8 @@ export type FetchWithAuthContext = {
    * Reservado para rutas públicas (`false`). No implica Bearer; la sesión son cookies.
    */
   requireAuth?: boolean;
+  /** Tras login: no encadenar refresh silencioso ante 401 (Bearer en RAM). */
+  skipRefreshRetry?: boolean;
 };
 
 /** @deprecated Usar FetchWithAuthContext. */
@@ -104,6 +115,10 @@ export async function fetchWithAuth(
     if (unsafe && csrf && !headers.has(API_CSRF_HEADER)) {
       headers.set(API_CSRF_HEADER, csrf);
     }
+    const correlationId = getOrCreateClientCorrelationId();
+    if (correlationId && !headers.has("X-Request-Id")) {
+      headers.set("X-Request-Id", correlationId);
+    }
     if (
       process.env.NODE_ENV === "development" &&
       unsafe &&
@@ -118,24 +133,42 @@ export async function fetchWithAuth(
   };
 
   const doFetch = async (): Promise<Response> =>
-    fetch(url, {
+    fetchWithIncludedCredentials(url, {
       ...init,
       headers: buildHeaders(),
-      credentials: "include",
       cache: "no-store",
     });
 
   let res = await doFetch();
+  rememberServerRequestId(res);
 
   if (
     res.status === 401 &&
     typeof window !== "undefined" &&
     !isRefreshEndpoint
   ) {
+    if (ctx?.skipRefreshRetry) {
+      throw new Error("SESSION_EXPIRED");
+    }
     if (process.env.NODE_ENV === "development" && typeof console !== "undefined" && console.error) {
       console.error("[heydoctor-api] 401 Unauthorized — attempting refresh:", url);
     }
-    const refreshed = await refreshAccessToken();
+    let refreshedOnce = false;
+    try {
+      refreshedOnce = await refreshAccessToken({ silent: true });
+    } catch {
+      refreshedOnce = false;
+    }
+    let refreshed = refreshedOnce;
+    const refreshTimedOut = consumeLastRefreshTimedOut();
+    if (!refreshed && !refreshTimedOut) {
+      await new Promise((r) => setTimeout(r, 150));
+      try {
+        refreshed = await refreshAccessToken({ silent: true });
+      } catch {
+        refreshed = false;
+      }
+    }
     if (refreshed) {
       res = await doFetch();
     }
@@ -289,6 +322,7 @@ async function parseResponse<T>(res: Response): Promise<T> {
 function mergeAuthOptions(auth?: ApiAuthOptions): ApiAuthOptions {
   return {
     requireAuth: auth?.requireAuth !== false,
+    skipRefreshRetry: auth?.skipRefreshRetry,
     ...auth,
   };
 }

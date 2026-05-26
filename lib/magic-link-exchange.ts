@@ -4,6 +4,7 @@
 
 import { applyCsrfFromPayload } from "@/lib/api-csrf";
 import { bootstrapApiCsrf } from "@/lib/auth-client";
+import { setAccessToken } from "@/lib/auth-access-memory";
 import { setFirstPartySessionFromAccessToken } from "@/lib/first-party-session-cookie";
 import { heydoctorApi } from "@/lib/heydoctor-api";
 
@@ -24,6 +25,7 @@ export async function exchangeMagicLinkToken(token: string): Promise<void> {
 
   const at = data.access_token?.trim();
   if (at) {
+    setAccessToken(at);
     await setFirstPartySessionFromAccessToken(at);
   }
 }
