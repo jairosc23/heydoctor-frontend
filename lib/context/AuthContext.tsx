@@ -10,7 +10,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   type AuthUser,
   login as loginRequest,
@@ -21,7 +21,6 @@ import {
 } from "@/lib/services/auth";
 import {
   refreshAccessToken,
-  getAccessToken,
   subscribeRefreshState,
   setAccessToken,
   bootstrapApiCsrf,
@@ -71,7 +70,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [sessionRevalidating, setSessionRevalidating] = useState(false);
   const pathname = usePathname();
-  const router = useRouter();
   const { bump: bumpSessionGen, snapshot: sessionGen } = useSessionGeneration();
   const refreshUserInFlightRef = useRef<Promise<void> | null>(null);
   const overlaySinceRef = useRef<number | null>(null);
