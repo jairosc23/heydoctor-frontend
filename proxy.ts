@@ -73,6 +73,7 @@ function addSecurityHeaders(response: NextResponse): NextResponse {
 
 /**
  * Cookie de primer partido: el cliente POST `/api/auth/session` con Bearer tras login en el Nest.
+ * Las cookies HttpOnly del API (`access_token` en pro-api.heydoctor.health) no llegan al Edge de Vercel.
  * El handler solo valida forma/exp del JWT; aquí comprobamos `exp` localmente (sin fetch al backend).
  */
 export function proxy(request: NextRequest) {
