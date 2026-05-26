@@ -55,8 +55,10 @@ export default function PanelLayout({
       : undefined) ??
     "Panel";
   const router = useRouter();
-  const { logout, user, loading: authLoading } = useAuth();
+  const { isAuthenticated, logout, user, refreshUser, loading: authLoading } =
+    useAuth();
   const [dark, setDark] = useState(false);
+  const [panelSessionChecked, setPanelSessionChecked] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined" && localStorage.getItem("theme") === "dark") {
@@ -69,10 +71,31 @@ export default function PanelLayout({
     if (authLoading) {
       return;
     }
-    if (!user) {
-      router.replace("/login");
+    if (user) {
+      setPanelSessionChecked(true);
+      return;
     }
-  }, [authLoading, user, router]);
+    if (!panelSessionChecked) {
+      void refreshUser().finally(() => setPanelSessionChecked(true));
+    }
+  }, [user, panelSessionChecked, refreshUser, authLoading]);
+
+  useEffect(() => {
+    if (authLoading) {
+      return;
+    }
+    if (panelSessionChecked && !isAuthenticated) {
+      const path = pathname ?? "";
+      const dest =
+        path &&
+        path !== "/login" &&
+        path.startsWith("/") &&
+        !path.startsWith("//")
+          ? `/login?redirect=${encodeURIComponent(path)}`
+          : "/login";
+      router.push(dest);
+    }
+  }, [authLoading, panelSessionChecked, isAuthenticated, router, pathname]);
 
   function toggleTheme() {
     setDark((d) => !d);
@@ -84,29 +107,19 @@ export default function PanelLayout({
 
   async function handleLogout() {
     await logout();
-    router.replace("/login");
+    router.push("/login");
   }
 
-  /** Teleconsulta a pantalla completa: mismo bloqueo de hidratación; sin sidebar. */
+  /** Teleconsulta a pantalla completa: montar siempre (la sesión gestiona loaders y auth). */
   const isPanelTeleconsultaRoute =
     !!pathname && /\/panel\/consultas\/[^/]+\/teleconsulta$/.test(pathname);
 
-  if (authLoading) {
-    return (
-      <div
-        aria-busy="true"
-        aria-live="polite"
-        className="fixed inset-0 z-[2147483646] bg-[#0B0F14] h-screen w-screen"
-      />
-    );
-  }
-
-  if (!user) {
-    return null;
-  }
-
   if (isPanelTeleconsultaRoute) {
     return <>{children}</>;
+  }
+
+  if (authLoading) {
+    return null;
   }
 
   return (

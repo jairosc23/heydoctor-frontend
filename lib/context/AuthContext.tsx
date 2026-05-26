@@ -40,6 +40,29 @@ import {
   shouldClearSessionOnBootstrapError,
 } from "@/lib/context/auth-bootstrap";
 import { shouldSkipAuthBootstrapOnMount } from "@/lib/auth-session-hints";
+import { ApiError } from "@/lib/heydoctor-api";
+
+function getSafePostLoginPath(redirect: string | null): string {
+  if (redirect && redirect.startsWith("/") && !redirect.startsWith("//")) {
+    return redirect;
+  }
+  return "/panel";
+}
+
+function isUnauthorizedError(e: unknown): boolean {
+  if (e instanceof ApiError && e.status === 401) return true;
+  if (
+    typeof e === "object" &&
+    e !== null &&
+    "status" in e &&
+    (e as { status: unknown }).status === 401
+  ) {
+    return true;
+  }
+  const msg =
+    e instanceof Error ? e.message : typeof e === "string" ? e : String(e ?? "");
+  return msg.includes("401");
+}
 
 type AuthContextValue = {
   user: AuthUser | null;
@@ -219,7 +242,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
     // Solo al montar: cookies cross-site + getMe para estado inicial.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clearSession, pathname, recoverFromBootstrapFailure]);
+  }, [clearSession, pathname, recoverFromBootstrapFailure, sessionGen]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -249,14 +272,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           );
         } catch (e) {
           if (g0 !== sessionGen()) return;
-          console.warn("refreshUser: refresh threw → clear session", e);
-          await clearSession();
+          if (isUnauthorizedError(e)) {
+            await clearSession();
+          } else {
+            console.warn("refreshUser: refresh threw (no logout):", e);
+          }
           return;
         }
         if (!refreshed) {
           if (g0 !== sessionGen()) return;
-          console.warn("refreshUser: refresh not ok → clear session");
-          await clearSession();
+          console.warn("refreshUser: refresh not ok (no logout)");
           return;
         }
         const me = await withTimeout(
@@ -269,7 +294,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await ensureMiddlewareSessionForSsr();
       } catch (e) {
         if (g0 !== sessionGen()) return;
-        console.warn("refreshUser failed:", e);
+        if (isUnauthorizedError(e)) {
+          await clearSession();
+        } else {
+          console.warn("refreshUser failed (no logout):", e);
+        }
       }
     })();
     refreshUserInFlightRef.current = p;
@@ -282,23 +311,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [sessionGen, loading, clearSession]);
 
   /**
-   * Sesión API válida pero sin cookie SSR: sincronizar antes de salir de /login (evita loop panel↔login).
+   * Sesión API válida en /login: sincronizar cookie SSR y navegar con recarga completa.
    */
   useEffect(() => {
-    if (
-      !user ||
-      pathname !== "/login" ||
-      typeof window === "undefined"
-    ) {
+    if (!user || pathname !== "/login" || typeof window === "undefined") {
       return;
     }
     const params = new URLSearchParams(window.location.search);
-    if (!params.has("redirect")) {
-      return;
-    }
-    const raw = params.get("redirect");
-    const target =
-      raw && raw.startsWith("/") && !raw.startsWith("//") ? raw : "/panel";
+    const target = getSafePostLoginPath(
+      params.has("redirect") ? params.get("redirect") : "/panel",
+    );
 
     let cancelled = false;
     void (async () => {
@@ -344,7 +366,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       AUTH_HYDRATION_MAX_MS,
       "login-transaction",
     );
-  }, [bumpSessionGen, clearMiddlewareSession]);
+  }, [bumpSessionGen]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
