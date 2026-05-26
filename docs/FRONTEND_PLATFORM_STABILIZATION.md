@@ -150,4 +150,11 @@ El merge #32 (`b6c40b7`) desplegó timeouts y stabilizer, pero **el blur persist
 
 ## Diagnóstico E2E post-smoke (auth/backend)
 
-Tras el smoke en preview, los síntomas de UI quedaron resueltos pero el login sigue haciendo timeout a los 25s por bloqueo en la API (`GET /api/auth/csrf` cuelga). Ver **[AUTH_E2E_DIAGNOSIS.md](./AUTH_E2E_DIAGNOSIS.md)** — causa raíz: `ThrottlerGuard` + Redis caído en Railway. **No merge a `main` hasta E2E auth OK con fix backend desplegado.**
+Tras el smoke en preview, throttler/Redis y migraciones quedaron resueltos. Ver **[AUTH_E2E_DIAGNOSIS.md](./AUTH_E2E_DIAGNOSIS.md)**.
+
+### Fase 3 — Redirect loop SSR (resuelto)
+
+- API auth OK (`/login`, `/me`, cookies en `pro-api`) pero loop `/panel` ↔ `/login`.
+- Causa: `proxy.ts` solo lee `heydoctor_session` (origen Vercel), no cookies del API cross-site.
+- Fix: `ensureMiddlewareSessionForSsr()` + `POST /api/auth/session` antes de navegar a `/panel`.
+
