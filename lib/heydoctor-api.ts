@@ -9,6 +9,7 @@
 
 import {
   bootstrapApiCsrf,
+  consumeLastRefreshAborted,
   consumeLastRefreshTimedOut,
   refreshAccessToken,
 } from "./auth-client";
@@ -27,6 +28,38 @@ import {
 } from "./observability/correlation";
 
 const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+
+let refreshOn401Promise: Promise<boolean> | null = null;
+
+/** Un solo refresh+reintento coordinado para todos los 401 concurrentes. */
+async function refreshSessionFor401(): Promise<boolean> {
+  if (refreshOn401Promise) {
+    return refreshOn401Promise;
+  }
+  refreshOn401Promise = (async () => {
+    try {
+      let refreshed = false;
+      try {
+        refreshed = await refreshAccessToken({ silent: true });
+      } catch {
+        refreshed = false;
+      }
+      if (refreshed) return true;
+      if (consumeLastRefreshTimedOut() || consumeLastRefreshAborted()) {
+        return false;
+      }
+      await new Promise((r) => setTimeout(r, 150));
+      try {
+        return await refreshAccessToken({ silent: true });
+      } catch {
+        return false;
+      }
+    } finally {
+      refreshOn401Promise = null;
+    }
+  })();
+  return refreshOn401Promise;
+}
 
 function isUnsafeMethod(method?: string): boolean {
   return UNSAFE_METHODS.has((method ?? "GET").toUpperCase());
@@ -153,22 +186,7 @@ export async function fetchWithAuth(
     if (process.env.NODE_ENV === "development" && typeof console !== "undefined" && console.error) {
       console.error("[heydoctor-api] 401 Unauthorized — attempting refresh:", url);
     }
-    let refreshedOnce = false;
-    try {
-      refreshedOnce = await refreshAccessToken({ silent: true });
-    } catch {
-      refreshedOnce = false;
-    }
-    let refreshed = refreshedOnce;
-    const refreshTimedOut = consumeLastRefreshTimedOut();
-    if (!refreshed && !refreshTimedOut) {
-      await new Promise((r) => setTimeout(r, 150));
-      try {
-        refreshed = await refreshAccessToken({ silent: true });
-      } catch {
-        refreshed = false;
-      }
-    }
+    const refreshed = await refreshSessionFor401();
     if (refreshed) {
       res = await doFetch();
     }
