@@ -39,7 +39,16 @@ import {
   isBootstrapTimeoutError,
   shouldClearSessionOnBootstrapError,
 } from "@/lib/context/auth-bootstrap";
-import { shouldSkipAuthBootstrapOnMount } from "@/lib/auth-session-hints";
+import {
+  hasLikelySession,
+  shouldSkipAuthBootstrapOnMount,
+} from "@/lib/auth-session-hints";
+import {
+  detectSsrClientAuthMismatch,
+  emitUnexpectedLogoutIfNeeded,
+  markUserInitiatedLogout,
+  recordBootstrapCompleted,
+} from "@/lib/session-analytics";
 import { ApiError } from "@/lib/heydoctor-api";
 import { getLogger } from "@/lib/logger";
 
@@ -149,17 +158,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return undefined;
   }, [sessionRevalidating, handleOverlayRecovery]);
 
-  const clearSession = useCallback(async () => {
-    setUser(null);
-    setAccessToken(null);
-    authBootstrappedRef.current = false;
-    await clearMiddlewareSession();
-  }, []);
+  const clearSession = useCallback(
+    async (options?: { expected?: boolean }) => {
+      if (!options?.expected) {
+        emitUnexpectedLogoutIfNeeded({ phase: "clear_session" });
+      }
+      setUser(null);
+      setAccessToken(null);
+      authBootstrappedRef.current = false;
+      await clearMiddlewareSession();
+    },
+    [],
+  );
 
   const logout = useCallback(async () => {
     bumpSessionGen();
+    markUserInitiatedLogout();
     await logoutRequest();
-    await clearSession();
+    await clearSession({ expected: true });
   }, [bumpSessionGen, clearSession]);
 
   const recoverFromBootstrapFailure = useCallback(() => {
@@ -195,6 +211,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
     }
     authBootstrappedRef.current = true;
+    const bootstrapStartedAt = Date.now();
+    let bootstrapHadUser = false;
 
     void (async () => {
       try {
@@ -210,7 +228,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               phase: "bootstrap",
               step: "refresh",
             });
-            await clearSession();
+            await clearSession({ expected: true });
             return;
           }
         } catch (e) {
@@ -228,7 +246,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               step: "refresh",
               error: e instanceof Error ? e.message : String(e),
             });
-            await clearSession();
+            await clearSession({ expected: true });
           }
           return;
         }
@@ -245,6 +263,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             return;
           }
           setUser(me);
+          bootstrapHadUser = true;
           await ensureMiddlewareSessionForSsr();
         } catch (e) {
           if (isBootstrapTimeoutError(e)) {
@@ -259,6 +278,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } finally {
         if (mounted) {
           setLoading(false);
+          recordBootstrapCompleted(Date.now() - bootstrapStartedAt, {
+            pathname: pathname ?? "/",
+            hasUser: bootstrapHadUser,
+          });
         }
       }
     })();
@@ -268,6 +291,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       hydrationAbort.abort();
     };
   }, [clearSession, pathname, recoverFromBootstrapFailure, sessionGen]);
+
+  useEffect(() => {
+    if (loading) return;
+    if (shouldSkipAuthBootstrapOnMount(pathname)) return;
+    detectSsrClientAuthMismatch({
+      pathname: pathname ?? "/",
+      hasAccessTokenInRam: hasLikelySession(),
+      loading: false,
+      hasUser: Boolean(user),
+    });
+  }, [loading, pathname, user]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;

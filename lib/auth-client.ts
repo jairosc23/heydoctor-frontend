@@ -14,6 +14,11 @@ import {
   FetchTimeoutError,
 } from "./async/fetch-with-timeout";
 import { emitAuthTelemetry } from "./auth-telemetry";
+import {
+  trackRefreshAbort,
+  trackRefreshAttempt,
+  trackRefreshSuccess,
+} from "./session-analytics";
 import { getApiBase, getAuthCsrfUrl, getAuthLoginUrl } from "./api-base";
 import {
   applyCsrfFromPayload,
@@ -316,6 +321,7 @@ async function _doRefresh(
   if (!silent) {
     emitRefreshOverlayDelta(+1);
   }
+  trackRefreshAttempt({ silent });
   try {
     const res = await authFetchWithTimeout(
       `${getApiBase()}/auth/refresh`,
@@ -358,6 +364,7 @@ async function _doRefresh(
 
     _lastHardRefreshFailAt = 0;
     broadcastAuthMessage("token-refreshed");
+    trackRefreshSuccess({ silent });
     logRefresh.info("refresh ok");
     return true;
   } catch (e) {
@@ -372,6 +379,7 @@ async function _doRefresh(
       (e.name === "AbortError" || e.code === 20)
     ) {
       _lastRefreshAbortedAt = Date.now();
+      trackRefreshAbort({ silent });
       return false;
     }
     emitAuthTelemetry("refresh_fail", { status: 0 });

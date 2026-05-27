@@ -44,6 +44,7 @@ export async function syncMiddlewareSession(accessToken: string): Promise<void> 
  * sincroniza JWT en memoria → POST /api/auth/session antes de navegar a /panel.
  */
 export async function ensureMiddlewareSessionForSsr(): Promise<void> {
+  const started = Date.now();
   let token = getAccessToken()?.trim() ?? "";
   if (!token) {
     const refreshed = await refreshAccessToken({ silent: true });
@@ -58,6 +59,8 @@ export async function ensureMiddlewareSessionForSsr(): Promise<void> {
     );
   }
   await setFirstPartySessionFromAccessToken(token);
+  const { recordSessionSyncCompleted } = await import("../session-analytics");
+  recordSessionSyncCompleted(Date.now() - started, { outcome: "ok" });
 }
 
 export async function clearMiddlewareSession(): Promise<void> {

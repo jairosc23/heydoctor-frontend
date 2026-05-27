@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/context/AuthContext";
 import HeyDoctorLogo from "@/components/ui/HeyDoctorLogo";
 import { cn } from "@/lib/utils";
+import { trackRedirectToLogin } from "@/lib/session-analytics";
 
 const MENU = [
   { label: "Dashboard", href: "/dashboard" },
@@ -93,6 +94,7 @@ export default function PanelLayout({
         !path.startsWith("//")
           ? `/login?redirect=${encodeURIComponent(path)}`
           : "/login";
+      trackRedirectToLogin(path);
       router.push(dest);
     }
   }, [authLoading, panelSessionChecked, isAuthenticated, router, pathname]);
