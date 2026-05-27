@@ -11,6 +11,8 @@ import { sendCallMetrics } from '@/lib/send-webrtc-metrics';
 import { ensureAccessToken, getAccessToken } from '@/lib/auth-client';
 import { getLogger } from '@/lib/logger';
 import type { Socket } from 'socket.io-client';
+
+const logVideo = getLogger('VIDEO');
 import { io } from 'socket.io-client';
 import {
   reportWebrtcFailure,
