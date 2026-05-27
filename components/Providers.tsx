@@ -3,6 +3,7 @@
 import { MagicLinkSessionBootstrap } from "@/components/MagicLinkSessionBootstrap";
 import { DevSessionDiagnosticsPanel } from "@/components/DevSessionDiagnosticsPanel";
 import { AuthProvider } from "@/lib/context/AuthContext";
+import { shouldRetryFailedQuery } from "@/lib/queries/query-retry";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 
@@ -13,7 +14,8 @@ function createQueryClient() {
         staleTime: 60_000,
         gcTime: 5 * 60_000,
         refetchOnWindowFocus: false,
-        retry: 1,
+        refetchOnReconnect: false,
+        retry: shouldRetryFailedQuery,
       },
     },
   });
