@@ -1,12 +1,13 @@
 "use client";
 
 import React, { Suspense, useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { useConsultation } from "@/context/ConsultationContext";
 import {
-  fetchPatients,
-  fetchConsultations,
+  useConsultationsListQuery,
+  usePatientsListQuery,
+} from "@/lib/hooks/use-panel-list-queries";
+import {
   fetchConsultation,
   createDiagnosis,
   type PatientRow,
@@ -51,19 +52,18 @@ function ConsultasContent() {
     hasTelemedicineConsent,
   } = useConsultation();
 
-  const [patients, setPatients] = useState<PatientRow[]>([]);
-  const [consultations, setConsultations] = useState<unknown[]>([]);
   const [diagnosisError, setDiagnosisError] = useState<string | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
 
-  const patientsQuery = useQuery({
-    queryKey: ["patients", "panel-consultas", 100],
-    queryFn: () => fetchPatients({ limit: 100 }),
-  });
-  const consultationsQuery = useQuery({
-    queryKey: ["consultations", "panel-consultas", 20],
-    queryFn: () => fetchConsultations({ limit: 20 }),
-  });
+  const patientsQuery = usePatientsListQuery({ limit: 100 });
+  const consultationsQuery = useConsultationsListQuery({ limit: 20 });
+
+  const patients: PatientRow[] = Array.isArray(patientsQuery.data?.data)
+    ? (patientsQuery.data.data as PatientRow[])
+    : [];
+  const consultations: unknown[] = Array.isArray(consultationsQuery.data?.data)
+    ? consultationsQuery.data.data
+    : [];
 
   const loading = patientsQuery.isPending || consultationsQuery.isPending;
   const [starting, setStarting] = useState(false);
@@ -82,30 +82,6 @@ function ConsultasContent() {
       setPatient(patientIdParam);
     }
   }, [patientIdParam, setPatient]);
-
-  useEffect(() => {
-    if (patientsQuery.data?.data) {
-      setPatients(
-        Array.isArray(patientsQuery.data.data)
-          ? (patientsQuery.data.data as PatientRow[])
-          : []
-      );
-    } else if (patientsQuery.isError) {
-      setPatients([]);
-    }
-  }, [patientsQuery.data, patientsQuery.isError]);
-
-  useEffect(() => {
-    if (consultationsQuery.data?.data) {
-      setConsultations(
-        Array.isArray(consultationsQuery.data.data)
-          ? consultationsQuery.data.data
-          : []
-      );
-    } else if (consultationsQuery.isError) {
-      setConsultations([]);
-    }
-  }, [consultationsQuery.data, consultationsQuery.isError]);
 
   useEffect(() => {
     if (!consultationId) {

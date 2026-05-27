@@ -1,9 +1,13 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { getApiErrorMessage } from "@/lib/heydoctor-api";
-import { fetchPatients, createPatient } from "@/lib/services";
+import { useDebouncedValue } from "@/lib/hooks/useDebouncedValue";
+import { usePatientsListQuery } from "@/lib/hooks/use-panel-list-queries";
+import { PATIENTS_LIST_ROOT } from "@/lib/queries/query-keys";
+import { createPatient } from "@/lib/services";
 
 interface PatientItem {
   id: string;
@@ -15,40 +19,32 @@ interface PatientItem {
 
 export default function PacientesPage() {
   const router = useRouter();
-  const [patients, setPatients] = useState<PatientItem[]>([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 350);
 
   const [showForm, setShowForm] = useState(false);
   const [formName, setFormName] = useState("");
   const [formEmail, setFormEmail] = useState("");
   const [creating, setCreating] = useState(false);
   const [formError, setFormError] = useState("");
-  const [listError, setListError] = useState("");
 
-  const loadPatients = useCallback(() => {
-    setLoading(true);
-    setListError("");
-    fetchPatients({ search: search || undefined, limit: 50 })
-      .then(({ data, total: t }) => {
-        setPatients(Array.isArray(data) ? data : []);
-        setTotal(t ?? 0);
-      })
-      .catch((err) => {
-        console.error("LOAD_PATIENTS_ERROR", err);
-        setPatients([]);
-        setTotal(0);
-        setListError(
-          getApiErrorMessage(err, "No se pudo cargar la lista de pacientes.")
-        );
-      })
-      .finally(() => setLoading(false));
-  }, [search]);
+  const patientsQuery = usePatientsListQuery({
+    search: debouncedSearch || undefined,
+    limit: 50,
+  });
 
-  useEffect(() => {
-    loadPatients();
-  }, [loadPatients]);
+  const patients: PatientItem[] = Array.isArray(patientsQuery.data?.data)
+    ? (patientsQuery.data.data as PatientItem[])
+    : [];
+  const total = patientsQuery.data?.total ?? 0;
+  const loading = patientsQuery.isPending;
+  const listError = patientsQuery.isError
+    ? getApiErrorMessage(
+        patientsQuery.error,
+        "No se pudo cargar la lista de pacientes.",
+      )
+    : "";
 
   async function handleCreatePatient(e: React.FormEvent) {
     e.preventDefault();
@@ -65,7 +61,7 @@ export default function PacientesPage() {
       setFormName("");
       setFormEmail("");
       setShowForm(false);
-      loadPatients();
+      await queryClient.invalidateQueries({ queryKey: PATIENTS_LIST_ROOT });
     } catch (err) {
       console.error("CREATE_PATIENT_FRONT_ERROR", err);
       setFormError(getApiErrorMessage(err, "Error al crear paciente"));

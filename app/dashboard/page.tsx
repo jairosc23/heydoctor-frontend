@@ -1,64 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import PanelLayout from "@/components/PanelLayout";
 import DashboardCard from "@/components/ui/DashboardCard";
 import { useAuth } from "@/lib/context/AuthContext";
-import { fetchPatients, fetchConsultations } from "@/lib/services";
-
-interface DashboardStats {
-  totalPatients: number;
-  consultationsToday: number;
-  pendingConsultations: number;
-}
+import { useDashboardStats } from "@/lib/hooks/use-dashboard-stats";
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const plan = user?.plan ?? null;
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [statsLoading, setStatsLoading] = useState(true);
-  const [statsError, setStatsError] = useState<string | null>(null);
+  const { stats, isLoading, isError, error } = useDashboardStats();
 
-  useEffect(() => {
-    let cancelled = false;
-    setStatsLoading(true);
-    setStatsError(null);
-
-    const today = new Date().toISOString().slice(0, 10);
-
-    Promise.all([
-      fetchPatients({ limit: 1 }).catch(() => ({ data: [], total: 0 })),
-      fetchConsultations({ from: today, to: today, limit: 1 }).catch(() => ({
-        data: [],
-        total: 0,
-      })),
-      fetchConsultations({ status: "IN_PROGRESS", limit: 1 }).catch(() => ({
-        data: [],
-        total: 0,
-      })),
-    ])
-      .then(([patients, todayConsultations, pendingConsultations]) => {
-        if (cancelled) return;
-        setStats({
-          totalPatients: patients.total,
-          consultationsToday: todayConsultations.total,
-          pendingConsultations: pendingConsultations.total,
-        });
-      })
-      .catch((err) => {
-        if (!cancelled)
-          setStatsError(
-            err instanceof Error ? err.message : "Error cargando datos",
-          );
-      })
-      .finally(() => {
-        if (!cancelled) setStatsLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const statsError =
+    isError && error instanceof Error ? error.message : isError ? "Error cargando datos" : null;
 
   const cards = [
     {
@@ -115,7 +68,7 @@ export default function DashboardPage() {
             <DashboardCard
               key={card.label}
               title={card.label}
-              value={statsLoading ? "…" : card.value}
+              value={isLoading ? "…" : card.value}
               accentColor={card.color}
             />
           ))}
