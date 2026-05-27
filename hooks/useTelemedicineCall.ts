@@ -11,6 +11,11 @@ import { sendCallMetrics } from '@/lib/send-webrtc-metrics';
 import { ensureAccessToken, getAccessToken } from '@/lib/auth-client';
 import type { Socket } from 'socket.io-client';
 import { io } from 'socket.io-client';
+import {
+  reportWebrtcFailure,
+  reportWebrtcResilienceMetric,
+  reportWebrtcState,
+} from '@/lib/webrtc-observability';
 
 /** Production-oriented RTCPeerConnection defaults (broad browser support). */
 export function createProRtcConfiguration(
@@ -373,6 +378,28 @@ export type UseTelemedicineCallResult = {
   screenSharing: boolean;
   /** `getDisplayMedia` disponible (p. ej. no en muchos móviles / iOS). */
   canShareScreen: boolean;
+  /** Diagnóstico: contadores y timestamps (sin tokens/cookies). */
+  diagnostics: {
+    reconnectAttempts: number;
+    iceRestartCount: number;
+    lastIceFailureReason: string | null;
+    lastDisconnectAtMs: number | null;
+    lastPacketLossRatio: number | null;
+    lastStatsAtMs: number | null;
+    lastLocalVideoEndedAtMs: number | null;
+    lastRemoteVideoEndedAtMs: number | null;
+  };
+  /** Lista de dispositivos (si el navegador lo permite). */
+  listDevices: () => Promise<{
+    microphones: MediaDeviceInfo[];
+    cameras: MediaDeviceInfo[];
+    speakers: MediaDeviceInfo[];
+  }>;
+  /** Cambia micrófono/cámara sin reiniciar llamada. */
+  switchMicrophone: (deviceId: string) => Promise<void>;
+  switchCamera: (deviceId: string) => Promise<void>;
+  /** Recuperación explícita de cámara (iOS/Safari background). */
+  recoverCamera: () => Promise<void>;
   startCall: () => Promise<void>;
   endCall: () => void;
   startScreenShare: () => Promise<void>;
@@ -454,6 +481,18 @@ export function useTelemedicineCall(
     typeof deriveConnectionQuality
   >[0] | null>(null);
 
+  const reconnectAttemptsRef = useRef(0);
+  const iceRestartCountRef = useRef(0);
+  const lastIceFailureReasonRef = useRef<string | null>(null);
+  const lastDisconnectAtMsRef = useRef<number | null>(null);
+  const lastPacketLossRatioRef = useRef<number | null>(null);
+  const lastStatsAtMsRef = useRef<number | null>(null);
+  const lastLocalVideoEndedAtMsRef = useRef<number | null>(null);
+  const lastRemoteVideoEndedAtMsRef = useRef<number | null>(null);
+  const lastCameraRecoverAtMsRef = useRef<number>(0);
+  const activeCameraDeviceIdRef = useRef<string | null>(null);
+  const activeMicDeviceIdRef = useRef<string | null>(null);
+
   useEffect(() => {
     videoTierRef.current = videoTier;
   }, [videoTier]);
@@ -482,6 +521,21 @@ export function useTelemedicineCall(
     reconnectingIceRef.current = true;
     setConnectionQuality('reconnecting');
 
+    reconnectAttemptsRef.current += 1;
+    iceRestartCountRef.current += 1;
+    void reportWebrtcResilienceMetric('reconnect_attempts', {
+      backendOrigin,
+      consultationId,
+      reason: lastIceFailureReasonRef.current ?? 'ice_restart',
+      count: 1,
+    });
+    void reportWebrtcResilienceMetric('ice_restart_count', {
+      backendOrigin,
+      consultationId,
+      reason: lastIceFailureReasonRef.current ?? 'ice_restart',
+      count: 1,
+    });
+
     makingOfferRef.current = true;
     try {
       const offer = await pc.createOffer({ iceRestart: true });
@@ -491,11 +545,27 @@ export function useTelemedicineCall(
         sdp: pc.localDescription,
       });
     } catch (e) {
+      reportWebrtcFailure(
+        'webrtc_reconnect_failed',
+        e,
+        {
+          backendOrigin,
+          consultationId,
+          state: pc.iceConnectionState ?? null,
+          reason: 'ice_restart_offer_failed',
+        },
+      );
       onError?.((e as Error).message);
     } finally {
       makingOfferRef.current = false;
     }
-  }, [consultationId, iceRestartInitiatorOnly, isInitiator, onError]);
+  }, [
+    backendOrigin,
+    consultationId,
+    iceRestartInitiatorOnly,
+    isInitiator,
+    onError,
+  ]);
 
   const scheduleIceRestartDebounced = useCallback(() => {
     if (iceRestartTimerRef.current) return;
@@ -517,7 +587,13 @@ export function useTelemedicineCall(
         const s = pc.connectionState;
         setConnectionState(s);
         onConnectionState?.(s);
+        reportWebrtcState('webrtc_connection_state', {
+          backendOrigin,
+          consultationId,
+          state: s,
+        });
         if (s === 'failed') {
+          lastIceFailureReasonRef.current = 'connection_failed';
           scheduleIceRestartDebounced();
         }
       };
@@ -527,9 +603,20 @@ export function useTelemedicineCall(
         iceConnectionStateRef.current = s;
         setIceConnectionState(s);
         onIceConnectionState?.(s);
+        reportWebrtcState('webrtc_ice_state', {
+          backendOrigin,
+          consultationId,
+          state: s,
+        });
 
         if (s === 'connected' || s === 'completed') {
           reconnectingIceRef.current = false;
+          void reportWebrtcResilienceMetric('reconnect_success', {
+            backendOrigin,
+            consultationId,
+            reason: lastIceFailureReasonRef.current ?? 'connected',
+            count: 1,
+          });
           const last = lastQualityInputsRef.current;
           if (last) {
             setConnectionQuality(
@@ -543,6 +630,8 @@ export function useTelemedicineCall(
         }
 
         if (s === 'failed' || s === 'disconnected') {
+          lastDisconnectAtMsRef.current =
+            s === 'disconnected' ? (lastDisconnectAtMsRef.current ?? Date.now()) : Date.now();
           const last = lastQualityInputsRef.current;
           setConnectionQuality(
             deriveConnectionQuality({
@@ -557,6 +646,17 @@ export function useTelemedicineCall(
         }
 
         if (s === 'failed') {
+          lastIceFailureReasonRef.current = 'ice_failed';
+          reportWebrtcFailure(
+            'webrtc_ice_failed',
+            new Error('ice_failed'),
+            {
+              backendOrigin,
+              consultationId,
+              state: s,
+              reason: 'ice_failed',
+            },
+          );
           scheduleIceRestartDebounced();
         } else if (s === 'disconnected') {
           disconnectedSinceRef.current = disconnectedSinceRef.current ?? Date.now();
@@ -581,6 +681,24 @@ export function useTelemedicineCall(
         if (ev.track && !next.getTracks().includes(ev.track)) {
           next.addTrack(ev.track);
         }
+        if (ev.track?.kind === 'video') {
+          ev.track.addEventListener(
+            'ended',
+            () => {
+              lastRemoteVideoEndedAtMsRef.current = Date.now();
+              reportWebrtcFailure(
+                'webrtc_signaling_failed',
+                new Error('remote_video_track_ended'),
+                {
+                  backendOrigin,
+                  consultationId,
+                  reason: 'remote_video_track_ended',
+                },
+              );
+            },
+            { once: true },
+          );
+        }
         remoteStreamRef.current = first ?? next;
         setRemoteStream(remoteStreamRef.current);
       };
@@ -602,6 +720,7 @@ export function useTelemedicineCall(
       }, 2000);
     },
     [
+      backendOrigin,
       consultationId,
       disconnectedIceRestartMs,
       iceRestartInitiatorOnly,
@@ -612,6 +731,130 @@ export function useTelemedicineCall(
       scheduleIceRestartDebounced,
     ],
   );
+
+  const listDevices = useCallback(async () => {
+    if (!navigator.mediaDevices?.enumerateDevices) {
+      return { microphones: [], cameras: [], speakers: [] };
+    }
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    return {
+      microphones: devices.filter((d) => d.kind === 'audioinput'),
+      cameras: devices.filter((d) => d.kind === 'videoinput'),
+      speakers: devices.filter((d) => d.kind === 'audiooutput'),
+    };
+  }, []);
+
+  const switchMicrophone = useCallback(async (deviceId: string) => {
+    const pc = pcRef.current;
+    const current = localStream;
+    if (!pc || !current) return;
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: { deviceId: { exact: deviceId } },
+      video: false,
+    });
+    const track = stream.getAudioTracks()[0];
+    if (!track) return;
+    const sender = pc.getSenders().find((s) => s.track?.kind === 'audio');
+    try {
+      await sender?.replaceTrack(track);
+    } catch {
+      /* ignore */
+    }
+    for (const t of current.getAudioTracks()) {
+      try {
+        t.stop();
+      } catch {
+        /* ignore */
+      }
+      current.removeTrack(t);
+    }
+    current.addTrack(track);
+    activeMicDeviceIdRef.current = deviceId;
+    setLocalStream(new MediaStream(current.getTracks()));
+  }, [localStream]);
+
+  const switchCamera = useCallback(async (deviceId: string) => {
+    const pc = pcRef.current;
+    const current = localStream;
+    if (!pc || !current) return;
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: { deviceId: { exact: deviceId } },
+    });
+    const track = stream.getVideoTracks()[0];
+    if (!track) return;
+    const sender = pc.getSenders().find((s) => s.track?.kind === 'video');
+    try {
+      await sender?.replaceTrack(track);
+      await prioritizeAudioOverVideo(pc, videoTierRef.current);
+    } catch {
+      /* ignore */
+    }
+    for (const t of current.getVideoTracks()) {
+      try {
+        t.stop();
+      } catch {
+        /* ignore */
+      }
+      current.removeTrack(t);
+    }
+    current.addTrack(track);
+    capturedVideoTrackRef.current = track;
+    activeCameraDeviceIdRef.current = deviceId;
+    setLocalStream(new MediaStream(current.getTracks()));
+  }, [localStream]);
+
+  const recoverCamera = useCallback(async () => {
+    const now = Date.now();
+    if (now - lastCameraRecoverAtMsRef.current < 2500) return;
+    lastCameraRecoverAtMsRef.current = now;
+    const pc = pcRef.current;
+    const current = localStream;
+    if (!pc || !current) return;
+    const ended = current.getVideoTracks().some((t) => t.readyState === 'ended');
+    if (!ended) return;
+    lastLocalVideoEndedAtMsRef.current = now;
+    try {
+      const preferred = activeCameraDeviceIdRef.current;
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: preferred ? { deviceId: { exact: preferred } } : mediaConstraints.video ?? true,
+      });
+      const track = stream.getVideoTracks()[0];
+      if (!track) return;
+      const sender = pc.getSenders().find((s) => s.track?.kind === 'video');
+      await sender?.replaceTrack(track);
+      for (const t of current.getVideoTracks()) {
+        try {
+          t.stop();
+        } catch {
+          /* ignore */
+        }
+        current.removeTrack(t);
+      }
+      current.addTrack(track);
+      capturedVideoTrackRef.current = track;
+      setLocalStream(new MediaStream(current.getTracks()));
+      await reportWebrtcResilienceMetric('media_recovery_failures', {
+        backendOrigin,
+        consultationId,
+        reason: 'camera_recovered',
+        count: 0,
+      });
+    } catch (e) {
+      await reportWebrtcResilienceMetric('media_recovery_failures', {
+        backendOrigin,
+        consultationId,
+        reason: 'camera_recovery_failed',
+        count: 1,
+      });
+      reportWebrtcFailure(
+        'webrtc_reconnect_failed',
+        e,
+        { backendOrigin, consultationId, reason: 'camera_recovery_failed' },
+      );
+    }
+  }, [backendOrigin, consultationId, localStream, mediaConstraints.video]);
 
   const attachSignalingHandlers = useCallback(
     (socket: Socket, pc: RTCPeerConnection) => {
@@ -911,6 +1154,37 @@ export function useTelemedicineCall(
       setLocalStream(stream);
 
       capturedVideoTrackRef.current = stream.getVideoTracks()[0] ?? null;
+      const initialVideo = stream.getVideoTracks()[0] ?? null;
+      if (initialVideo) {
+        try {
+          const settings = initialVideo.getSettings?.();
+          if (settings?.deviceId) {
+            activeCameraDeviceIdRef.current = settings.deviceId;
+          }
+        } catch {
+          /* ignore */
+        }
+        initialVideo.addEventListener(
+          'ended',
+          () => {
+            lastLocalVideoEndedAtMsRef.current = Date.now();
+            // Best-effort recovery for iOS/Safari after background.
+            void recoverCamera();
+          },
+          { once: true },
+        );
+      }
+      const initialAudio = stream.getAudioTracks()[0] ?? null;
+      if (initialAudio) {
+        try {
+          const settings = initialAudio.getSettings?.();
+          if (settings?.deviceId) {
+            activeMicDeviceIdRef.current = settings.deviceId;
+          }
+        } catch {
+          /* ignore */
+        }
+      }
       videoSuspendedByPolicyRef.current = false;
       setVideoSuspendedForNetwork(false);
       metricsSamplesRef.current = 0;
@@ -968,6 +1242,8 @@ export function useTelemedicineCall(
             onVideoTierChange?.(tier);
           },
           onStatsSample: async ({ snap, lossRatio }) => {
+            lastPacketLossRatioRef.current = lossRatio;
+            lastStatsAtMsRef.current = Date.now();
             const qualityInputs = {
               reconnecting: reconnectingIceRef.current,
               iceConnectionState: iceConnectionStateRef.current,
@@ -1104,6 +1380,9 @@ export function useTelemedicineCall(
       ) {
         void runIceRestart();
       }
+      if (document.visibilityState === 'visible') {
+        void recoverCamera();
+      }
     };
     const onOnline = () => {
       const pc = pcRef.current;
@@ -1123,7 +1402,7 @@ export function useTelemedicineCall(
       document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('online', onOnline);
     };
-  }, [runIceRestart]);
+  }, [runIceRestart, recoverCamera]);
 
   useEffect(() => () => endCall(), [endCall]);
 
@@ -1137,6 +1416,20 @@ export function useTelemedicineCall(
     videoSuspendedForNetwork,
     screenSharing,
     canShareScreen,
+    diagnostics: {
+      reconnectAttempts: reconnectAttemptsRef.current,
+      iceRestartCount: iceRestartCountRef.current,
+      lastIceFailureReason: lastIceFailureReasonRef.current,
+      lastDisconnectAtMs: lastDisconnectAtMsRef.current,
+      lastPacketLossRatio: lastPacketLossRatioRef.current,
+      lastStatsAtMs: lastStatsAtMsRef.current,
+      lastLocalVideoEndedAtMs: lastLocalVideoEndedAtMsRef.current,
+      lastRemoteVideoEndedAtMs: lastRemoteVideoEndedAtMsRef.current,
+    },
+    listDevices,
+    switchMicrophone,
+    switchCamera,
+    recoverCamera,
     startCall,
     endCall,
     startScreenShare,

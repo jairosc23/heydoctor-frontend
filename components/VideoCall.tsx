@@ -25,6 +25,8 @@ import {
   PhoneOff,
   Video,
   VideoOff,
+  RefreshCcw,
+  Settings,
 } from "lucide-react";
 import { getBackendOrigin } from "@/lib/api-base";
 import { useAuth } from "@/lib/context/AuthContext";
@@ -112,6 +114,12 @@ export const VideoCall = forwardRef<
   const [mediaReady, setMediaReady] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [chatPanelOpen, setChatPanelOpen] = useState(false);
+  const [devicesOpen, setDevicesOpen] = useState(false);
+  const [cameras, setCameras] = useState<MediaDeviceInfo[]>([]);
+  const [microphones, setMicrophones] = useState<MediaDeviceInfo[]>([]);
+  const [selectedCam, setSelectedCam] = useState<string>("");
+  const [selectedMic, setSelectedMic] = useState<string>("");
+  const isDev = process.env.NODE_ENV !== "production";
 
   const {
     localStream,
@@ -121,6 +129,10 @@ export const VideoCall = forwardRef<
     iceConnectionState,
     screenSharing,
     canShareScreen,
+    listDevices,
+    switchCamera,
+    switchMicrophone,
+    recoverCamera,
     startCall,
     endCall,
     startScreenShare,
@@ -135,6 +147,31 @@ export const VideoCall = forwardRef<
   });
 
   localStreamRef.current = localStream;
+
+  useEffect(() => {
+    if (!isDev || !devicesOpen) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const d = await listDevices();
+        if (cancelled) return;
+        setCameras(d.cameras);
+        setMicrophones(d.microphones);
+        if (!selectedCam && d.cameras[0]?.deviceId) {
+          setSelectedCam(d.cameras[0].deviceId);
+        }
+        if (!selectedMic && d.microphones[0]?.deviceId) {
+          setSelectedMic(d.microphones[0].deviceId);
+        }
+      } catch {
+        /* ignore */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [devicesOpen, isDev]);
 
   useEffect(() => {
     let cancelled = false;
@@ -590,6 +627,17 @@ export const VideoCall = forwardRef<
           <div className="pointer-events-none shrink-0">
             <ConnectionQualityBadge quality={connectionQuality} showWhenIdle />
           </div>
+          {isDev ? (
+            <button
+              type="button"
+              onClick={() => setDevicesOpen((v) => !v)}
+              className="premium-tap ml-1 inline-flex h-8 w-8 items-center justify-center rounded-full border border-emerald-100 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+              aria-label="Ajustes de dispositivos (dev)"
+              title="Ajustes de dispositivos (dev)"
+            >
+              <Settings className="h-4 w-4" aria-hidden />
+            </button>
+          ) : null}
         </div>
       </header>
 
@@ -736,8 +784,102 @@ export const VideoCall = forwardRef<
             >
               <PhoneOff className={iconClass} strokeWidth={2} aria-hidden />
             </button>
+            {isDev ? (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  void recoverCamera();
+                }}
+                onPointerDown={(e) => e.stopPropagation()}
+                className="relative z-10 flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-full bg-slate-600 text-white premium-tap"
+                aria-label="Recuperar cámara (dev)"
+                title="Recuperar cámara (dev)"
+              >
+                <RefreshCcw className={iconClass} strokeWidth={2} aria-hidden />
+              </button>
+            ) : null}
           </div>
         </div>
+
+        {isDev && devicesOpen ? (
+          <div className="pointer-events-auto absolute right-4 top-16 z-[240] w-[min(92vw,380px)] rounded-2xl border border-slate-700/40 bg-[#0B0F14]/95 p-4 text-slate-100 shadow-2xl backdrop-blur-md">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div className="text-sm font-semibold">DEV: Dispositivos</div>
+              <button
+                type="button"
+                onClick={() => setDevicesOpen(false)}
+                className="premium-tap rounded-lg bg-slate-700/50 px-3 py-1 text-xs font-semibold"
+              >
+                Cerrar
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <div className="mb-1 opacity-80">Cámara</div>
+                <select
+                  value={selectedCam}
+                  onChange={(e) => setSelectedCam(e.target.value)}
+                  className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
+                >
+                  {cameras.map((d) => (
+                    <option key={d.deviceId} value={d.deviceId}>
+                      {d.label || `Cámara ${d.deviceId.slice(0, 6)}…`}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (selectedCam) void switchCamera(selectedCam);
+                  }}
+                  className="premium-tap mt-2 w-full rounded-lg bg-emerald-600 px-3 py-2 font-semibold text-white"
+                >
+                  Aplicar cámara
+                </button>
+              </div>
+
+              <div>
+                <div className="mb-1 opacity-80">Micrófono</div>
+                <select
+                  value={selectedMic}
+                  onChange={(e) => setSelectedMic(e.target.value)}
+                  className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
+                >
+                  {microphones.map((d) => (
+                    <option key={d.deviceId} value={d.deviceId}>
+                      {d.label || `Mic ${d.deviceId.slice(0, 6)}…`}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (selectedMic) void switchMicrophone(selectedMic);
+                  }}
+                  className="premium-tap mt-2 w-full rounded-lg bg-emerald-600 px-3 py-2 font-semibold text-white"
+                >
+                  Aplicar micrófono
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  void listDevices().then((d) => {
+                    setCameras(d.cameras);
+                    setMicrophones(d.microphones);
+                  });
+                }}
+                className="premium-tap w-full rounded-lg bg-slate-700/60 px-3 py-2 font-semibold text-slate-100"
+              >
+                Recargar lista
+              </button>
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );
