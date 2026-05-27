@@ -24,6 +24,7 @@ import {
   API_XRW_XMLHTTPREQUEST,
 } from "./api-csrf";
 import { apiFetch as fetchWithIncludedCredentials } from "./api-fetch-include";
+import { getLogger } from "./logger";
 
 import {
   getAccessToken,
@@ -46,6 +47,9 @@ let _lastRefreshTimedOutAt = 0;
 const REFRESH_COOLDOWN_MS = 3_000;
 const REFRESH_TIMEOUT_COOLDOWN_MS = 3_000;
 const AUTH_TAB_CHANNEL = "heydoctor-auth-v1";
+
+const logAuth = getLogger("AUTH");
+const logRefresh = getLogger("REFRESH");
 
 export type RefreshAccessTokenOptions = {
   /** Si true, no monta overlay global (refresh en background). */
@@ -228,18 +232,16 @@ export async function bootstrapApiCsrf(): Promise<void> {
       const data = (await res.json()) as { csrfToken?: string };
       applyCsrfFromPayload(data);
       if (process.env.NODE_ENV === "development") {
-        console.log(
-          "[auth-debug] CSRF bootstrap → memoria:",
-          getApiCsrfToken() ? "present" : "missing",
-          "| document.cookie:",
-          document.cookie,
-        );
+        logAuth.debug("CSRF bootstrap completed", {
+          csrfPresent: Boolean(getApiCsrfToken()),
+        });
       }
     } catch (err) {
       if (err instanceof FetchTimeoutError) {
         emitAuthTelemetry("csrf_bootstrap_timeout", {
           durationMs: err.timeoutMs,
         });
+        logAuth.warn("CSRF bootstrap timed out", { durationMs: err.timeoutMs });
       }
     } finally {
       if (_bootstrapAbortController === abortController) {
@@ -315,6 +317,7 @@ async function _doRefresh(
 
     if (!res.ok) {
       emitAuthTelemetry("refresh_fail", { status: res.status });
+      logRefresh.warn("refresh failed", { status: res.status });
       if (res.status === 401) {
         _lastHardRefreshFailAt = Date.now();
         if (getAccessToken() === accessTokenSnapshot) {
@@ -341,11 +344,13 @@ async function _doRefresh(
 
     _lastHardRefreshFailAt = 0;
     broadcastAuthMessage("token-refreshed");
+    logRefresh.info("refresh ok");
     return true;
   } catch (e) {
     if (e instanceof FetchTimeoutError) {
       _lastRefreshTimedOutAt = Date.now();
       emitAuthTelemetry("refresh_timeout", { durationMs: e.timeoutMs });
+      logRefresh.warn("refresh timed out", { durationMs: e.timeoutMs });
       return false;
     }
     if (
@@ -355,7 +360,9 @@ async function _doRefresh(
       return false;
     }
     emitAuthTelemetry("refresh_fail", { status: 0 });
-    console.error("REFRESH FAILED → forcing logout", e);
+    logRefresh.error("refresh threw (non-timeout)", {
+      error: e instanceof Error ? e.message : String(e),
+    });
     throw e;
   } finally {
     if (_refreshAbortController === abortController) {
@@ -421,7 +428,7 @@ export async function authLogin(
   };
 
   if (typeof window !== "undefined") {
-    console.log("LOGIN URL", url);
+    logAuth.debug("login start", { url });
   }
 
   let res: Response;
@@ -450,7 +457,7 @@ export async function authLogin(
   }
 
   if (typeof window !== "undefined") {
-    console.log("LOGIN RESPONSE", {
+    logAuth.debug("login response", {
       status: res.status,
       ok: res.ok,
       url: res.url,

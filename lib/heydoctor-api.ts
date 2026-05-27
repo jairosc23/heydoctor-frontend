@@ -25,8 +25,11 @@ import {
   getOrCreateClientCorrelationId,
   rememberServerRequestId,
 } from "./observability/correlation";
+import { getLogger } from "./logger";
 
 const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+const logApi = getLogger("API");
+const logRefresh = getLogger("REFRESH");
 
 function isUnsafeMethod(method?: string): boolean {
   return UNSAFE_METHODS.has((method ?? "GET").toUpperCase());
@@ -124,7 +127,9 @@ export async function fetchWithAuth(
       unsafe &&
       typeof console !== "undefined"
     ) {
-      console.log("[heydoctor-api]", method, url, {
+      logApi.debug("request headers prepared", {
+        method,
+        url,
         csrfPresent: Boolean(csrf),
         csrfHeader: API_CSRF_HEADER,
       });
@@ -150,9 +155,7 @@ export async function fetchWithAuth(
     if (ctx?.skipRefreshRetry) {
       throw new Error("SESSION_EXPIRED");
     }
-    if (process.env.NODE_ENV === "development" && typeof console !== "undefined" && console.error) {
-      console.error("[heydoctor-api] 401 Unauthorized — attempting refresh:", url);
-    }
+    logRefresh.info("401 received; attempting silent refresh", { url });
     let refreshedOnce = false;
     try {
       refreshedOnce = await refreshAccessToken({ silent: true });
@@ -173,9 +176,7 @@ export async function fetchWithAuth(
       res = await doFetch();
     }
     if (res.status === 401) {
-      if (process.env.NODE_ENV === "development" && typeof console !== "undefined" && console.error) {
-        console.error("[heydoctor-api] 401 after refresh — session cleared:", url);
-      }
+      logRefresh.warn("401 after refresh; session cleared", { url });
       await handleAuthError();
       throw new Error("SESSION_EXPIRED");
     }
@@ -189,9 +190,7 @@ export async function fetchWithAuth(
       bodyText = null;
     }
     if (isCsrfFailure(res.status, bodyText)) {
-      if (process.env.NODE_ENV === "development" && typeof console !== "undefined" && console.warn) {
-        console.warn("[heydoctor-api] 403 CSRF — re-bootstrapping and retrying:", url);
-      }
+      logApi.warn("403 CSRF; re-bootstrapping and retrying", { url, method });
       await bootstrapApiCsrf();
       if (getApiCsrfToken()) {
         res = await doFetch();
