@@ -7,13 +7,22 @@ export type AuthTelemetryEvent =
   | "login_success"
   | "login_fail"
   | "refresh_fail"
+  | "refresh_success"
+  | "refresh_abort"
   | "refresh_timeout"
   | "csrf_bootstrap_timeout"
   | "bootstrap_timeout"
   | "overlay_recovery"
   | "stale_loading_reset"
   | "hydration_recovery"
-  | "unauthorized";
+  | "unauthorized"
+  | "ssr_client_auth_mismatch"
+  | "refresh_storm_detected"
+  | "unexpected_logout"
+  | "redirect_loop_detected"
+  | "bootstrap_completed"
+  | "session_sync_completed"
+  | "session_desync_detected";
 
 declare global {
   interface Window {
