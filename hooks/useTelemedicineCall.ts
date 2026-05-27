@@ -18,8 +18,6 @@ import {
   reportWebrtcState,
 } from '@/lib/webrtc-observability';
 
-const logVideo = getLogger('VIDEO');
-
 /** Production-oriented RTCPeerConnection defaults (broad browser support). */
 export function createProRtcConfiguration(
   iceServers: RTCIceServer[],

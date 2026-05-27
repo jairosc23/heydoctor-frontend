@@ -145,6 +145,17 @@ function broadcastAuthMessage(
 }
 
 let remoteRefreshCooldownUntil = 0;
+let _lastRefreshAbortedAt = 0;
+const REFRESH_ABORT_COOLDOWN_MS = 2_000;
+
+/** Consume si el último refresh falló por abort (evita reintentos en cadena ante 401). */
+export function consumeLastRefreshAborted(): boolean {
+  if (_lastRefreshAbortedAt === 0) return false;
+  const aborted =
+    Date.now() - _lastRefreshAbortedAt < REFRESH_ABORT_COOLDOWN_MS;
+  _lastRefreshAbortedAt = 0;
+  return aborted;
+}
 
 function attachMultiTabAuthSync(): void {
   if (typeof window === "undefined" || typeof BroadcastChannel === "undefined") {
@@ -295,9 +306,12 @@ async function _doRefresh(
   const silent = options.silent ?? false;
   const accessTokenSnapshot = getAccessToken();
 
-  _refreshAbortController?.abort();
   const abortController = new AbortController();
+  const previousController = _refreshAbortController;
   _refreshAbortController = abortController;
+  if (previousController && previousController !== abortController) {
+    previousController.abort();
+  }
 
   if (!silent) {
     emitRefreshOverlayDelta(+1);
@@ -357,6 +371,7 @@ async function _doRefresh(
       e instanceof DOMException &&
       (e.name === "AbortError" || e.code === 20)
     ) {
+      _lastRefreshAbortedAt = Date.now();
       return false;
     }
     emitAuthTelemetry("refresh_fail", { status: 0 });

@@ -100,6 +100,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { bump: bumpSessionGen, snapshot: sessionGen } = useSessionGeneration();
   const refreshUserInFlightRef = useRef<Promise<void> | null>(null);
   const overlaySinceRef = useRef<number | null>(null);
+  /** Una sola hidratación refresh+getMe por ciclo de sesión (no re-disparar en cada pathname). */
+  const authBootstrappedRef = useRef(false);
 
   useEffect(() => {
     return subscribeRefreshState(setSessionRevalidating);
@@ -150,6 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const clearSession = useCallback(async () => {
     setUser(null);
     setAccessToken(null);
+    authBootstrappedRef.current = false;
     await clearMiddlewareSession();
   }, []);
 
@@ -166,16 +169,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    return () => {
+      cancelInFlightAuthRequests();
+    };
+  }, []);
+
+  useEffect(() => {
     let mounted = true;
     const genAtStart = sessionGen();
     const hydrationAbort = new AbortController();
 
+    if (shouldSkipAuthBootstrapOnMount(pathname)) {
+      setLoading(false);
+      return () => {
+        mounted = false;
+        hydrationAbort.abort();
+      };
+    }
+
+    if (authBootstrappedRef.current) {
+      setLoading(false);
+      return () => {
+        mounted = false;
+        hydrationAbort.abort();
+      };
+    }
+    authBootstrappedRef.current = true;
+
     void (async () => {
       try {
-        if (shouldSkipAuthBootstrapOnMount(pathname)) {
-          return;
-        }
-
         try {
           const refreshed = await withTimeout(
             refreshAccessToken({ silent: true }),
@@ -244,10 +266,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       mounted = false;
       hydrationAbort.abort();
-      cancelInFlightAuthRequests();
     };
-    // Solo al montar: cookies cross-site + getMe para estado inicial.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clearSession, pathname, recoverFromBootstrapFailure, sessionGen]);
 
   useEffect(() => {
@@ -272,7 +291,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         let refreshed = false;
         try {
           refreshed = await withTimeout(
-            refreshAccessToken(),
+            refreshAccessToken({ silent: true }),
             AUTH_REQUEST_TIMEOUT_MS,
             "refreshUser-refresh",
           );
@@ -365,6 +384,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const me = await getMe({ skipRefreshRetry: true });
           await ensureMiddlewareSessionForSsr();
+          authBootstrappedRef.current = true;
           setUser(me);
           setLoading(false);
         } catch (e) {
