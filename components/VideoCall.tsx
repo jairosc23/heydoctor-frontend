@@ -29,8 +29,11 @@ import {
 import { getBackendOrigin } from "@/lib/api-base";
 import { useAuth } from "@/lib/context/AuthContext";
 import { logger } from "@/lib/logger";
+import { getLogger } from "@/lib/logger";
 import { humanizeCallError, useTelemedicineCall } from "@/hooks/useTelemedicineCall";
 import { useIsMobile } from "@/lib/hooks/useIsMobile";
+
+const logVideo = getLogger("VIDEO");
 
 function safeVibrate(pattern?: number | number[]): void {
   if (typeof navigator === "undefined" || !navigator.vibrate) return;
@@ -185,9 +188,7 @@ export const VideoCall = forwardRef<
 
   useEffect(() => {
     if (process.env.NODE_ENV === "development") {
-      console.log({
-        quality: connectionQuality,
-      });
+      logVideo.debug("connection quality", { connectionQuality });
     }
   }, [connectionQuality]);
 
