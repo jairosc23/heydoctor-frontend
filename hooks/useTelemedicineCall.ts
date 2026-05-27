@@ -461,6 +461,26 @@ export function useTelemedicineCall(
     videoTierRef.current = videoTier;
   }, [videoTier]);
 
+  // DEV-only: emit passive snapshot for diagnostics panel (no tokens/cookies).
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'production') return;
+    if (typeof window === 'undefined') return;
+    try {
+      window.dispatchEvent(
+        new CustomEvent('heydoctor:webrtc-state', {
+          detail: {
+            connectionState: connectionState ?? null,
+            iceConnectionState: iceConnectionState ?? null,
+            quality: connectionQuality ?? null,
+            reconnecting: reconnectingIceRef.current ?? null,
+          },
+        }),
+      );
+    } catch {
+      /* noop */
+    }
+  }, [connectionState, iceConnectionState, connectionQuality]);
+
   const detachMonitor = useCallback(() => {
     if (stopStatsRef.current) {
       stopStatsRef.current();
