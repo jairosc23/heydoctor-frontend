@@ -9,6 +9,7 @@ import { fetchWebrtcIceServers } from '@/lib/fetch-webrtc-ice-servers';
 import { requestRecordingStart, requestRecordingStop } from '@/lib/webrtc-recording-api';
 import { sendCallMetrics } from '@/lib/send-webrtc-metrics';
 import { ensureAccessToken, getAccessToken } from '@/lib/auth-client';
+import { getLogger } from '@/lib/logger';
 import type { Socket } from 'socket.io-client';
 import { io } from 'socket.io-client';
 import {
@@ -496,6 +497,26 @@ export function useTelemedicineCall(
   useEffect(() => {
     videoTierRef.current = videoTier;
   }, [videoTier]);
+
+  // DEV-only: emit passive snapshot for diagnostics panel (no tokens/cookies).
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'production') return;
+    if (typeof window === 'undefined') return;
+    try {
+      window.dispatchEvent(
+        new CustomEvent('heydoctor:webrtc-state', {
+          detail: {
+            connectionState: connectionState ?? null,
+            iceConnectionState: iceConnectionState ?? null,
+            quality: connectionQuality ?? null,
+            reconnecting: reconnectingIceRef.current ?? null,
+          },
+        }),
+      );
+    } catch {
+      /* noop */
+    }
+  }, [connectionState, iceConnectionState, connectionQuality]);
 
   const detachMonitor = useCallback(() => {
     if (stopStatsRef.current) {
@@ -1062,7 +1083,10 @@ export function useTelemedicineCall(
       });
       await prioritizeAudioOverVideo(pc, videoTierRef.current);
     } catch (err) {
-      console.warn('[heydoctor] screen share failed', err);
+      logVideo.warn('screen share failed', {
+        event: 'screen_share_failed',
+        error: err instanceof Error ? err.message : String(err),
+      });
       const denied =
         err instanceof DOMException &&
         (err.name === 'NotAllowedError' ||

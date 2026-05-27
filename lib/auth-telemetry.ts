@@ -35,6 +35,7 @@ export function emitAuthTelemetry(
     /* noop */
   }
   if (process.env.NODE_ENV === "development") {
+    // Keep local-only diagnostics; never include tokens/cookies in `detail`.
     console.debug(`[auth-telemetry] ${event}`, detail ?? {});
   }
 }

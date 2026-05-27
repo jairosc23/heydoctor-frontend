@@ -1,6 +1,7 @@
 "use client";
 
 import { MagicLinkSessionBootstrap } from "@/components/MagicLinkSessionBootstrap";
+import { DevSessionDiagnosticsPanel } from "@/components/DevSessionDiagnosticsPanel";
 import { AuthProvider } from "@/lib/context/AuthContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
@@ -26,6 +27,7 @@ export function Providers({ children }: { children: ReactNode }) {
       <AuthProvider>
         <MagicLinkSessionBootstrap>{children}</MagicLinkSessionBootstrap>
       </AuthProvider>
+      {process.env.NODE_ENV !== "production" && <DevSessionDiagnosticsPanel />}
     </QueryClientProvider>
   );
 }

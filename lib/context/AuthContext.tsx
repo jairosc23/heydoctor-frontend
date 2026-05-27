@@ -41,6 +41,7 @@ import {
 } from "@/lib/context/auth-bootstrap";
 import { shouldSkipAuthBootstrapOnMount } from "@/lib/auth-session-hints";
 import { ApiError } from "@/lib/heydoctor-api";
+import { getLogger } from "@/lib/logger";
 
 function getSafePostLoginPath(redirect: string | null): string {
   if (redirect && redirect.startsWith("/") && !redirect.startsWith("//")) {
@@ -48,6 +49,9 @@ function getSafePostLoginPath(redirect: string | null): string {
   }
   return "/panel";
 }
+
+const logAuth = getLogger("AUTH");
+const logSsr = getLogger("SSR");
 
 function isUnauthorizedError(e: unknown): boolean {
   if (e instanceof ApiError && e.status === 401) return true;
@@ -202,9 +206,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           );
           if (!refreshed) {
             if (!mounted || hydrationAbort.signal.aborted) return;
-            console.warn(
-              "refresh failed on mount → clear local session (no remote logout)",
-            );
+            logAuth.warn("bootstrap refresh returned false; clearing local session", {
+              phase: "bootstrap",
+              step: "refresh",
+            });
             await clearSession();
             return;
           }
@@ -218,10 +223,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             recoverFromBootstrapFailure();
           }
           if (shouldClearSessionOnBootstrapError(e, "refresh")) {
-            console.warn(
-              "refresh failed on mount → clear local session (no remote logout)",
-              e,
-            );
+            logAuth.warn("bootstrap refresh failed; clearing local session", {
+              phase: "bootstrap",
+              step: "refresh",
+              error: e instanceof Error ? e.message : String(e),
+            });
             await clearSession();
           }
           return;
@@ -294,13 +300,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (isUnauthorizedError(e)) {
             await clearSession();
           } else {
-            console.warn("refreshUser: refresh threw (no logout):", e);
+            logAuth.warn("refreshUser: refresh threw (no logout)", {
+              error: e instanceof Error ? e.message : String(e),
+            });
           }
           return;
         }
         if (!refreshed) {
           if (g0 !== sessionGen()) return;
-          console.warn("refreshUser: refresh not ok (no logout)");
+          logAuth.warn("refreshUser: refresh returned false (no logout)");
           return;
         }
         const me = await withTimeout(
@@ -316,7 +324,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (isUnauthorizedError(e)) {
           await clearSession();
         } else {
-          console.warn("refreshUser failed (no logout):", e);
+          logAuth.warn("refreshUser failed (no logout)", {
+            error: e instanceof Error ? e.message : String(e),
+          });
         }
       }
     })();
@@ -348,7 +358,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (cancelled) return;
         window.location.assign(target);
       } catch (e) {
-        console.warn("SSR session sync before redirect failed:", e);
+        logSsr.warn("SSR session sync before redirect failed", {
+          phase: "post-login-redirect",
+          error: e instanceof Error ? e.message : String(e),
+        });
       }
     })();
 
