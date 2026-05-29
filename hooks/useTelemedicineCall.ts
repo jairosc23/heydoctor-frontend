@@ -19,6 +19,8 @@ import {
   reportWebrtcResilienceMetric,
   reportWebrtcState,
 } from '@/lib/webrtc-observability';
+import { mergeRemoteTrackEvent } from '@/lib/webrtc-remote-stream';
+import { shouldInitiatorCreateOffer } from '@/lib/webrtc-negotiation-offer';
 
 /** Production-oriented RTCPeerConnection defaults (broad browser support). */
 export function createProRtcConfiguration(
@@ -464,6 +466,7 @@ export function useTelemedicineCall(
   const stopStatsRef = useRef<(() => void) | null>(null);
   const videoTierRef = useRef<AdaptationTier>(0);
   const remoteIdRef = useRef<string | null>(null);
+  const roomPeerCountRef = useRef(1);
   const makingOfferRef = useRef(false);
   const iceRestartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
@@ -512,13 +515,26 @@ export function useTelemedicineCall(
             iceConnectionState: iceConnectionState ?? null,
             quality: connectionQuality ?? null,
             reconnecting: reconnectingIceRef.current ?? null,
+            roomPeerCount: roomPeerCountRef.current,
+            localStreamPresent: Boolean(localStream),
+            remoteStreamPresent: Boolean(remoteStream),
+            localAudioTracks: localStream?.getAudioTracks().length ?? 0,
+            localVideoTracks: localStream?.getVideoTracks().length ?? 0,
+            remoteAudioTracks: remoteStream?.getAudioTracks().length ?? 0,
+            remoteVideoTracks: remoteStream?.getVideoTracks().length ?? 0,
           },
         }),
       );
     } catch {
       /* noop */
     }
-  }, [connectionState, iceConnectionState, connectionQuality]);
+  }, [
+    connectionState,
+    iceConnectionState,
+    connectionQuality,
+    localStream,
+    remoteStream,
+  ]);
 
   const detachMonitor = useCallback(() => {
     if (stopStatsRef.current) {
@@ -597,6 +613,46 @@ export function useTelemedicineCall(
       void runIceRestart();
     }, 1500);
   }, [runIceRestart]);
+
+  const createInitialOfferIfNeeded = useCallback(
+    async (reason: string) => {
+      const pc = pcRef.current;
+      const socket = socketRef.current;
+      if (!pc || !socket) return;
+
+      const mayOffer = shouldInitiatorCreateOffer({
+        isInitiator,
+        peerCount: roomPeerCountRef.current,
+        remoteIdPresent: Boolean(remoteIdRef.current),
+        signalingState: pc.signalingState,
+        hasLocalOffer: pc.localDescription?.type === 'offer',
+        makingOffer: makingOfferRef.current,
+      });
+      if (!mayOffer) return;
+
+      makingOfferRef.current = true;
+      try {
+        logVideo.info('webrtc_create_offer', {
+          event: 'webrtc_create_offer',
+          reason,
+          consultationId,
+          roomPeerCount: roomPeerCountRef.current,
+          remoteIdPresent: Boolean(remoteIdRef.current),
+        });
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        socket.emit('offer', {
+          consultationId,
+          sdp: pc.localDescription,
+        });
+      } catch (e) {
+        onError?.((e as Error).message);
+      } finally {
+        makingOfferRef.current = false;
+      }
+    },
+    [consultationId, isInitiator, onError],
+  );
 
   const wirePeerConnection = useCallback(
     (pc: RTCPeerConnection) => {
@@ -697,13 +753,15 @@ export function useTelemedicineCall(
       };
 
       pc.ontrack = (ev) => {
-        const [first] = ev.streams;
-        const next =
-          remoteStreamRef.current ??
-          new MediaStream();
-        if (ev.track && !next.getTracks().includes(ev.track)) {
-          next.addTrack(ev.track);
-        }
+        const { stream, snapshot } = mergeRemoteTrackEvent(
+          remoteStreamRef.current,
+          ev,
+        );
+        logVideo.info('webrtc_ontrack', {
+          event: 'webrtc_ontrack',
+          consultationId,
+          ...snapshot,
+        });
         if (ev.track?.kind === 'video') {
           ev.track.addEventListener(
             'ended',
@@ -722,8 +780,8 @@ export function useTelemedicineCall(
             { once: true },
           );
         }
-        remoteStreamRef.current = first ?? next;
-        setRemoteStream(remoteStreamRef.current);
+        remoteStreamRef.current = stream;
+        setRemoteStream(stream);
       };
 
       if (disconnectedPollRef.current) {
@@ -886,25 +944,46 @@ export function useTelemedicineCall(
       socket.off('ice-candidate');
       socket.off('peer-joined');
       socket.off('peer-left');
+      socket.off('room-state');
+
+      socket.on(
+        'room-state',
+        ({
+          peerCount,
+          consultationId: roomConsultationId,
+        }: {
+          peerCount?: number;
+          consultationId?: string;
+        }) => {
+          if (
+            roomConsultationId &&
+            roomConsultationId !== consultationId
+          ) {
+            return;
+          }
+          if (typeof peerCount === 'number') {
+            roomPeerCountRef.current = peerCount;
+            logVideo.info('webrtc_room_state', {
+              event: 'webrtc_room_state',
+              consultationId,
+              peerCount,
+            });
+          }
+          if (typeof peerCount === 'number' && peerCount > 1 && isInitiator) {
+            void createInitialOfferIfNeeded('room_state');
+          }
+        },
+      );
 
       socket.on('peer-joined', async ({ userId }: { userId: string }) => {
         remoteIdRef.current = userId;
         onRemoteUserId?.(userId);
-        if (!isInitiator || makingOfferRef.current) return;
-        if (pc.signalingState !== 'stable') return;
-        makingOfferRef.current = true;
-        try {
-          const offer = await pc.createOffer();
-          await pc.setLocalDescription(offer);
-          socket.emit('offer', {
-            consultationId,
-            sdp: pc.localDescription,
-          });
-        } catch (e) {
-          onError?.((e as Error).message);
-        } finally {
-          makingOfferRef.current = false;
-        }
+        logVideo.info('webrtc_peer_joined', {
+          event: 'webrtc_peer_joined',
+          consultationId,
+          remoteIdPresent: true,
+        });
+        await createInitialOfferIfNeeded('peer_joined');
       });
 
       socket.on(
@@ -918,6 +997,11 @@ export function useTelemedicineCall(
         }) => {
           remoteIdRef.current = fromUserId;
           onRemoteUserId?.(fromUserId);
+          logVideo.info('webrtc_offer_received', {
+            event: 'webrtc_offer_received',
+            consultationId,
+            signalingState: pc.signalingState,
+          });
           try {
             if (sdp.type === 'offer') {
               if (pc.signalingState !== 'stable') {
@@ -926,8 +1010,17 @@ export function useTelemedicineCall(
                 ]).catch(() => undefined);
               }
               await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+              logVideo.info('webrtc_set_remote_description', {
+                event: 'webrtc_set_remote_description',
+                consultationId,
+                type: 'offer',
+              });
               const answer = await pc.createAnswer();
               await pc.setLocalDescription(answer);
+              logVideo.info('webrtc_create_answer', {
+                event: 'webrtc_create_answer',
+                consultationId,
+              });
               socket.emit('answer', {
                 consultationId,
                 sdp: pc.localDescription,
@@ -947,9 +1040,19 @@ export function useTelemedicineCall(
           sdp: RTCSessionDescriptionInit;
           fromUserId: string;
         }) => {
+          logVideo.info('webrtc_answer_received', {
+            event: 'webrtc_answer_received',
+            consultationId,
+            signalingState: pc.signalingState,
+          });
           try {
             if (pc.signalingState === 'have-local-offer') {
               await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+              logVideo.info('webrtc_set_remote_description', {
+                event: 'webrtc_set_remote_description',
+                consultationId,
+                type: 'answer',
+              });
             }
           } catch (e) {
             onError?.((e as Error).message);
@@ -980,13 +1083,14 @@ export function useTelemedicineCall(
         onRemoteUserId?.(null);
       });
     },
-    [consultationId, isInitiator, onError, onRemoteUserId],
+    [consultationId, createInitialOfferIfNeeded, isInitiator, onError, onRemoteUserId],
   );
 
   const endCall = useCallback(() => {
     detachMonitor();
     reconnectingIceRef.current = false;
     videoSuspendedByPolicyRef.current = false;
+    roomPeerCountRef.current = 1;
     try {
       screenShareTrackRef.current?.stop();
     } catch {
@@ -1126,6 +1230,7 @@ export function useTelemedicineCall(
   const startCall = useCallback(async () => {
     endCall();
     remoteIdRef.current = null;
+    roomPeerCountRef.current = 1;
     onRemoteUserId?.(null);
 
     let socket: Socket;
@@ -1359,19 +1464,11 @@ export function useTelemedicineCall(
         },
       );
 
-      if (isInitiator && remoteIdRef.current) {
-        /* peer already in room */
-        makingOfferRef.current = true;
-        try {
-          const offer = await pc.createOffer();
-          await pc.setLocalDescription(offer);
-          socket.emit('offer', {
-            consultationId,
-            sdp: pc.localDescription,
-          });
-        } finally {
-          makingOfferRef.current = false;
-        }
+      if (
+        isInitiator &&
+        (remoteIdRef.current || roomPeerCountRef.current > 1)
+      ) {
+        await createInitialOfferIfNeeded('start_call_peer_present');
       }
     } catch (e) {
       const msg = humanizeCallError(e);
@@ -1384,6 +1481,7 @@ export function useTelemedicineCall(
     attachSignalingHandlers,
     backendOrigin,
     consultationId,
+    createInitialOfferIfNeeded,
     endCall,
     externalSocket,
     isInitiator,
