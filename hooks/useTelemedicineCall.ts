@@ -10,6 +10,7 @@ import { requestRecordingStart, requestRecordingStop } from '@/lib/webrtc-record
 import { sendCallMetrics } from '@/lib/send-webrtc-metrics';
 import { ensureAccessToken, getAccessToken } from '@/lib/auth-client';
 import { getLogger } from '@/lib/logger';
+import { logLocalGetUserMediaOk } from '@/lib/video-playback-diagnostics';
 import type { Socket } from 'socket.io-client';
 
 const logVideo = getLogger('VIDEO');
@@ -1282,6 +1283,7 @@ export function useTelemedicineCall(
       const stream = await navigator.mediaDevices.getUserMedia(
         mediaConstraints,
       );
+      logLocalGetUserMediaOk(stream, logVideo);
       setLocalStream(stream);
 
       capturedVideoTrackRef.current = stream.getVideoTracks()[0] ?? null;

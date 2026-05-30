@@ -17,6 +17,21 @@ function playErrorMeta(err: unknown): { errorName: string; errorMessage: string 
 /**
  * Asigna srcObject y registra telemetría PHI-safe de reproducción.
  */
+export function logLocalGetUserMediaOk(
+  stream: MediaStream,
+  log: VideoLogger,
+): void {
+  const counts = streamTrackCounts(stream);
+  const videoTrack = stream.getVideoTracks()[0];
+  log.info('local_getusermedia_ok', {
+    event: 'local_getusermedia_ok',
+    streamId: stream.id,
+    audioTracks: counts.audio,
+    videoTracks: counts.video,
+    videoTrackReadyState: videoTrack?.readyState ?? 'none',
+  });
+}
+
 export function attachVideoPlaybackDiagnostics(
   el: HTMLVideoElement,
   stream: MediaStream | null,
@@ -24,6 +39,16 @@ export function attachVideoPlaybackDiagnostics(
   log: VideoLogger,
 ): () => void {
   el.srcObject = stream;
+
+  if (role === 'local' && stream) {
+    log.info('local_srcobject_assigned', {
+      event: 'local_srcobject_assigned',
+      hasSrcObject: el.srcObject === stream,
+      readyState: el.readyState,
+      streamId: stream.id,
+      ...streamTrackCounts(stream),
+    });
+  }
 
   if (!stream) {
     return () => {

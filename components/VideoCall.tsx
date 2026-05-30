@@ -373,9 +373,20 @@ export const VideoCall = forwardRef<
 
   useLayoutEffect(() => {
     const el = localVideoRef.current;
+    logVideo.info("local_video_ref_status", {
+      event: "local_video_ref_status",
+      refPresent: Boolean(el),
+      mediaReady,
+      streamPresent: Boolean(localStream),
+    });
     if (!el) return;
+    logVideo.info("local_video_element_mounted", {
+      event: "local_video_element_mounted",
+      mediaReady,
+      streamPresent: Boolean(localStream),
+    });
     return attachVideoPlaybackDiagnostics(el, localStream, "local", logVideo);
-  }, [localStream]);
+  }, [localStream, mediaReady]);
 
   useLayoutEffect(() => {
     const el = remoteVideoRef.current;
