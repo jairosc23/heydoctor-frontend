@@ -499,6 +499,8 @@ export function useTelemedicineCall(
   const lastCameraRecoverAtMsRef = useRef<number>(0);
   const activeCameraDeviceIdRef = useRef<string | null>(null);
   const activeMicDeviceIdRef = useRef<string | null>(null);
+  /** T0 para trazas temporales de join-consultation (PHI-safe). */
+  const joinConsultationEmitAtMsRef = useRef<number | null>(null);
 
   useEffect(() => {
     videoTierRef.current = videoTier;
@@ -964,6 +966,15 @@ export function useTelemedicineCall(
           }
           if (typeof peerCount === 'number') {
             roomPeerCountRef.current = peerCount;
+            const emitAt = joinConsultationEmitAtMsRef.current;
+            logVideo.info('join_consultation_room_state', {
+              event: 'join_consultation_room_state',
+              consultationId,
+              peerCount,
+              socketId: socketRef.current?.id ?? null,
+              roomStateLatencyMs:
+                emitAt != null ? Date.now() - emitAt : null,
+            });
             logVideo.info('webrtc_room_state', {
               event: 'webrtc_room_state',
               consultationId,
@@ -1126,6 +1137,7 @@ export function useTelemedicineCall(
     }
     socketRef.current = null;
     ownSocketRef.current = false;
+    joinConsultationEmitAtMsRef.current = null;
 
     setLocalStream((prev) => {
       prev?.getTracks().forEach((t) => t.stop());
@@ -1336,6 +1348,16 @@ export function useTelemedicineCall(
 
       attachSignalingHandlers(socket, pc);
 
+      const joinEmitAtMs = Date.now();
+      joinConsultationEmitAtMsRef.current = joinEmitAtMs;
+      logVideo.info('join_consultation_emit', {
+        event: 'join_consultation_emit',
+        consultationId,
+        socketId: socket.id ?? null,
+        socketConnected: socket.connected,
+        emitAtMs: joinEmitAtMs,
+      });
+
       await new Promise<void>((resolve, reject) => {
         socket
           .timeout(20_000)
@@ -1343,10 +1365,44 @@ export function useTelemedicineCall(
             'join-consultation',
             { consultationId },
             (err: Error | null, ack: unknown) => {
+              const ackAtMs = Date.now();
+              const ackLatencyMs = ackAtMs - joinEmitAtMs;
+              const traceId =
+                ack &&
+                typeof ack === 'object' &&
+                'traceId' in ack &&
+                typeof (ack as { traceId?: unknown }).traceId === 'string'
+                  ? (ack as { traceId: string }).traceId
+                  : null;
+
               if (err) {
+                logVideo.warn('join_consultation_ack', {
+                  event: 'join_consultation_ack',
+                  success: false,
+                  consultationId,
+                  socketId: socket.id ?? null,
+                  emitAtMs: joinEmitAtMs,
+                  ackAtMs,
+                  ackLatencyMs,
+                  timedOut: err.message
+                    .toLowerCase()
+                    .includes('timed out'),
+                  errorName: err.name,
+                  errorMessage: err.message,
+                });
                 reject(err);
                 return;
               }
+              logVideo.info('join_consultation_ack', {
+                event: 'join_consultation_ack',
+                success: true,
+                consultationId,
+                socketId: socket.id ?? null,
+                emitAtMs: joinEmitAtMs,
+                ackAtMs,
+                ackLatencyMs,
+                traceId,
+              });
               if (
                 ack &&
                 typeof ack === 'object' &&
