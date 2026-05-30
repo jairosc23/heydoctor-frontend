@@ -34,6 +34,10 @@ import { logger } from "@/lib/logger";
 import { getLogger } from "@/lib/logger";
 import { humanizeCallError, useTelemedicineCall } from "@/hooks/useTelemedicineCall";
 import { useIsMobile } from "@/lib/hooks/useIsMobile";
+import {
+  attachVideoPlaybackDiagnostics,
+  streamTrackCounts,
+} from "@/lib/video-playback-diagnostics";
 
 const logVideo = getLogger("VIDEO");
 
@@ -369,22 +373,37 @@ export const VideoCall = forwardRef<
 
   useLayoutEffect(() => {
     const el = localVideoRef.current;
+    logVideo.info("local_video_ref_status", {
+      event: "local_video_ref_status",
+      refPresent: Boolean(el),
+      mediaReady,
+      streamPresent: Boolean(localStream),
+    });
     if (!el) return;
-    el.srcObject = localStream;
-    if (localStream) {
-      el.muted = true;
-      void el.play().catch(() => {});
-    }
-  }, [localStream]);
+    logVideo.info("local_video_element_mounted", {
+      event: "local_video_element_mounted",
+      mediaReady,
+      streamPresent: Boolean(localStream),
+    });
+    return attachVideoPlaybackDiagnostics(el, localStream, "local", logVideo);
+  }, [localStream, mediaReady]);
 
   useLayoutEffect(() => {
     const el = remoteVideoRef.current;
     if (!el) return;
-    el.srcObject = remoteStream;
-    if (remoteStream) {
-      void el.play().catch(() => {});
-    }
+    return attachVideoPlaybackDiagnostics(el, remoteStream, "remote", logVideo);
   }, [remoteStream]);
+
+  useEffect(() => {
+    if (!isDev) return;
+    logVideo.debug("webrtc_stream_diagnostics", {
+      event: "webrtc_stream_diagnostics",
+      local: streamTrackCounts(localStream),
+      remote: streamTrackCounts(remoteStream),
+      localPresent: Boolean(localStream),
+      remotePresent: Boolean(remoteStream),
+    });
+  }, [isDev, localStream, remoteStream]);
 
   useEffect(() => {
     remoteStreamRef.current = remoteStream;
