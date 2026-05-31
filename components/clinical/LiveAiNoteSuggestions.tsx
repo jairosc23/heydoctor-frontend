@@ -5,13 +5,11 @@ import { useDebouncedValue } from "@/lib/hooks/useDebouncedValue";
 import {
   postConsultationSummary,
   type ConsultationSummaryResponse,
-  type ConsultationSummaryRequest,
 } from "@/lib/services/ai-clinical";
 
 const DEBOUNCE_MS = 700;
 const MIN_NOTES_LENGTH = 30;
 const MAX_SUGGESTIONS = 2;
-const PRIOR_TAIL_MAX = 300;
 
 type Priority = "high" | "consider" | "optional";
 
@@ -64,46 +62,12 @@ function buildSuggestions(res: ConsultationSummaryResponse): Suggestion[] {
   return out.slice(0, MAX_SUGGESTIONS);
 }
 
-function buildRequestPayload(
-  trimmed: string,
-  diagnosis: string,
-  patientAge?: string | number,
-  patientSex?: string
-): ConsultationSummaryRequest {
-  const tailLen = Math.min(PRIOR_TAIL_MAX, trimmed.length);
-  const priorNotesExcerpt =
-    tailLen > 0 ? trimmed.slice(-tailLen) : undefined;
-
-  const ageStr =
-    patientAge !== undefined &&
-    patientAge !== null &&
-    String(patientAge).trim()
-      ? String(patientAge).trim()
-      : undefined;
-  const sexStr = patientSex?.trim() || undefined;
-
-  return {
-    reason: "",
-    notes: trimmed,
-    diagnosis: diagnosis.trim(),
-    treatment: "",
-    ...(ageStr ? { patientAge: ageStr } : {}),
-    ...(sexStr ? { patientSex: sexStr } : {}),
-    ...(priorNotesExcerpt ? { priorNotesExcerpt } : {}),
-  };
-}
-
-function cacheKeyForPayload(
-  trimmed: string,
-  diagnosis: string,
-  patientAge?: string | number,
-  patientSex?: string
-): string {
-  const body = buildRequestPayload(trimmed, diagnosis, patientAge, patientSex);
-  return JSON.stringify(body);
+function cacheKeyForPayload(consultationId: string, trimmed: string): string {
+  return `${consultationId}:${trimmed.length}:${trimmed.slice(-80)}`;
 }
 
 type Props = {
+  consultationId: string;
   notes: string;
   setNotes: React.Dispatch<React.SetStateAction<string>>;
   diagnosisContext?: string;
@@ -112,11 +76,9 @@ type Props = {
 };
 
 export function LiveAiNoteSuggestions({
+  consultationId,
   notes,
   setNotes,
-  diagnosisContext = "",
-  patientAge,
-  patientSex,
 }: Props) {
   const debouncedNotes = useDebouncedValue(notes, DEBOUNCE_MS);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -165,8 +127,9 @@ export function LiveAiNoteSuggestions({
 
   useEffect(() => {
     const trimmed = debouncedNotes.trim();
+    const consultationKey = consultationId.trim();
 
-    if (trimmed.length < MIN_NOTES_LENGTH) {
+    if (!consultationKey || trimmed.length < MIN_NOTES_LENGTH) {
       abortRef.current?.abort();
       setSuggestions([]);
       setFetching(false);
@@ -175,12 +138,7 @@ export function LiveAiNoteSuggestions({
       return;
     }
 
-    const key = cacheKeyForPayload(
-      trimmed,
-      diagnosisContext,
-      patientAge,
-      patientSex
-    );
+    const key = cacheKeyForPayload(consultationKey, trimmed);
     if (cacheRef.current?.key === key) {
       setSuggestions(cacheRef.current.items);
       setError(null);
@@ -195,10 +153,7 @@ export function LiveAiNoteSuggestions({
     setFetching(true);
     setError(null);
 
-    postConsultationSummary(
-      buildRequestPayload(trimmed, diagnosisContext, patientAge, patientSex),
-      ac.signal
-    )
+    postConsultationSummary(consultationKey, ac.signal)
       .then((res) => {
         if (seq !== requestSeq.current || ac.signal.aborted) return;
         const items = buildSuggestions(res);
@@ -222,7 +177,7 @@ export function LiveAiNoteSuggestions({
       .finally(() => {
         if (seq === requestSeq.current) setFetching(false);
       });
-  }, [debouncedNotes, diagnosisContext, patientAge, patientSex]);
+  }, [consultationId, debouncedNotes]);
 
   useEffect(() => {
     return () => {

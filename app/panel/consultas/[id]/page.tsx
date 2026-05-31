@@ -849,6 +849,7 @@ export default function ConsultationDetailPage() {
             >
               <h3 style={{ marginBottom: 12, fontSize: 16 }}>Notas de consulta</h3>
               <LiveAiNoteSuggestions
+                consultationId={id}
                 notes={notes}
                 setNotes={setNotes}
                 diagnosisContext={diagnosis}

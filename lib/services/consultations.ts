@@ -150,6 +150,8 @@ export interface ConsultationAiPayload {
 
 export interface UpdateConsultationDto {
   chiefComplaint?: string;
+  /** Wire alias for backend `reason`. */
+  reason?: string;
   symptoms?: string;
   diagnosis?: string;
   treatmentPlan?: string;
@@ -159,19 +161,29 @@ export interface UpdateConsultationDto {
   status?: string;
 }
 
+/** Maps legacy frontend fields to NestJS UpdateConsultationDto. */
+export function buildUpdateConsultationBody(
+  dto: UpdateConsultationDto,
+): Record<string, unknown> {
+  const body: Record<string, unknown> = {};
+  const reason = dto.chiefComplaint ?? dto.reason;
+  if (reason !== undefined) body.reason = reason;
+  if (dto.diagnosis !== undefined) body.diagnosis = dto.diagnosis;
+  if (dto.notes !== undefined) body.notes = dto.notes;
+  if (dto.status !== undefined) body.status = dto.status;
+  const treatment = dto.treatment ?? dto.treatmentPlan;
+  if (treatment !== undefined) body.treatment = treatment;
+  return body;
+}
+
 export async function updateConsultation(
   id: string,
   dto: UpdateConsultationDto
 ): Promise<NestConsultation> {
-  const body: Record<string, unknown> = {};
-  if (dto.chiefComplaint !== undefined) body.chiefComplaint = dto.chiefComplaint;
-  if (dto.symptoms !== undefined) body.symptoms = dto.symptoms;
-  if (dto.diagnosis !== undefined) body.diagnosis = dto.diagnosis;
-  if (dto.notes !== undefined) body.notes = dto.notes;
-  if (dto.status !== undefined) body.status = dto.status;
-  const plan = dto.treatmentPlan ?? dto.treatment;
-  if (plan !== undefined) body.treatmentPlan = plan;
-  return heydoctorApi.patch<NestConsultation>(`${BASE}/${id}`, body);
+  return heydoctorApi.patch<NestConsultation>(
+    `${BASE}/${id}`,
+    buildUpdateConsultationBody(dto),
+  );
 }
 
 export async function signConsultation(

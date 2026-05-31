@@ -482,6 +482,7 @@ function ConsultasContent() {
             >
               <h3 style={{ marginBottom: 12, fontSize: 16 }}>Notas de consulta</h3>
               <LiveAiNoteSuggestions
+                consultationId={consultationId}
                 notes={clinicalNotes}
                 setNotes={setClinicalNotes}
                 diagnosisContext={clinicalDiagnosisText}
