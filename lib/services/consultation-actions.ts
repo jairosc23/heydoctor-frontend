@@ -81,39 +81,17 @@ async function tryPostDocument(
 /* ───────────────────────── PDF & factura ───────────────────────── */
 
 /**
- * Solicita el PDF clnico de la consulta. Intenta varias rutas comunes:
- *   - GET /consultations/:id/pdf
- *   - GET /consultations/:id/export
- * Como fallback abrimos una URL directa que el backend pueda servir como
- * descarga (`{API}/consultations/:id/pdf`).
+ * Descarga el PDF clínico vía streaming (`application/pdf`).
+ * Backend: `GET /consultations/:id/pdf` (alias de `/legal/consultation/:id/pdf`).
  */
 export async function downloadConsultationPdf(consultationId: string): Promise<ActionResult> {
-  try {
-    const res = await heydoctorApi.get<DocumentResponse>(
-      `/consultations/${consultationId}/pdf`,
-    );
-    const url = pickUrl(res);
-    if (url) {
-      window.open(url, "_blank", "noopener,noreferrer");
-      return { status: "ok", url };
-    }
-  } catch (e) {
-    if (!(e instanceof ApiError) || e.status !== 404) {
-      return classifyError(e);
-    }
-  }
-  /**
-   * Fallback: abrimos la URL directa con cookies del navegador. Si el
-   * backend devuelve `application/pdf` en streaming, el navegador lo
-   * mostrar/descargar; si no existe, el usuario ver un 404 honesto.
-   */
   const directUrl = `${getApiBase()}/consultations/${consultationId}/pdf`;
   window.open(directUrl, "_blank", "noopener,noreferrer");
   return {
     status: "ok",
     url: directUrl,
     message:
-      "Se abri\u00f3 la descarga directa del PDF. Si tu navegador la bloquea, permite descargas para HeyDoctor.",
+      "Se abrió la descarga del PDF clínico. Si tu navegador la bloquea, permite descargas para HeyDoctor.",
   };
 }
 
