@@ -9,6 +9,10 @@ import { GuestNamePrompt } from "@/components/telemedicine/GuestNamePrompt";
 import { VideoCall, type VideoCallCallChrome } from "@/components/VideoCall";
 import { getGuestName, setGuestName } from "@/lib/guest-session";
 import {
+  CONSULTATION_ACCESS_DENIED_MESSAGE,
+  getConsultationAccessErrorMessage,
+} from "@/lib/consultation-access-errors";
+import {
   fetchConsultation,
   fetchPublicConsultationStatus,
 } from "@/lib/services";
@@ -135,6 +139,9 @@ export function TeleconsultaVideoSession({
     () => !!panelGate,
   );
   const [panelAllowed, setPanelAllowed] = useState(() => !panelGate);
+  const [panelAccessMessage, setPanelAccessMessage] = useState(
+    CONSULTATION_ACCESS_DENIED_MESSAGE,
+  );
 
   const effectiveMode: "auth" | "guest" =
     inviteData != null
@@ -325,8 +332,11 @@ export function TeleconsultaVideoSession({
         );
         setPanelAllowed(true);
       })
-      .catch(() => {
-        if (!cancelled) setPanelAllowed(false);
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setPanelAllowed(false);
+          setPanelAccessMessage(getConsultationAccessErrorMessage(err));
+        }
       })
       .finally(() => {
         if (!cancelled) setPanelAccessLoading(false);
@@ -532,7 +542,7 @@ export function TeleconsultaVideoSession({
             Acceso denegado
           </h2>
           <p style={{ margin: "0 0 20px", color: "#94a3b8", lineHeight: 1.5 }}>
-            No tienes permiso para acceder a esta teleconsulta.
+            {panelAccessMessage}
           </p>
           <Link
             href={panelDeniedHref}

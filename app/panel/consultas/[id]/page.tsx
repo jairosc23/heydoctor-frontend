@@ -28,6 +28,7 @@ import {
 } from "@/lib/consultation-pricing";
 import { useConsultationPrice } from "@/lib/hooks/useConsultationPrice";
 import { ApiError } from "@/lib/heydoctor-api";
+import { getConsultationAccessErrorMessage } from "@/lib/consultation-access-errors";
 import { getWhatsAppUrlWithCustomMessage } from "@/lib/whatsapp-url";
 import {
   AiInsightsPanel,
@@ -176,9 +177,7 @@ export default function ConsultationDetailPage() {
       setDiagnosis(c.diagnosis ?? "");
       setTreatment(c.treatmentPlan ?? c.treatment ?? "");
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Error al cargar consulta"
-      );
+      setError(getConsultationAccessErrorMessage(err));
     } finally {
       setLoading(false);
     }
