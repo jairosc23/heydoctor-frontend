@@ -8,13 +8,16 @@ import { useDebouncedValue } from "@/lib/hooks/useDebouncedValue";
 import { usePatientsListQuery } from "@/lib/hooks/use-panel-list-queries";
 import { PATIENTS_LIST_ROOT } from "@/lib/queries/query-keys";
 import { createPatient } from "@/lib/services";
+import { formatPatientAge, formatPatientDisplayName } from "@/lib/services/patients";
 
 interface PatientItem {
   id: string;
   name?: string;
+  displayName?: string;
   firstname?: string;
   lastname?: string;
   email?: string;
+  age?: string | number | null;
 }
 
 export default function PacientesPage() {
@@ -71,8 +74,7 @@ export default function PacientesPage() {
   }
 
   function displayName(p: PatientItem): string {
-    if (p.name) return p.name;
-    return [p.firstname, p.lastname].filter(Boolean).join(" ") || "—";
+    return formatPatientDisplayName(p);
   }
 
   return (
@@ -232,6 +234,11 @@ export default function PacientesPage() {
                 <th
                   style={{ padding: "12px 16px", fontSize: 12, color: "#666" }}
                 >
+                  Edad
+                </th>
+                <th
+                  style={{ padding: "12px 16px", fontSize: 12, color: "#666" }}
+                >
                   Acciones
                 </th>
               </tr>
@@ -243,22 +250,42 @@ export default function PacientesPage() {
                   <td style={{ padding: "12px 16px", color: "#666" }}>
                     {p.email || "—"}
                   </td>
+                  <td style={{ padding: "12px 16px", color: "#666" }}>
+                    {formatPatientAge(p.age)}
+                  </td>
                   <td style={{ padding: "12px 16px" }}>
-                    <button
-                      onClick={() =>
-                        router.push(`/panel/consultas?patientId=${p.id}`)
-                      }
-                      style={{
-                        background: "none",
-                        border: "none",
-                        color: "#078a92",
-                        cursor: "pointer",
-                        fontSize: 14,
-                        padding: 0,
-                      }}
-                    >
-                      Nueva consulta →
-                    </button>
+                    <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                      <button
+                        onClick={() =>
+                          router.push(`/panel/pacientes/${p.id}`)
+                        }
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: "#078a92",
+                          cursor: "pointer",
+                          fontSize: 14,
+                          padding: 0,
+                        }}
+                      >
+                        Ver ficha →
+                      </button>
+                      <button
+                        onClick={() =>
+                          router.push(`/panel/consultas?patientId=${p.id}`)
+                        }
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: "#078a92",
+                          cursor: "pointer",
+                          fontSize: 14,
+                          padding: 0,
+                        }}
+                      >
+                        Nueva consulta →
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

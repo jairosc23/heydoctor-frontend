@@ -486,7 +486,7 @@ function ConsultasContent() {
                 notes={clinicalNotes}
                 setNotes={setClinicalNotes}
                 diagnosisContext={clinicalDiagnosisText}
-                patientAge={selectedPatient?.age}
+                patientAge={selectedPatient?.age ?? undefined}
                 patientSex={
                   selectedPatient?.sex ?? selectedPatient?.gender
                 }
