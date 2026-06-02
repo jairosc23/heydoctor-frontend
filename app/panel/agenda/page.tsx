@@ -1,212 +1,182 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { fetchAppointments, type Appointment } from "@/lib/services";
+import { useMemo, useState } from "react";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { AgendaDayView } from "@/components/agenda/AgendaDayView";
+import { AgendaMonthView } from "@/components/agenda/AgendaMonthView";
+import { AgendaWeekView } from "@/components/agenda/AgendaWeekView";
+import { AppointmentFormModal } from "@/components/agenda/AppointmentFormModal";
+import Button from "@/components/ui/Button";
+import {
+  type AgendaView,
+  getRangeForView,
+  getViewTitle,
+  navigateAnchor,
+  resolveClinicTimezone,
+} from "@/lib/agenda/calendar-utils";
+import { useAppointmentsListQuery } from "@/lib/hooks/use-panel-list-queries";
+import type { Appointment } from "@/lib/services/appointments";
+import { cn } from "@/lib/utils";
 
-function formatDateTime(value?: string, timeZone?: string) {
-  if (!value) return "—";
-  try {
-    return new Intl.DateTimeFormat("es-CL", {
-      dateStyle: "medium",
-      timeStyle: "short",
-      timeZone,
-    }).format(new Date(value));
-  } catch {
-    return new Date(value).toLocaleString("es-CL");
-  }
-}
-
-function patientName(appointment: Appointment) {
-  return (
-    appointment.patient?.name ||
-    [appointment.patient?.firstname, appointment.patient?.lastname]
-      .filter(Boolean)
-      .join(" ") ||
-    "—"
-  );
-}
-
-function doctorName(appointment: Appointment) {
-  return (
-    appointment.doctor?.name ||
-    appointment.doctor?.user?.name ||
-    [
-      appointment.doctor?.user?.firstName,
-      appointment.doctor?.user?.lastName,
-    ]
-      .filter(Boolean)
-      .join(" ") ||
-    appointment.doctor?.email ||
-    "—"
-  );
-}
-
-const statusTone: Record<string, { background: string; color: string }> = {
-  DRAFT: { background: "#eef2ff", color: "#3730a3" },
-  PENDING_CONFIRMATION: { background: "#fff7ed", color: "#9a3412" },
-  CONFIRMED: { background: "#ecfeff", color: "#0e7490" },
-  CHECKED_IN: { background: "#f0fdf4", color: "#166534" },
-  IN_CONSULTATION: { background: "#eff6ff", color: "#1d4ed8" },
-  COMPLETED: { background: "#f8fafc", color: "#334155" },
-  CANCELLED: { background: "#fef2f2", color: "#991b1b" },
-  NO_SHOW: { background: "#450a0a", color: "#fee2e2" },
-  REFUND_PENDING: { background: "#faf5ff", color: "#7e22ce" },
-  REFUNDED: { background: "#f1f5f9", color: "#475569" },
-};
+const VIEWS: { id: AgendaView; label: string }[] = [
+  { id: "month", label: "Mes" },
+  { id: "week", label: "Semana" },
+  { id: "day", label: "Día" },
+];
 
 export default function AgendaPage() {
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
+  const timeZone = resolveClinicTimezone();
+  const [view, setView] = useState<AgendaView>("week");
+  const [anchor, setAnchor] = useState(() => new Date());
+  const [selected, setSelected] = useState<Appointment | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [createAt, setCreateAt] = useState<Date | undefined>();
 
-  const loadAppointments = () => {
-    setLoading(true);
-    fetchAppointments({ limit: 50 })
-      .then(({ data, total: t }) => {
-        setAppointments(data);
-        setTotal(t ?? 0);
-        setUpdatedAt(new Date());
-      })
-      .catch(() => setAppointments([]))
-      .finally(() => setLoading(false));
+  const range = useMemo(() => getRangeForView(anchor, view), [anchor, view]);
+  const { data, isLoading, isFetching, refetch } = useAppointmentsListQuery({
+    from: range.from,
+    to: range.to,
+    limit: 500,
+  });
+
+  const appointments = data?.data ?? [];
+  const total = data?.total ?? 0;
+
+  const openCreate = (day?: Date) => {
+    setSelected(null);
+    setCreateAt(day ?? anchor);
+    setModalOpen(true);
   };
 
-  useEffect(() => {
-    loadAppointments();
-  }, []);
-
-  const items = appointments;
+  const openEdit = (appointment: Appointment) => {
+    setSelected(appointment);
+    setCreateAt(undefined);
+    setModalOpen(true);
+  };
 
   return (
-    <div style={{ padding: 25 }}>
-      <div
-        style={{
-          alignItems: "center",
-          display: "flex",
-          gap: 16,
-          justifyContent: "space-between",
-          marginBottom: 20,
-        }}
-      >
+    <div className="space-y-6 p-4 md:p-6 lg:p-8">
+      <header className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1
-            style={{
-              color: "#078a92",
-              fontFamily: "Montserrat",
-              marginBottom: 8,
-            }}
-          >
-            Agenda
+          <h1 className="text-2xl font-bold text-primary dark:text-primaryLight">
+            Agenda médica
           </h1>
-          <p style={{ color: "#666", margin: 0 }}>
-            Calendario operacional con estados, zonas horarias y señales de
-            facturación.
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+            Calendario profesional · zona horaria {timeZone}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={loadAppointments}
-          disabled={loading}
-          style={{
-            background: "#078a92",
-            border: 0,
-            borderRadius: 8,
-            color: "white",
-            cursor: loading ? "not-allowed" : "pointer",
-            fontWeight: 700,
-            padding: "10px 14px",
-          }}
-        >
-          Actualizar
-        </button>
-      </div>
-      {loading ? (
-        <p style={{ color: "#666" }}>Cargando...</p>
-      ) : items.length === 0 ? (
-        <p style={{ color: "#666" }}>No hay citas programadas.</p>
-      ) : (
-        <div
-          style={{
-            background: "white",
-            borderRadius: 12,
-            boxShadow: "0 2px 10px rgba(0,0,0,0.06)",
-            overflow: "hidden",
-          }}
-        >
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ background: "#f5f5f5", textAlign: "left" }}>
-                <th style={{ padding: "12px 16px", fontSize: 12, color: "#666" }}>
-                  Horario
-                </th>
-                <th style={{ padding: "12px 16px", fontSize: 12, color: "#666" }}>
-                  Paciente
-                </th>
-                <th style={{ padding: "12px 16px", fontSize: 12, color: "#666" }}>
-                  Doctor
-                </th>
-                <th style={{ padding: "12px 16px", fontSize: 12, color: "#666" }}>
-                  Estado
-                </th>
-                <th style={{ padding: "12px 16px", fontSize: 12, color: "#666" }}>
-                  Operación
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((a) => (
-                <tr key={a.id} style={{ borderBottom: "1px solid #eee" }}>
-                  <td style={{ padding: "12px 16px" }}>
-                    <strong>
-                      {formatDateTime(a.startsAt ?? a.date, a.clinicTimezone)}
-                    </strong>
-                    <div style={{ color: "#64748b", fontSize: 12 }}>
-                      hasta {formatDateTime(a.endsAt, a.clinicTimezone)}
-                    </div>
-                    <div style={{ color: "#94a3b8", fontSize: 12 }}>
-                      Clínica: {a.clinicTimezone ?? "—"} · Paciente:{" "}
-                      {a.patientTimezone ?? "—"}
-                    </div>
-                  </td>
-                  <td style={{ padding: "12px 16px" }}>{patientName(a)}</td>
-                  <td style={{ padding: "12px 16px", color: "#666" }}>
-                    {doctorName(a)}
-                  </td>
-                  <td style={{ padding: "12px 16px" }}>
-                    <span
-                      style={{
-                        ...(statusTone[a.status ?? ""] ?? {
-                          background: "#f1f5f9",
-                          color: "#334155",
-                        }),
-                        borderRadius: 999,
-                        display: "inline-block",
-                        fontSize: 12,
-                        fontWeight: 700,
-                        padding: "5px 9px",
-                      }}
-                    >
-                      {a.status ?? "—"}
-                    </span>
-                  </td>
-                  <td style={{ color: "#64748b", fontSize: 13, padding: "12px 16px" }}>
-                    <div>Pago: {a.paymentStatus ?? "—"}</div>
-                    <div>
-                      Reembolso: {a.refundEligible ? "elegible" : "no elegible"}
-                    </div>
-                    <div>Factura: {a.invoiceReady ? "lista" : "pendiente"}</div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button type="button" onClick={() => openCreate()}>
+            <Plus className="mr-2 h-4 w-4" />
+            Nueva cita
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => refetch()}
+            disabled={isFetching}
+          >
+            {isFetching ? "Actualizando…" : "Actualizar"}
+          </Button>
         </div>
+      </header>
+
+      <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-soft dark:border-slate-700 dark:bg-slate-900 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            aria-label="Anterior"
+            onClick={() => setAnchor((d) => navigateAnchor(d, view, -1))}
+            className="rounded-lg border border-slate-200 p-2 hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setAnchor(new Date())}
+            className="rounded-lg px-3 py-2 text-sm font-semibold text-primary hover:bg-primaryLight dark:hover:bg-slate-800"
+          >
+            Hoy
+          </button>
+          <button
+            type="button"
+            aria-label="Siguiente"
+            onClick={() => setAnchor((d) => navigateAnchor(d, view, 1))}
+            className="rounded-lg border border-slate-200 p-2 hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+          <h2 className="ml-2 text-lg font-semibold capitalize text-slate-800 dark:text-slate-100">
+            {getViewTitle(anchor, view, timeZone)}
+          </h2>
+        </div>
+        <div className="flex rounded-xl border border-slate-200 p-1 dark:border-slate-600">
+          {VIEWS.map((v) => (
+            <button
+              key={v.id}
+              type="button"
+              onClick={() => setView(v.id)}
+              className={cn(
+                "rounded-lg px-4 py-2 text-sm font-semibold transition",
+                view === v.id
+                  ? "bg-primary text-white shadow-sm"
+                  : "text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800",
+              )}
+            >
+              {v.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {isLoading ? (
+        <p className="text-slate-500 dark:text-slate-400">Cargando agenda…</p>
+      ) : (
+        <>
+          {view === "month" && (
+            <AgendaMonthView
+              anchor={anchor}
+              appointments={appointments}
+              timeZone={timeZone}
+              onSelectAppointment={openEdit}
+              onSelectDay={(day) => {
+                setAnchor(day);
+                setView("day");
+              }}
+            />
+          )}
+          {view === "week" && (
+            <AgendaWeekView
+              anchor={anchor}
+              appointments={appointments}
+              timeZone={timeZone}
+              onSelectAppointment={openEdit}
+            />
+          )}
+          {view === "day" && (
+            <AgendaDayView
+              anchor={anchor}
+              appointments={appointments}
+              timeZone={timeZone}
+              onSelectAppointment={openEdit}
+            />
+          )}
+        </>
       )}
-      <p style={{ marginTop: 12, color: "#999", fontSize: 13 }}>
-        Total: {total}
-        {updatedAt ? ` · Actualizado ${updatedAt.toLocaleTimeString("es-CL")}` : ""}
+
+      <p className="text-xs text-slate-500 dark:text-slate-400">
+        {total} cita(s) en el rango visible
       </p>
+
+      <AppointmentFormModal
+        open={modalOpen}
+        appointment={selected}
+        defaultStartsAt={createAt}
+        onClose={() => {
+          setModalOpen(false);
+          setSelected(null);
+        }}
+      />
     </div>
   );
 }

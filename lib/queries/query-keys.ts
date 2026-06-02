@@ -1,8 +1,10 @@
+import type { AppointmentFilters } from "@/lib/services/appointments";
 import type { ConsultationFilters } from "@/lib/services/consultations";
 import type { PatientFilters } from "@/lib/services/patients";
 
 export const PATIENTS_LIST_ROOT = ["patients", "list"] as const;
 export const CONSULTATIONS_LIST_ROOT = ["consultations", "list"] as const;
+export const APPOINTMENTS_LIST_ROOT = ["appointments", "list"] as const;
 
 function stableFilterKey(
   entries: [string, string | number | undefined | null][],
@@ -38,6 +40,21 @@ export function consultationsListQueryKey(filters?: ConsultationFilters) {
       ["search", filters?.search],
       ["limit", filters?.limit],
       ["page", filters?.page],
+      ["offset", filters?.offset],
+    ]),
+  ] as const;
+}
+
+export function appointmentsListQueryKey(filters?: AppointmentFilters) {
+  return [
+    ...APPOINTMENTS_LIST_ROOT,
+    stableFilterKey([
+      ["patientId", filters?.patientId],
+      ["doctorId", filters?.doctorId],
+      ["status", filters?.status],
+      ["from", filters?.from],
+      ["to", filters?.to],
+      ["limit", filters?.limit],
       ["offset", filters?.offset],
     ]),
   ] as const;
