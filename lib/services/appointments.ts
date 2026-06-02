@@ -14,20 +14,40 @@ export type AppointmentStatus =
   | "REFUND_PENDING"
   | "REFUNDED";
 
+export type CalendarAppointmentStatus =
+  | "SCHEDULED"
+  | "CONFIRMED"
+  | "IN_PROGRESS"
+  | "COMPLETED"
+  | "CANCELLED"
+  | "NO_SHOW";
+
 export interface Appointment {
   id: string;
   startsAt?: string;
   endsAt?: string;
   date?: string;
+  durationMinutes?: number;
   clinicTimezone?: string;
   patientTimezone?: string;
   status?: AppointmentStatus;
+  calendarStatus?: CalendarAppointmentStatus;
   paymentStatus?: string;
   refundEligible?: boolean;
   invoiceReady?: boolean;
+  version?: number;
+  reason?: string | null;
+  patientId?: string;
+  doctorId?: string;
   reminderSummary?: Record<string, unknown>;
-  patient?: { name?: string; firstname?: string; lastname?: string };
+  patient?: {
+    id?: string;
+    name?: string;
+    firstname?: string;
+    lastname?: string;
+  };
   doctor?: {
+    id?: string;
     name?: string;
     email?: string;
     user?: { name?: string; firstName?: string; lastName?: string };
@@ -47,6 +67,28 @@ export interface AppointmentFilters {
 export interface AppointmentListResponse {
   data: Appointment[];
   total: number;
+}
+
+export interface CreateAppointmentPayload {
+  patientId: string;
+  startsAt: string;
+  durationMinutes?: number;
+  clinicTimezone: string;
+  patientTimezone?: string;
+  reason?: string;
+  doctorId?: string;
+  status?: AppointmentStatus;
+}
+
+export interface UpdateAppointmentPayload {
+  startsAt?: string;
+  durationMinutes?: number;
+  clinicTimezone?: string;
+  patientTimezone?: string;
+  reason?: string;
+  calendarStatus?: CalendarAppointmentStatus;
+  cancellationReason?: string;
+  expectedVersion?: number;
 }
 
 export async function fetchAppointments(
@@ -72,6 +114,31 @@ export async function fetchAppointments(
     data: Array.isArray(result.data) ? result.data : [],
     total: Number.isFinite(result.total) ? result.total : result.data.length,
   };
+}
+
+export async function fetchAppointment(id: string): Promise<Appointment> {
+  return heydoctorApi.get<Appointment>(`${BASE}/${id}`);
+}
+
+export async function createAppointment(
+  payload: CreateAppointmentPayload,
+): Promise<Appointment> {
+  return heydoctorApi.post<Appointment>(BASE, payload);
+}
+
+export async function updateAppointment(
+  id: string,
+  payload: UpdateAppointmentPayload,
+): Promise<Appointment> {
+  return heydoctorApi.patch<Appointment>(`${BASE}/${id}`, payload);
+}
+
+export async function deleteAppointment(
+  id: string,
+  reason?: string,
+): Promise<Appointment> {
+  const q = reason ? `?reason=${encodeURIComponent(reason)}` : "";
+  return heydoctorApi.delete<Appointment>(`${BASE}/${id}${q}`);
 }
 
 export async function transitionAppointment(
