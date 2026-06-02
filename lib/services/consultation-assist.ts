@@ -8,6 +8,9 @@ export type ConsultationAssistRequest = {
 };
 
 export type ConsultationAssistResponse = {
+  aiRunId?: string;
+  approvalState?: string;
+  generatedByAi?: boolean;
   assistiveOnlyNotice: string;
   possibleDiagnoses: string[];
   recommendations: string[];

@@ -3,10 +3,16 @@
 import React, { useEffect, useState } from "react";
 import {
   fetchLabOrdersByPatient,
+  fetchLabTemplates,
+  saveLabTemplate,
   createLabOrder,
+  downloadLabOrderPdf,
   suggestLabTests,
+  type LabExamItem,
+  type LabOrderRecord,
+  type LabTemplate,
 } from "@/lib/services";
-import { FALLBACK_LAB_TESTS } from "@/lib/clinical-fallbacks";
+import { getApiErrorMessage } from "@/lib/heydoctor-api";
 
 interface LabOrdersPanelProps {
   patientId: string;
@@ -16,6 +22,13 @@ interface LabOrdersPanelProps {
   className?: string;
 }
 
+const emptyExam = (): LabExamItem => ({
+  exam: "",
+  priority: "routine",
+  reason: "",
+  observations: "",
+});
+
 export function LabOrdersPanel({
   patientId,
   consultationId,
@@ -23,37 +36,43 @@ export function LabOrdersPanel({
   onOrderCreated,
   className = "",
 }: LabOrdersPanelProps) {
-  const [orders, setOrders] = useState<unknown[]>([]);
+  const [orders, setOrders] = useState<LabOrderRecord[]>([]);
+  const [templates, setTemplates] = useState<LabTemplate[]>([]);
   const [suggestedTests, setSuggestedTests] = useState<string[]>([]);
-  const [suggestionsAreFallback, setSuggestionsAreFallback] = useState(false);
   const [loading, setLoading] = useState(true);
   const [suggestLoading, setSuggestLoading] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [selectedTests, setSelectedTests] = useState<string[]>([]);
-  const [testInput, setTestInput] = useState("");
+  const [exams, setExams] = useState<LabExamItem[]>([emptyExam()]);
+  const [templateName, setTemplateName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [listError, setListError] = useState<string | null>(null);
+  const [pdfLoadingId, setPdfLoadingId] = useState<string | null>(null);
+
+  const reload = async () => {
+    const [list, tpls] = await Promise.all([
+      fetchLabOrdersByPatient(patientId),
+      fetchLabTemplates(),
+    ]);
+    setOrders(list);
+    setTemplates(tpls);
+  };
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    setListError(null);
-    fetchLabOrdersByPatient(patientId)
-      .then((list) => {
-        if (cancelled) return;
-        setOrders(list);
+    Promise.all([fetchLabOrdersByPatient(patientId), fetchLabTemplates()])
+      .then(([list, tpls]) => {
+        if (!cancelled) {
+          setOrders(list);
+          setTemplates(tpls);
+        }
       })
       .catch((e) => {
-        if (cancelled) return;
-        if (process.env.NODE_ENV === "development") {
-          console.error("[heydoctor][lab-orders] lista falló", e);
+        if (!cancelled) {
+          setOrders([]);
+          setTemplates([]);
+          setListError(getApiErrorMessage(e, "No se pudieron cargar órdenes."));
         }
-        setOrders([]);
-        setListError(
-          e instanceof Error
-            ? e.message
-            : "No se pudieron cargar órdenes previas.",
-        );
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -64,75 +83,92 @@ export function LabOrdersPanel({
   }, [patientId]);
 
   useEffect(() => {
-    if (!diagnosisCode) {
-      setSuggestedTests(FALLBACK_LAB_TESTS);
-      setSuggestionsAreFallback(true);
-      return;
-    }
+    const q = diagnosisCode?.trim() || "hem";
     setSuggestLoading(true);
-    setSuggestionsAreFallback(false);
-    suggestLabTests(diagnosisCode)
-      .then((list) => {
-        if (process.env.NODE_ENV === "development") {
-          console.debug("[heydoctor][lab-orders] sugerencias", {
-            diagnosisCode,
-            count: list?.length ?? 0,
-          });
-        }
-        if (Array.isArray(list) && list.length > 0) {
-          setSuggestedTests(list);
-          setSuggestionsAreFallback(false);
-        } else {
-          setSuggestedTests(FALLBACK_LAB_TESTS);
-          setSuggestionsAreFallback(true);
-        }
-      })
-      .catch((e) => {
-        if (process.env.NODE_ENV === "development") {
-          console.error("[heydoctor][lab-orders] sugerencias falló", e);
-        }
-        setSuggestedTests(FALLBACK_LAB_TESTS);
-        setSuggestionsAreFallback(true);
-      })
+    suggestLabTests(q)
+      .then((list) => setSuggestedTests(list.slice(0, 8)))
+      .catch(() => setSuggestedTests([]))
       .finally(() => setSuggestLoading(false));
   }, [diagnosisCode]);
 
-  const addTest = (test: string) => {
-    if (test.trim() && !selectedTests.includes(test.trim())) {
-      setSelectedTests((p) => [...p, test.trim()]);
+  const updateExam = (index: number, patch: Partial<LabExamItem>) => {
+    setExams((prev) => prev.map((e, i) => (i === index ? { ...e, ...patch } : e)));
+  };
+
+  const addExamRow = () => setExams((p) => [...p, emptyExam()]);
+
+  const removeExamRow = (index: number) => {
+    setExams((p) => (p.length <= 1 ? [emptyExam()] : p.filter((_, i) => i !== index)));
+  };
+
+  const addSuggested = (exam: string) => {
+    setExams((p) => {
+      if (p.some((e) => e.exam === exam)) return p;
+      const next = [...p];
+      const emptyIdx = next.findIndex((e) => !e.exam.trim());
+      if (emptyIdx >= 0) next[emptyIdx] = { ...next[emptyIdx], exam };
+      else next.push({ exam, priority: "routine" });
+      return next;
+    });
+  };
+
+  const applyTemplate = (tpl: LabTemplate) => {
+    setExams(tpl.exams.length ? [...tpl.exams] : [emptyExam()]);
+    setTemplateName(tpl.name);
+  };
+
+  const handleSaveTemplate = async () => {
+    const valid = exams.filter((e) => e.exam.trim());
+    if (!templateName.trim() || valid.length === 0) return;
+    setError(null);
+    try {
+      await saveLabTemplate({
+        name: templateName.trim(),
+        exams: valid,
+        isFavorite: true,
+      });
+      await reload();
+    } catch (e) {
+      setError(getApiErrorMessage(e, "No se pudo guardar plantilla"));
     }
   };
 
-  const removeTest = (test: string) => {
-    setSelectedTests((p) => p.filter((t) => t !== test));
-  };
-
   const handleCreateOrder = async () => {
-    const tests =
-      selectedTests.length > 0 ? selectedTests : testInput.trim() ? [testInput.trim()] : [];
-    if (tests.length === 0) return;
+    const valid = exams.filter((e) => e.exam.trim());
+    if (valid.length === 0) return;
     setCreating(true);
     setError(null);
     try {
       await createLabOrder({
         patientId,
         consultationId: consultationId ?? undefined,
-        lab_tests: tests,
-        diagnosis_code: diagnosisCode,
+        exams: valid,
+        templateName: templateName || undefined,
       });
-      setSelectedTests([]);
-      setTestInput("");
+      setExams([emptyExam()]);
       onOrderCreated?.();
-      const list = await fetchLabOrdersByPatient(patientId);
-      setOrders(list);
+      await reload();
     } catch (e) {
-      setError((e as Error).message ?? "Error al crear orden");
+      setError(getApiErrorMessage(e, "Error al crear orden"));
     } finally {
       setCreating(false);
     }
   };
 
-  const orderList = Array.isArray(orders) ? orders : [];
+  const handlePdf = async (id: string) => {
+    setPdfLoadingId(id);
+    setError(null);
+    try {
+      await downloadLabOrderPdf(id);
+    } catch (e) {
+      setError(getApiErrorMessage(e, "No se pudo generar el PDF"));
+    } finally {
+      setPdfLoadingId(null);
+    }
+  };
+
+  const favorites = templates.filter((t) => t.isFavorite);
+  const others = templates.filter((t) => !t.isFavorite);
 
   return (
     <section
@@ -147,50 +183,61 @@ export function LabOrdersPanel({
       ) : (
         <>
           {listError && (
-            <p
-              role="alert"
-              className="text-xs mb-2 text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-2 py-1"
-            >
+            <p role="alert" className="text-xs mb-2 text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-2 py-1">
               {listError}
             </p>
           )}
-          {orderList.length > 0 && (
+          {orders.length > 0 && (
+            <div className="mb-3 max-h-32 overflow-y-auto space-y-1">
+              <h4 className="text-xs font-medium text-gray-600">Órdenes recientes</h4>
+              {orders.slice(0, 5).map((o) => (
+                <div key={o.id} className="text-sm flex justify-between gap-2 border border-gray-100 rounded p-2">
+                  <span>{(o.exams ?? []).map((e) => e.exam).join(", ")}</span>
+                  <button
+                    type="button"
+                    onClick={() => void handlePdf(o.id)}
+                    disabled={pdfLoadingId === o.id}
+                    className="text-xs text-teal-700 hover:underline shrink-0 disabled:opacity-50"
+                  >
+                    {pdfLoadingId === o.id ? "PDF…" : "Descargar PDF"}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          {(favorites.length > 0 || others.length > 0) && (
             <div className="mb-3">
-              <h4 className="text-xs font-medium text-gray-600 mb-1">
-                Órdenes recientes
-              </h4>
-              <ul className="text-sm text-gray-600 space-y-1 max-h-24 overflow-y-auto">
-                {(orderList as { id?: string; lab_tests?: string[]; status?: string }[])
-                  .slice(0, 5)
-                  .map((o) => (
-                  <li key={o.id ?? Math.random()}>
-                    {(Array.isArray(o.lab_tests) ? o.lab_tests : []).join(", ")} –{" "}
-                    {o.status ?? "pending"}
-                  </li>
+              <h4 className="text-xs font-medium text-gray-600 mb-1">Plantillas</h4>
+              <div className="flex flex-wrap gap-1">
+                {[...favorites, ...others].map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => applyTemplate(t)}
+                    className={`text-xs px-2 py-1 rounded ${
+                      t.isFavorite
+                        ? "bg-amber-50 text-amber-800 border border-amber-200"
+                        : "bg-gray-50 text-gray-700 border border-gray-200"
+                    }`}
+                  >
+                    {t.isFavorite ? "★ " : ""}
+                    {t.name}
+                  </button>
                 ))}
-              </ul>
+              </div>
             </div>
           )}
           <div className="space-y-2">
+            {suggestLoading && <p className="text-xs text-gray-500">Buscando exámenes…</p>}
             {suggestedTests.length > 0 && (
               <div>
-                <h4 className="text-xs font-medium text-gray-600 mb-1 flex items-center gap-1">
-                  Sugeridos {diagnosisCode ? "(por diagnóstico)" : ""}
-                  {suggestionsAreFallback && (
-                    <span
-                      className="text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-800 rounded font-normal"
-                      title="Sugerencias de muestra mientras el catálogo backend no está disponible."
-                    >
-                      demo
-                    </span>
-                  )}
-                </h4>
+                <h4 className="text-xs font-medium text-gray-600 mb-1">Catálogo sugerido</h4>
                 <div className="flex flex-wrap gap-1">
-                  {suggestedTests.slice(0, 6).map((t, i) => (
+                  {suggestedTests.map((t) => (
                     <button
-                      key={i}
+                      key={t}
                       type="button"
-                      onClick={() => addTest(t)}
+                      onClick={() => addSuggested(t)}
                       className="text-xs px-2 py-1 bg-indigo-50 text-indigo-700 rounded hover:bg-indigo-100"
                     >
                       + {t}
@@ -199,47 +246,73 @@ export function LabOrdersPanel({
                 </div>
               </div>
             )}
+            {exams.map((exam, idx) => (
+              <div key={idx} className="border border-gray-100 rounded p-2 space-y-1">
+                <input
+                  type="text"
+                  value={exam.exam}
+                  onChange={(e) => updateExam(idx, { exam: e.target.value })}
+                  placeholder="Examen"
+                  className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm"
+                />
+                <div className="grid grid-cols-2 gap-1">
+                  <select
+                    value={exam.priority ?? "routine"}
+                    onChange={(e) => updateExam(idx, { priority: e.target.value })}
+                    className="px-2 py-1.5 border border-gray-300 rounded text-sm"
+                  >
+                    <option value="routine">Rutina</option>
+                    <option value="urgent">Urgente</option>
+                    <option value="stat">STAT</option>
+                  </select>
+                  <input
+                    type="text"
+                    value={exam.reason ?? ""}
+                    onChange={(e) => updateExam(idx, { reason: e.target.value })}
+                    placeholder="Motivo clínico"
+                    className="px-2 py-1.5 border border-gray-300 rounded text-sm"
+                  />
+                </div>
+                <input
+                  type="text"
+                  value={exam.observations ?? ""}
+                  onChange={(e) => updateExam(idx, { observations: e.target.value })}
+                  placeholder="Observaciones"
+                  className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm"
+                />
+                <button type="button" onClick={() => removeExamRow(idx)} className="text-xs text-red-600">
+                  Quitar examen
+                </button>
+              </div>
+            ))}
+            <button type="button" onClick={addExamRow} className="text-xs text-indigo-600 hover:underline">
+              + Agregar examen
+            </button>
             <input
               type="text"
-              value={testInput}
-              onChange={(e) => setTestInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  addTest(testInput);
-                }
-              }}
-              placeholder="Examen"
+              value={templateName}
+              onChange={(e) => setTemplateName(e.target.value)}
+              placeholder="Nombre plantilla (opcional)"
               className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm"
             />
-            {selectedTests.length > 0 && (
-              <ul className="text-sm flex flex-wrap gap-1">
-                {selectedTests.map((t) => (
-                  <li
-                    key={t}
-                    className="inline-flex items-center gap-1 bg-gray-100 px-2 py-0.5 rounded"
-                  >
-                    {t}{" "}
-                    <button
-                      type="button"
-                      onClick={() => removeTest(t)}
-                      className="text-red-600 hover:text-red-800"
-                    >
-                      ×
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
             {error && <p className="text-sm text-red-600">{error}</p>}
-            <button
-              type="button"
-              onClick={handleCreateOrder}
-              disabled={creating || (selectedTests.length === 0 && !testInput.trim())}
-              className="px-3 py-1.5 bg-teal-600 text-white rounded text-sm hover:bg-teal-700 disabled:opacity-50"
-            >
-              {creating ? "Guardando..." : "Crear orden"}
-            </button>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => void handleCreateOrder()}
+                disabled={creating}
+                className="px-3 py-1.5 bg-teal-600 text-white rounded text-sm hover:bg-teal-700 disabled:opacity-50"
+              >
+                {creating ? "Guardando…" : "Generar orden"}
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleSaveTemplate()}
+                className="px-3 py-1.5 border border-gray-300 rounded text-sm hover:bg-gray-50"
+              >
+                Guardar como favorita
+              </button>
+            </div>
           </div>
         </>
       )}

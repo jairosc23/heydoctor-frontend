@@ -1,6 +1,7 @@
 export { SmartDiagnosisPicker } from "./SmartDiagnosisPicker";
 export { PrescriptionPanel } from "./PrescriptionPanel";
 export { LabOrdersPanel } from "./LabOrdersPanel";
+export { ReferralsPanel } from "./ReferralsPanel";
 export { AiInsightsPanel } from "./AiInsightsPanel";
 export { LiveAiNoteSuggestions } from "./LiveAiNoteSuggestions";
 export { ConsultationConsentCard } from "./ConsultationConsentCard";

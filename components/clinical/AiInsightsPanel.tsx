@@ -433,6 +433,19 @@ export function AiInsightsPanel({
                   {relativeLabel}
                 </p>
               ) : null}
+              {ai?.aiRunId ? (
+                <p
+                  style={{
+                    fontSize: 11,
+                    color: "#64748b",
+                    margin: "8px 0 0",
+                    fontFamily: "monospace",
+                  }}
+                >
+                  Trazabilidad AI: {ai.aiRunId.slice(0, 8)}…
+                  {ai.approvalState ? ` · ${ai.approvalState}` : ""}
+                </p>
+              ) : null}
             </div>
           )}
         </>
