@@ -5,7 +5,7 @@ import {
   requestConsultationAssist,
   type ConsultationAssistResponse,
 } from "@/lib/services/consultation-assist";
-import { FALLBACK_CONSULTATION_ASSIST } from "@/lib/clinical-fallbacks";
+import { getApiErrorMessage } from "@/lib/heydoctor-api";
 
 export type ConsultationAssistPanelProps = {
   initialChiefComplaint?: string;
@@ -13,9 +13,6 @@ export type ConsultationAssistPanelProps = {
   initialNotes?: string;
   className?: string;
 };
-
-const FRIENDLY_ASSIST_NOTICE =
-  "Ahora mismo no podemos conectar con el asistente inteligente. Te mostramos ideas generales de apoyo; en consulta siempre confirma con tu criterio clínico.";
 
 /**
  * Panel opcional: sugerencias asistivas (no sustituye juicio clínico).
@@ -30,21 +27,19 @@ export function ConsultationAssistPanel({
   const [symptoms, setSymptoms] = useState(initialSymptoms);
   const [notes, setNotes] = useState(initialNotes);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<ConsultationAssistResponse | null>(null);
 
   useEffect(() => {
     setChief(initialChiefComplaint);
     setSymptoms(initialSymptoms);
     setNotes(initialNotes);
   }, [initialChiefComplaint, initialSymptoms, initialNotes]);
-  const [assistNotice, setAssistNotice] = useState<string | null>(null);
-  const [result, setResult] = useState<ConsultationAssistResponse | null>(null);
-  const [usedFallback, setUsedFallback] = useState(false);
 
   const run = async () => {
     setLoading(true);
-    setAssistNotice(null);
+    setError(null);
     setResult(null);
-    setUsedFallback(false);
     try {
       const data = await requestConsultationAssist({
         chiefComplaint: chief.trim() || undefined,
@@ -52,10 +47,13 @@ export function ConsultationAssistPanel({
         notes: notes.trim() || undefined,
       });
       setResult(data);
-    } catch {
-      setAssistNotice(FRIENDLY_ASSIST_NOTICE);
-      setResult({ ...FALLBACK_CONSULTATION_ASSIST });
-      setUsedFallback(true);
+    } catch (e) {
+      setError(
+        getApiErrorMessage(
+          e,
+          "No se pudo conectar con el asistente clínico. Inténtalo de nuevo.",
+        ),
+      );
     } finally {
       setLoading(false);
     }
@@ -175,36 +173,21 @@ export function ConsultationAssistPanel({
       >
         {loading ? "Generando…" : "Obtener sugerencias"}
       </button>
-      {assistNotice && (
+      {error && (
         <p
-          role="status"
+          role="alert"
           style={{
             marginTop: 10,
             fontSize: 12,
-            color: "#1e40af",
-            background: "#eff6ff",
-            border: "1px solid #bfdbfe",
+            color: "#991b1b",
+            background: "#fef2f2",
+            border: "1px solid #fecaca",
             borderRadius: 8,
             padding: "10px 12px",
             lineHeight: 1.45,
           }}
         >
-          {assistNotice}
-        </p>
-      )}
-      {usedFallback && (
-        <p
-          style={{
-            marginTop: 8,
-            fontSize: 11,
-            color: "#92400e",
-            background: "#fffbeb",
-            border: "1px solid #fde68a",
-            borderRadius: 8,
-            padding: "8px 10px",
-          }}
-        >
-          Modo guía: sugerencias generales mientras restablecemos la conexión.
+          {error}
         </p>
       )}
       {result && (
@@ -218,6 +201,19 @@ export function ConsultationAssistPanel({
             color: "#334155",
           }}
         >
+          {result.aiRunId && (
+            <p
+              style={{
+                fontSize: 11,
+                color: "#64748b",
+                marginBottom: 10,
+                fontFamily: "monospace",
+              }}
+            >
+              Trazabilidad AI: {result.aiRunId.slice(0, 8)}…
+              {result.approvalState ? ` · ${result.approvalState}` : ""}
+            </p>
+          )}
           <p
             style={{
               fontSize: 12,

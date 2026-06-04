@@ -1,6 +1,7 @@
 import { heydoctorApi } from "../heydoctor-api";
 import { withCache } from "../clinical-cache";
 import { createClinicalLogger } from "../clinical-logger";
+import { downloadClinicalPdf } from "../download-clinical-pdf";
 
 const BASE = "/prescriptions";
 const log = createClinicalLogger("clinical");
@@ -14,43 +15,76 @@ export interface MedicationItem {
   instructions?: string;
 }
 
+export interface PrescriptionRecord {
+  id: string;
+  patientId: string;
+  consultationId?: string | null;
+  diagnosis?: string | null;
+  medications: MedicationItem[];
+  notes?: string | null;
+  validationCode?: string;
+  status?: string;
+  createdAt?: string;
+}
+
 export interface CreatePrescriptionDto {
   patientId: string;
   consultationId?: string;
-  diagnosisId?: string;
+  diagnosis?: string;
   medications: MedicationItem[];
-  dosage?: string;
-  instructions?: string;
   notes?: string;
 }
 
-export async function fetchPrescriptionsByPatient(patientId: string) {
-  const res = await heydoctorApi.getOrFallback<{ data: unknown[] }>(
+export interface UpdatePrescriptionDto {
+  diagnosis?: string;
+  medications?: MedicationItem[];
+  notes?: string;
+}
+
+export async function fetchPrescriptionsByPatient(
+  patientId: string,
+): Promise<PrescriptionRecord[]> {
+  const res = await heydoctorApi.get<{ data: PrescriptionRecord[] }>(
     `${BASE}/patient/${patientId}`,
-    { data: [] }
   );
   return res.data ?? [];
 }
 
-/**
- * Sugerencias de medicamentos por substring. Cacheado 60 s para no martillear
- * el backend en cada keystroke. Solo se cachean respuestas con resultados;
- * si la API devuelve vacío, dejamos que el componente caiga al fallback demo.
- */
 export const suggestMedications = withCache(
   async (q: string): Promise<string[]> => {
-    const res = await heydoctorApi.getOrFallback<{ data?: string[] }>(
+    const res = await heydoctorApi.get<{ data?: string[] }>(
       `${BASE}/suggest-medications?q=${encodeURIComponent(q)}`,
-      { data: [] }
     );
     const list = res.data ?? [];
     log.debug("suggestMedications", { q, count: list.length });
     return list;
   },
   (q: string) => `med:${q.trim().toLowerCase()}`,
-  { ttlMs: 60_000, shouldCache: (list) => list.length > 0 }
+  { ttlMs: 60_000, shouldCache: (list) => list.length > 0 },
 );
 
-export async function createPrescription(dto: CreatePrescriptionDto) {
-  return heydoctorApi.postOrFallback<{ data: unknown }>(BASE, dto, { data: null });
+export async function createPrescription(
+  dto: CreatePrescriptionDto,
+): Promise<PrescriptionRecord> {
+  const res = await heydoctorApi.post<{ data: PrescriptionRecord }>(BASE, dto);
+  return res.data;
+}
+
+export async function updatePrescription(
+  id: string,
+  dto: UpdatePrescriptionDto,
+): Promise<PrescriptionRecord> {
+  const res = await heydoctorApi.patch<{ data: PrescriptionRecord }>(
+    `${BASE}/${id}`,
+    dto,
+  );
+  return res.data;
+}
+
+export async function deletePrescription(id: string): Promise<void> {
+  await heydoctorApi.delete(`${BASE}/${id}`);
+}
+
+export async function downloadPrescriptionPdf(id: string): Promise<void> {
+  await downloadClinicalPdf(`${BASE}/${id}/pdf`, `receta-${id.slice(0, 8)}.pdf`);
 }

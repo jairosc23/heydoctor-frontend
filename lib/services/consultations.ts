@@ -146,6 +146,8 @@ export interface ConsultationAiPayload {
   suggestedDiagnosis: string[] | null;
   improvedNotes: string | null;
   generatedAt: string | null;
+  aiRunId?: string | null;
+  approvalState?: string | null;
 }
 
 export interface UpdateConsultationDto {

@@ -39,6 +39,7 @@ import {
   LabOrdersPanel,
   LiveAiNoteSuggestions,
   PrescriptionPanel,
+  ReferralsPanel,
   ShareConsultationDialog,
   SignatureCanvas,
   SmartDiagnosisPicker,
@@ -869,6 +870,10 @@ export default function ConsultationDetailPage() {
               patientId={consultation.patientId}
               consultationId={id}
               diagnosisCode={diagnosisCode || diagnosis || undefined}
+            />
+            <ReferralsPanel
+              patientId={consultation.patientId}
+              consultationId={id}
             />
           </div>
           <div
