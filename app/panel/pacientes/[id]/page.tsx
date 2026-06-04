@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { getApiErrorMessage } from "@/lib/heydoctor-api";
+import { jsonLinesToText } from "@/lib/patient-profile-display";
 import {
   fetchPatientById,
   fetchPatientProfile,
@@ -75,29 +76,6 @@ function Field({
       {children}
     </div>
   );
-}
-
-function jsonLinesToText(items?: Record<string, unknown>[]): string {
-  if (!items?.length) return "";
-  return items
-    .map((item) => {
-      const label =
-        typeof item.label === "string"
-          ? item.label
-          : typeof item.name === "string"
-            ? item.name
-            : typeof item.description === "string"
-              ? item.description
-              : JSON.stringify(item);
-      const detail =
-        typeof item.detail === "string"
-          ? item.detail
-          : typeof item.notes === "string"
-            ? item.notes
-            : "";
-      return detail ? `${label}: ${detail}` : label;
-    })
-    .join("\n");
 }
 
 function textToJsonLines(text: string): Record<string, unknown>[] {
