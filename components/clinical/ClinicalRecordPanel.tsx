@@ -23,6 +23,8 @@ import {
   parseClinicalRecord,
   serializeClinicalRecord,
 } from "@/lib/services/clinical-record";
+import Card from "@/components/ui/Card";
+import { cn } from "@/lib/utils";
 
 interface ClinicalRecordPanelProps {
   consultationId: string;
@@ -63,30 +65,10 @@ const SYSTEMS: { key: keyof SystemsReview; label: string }[] = [
   { key: "genitourinary", label: "Genitourinario" },
 ];
 
-const cardStyle: React.CSSProperties = {
-  background: "white",
-  padding: 24,
-  borderRadius: 12,
-  boxShadow: "0 2px 10px rgba(0,0,0,0.06)",
-};
-
-const labelStyle: React.CSSProperties = {
-  fontSize: 13,
-  fontWeight: 600,
-  color: "#0f172a",
-  display: "block",
-  marginBottom: 6,
-};
-
-const inputBase: React.CSSProperties = {
-  width: "100%",
-  padding: "10px 12px",
-  border: "1px solid #e2e8f0",
-  borderRadius: 8,
-  fontSize: 14,
-  background: "white",
-  fontFamily: "inherit",
-};
+const labelClass =
+  "mb-1.5 block text-sm font-semibold text-slate-900";
+const inputClass =
+  "w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm font-[inherit] disabled:bg-slate-50";
 
 function fmtDate(input?: string | null): string {
   if (!input) return "—";
@@ -209,81 +191,55 @@ export function ClinicalRecordPanel({
     }
   }
 
-  const statusColors: Record<typeof statusKind, { bg: string; fg: string; bd: string }> = {
-    info: { bg: "#f1f5f9", fg: "#334155", bd: "#cbd5e1" },
-    success: { bg: "#ecfdf5", fg: "#065f46", bd: "#a7f3d0" },
-    error: { bg: "#fef2f2", fg: "#b91c1c", bd: "#fecaca" },
-    warning: { bg: "#fffbeb", fg: "#92400e", bd: "#fde68a" },
+  const statusClass: Record<typeof statusKind, string> = {
+    info: "border-slate-200 bg-slate-50 text-slate-700",
+    success: "border-green-200 bg-green-50 text-green-800",
+    error: "border-red-200 bg-red-50 text-red-800",
+    warning: "border-amber-200 bg-amber-50 text-amber-900",
   };
 
   return (
-    <div style={cardStyle}>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 12,
-          flexWrap: "wrap",
-          marginBottom: 16,
-        }}
-      >
-        <h3 style={{ margin: 0, fontSize: 16, color: "#0f766e" }}>
-          Ficha clínica
-        </h3>
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+    <Card className="p-6 shadow-soft">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h3 className="text-base font-semibold text-primary">Ficha clínica</h3>
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            onClick={handleAutofill}
+            onClick={() => void handleAutofill()}
             disabled={!editable || aiLoading}
             title="Genera una propuesta de ficha clínica con IA y la deja para que la edites."
-            style={{
-              padding: "8px 14px",
-              background: aiLoading ? "#a78bfa" : "#7c3aed",
-              color: "white",
-              border: "none",
-              borderRadius: 8,
-              cursor: editable && !aiLoading ? "pointer" : "not-allowed",
-              fontSize: 13,
-              fontWeight: 600,
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              opacity: editable ? 1 : 0.6,
-            }}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-semibold text-white",
+              aiLoading ? "bg-violet-400" : "bg-violet-600 hover:bg-violet-700",
+              (!editable || aiLoading) && "cursor-not-allowed opacity-60",
+            )}
           >
             <span aria-hidden>✨</span>
             {aiLoading ? "Generando con IA…" : "Autollenar con IA"}
           </button>
           <button
             type="button"
-            onClick={handleSave}
+            onClick={() => void handleSave()}
             disabled={!editable || saveLoading}
-            style={{
-              padding: "8px 14px",
-              background: saveLoading ? "#34d399" : "#0f766e",
-              color: "white",
-              border: "none",
-              borderRadius: 8,
-              cursor: editable && !saveLoading ? "pointer" : "not-allowed",
-              fontSize: 13,
-              fontWeight: 600,
-              opacity: editable ? 1 : 0.6,
-            }}
+            className={cn(
+              "rounded-lg px-3.5 py-2 text-sm font-semibold text-white",
+              saveLoading ? "bg-teal-400" : "bg-primary hover:bg-primaryMid",
+              (!editable || saveLoading) && "cursor-not-allowed opacity-60",
+            )}
           >
             {saveLoading ? "Guardando…" : "Guardar ficha"}
           </button>
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+      <div className="mb-4 grid gap-4 sm:grid-cols-2">
         <div>
-          <span style={labelStyle}>Fecha / hora</span>
-          <p style={{ margin: 0, color: "#334155", fontSize: 14 }}>{fmtDate(createdAt)}</p>
+          <span className={labelClass}>Fecha / hora</span>
+          <p className="text-sm text-slate-700">{fmtDate(createdAt)}</p>
         </div>
         <div>
-          <span style={labelStyle}>Paciente</span>
-          <p style={{ margin: 0, color: "#334155", fontSize: 14 }}>
+          <span className={labelClass}>Paciente</span>
+          <p className="text-sm text-slate-700">
             {patient?.name || "—"}
             {patient?.age ? `, ${patient.age} años` : ""}
             {patient?.sex ? ` (${patient.sex})` : ""}
@@ -291,8 +247,8 @@ export function ClinicalRecordPanel({
         </div>
       </div>
 
-      <div style={{ marginBottom: 16 }}>
-        <label style={labelStyle} htmlFor="cr-chief-complaint">
+      <div className="mb-4">
+        <label className={labelClass} htmlFor="cr-chief-complaint">
           Motivo de consulta
         </label>
         <input
@@ -302,15 +258,12 @@ export function ClinicalRecordPanel({
           onChange={(e) => onChiefComplaintChange(e.target.value)}
           disabled={!editable}
           placeholder="Ej: Control de diabetes mellitus tipo 2"
-          style={{
-            ...inputBase,
-            background: editable ? "white" : "#f8fafc",
-          }}
+          className={cn(inputClass, !editable && "bg-slate-50")}
         />
       </div>
 
-      <div style={{ marginBottom: 16 }}>
-        <label style={labelStyle} htmlFor="cr-hea">
+      <div className="mb-4">
+        <label className={labelClass} htmlFor="cr-hea">
           Historia de enfermedad actual
         </label>
         <textarea
@@ -322,28 +275,18 @@ export function ClinicalRecordPanel({
           }
           disabled={!editable}
           placeholder="Evolución del cuadro, síntomas, factores agravantes, tratamiento previo…"
-          style={{
-            ...inputBase,
-            resize: "vertical",
-            background: editable ? "white" : "#f8fafc",
-          }}
+          className={cn(inputClass, "resize-y", !editable && "bg-slate-50")}
         />
       </div>
 
-      <div style={{ marginBottom: 16 }}>
-        <h4 style={{ margin: "0 0 10px", fontSize: 14, color: "#0f766e" }}>
+      <div className="mb-4">
+        <h4 className="mb-2.5 text-sm font-semibold text-primary">
           Revisión por sistemas
         </h4>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-            gap: 12,
-          }}
-        >
+        <div className="grid gap-3 sm:grid-cols-2">
           {SYSTEMS.map(({ key, label }) => (
             <div key={key}>
-              <label style={labelStyle} htmlFor={`cr-sys-${key}`}>
+              <label className={labelClass} htmlFor={`cr-sys-${key}`}>
                 {label}
               </label>
               <textarea
@@ -353,11 +296,7 @@ export function ClinicalRecordPanel({
                 onChange={(e) => setSystem(key, e.target.value)}
                 disabled={!editable}
                 placeholder={`Hallazgos en ${label.toLowerCase()}…`}
-                style={{
-                  ...inputBase,
-                  resize: "vertical",
-                  background: editable ? "white" : "#f8fafc",
-                }}
+                className={cn(inputClass, "resize-y", !editable && "bg-slate-50")}
               />
             </div>
           ))}
@@ -365,20 +304,9 @@ export function ClinicalRecordPanel({
       </div>
 
       {record.freeNotes ? (
-        <div style={{ marginBottom: 8 }}>
-          <span style={labelStyle}>Notas adicionales (legacy)</span>
-          <p
-            style={{
-              margin: 0,
-              padding: 12,
-              background: "#f8fafc",
-              border: "1px solid #e2e8f0",
-              borderRadius: 8,
-              fontSize: 13,
-              color: "#475569",
-              whiteSpace: "pre-wrap",
-            }}
-          >
+        <div className="mb-2">
+          <span className={labelClass}>Notas adicionales (legacy)</span>
+          <p className="whitespace-pre-wrap rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
             {record.freeNotes}
           </p>
         </div>
@@ -387,20 +315,15 @@ export function ClinicalRecordPanel({
       {statusMsg ? (
         <div
           role="status"
-          style={{
-            marginTop: 8,
-            padding: "8px 12px",
-            borderRadius: 8,
-            background: statusColors[statusKind].bg,
-            color: statusColors[statusKind].fg,
-            border: `1px solid ${statusColors[statusKind].bd}`,
-            fontSize: 13,
-          }}
+          className={cn(
+            "mt-2 rounded-lg border px-3 py-2 text-sm",
+            statusClass[statusKind],
+          )}
         >
           {statusMsg}
         </div>
       ) : null}
-    </div>
+    </Card>
   );
 }
 

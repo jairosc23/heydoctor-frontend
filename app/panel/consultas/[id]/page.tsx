@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
@@ -27,24 +27,16 @@ import {
   URGENCY_AVAILABLE_NOW,
 } from "@/lib/consultation-pricing";
 import { useConsultationPrice } from "@/lib/hooks/useConsultationPrice";
+import { useConsultationAutosave } from "@/lib/hooks/useConsultationAutosave";
 import { ApiError } from "@/lib/heydoctor-api";
 import { getConsultationAccessErrorMessage } from "@/lib/consultation-access-errors";
 import { getWhatsAppUrlWithCustomMessage } from "@/lib/whatsapp-url";
 import {
-  AiInsightsPanel,
-  ClinicalRecordPanel,
   ConsultationActionBar,
-  ConsultationAssistPanel,
   ConsultationConsentCard,
-  LabOrdersPanel,
-  LiveAiNoteSuggestions,
-  PrescriptionPanel,
-  ReferralsPanel,
   ShareConsultationDialog,
   SignatureCanvas,
-  SmartDiagnosisPicker,
 } from "@/components/clinical";
-import { ChatPanel } from "@/components/telemedicine/ChatPanel";
 import {
   deleteConsultation,
   downloadConsultationPdf,
@@ -59,6 +51,14 @@ import {
   parseClinicalRecord,
   serializeClinicalRecord,
 } from "@/lib/services/clinical-record";
+import { PatientBanner } from "./_components/PatientBanner";
+import {
+  ConsultationWorkspace,
+  type WorkspaceTab,
+} from "./_components/ConsultationWorkspace";
+import type { OrdersSubTab } from "./_components/OrdersTab";
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
 
 function paymentFailureUserMessage(err: unknown): string {
   if (err instanceof ApiError) {
@@ -81,32 +81,6 @@ function paymentFailureUserMessage(err: unknown): string {
   return "No pudimos iniciar el pago. Revisa tu conexión e inténtalo de nuevo.";
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  draft: "Borrador",
-  in_progress: "En progreso",
-  completed: "Completada",
-  signed: "Firmada",
-  locked: "Bloqueada",
-};
-
-const STATUS_COLORS: Record<string, string> = {
-  draft: "#94a3b8",
-  in_progress: "#0284c7",
-  completed: "#16a34a",
-  signed: "#7c3aed",
-  locked: "#dc2626",
-};
-
-const NEXT_STATUS: Record<string, string> = {
-  draft: "in_progress",
-  in_progress: "completed",
-};
-
-const NEXT_STATUS_LABELS: Record<string, string> = {
-  draft: "Iniciar consulta",
-  in_progress: "Marcar como completada",
-};
-
 export default function ConsultationDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -115,16 +89,13 @@ export default function ConsultationDetailPage() {
   const consultationPrice = useConsultationPrice();
   const { clinicId: ctxClinicId, attachConsultationSession } = useConsultation();
 
-  const [consultation, setConsultation] = useState<NestConsultation | null>(
-    null
-  );
+  const [consultation, setConsultation] = useState<NestConsultation | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   const [notes, setNotes] = useState("");
   const [diagnosis, setDiagnosis] = useState("");
   const [treatment, setTreatment] = useState("");
-  const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
 
   const [transitioning, setTransitioning] = useState(false);
@@ -132,11 +103,13 @@ export default function ConsultationDetailPage() {
   const [creatingPayment, setCreatingPayment] = useState(false);
   const [paymentStep, setPaymentStep] = useState<"idle" | "confirm">("idle");
 
-  /** Estado del editor estructurado (ficha clínica + barra de acciones). */
   const [chiefComplaintDraft, setChiefComplaintDraft] = useState("");
   const [editMode, setEditMode] = useState(true);
   const [diagnosisCode, setDiagnosisCode] = useState("");
   const [diagnosisError, setDiagnosisError] = useState<string | null>(null);
+  const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTab>("soap");
+  const [ordersSubTab, setOrdersSubTab] = useState<OrdersSubTab>("prescriptions");
+
   const [actionLoading, setActionLoading] = useState({
     invoice: false,
     pdf: false,
@@ -146,17 +119,16 @@ export default function ConsultationDetailPage() {
     signedReferral: false,
     premium: false,
   });
-  const [actionMsg, setActionMsg] = useState<
-    | { kind: "info" | "success" | "warning" | "error"; text: string; href?: string }
-    | null
-  >(null);
+  const [actionMsg, setActionMsg] = useState<{
+    kind: "info" | "success" | "warning" | "error";
+    text: string;
+    href?: string;
+  } | null>(null);
 
-  /** Trigger para que ClinicalRecordPanel ejecute "Autollenar con IA". */
   const [aiTrigger, setAiTrigger] = useState(0);
   const [shareOpen, setShareOpen] = useState(false);
 
   const paymentResult = searchParams.get("payment");
-
   const prevStatusRef = React.useRef<string | undefined>(undefined);
 
   useEffect(() => {
@@ -171,12 +143,10 @@ export default function ConsultationDetailPage() {
       prevStatusRef.current = st;
       void trackConsultationStartedDeduped(id, { status: st, source: "detail" });
       setConsultation(c);
-      /** El textarea "Notas de consulta" muestra solo las notas libres
-       * (sin el bloque estructurado de la ficha cl\u00ednica). El panel de
-       * ficha cl\u00ednica trabaja con `c.notes` crudo. */
       setNotes(parseClinicalRecord(c.notes).freeNotes);
       setDiagnosis(c.diagnosis ?? "");
       setTreatment(c.treatmentPlan ?? c.treatment ?? "");
+      setChiefComplaintDraft(c.chiefComplaint ?? c.reason ?? "");
     } catch (err) {
       setError(getConsultationAccessErrorMessage(err));
     } finally {
@@ -196,9 +166,7 @@ export default function ConsultationDetailPage() {
   }, [consultation?.id, consultation?.patientId, attachConsultationSession]);
 
   useEffect(() => {
-    if (paymentResult !== "success" && paymentResult !== "mock") {
-      return;
-    }
+    if (paymentResult !== "success" && paymentResult !== "mock") return;
     let cancelled = false;
     void (async () => {
       try {
@@ -210,19 +178,19 @@ export default function ConsultationDetailPage() {
           setTimeout(() => setSaveMsg(""), 5000);
         } else if (st.hasPending) {
           setSaveMsg(
-            "Pago en proceso de confirmación. Actualiza en unos segundos o revisa el estado de la consulta."
+            "Pago en proceso de confirmación. Actualiza en unos segundos o revisa el estado de la consulta.",
           );
           setTimeout(() => setSaveMsg(""), 8000);
         } else {
           setSaveMsg(
-            "No confirmamos un pago completado todavía. Si ya pagaste, espera la confirmación; si no, puedes intentar de nuevo."
+            "No confirmamos un pago completado todavía. Si ya pagaste, espera la confirmación; si no, puedes intentar de nuevo.",
           );
           setTimeout(() => setSaveMsg(""), 8000);
         }
       } catch {
         if (!cancelled) {
           setSaveMsg(
-            "No pudimos verificar el pago. Revisa tu conexión o vuelve a intentar más tarde."
+            "No pudimos verificar el pago. Revisa tu conexión o vuelve a intentar más tarde.",
           );
           setTimeout(() => setSaveMsg(""), 8000);
         }
@@ -242,36 +210,46 @@ export default function ConsultationDetailPage() {
     setPaymentStep("idle");
   }, [id]);
 
-  async function handleSave() {
-    setSaving(true);
-    setSaveMsg("");
-    try {
-      /** Combina las notas libres con el bloque estructurado de la ficha
-       * cl\u00ednica para no perder la informaci\u00f3n estructurada al editar el
-       * textarea legacy. */
-      const currentRecord = parseClinicalRecord(consultation?.notes);
-      const merged = serializeClinicalRecord({
-        ...currentRecord,
-        freeNotes: notes.trim(),
-      });
-      const updated = await updateConsultation(id, {
-        notes: merged.length > 0 ? merged : undefined,
-        diagnosis: diagnosis.trim() || undefined,
-        treatmentPlan: treatment.trim() || undefined,
-      });
-      setConsultation(updated);
-      setSaveMsg("Guardado correctamente");
-      setTimeout(() => setSaveMsg(""), 3000);
-    } catch (err) {
-      setSaveMsg(err instanceof Error ? err.message : "Error al guardar");
-    } finally {
-      setSaving(false);
-    }
-  }
+  const status = consultation?.status ?? "draft";
+  const isEditable = status === "draft" || status === "in_progress";
+  const canSign = status === "in_progress" || status === "completed";
+  const isSigned = status === "signed" || status === "locked";
+  const isLocked = status === "locked";
+  const canStartCall = status === "draft" || status === "in_progress";
+  const canPay = status === "signed" || status === "completed";
+
+  const persistSoapDraft = useCallback(async () => {
+    if (!consultation || !isEditable) return;
+    const currentRecord = parseClinicalRecord(consultation.notes);
+    const merged = serializeClinicalRecord({
+      ...currentRecord,
+      freeNotes: notes.trim(),
+    });
+    const updated = await updateConsultation(id, {
+      notes: merged.length > 0 ? merged : undefined,
+      diagnosis: diagnosis.trim() || undefined,
+      treatmentPlan: treatment.trim() || undefined,
+    });
+    setConsultation(updated);
+  }, [consultation, notes, diagnosis, treatment, id, isEditable]);
+
+  const soapDraftKey = `${diagnosis}\n${notes}\n${treatment}`;
+
+  const { lastSavedAt, status: autosaveStatus, errorMessage: autosaveError } =
+    useConsultationAutosave({
+      enabled: isEditable && Boolean(consultation),
+      draftKey: soapDraftKey,
+      debounceMs: 900,
+      save: persistSoapDraft,
+    });
 
   async function handleTransition() {
     if (!consultation) return;
-    const next = NEXT_STATUS[consultation.status ?? ""];
+    const nextStatus: Record<string, string> = {
+      draft: "in_progress",
+      in_progress: "completed",
+    };
+    const next = nextStatus[consultation.status ?? ""];
     if (!next) return;
     setTransitioning(true);
     try {
@@ -282,9 +260,7 @@ export default function ConsultationDetailPage() {
       prevStatusRef.current = st;
       setConsultation(updated);
     } catch (err) {
-      setSaveMsg(
-        err instanceof Error ? err.message : "Error al cambiar estado"
-      );
+      setSaveMsg(err instanceof Error ? err.message : "Error al cambiar estado");
     } finally {
       setTransitioning(false);
     }
@@ -309,9 +285,6 @@ export default function ConsultationDetailPage() {
 
   const handleStartCall = async () => {
     if (!consultation?.id) return;
-
-    console.log("[heydoctor] starting call", consultation.id);
-
     try {
       await startCall(consultation.id);
       if (typeof window !== "undefined" && consultation.publicToken) {
@@ -320,10 +293,7 @@ export default function ConsultationDetailPage() {
           const whatsappUrl = getWhatsAppUrlWithCustomMessage(
             `Hola 👋, tu médico ha iniciado la consulta. Ingresa aquí: ${inviteLink}`,
           );
-          console.log("[heydoctor] sending patient link", inviteLink);
-          if (whatsappUrl) {
-            window.open(whatsappUrl, "_blank");
-          }
+          if (whatsappUrl) window.open(whatsappUrl, "_blank");
         } catch (err) {
           console.warn("[heydoctor] failed to send patient link", err);
         }
@@ -331,7 +301,6 @@ export default function ConsultationDetailPage() {
     } catch (error) {
       console.warn("[heydoctor] startCall failed, continuing anyway", error);
     }
-
     router.push(`/panel/consultas/${consultation.id}/teleconsulta`);
   };
 
@@ -359,9 +328,6 @@ export default function ConsultationDetailPage() {
     }
   }
 
-  /* ──────── Ficha cl\u00ednica + Action Bar handlers ──────── */
-
-  /** Sincroniza el draft del motivo cuando llega/recarga la consulta. */
   useEffect(() => {
     setChiefComplaintDraft(consultation?.chiefComplaint ?? consultation?.reason ?? "");
   }, [consultation?.chiefComplaint, consultation?.reason]);
@@ -410,7 +376,7 @@ export default function ConsultationDetailPage() {
   }
 
   async function handleSaveClinicalRecord({
-    notes,
+    notes: serializedNotes,
     chiefComplaint,
   }: {
     notes: string;
@@ -418,17 +384,20 @@ export default function ConsultationDetailPage() {
   }) {
     if (!consultation) return;
     const updated = await updateConsultation(id, {
-      notes,
+      notes: serializedNotes,
       chiefComplaint: chiefComplaint || undefined,
     });
     setConsultation(updated);
-    setNotes(updated.notes ?? "");
+    setNotes(parseClinicalRecord(updated.notes).freeNotes);
   }
 
   function handleOpenPrescription() {
-    document
-      .getElementById("prescription-workspace")
-      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    setWorkspaceTab("orders");
+    setOrdersSubTab("prescriptions");
+  }
+
+  function handleOpenDocuments() {
+    setWorkspaceTab("documents");
   }
 
   async function handleGenerateInvoice() {
@@ -447,16 +416,12 @@ export default function ConsultationDetailPage() {
 
   function handleToggleEdit() {
     setEditMode((v) => !v);
+    setWorkspaceTab("record");
   }
 
   function handleAnalyzeWithAi() {
     setAiTrigger((n) => n + 1);
-    if (typeof window !== "undefined") {
-      window.setTimeout(() => {
-        const el = document.getElementById("clinical-record-section");
-        el?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 50);
-    }
+    setWorkspaceTab("record");
     flashAction(
       "info",
       "Generando propuesta con IA en la ficha clínica…",
@@ -556,134 +521,48 @@ export default function ConsultationDetailPage() {
 
   if (loading) {
     return (
-      <div style={{ padding: 25, color: "#666" }}>Cargando consulta...</div>
+      <div className="p-6 text-slate-500">Cargando consulta...</div>
     );
   }
 
   if (error || !consultation) {
     return (
-      <div style={{ padding: 25 }}>
-        <p style={{ color: "#c00" }}>{error || "Consulta no encontrada"}</p>
-        <button
-          onClick={() => router.push("/panel/consultas")}
-          style={{
-            marginTop: 12,
-            padding: "8px 16px",
-            background: "#078a92",
-            color: "white",
-            border: "none",
-            borderRadius: 8,
-            cursor: "pointer",
-          }}
-        >
+      <div className="space-y-4 p-6">
+        <p className="text-red-600">{error || "Consulta no encontrada"}</p>
+        <Button variant="secondary" onClick={() => router.push("/panel/consultas")}>
           Volver a consultas
-        </button>
+        </Button>
       </div>
     );
   }
 
-  const status = consultation.status ?? "draft";
-  const isEditable = status === "draft" || status === "in_progress";
-  const canSign = status === "in_progress" || status === "completed";
-  const isSigned = status === "signed" || status === "locked";
-  const isLocked = status === "locked";
-  const canStartCall = status === "draft" || status === "in_progress";
-  const canPay = status === "signed" || status === "completed";
   const patientName =
-    consultation.patient?.name ||
-    consultation.patient?.email ||
-    "Paciente";
+    consultation.patient?.name || consultation.patient?.email || "Paciente";
+
+  const actionMsgClass =
+    actionMsg?.kind === "success"
+      ? "border-green-200 bg-green-50 text-green-800"
+      : actionMsg?.kind === "warning"
+        ? "border-amber-200 bg-amber-50 text-amber-900"
+        : actionMsg?.kind === "error"
+          ? "border-red-200 bg-red-50 text-red-800"
+          : "border-blue-200 bg-blue-50 text-blue-900";
 
   return (
-    <div style={{ padding: 25, maxWidth: 1100 }}>
-      {/* Header */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          marginBottom: 20,
-          flexWrap: "wrap",
-          gap: 12,
-        }}
-      >
-        <div>
-          <button
-            onClick={() => router.push("/panel/consultas")}
-            style={{
-              background: "none",
-              border: "none",
-              color: "#078a92",
-              cursor: "pointer",
-              padding: 0,
-              fontSize: 13,
-              marginBottom: 8,
-            }}
-          >
-            &larr; Volver a consultas
-          </button>
-          <h1
-            style={{
-              fontFamily: "Montserrat",
-              color: "#078a92",
-              margin: 0,
-              fontSize: 22,
-            }}
-          >
-            Consulta &mdash; {patientName}
-          </h1>
-          <p style={{ color: "#666", fontSize: 13, marginTop: 4 }}>
-            Motivo: {consultation.reason || "—"}
-          </p>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-          <button
-            type="button"
-            onClick={() => setShareOpen(true)}
-            style={{
-              padding: "8px 14px",
-              background: "white",
-              color: "#0f766e",
-              border: "1px solid #0f766e",
-              borderRadius: 8,
-              cursor: "pointer",
-              fontSize: 13,
-              fontWeight: 600,
-            }}
-          >
-            Compartir
-          </button>
-          <span
-            style={{
-              padding: "6px 14px",
-              borderRadius: 20,
-              fontSize: 12,
-              fontWeight: 700,
-              color: "white",
-              background: STATUS_COLORS[status] ?? "#94a3b8",
-            }}
-          >
-            {STATUS_LABELS[status] ?? status}
-          </span>
-          {NEXT_STATUS[status] && (
-            <button
-              onClick={handleTransition}
-              disabled={transitioning}
-              style={{
-                padding: "8px 16px",
-                background: "#078a92",
-                color: "white",
-                border: "none",
-                borderRadius: 8,
-                cursor: transitioning ? "not-allowed" : "pointer",
-                fontSize: 13,
-              }}
-            >
-              {transitioning ? "Cambiando..." : NEXT_STATUS_LABELS[status]}
-            </button>
-          )}
-        </div>
-      </div>
+    <div className="mx-auto max-w-5xl space-y-5 p-4 md:p-6 lg:p-8">
+      <PatientBanner
+        patientName={patientName}
+        chiefComplaint={consultation.reason || consultation.chiefComplaint || "—"}
+        status={status}
+        transitioning={transitioning}
+        onBack={() => router.push("/panel/consultas")}
+        onShare={() => setShareOpen(true)}
+        onTransition={
+          status === "draft" || status === "in_progress"
+            ? () => void handleTransition()
+            : undefined
+        }
+      />
 
       <ShareConsultationDialog
         consultationId={id}
@@ -692,12 +571,10 @@ export default function ConsultationDetailPage() {
         onClose={() => setShareOpen(false)}
       />
 
-      {/* Action bar (chips) */}
       <ConsultationActionBar
         isEditing={editMode}
         patientId={consultation.patientId ?? null}
         loading={{
-          starting: false,
           invoice: actionLoading.invoice,
           pdf: actionLoading.pdf,
           deleting: actionLoading.deleting,
@@ -727,41 +604,13 @@ export default function ConsultationDetailPage() {
           onGenerateSignedReferral: () => void handleSignedReferral(),
           onGeneratePremiumDocument: () => void handlePremiumDocument(),
         }}
+        onOpenDocuments={handleOpenDocuments}
       />
 
       {actionMsg ? (
         <div
           role="status"
-          style={{
-            marginBottom: 16,
-            padding: "10px 14px",
-            borderRadius: 10,
-            fontSize: 13,
-            background:
-              actionMsg.kind === "success"
-                ? "#ecfdf5"
-                : actionMsg.kind === "warning"
-                  ? "#fffbeb"
-                  : actionMsg.kind === "error"
-                    ? "#fef2f2"
-                    : "#eff6ff",
-            color:
-              actionMsg.kind === "success"
-                ? "#065f46"
-                : actionMsg.kind === "warning"
-                  ? "#92400e"
-                  : actionMsg.kind === "error"
-                    ? "#991b1b"
-                    : "#1e3a8a",
-            border:
-              actionMsg.kind === "success"
-                ? "1px solid #a7f3d0"
-                : actionMsg.kind === "warning"
-                  ? "1px solid #fde68a"
-                  : actionMsg.kind === "error"
-                    ? "1px solid #fecaca"
-                    : "1px solid #bfdbfe",
-          }}
+          className={`rounded-xl border px-4 py-3 text-sm ${actionMsgClass}`}
         >
           {actionMsg.text}
           {actionMsg.href ? (
@@ -771,7 +620,7 @@ export default function ConsultationDetailPage() {
                 href={actionMsg.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ color: "#0f766e", fontWeight: 600 }}
+                className="font-semibold text-primary hover:underline"
               >
                 Abrir documento →
               </a>
@@ -780,466 +629,144 @@ export default function ConsultationDetailPage() {
         </div>
       ) : null}
 
-      {/* Workspace: CIE-10, notas con IA, recetas, laboratorio | Asistencia IA, insights, chat.
-          No exigir clinicId: si falta en la consulta y el contexto aún no cargó la clínica,
-          igual mostrar herramientas (CDSS/search toleran clinicId undefined). */}
-      {consultation.patientId ? (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns:
-              "repeat(auto-fit, minmax(min(100%, 320px), 1fr))",
-            gap: 24,
-            marginBottom: 24,
-            width: "100%",
-            maxWidth: "100%",
-            boxSizing: "border-box",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 20,
-              minWidth: 0,
-            }}
-          >
-            <div
-              id="diagnosis-workspace"
-              style={{
-                background: "white",
-                padding: 20,
-                borderRadius: 12,
-                boxShadow: "0 2px 10px rgba(0,0,0,0.06)",
-              }}
-            >
-              <h3 style={{ marginBottom: 12, fontSize: 16 }}>Diagnóstico</h3>
-              <SmartDiagnosisPicker
-                value={diagnosis}
-                onChange={(item) =>
-                  setDiagnosis(`${item.code} - ${item.description}`)
-                }
-                onConfirm={handleDiagnosisConfirm}
-                clinicId={consultation.clinicId ?? ctxClinicId ?? null}
-              />
-              {diagnosisError ? (
-                <p
-                  role="alert"
-                  style={{
-                    marginTop: 8,
-                    color: "#b91c1c",
-                    background: "#fef2f2",
-                    border: "1px solid #fecaca",
-                    borderRadius: 8,
-                    padding: "6px 10px",
-                    fontSize: 13,
-                  }}
-                >
-                  {diagnosisError}
-                </p>
-              ) : null}
-            </div>
-            <div
-              style={{
-                background: "white",
-                padding: 20,
-                borderRadius: 12,
-                boxShadow: "0 2px 10px rgba(0,0,0,0.06)",
-              }}
-            >
-              <h3 style={{ marginBottom: 12, fontSize: 16 }}>Notas de consulta</h3>
-              <LiveAiNoteSuggestions
-                consultationId={id}
-                notes={notes}
-                setNotes={setNotes}
-                diagnosisContext={diagnosis}
-                patientAge={undefined}
-                patientSex={undefined}
-              />
-            </div>
-            <div id="prescription-workspace">
-              <PrescriptionPanel
-                patientId={consultation.patientId}
-                consultationId={id}
-                diagnosisCode={
-                  diagnosisCode || diagnosis || undefined
-                }
-              />
-            </div>
-            <LabOrdersPanel
-              patientId={consultation.patientId}
-              consultationId={id}
-              diagnosisCode={diagnosisCode || diagnosis || undefined}
-            />
-            <ReferralsPanel
-              patientId={consultation.patientId}
-              consultationId={id}
-            />
-          </div>
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 20,
-              minWidth: 0,
-            }}
-          >
-            <ConsultationAssistPanel
-              initialChiefComplaint={chiefComplaintDraft}
-              initialSymptoms=""
-              initialNotes={notes}
-            />
-            <AiInsightsPanel
-              patientId={consultation.patientId}
-              consultationId={id}
-            />
-            <ChatPanel consultationId={id} sender="doctor" />
-          </div>
-        </div>
+      <ConsultationWorkspace
+        consultation={consultation}
+        consultationId={id}
+        clinicId={consultation.clinicId ?? ctxClinicId ?? null}
+        activeTab={workspaceTab}
+        onTabChange={setWorkspaceTab}
+        ordersSubTab={ordersSubTab}
+        onOrdersSubTabChange={setOrdersSubTab}
+        chiefComplaintDraft={chiefComplaintDraft}
+        onChiefComplaintChange={setChiefComplaintDraft}
+        editMode={editMode}
+        isEditable={isEditable}
+        aiTrigger={aiTrigger}
+        onSaveClinicalRecord={handleSaveClinicalRecord}
+        documentHandlers={{
+          onStartTeleconsultation: () => void handleStartCall(),
+          onOpenPrescription: handleOpenPrescription,
+          onGenerateInvoice: () => void handleGenerateInvoice(),
+          onDownloadPdf: () => void handleDownloadPdf(),
+          onToggleEdit: handleToggleEdit,
+          onAnalyzeWithAi: handleAnalyzeWithAi,
+          onDelete: () => void handleDeleteConsultation(),
+          onGenerateSignedPrescription: () => void handleSignedPrescription(),
+          onGenerateSignedCertificate: () => void handleSignedCertificate(),
+          onGenerateSignedReferral: () => void handleSignedReferral(),
+          onGeneratePremiumDocument: () => void handlePremiumDocument(),
+        }}
+        documentLoading={actionLoading}
+        documentDisabled={{
+          pdf: isLocked,
+          invoice: isLocked,
+          signedPrescription: !isSigned && !isLocked && !canSign,
+        }}
+        onLegacyInvoiceResult={handleActionResult}
+        diagnosisCode={diagnosisCode || diagnosis || undefined}
+        soap={{
+          consultationId: id,
+          clinicId: consultation.clinicId ?? ctxClinicId ?? null,
+          editable: isEditable,
+          diagnosis,
+          onDiagnosisChange: setDiagnosis,
+          onDiagnosisConfirm: handleDiagnosisConfirm,
+          diagnosisError,
+          notes,
+          setNotes,
+          treatment,
+          onTreatmentChange: setTreatment,
+          autosaveStatus,
+          lastSavedAt,
+          autosaveError,
+        }}
+      />
+
+      {isLocked ? (
+        <Card className="border-green-200 bg-green-50 p-4">
+          <p className="font-semibold text-green-800">Consulta pagada y bloqueada</p>
+          <p className="mt-1 text-sm text-green-700">
+            Esta consulta ha sido finalizada. No se permiten modificaciones.
+          </p>
+        </Card>
       ) : null}
 
-      {/* Ficha clínica estructurada (motivo, HEA, revisión por sistemas) */}
-      <div id="clinical-record-section" style={{ marginBottom: 20 }}>
-        <ClinicalRecordPanel
-          consultationId={id}
-          rawNotes={consultation.notes ?? ""}
-          chiefComplaint={chiefComplaintDraft}
-          onChiefComplaintChange={setChiefComplaintDraft}
-          createdAt={consultation.createdAt ?? null}
-          editable={isEditable && editMode}
-          patient={
-            consultation.patient
-              ? {
-                  name: consultation.patient.name ?? null,
-                }
-              : null
-          }
-          onSave={handleSaveClinicalRecord}
-          autofillRequest={aiTrigger}
-        />
-      </div>
+      <ConsultationConsentCard
+        consentGivenAt={consultation.consentGivenAt}
+        consentVersion={consultation.consentVersion}
+      />
 
-      {/* Payment success banner */}
-      {isLocked && (
-        <div
-          style={{
-            background: "#f0fdf4",
-            border: "1px solid #bbf7d0",
-            borderRadius: 12,
-            padding: 16,
-            marginBottom: 20,
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-          }}
-        >
-          <span style={{ fontSize: 20 }}>&#x2705;</span>
-          <div>
-            <p
-              style={{
-                margin: 0,
-                fontWeight: 600,
-                fontSize: 14,
-                color: "#166534",
-              }}
-            >
-              Consulta pagada y bloqueada
-            </p>
-            <p
-              style={{
-                margin: "4px 0 0",
-                fontSize: 13,
-                color: "#15803d",
-              }}
-            >
-              Esta consulta ha sido finalizada. No se permiten modificaciones.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Consent */}
-      <div style={{ marginBottom: 20 }}>
-        <ConsultationConsentCard
-          consentGivenAt={consultation.consentGivenAt}
-          consentVersion={consultation.consentVersion}
-        />
-      </div>
-
-      {/* Video call section */}
-      {canStartCall && (
-        <div
-          style={{
-            background: "white",
-            padding: 24,
-            borderRadius: 12,
-            boxShadow: "0 2px 10px rgba(0,0,0,0.06)",
-            marginBottom: 20,
-          }}
-        >
-          <h3 style={{ margin: "0 0 12px", fontSize: 16, color: "#333" }}>
-            Teleconsulta
-          </h3>
-          <p style={{ color: "#475569", fontSize: 13, marginBottom: 12 }}>
+      {canStartCall ? (
+        <Card>
+          <h3 className="text-base font-semibold text-slate-800">Teleconsulta</h3>
+          <p className="mt-2 text-sm text-slate-600">
             Inicie una videollamada con el paciente. La consulta cambiará
             automáticamente a &quot;En progreso&quot;.
           </p>
           <button
-            onClick={handleStartCall}
-            style={{
-              padding: "12px 24px",
-              background: "#0284c7",
-              color: "white",
-              border: "none",
-              borderRadius: 8,
-              cursor: "pointer",
-              fontSize: 14,
-              fontWeight: 600,
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-            }}
+            type="button"
+            onClick={() => void handleStartCall()}
+            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-sky-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-sky-700"
           >
-            <span style={{ fontSize: 18 }}>&#x1F4F9;</span>
+            <span aria-hidden>📹</span>
             Iniciar Teleconsulta
           </button>
-        </div>
-      )}
+        </Card>
+      ) : null}
 
-      {/* Clinical data */}
-      <div
-        style={{
-          background: "white",
-          padding: 24,
-          borderRadius: 12,
-          boxShadow: "0 2px 10px rgba(0,0,0,0.06)",
-          marginBottom: 20,
-        }}
-      >
-        <h3 style={{ margin: "0 0 16px", fontSize: 16, color: "#333" }}>
-          Datos clínicos
-        </h3>
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <div>
-            <label
-              style={{
-                fontSize: 13,
-                fontWeight: 600,
-                color: "#475569",
-                display: "block",
-                marginBottom: 4,
-              }}
-            >
-              Diagnóstico
-            </label>
-            <textarea
-              value={diagnosis}
-              onChange={(e) => setDiagnosis(e.target.value)}
-              disabled={!isEditable}
-              rows={3}
-              style={{
-                width: "100%",
-                padding: 12,
-                border: "1px solid #e2e8f0",
-                borderRadius: 8,
-                fontSize: 14,
-                resize: "vertical",
-                background: isEditable ? "white" : "#f8fafc",
-              }}
-              placeholder="Ingrese el diagnóstico..."
-            />
-          </div>
-          <div>
-            <label
-              style={{
-                fontSize: 13,
-                fontWeight: 600,
-                color: "#475569",
-                display: "block",
-                marginBottom: 4,
-              }}
-            >
-              Notas de consulta
-            </label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              disabled={!isEditable}
-              rows={6}
-              style={{
-                width: "100%",
-                padding: 12,
-                border: "1px solid #e2e8f0",
-                borderRadius: 8,
-                fontSize: 14,
-                resize: "vertical",
-                background: isEditable ? "white" : "#f8fafc",
-              }}
-              placeholder="Evolución, hallazgos, plan..."
-            />
-          </div>
-          <div>
-            <label
-              style={{
-                fontSize: 13,
-                fontWeight: 600,
-                color: "#475569",
-                display: "block",
-                marginBottom: 4,
-              }}
-            >
-              Tratamiento
-            </label>
-            <textarea
-              value={treatment}
-              onChange={(e) => setTreatment(e.target.value)}
-              disabled={!isEditable}
-              rows={3}
-              style={{
-                width: "100%",
-                padding: 12,
-                border: "1px solid #e2e8f0",
-                borderRadius: 8,
-                fontSize: 14,
-                resize: "vertical",
-                background: isEditable ? "white" : "#f8fafc",
-              }}
-              placeholder="Indicaciones, medicación, seguimiento..."
-            />
-          </div>
-
-          {isEditable && (
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                style={{
-                  padding: "10px 24px",
-                  background: "#078a92",
-                  color: "white",
-                  border: "none",
-                  borderRadius: 8,
-                  cursor: saving ? "not-allowed" : "pointer",
-                  fontSize: 14,
-                  fontWeight: 600,
-                }}
-              >
-                {saving ? "Guardando..." : "Guardar datos clínicos"}
-              </button>
-              {saveMsg && (
-                <span
-                  style={{
-                    fontSize: 13,
-                    color: saveMsg.includes("Error") ? "#c00" : "#16a34a",
-                  }}
-                >
-                  {saveMsg}
-                </span>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Signature section */}
-      <div
-        style={{
-          background: "white",
-          padding: 24,
-          borderRadius: 12,
-          boxShadow: "0 2px 10px rgba(0,0,0,0.06)",
-          marginBottom: 20,
-        }}
-      >
-        <h3 style={{ margin: "0 0 16px", fontSize: 16, color: "#333" }}>
-          Firma del médico
-        </h3>
+      <Card>
+        <h3 className="text-base font-semibold text-slate-800">Firma del médico</h3>
         {isSigned ? (
-          <div>
-            <p style={{ color: "#16a34a", fontWeight: 600, fontSize: 14 }}>
+          <div className="mt-3">
+            <p className="text-sm font-semibold text-green-700">
               Consulta firmada el{" "}
               {consultation.signedAt
                 ? new Date(consultation.signedAt).toLocaleString("es")
                 : "—"}
             </p>
-            {consultation.doctorSignature && (
-              <div
-                style={{
-                  marginTop: 12,
-                  border: "1px solid #e2e8f0",
-                  borderRadius: 8,
-                  padding: 8,
-                  display: "inline-block",
-                  background: "#f8fafc",
-                }}
-              >
+            {consultation.doctorSignature ? (
+              <div className="mt-3 inline-block rounded-lg border border-slate-200 bg-slate-50 p-2">
                 <Image
                   unoptimized
                   src={`data:image/png;base64,${consultation.doctorSignature}`}
                   alt="Firma del doctor"
                   width={300}
                   height={120}
-                  style={{ maxWidth: 300, maxHeight: 120, width: "auto", height: "auto" }}
+                  className="h-auto max-h-[120px] w-auto max-w-[300px]"
                 />
               </div>
-            )}
+            ) : null}
           </div>
         ) : canSign ? (
-          <div>
-            <p style={{ color: "#475569", fontSize: 13, marginBottom: 12 }}>
+          <div className="mt-3">
+            <p className="mb-3 text-sm text-slate-600">
               Firme para cerrar esta consulta. La firma es inmutable una vez
               registrada.
             </p>
             <SignatureCanvas onSign={handleSign} disabled={signing} />
-            {signing && (
-              <p style={{ color: "#666", fontSize: 13, marginTop: 8 }}>
-                Firmando...
-              </p>
-            )}
+            {signing ? (
+              <p className="mt-2 text-sm text-slate-500">Firmando...</p>
+            ) : null}
           </div>
         ) : (
-          <p style={{ color: "#94a3b8", fontSize: 13 }}>
+          <p className="mt-3 text-sm text-slate-400">
             La consulta debe estar en progreso o completada para poder firmar.
           </p>
         )}
-        {saveMsg && !isEditable && !canPay && (
+        {saveMsg && !isEditable && !canPay ? (
           <p
-            style={{
-              marginTop: 8,
-              fontSize: 13,
-              color: saveMsg.includes("Error") ? "#c00" : "#16a34a",
-            }}
+            className={`mt-2 text-sm ${saveMsg.includes("Error") ? "text-red-600" : "text-green-700"}`}
           >
             {saveMsg}
           </p>
-        )}
-      </div>
+        ) : null}
+      </Card>
 
-      {/* Payment section */}
-      {canPay && !isLocked && (
-        <div
-          style={{
-            background: "white",
-            padding: 24,
-            borderRadius: 12,
-            boxShadow: "0 2px 10px rgba(0,0,0,0.06)",
-            marginBottom: 20,
-          }}
-        >
-          <h3 style={{ margin: "0 0 8px", fontSize: 16, color: "#333" }}>
-            Pago de consulta
-          </h3>
-          <p
-            style={{
-              margin: "0 0 8px",
-              fontSize: 13,
-              fontWeight: 600,
-              color: "#0f766e",
-            }}
-          >
-            {URGENCY_AVAILABLE_NOW}
-          </p>
-          <p style={{ color: "#475569", fontSize: 13, marginBottom: 12 }}>
+      {canPay && !isLocked ? (
+        <Card>
+          <h3 className="text-base font-semibold text-slate-800">Pago de consulta</h3>
+          <p className="mt-1 text-sm font-semibold text-primary">{URGENCY_AVAILABLE_NOW}</p>
+          <p className="mt-2 text-sm text-slate-600">
             La consulta ha sido firmada. Confirma el monto y continúa al pago
             seguro para finalizar y bloquear la consulta.
           </p>
@@ -1251,36 +778,15 @@ export default function ConsultationDetailPage() {
                 setPaymentStep("confirm");
               }}
               disabled={creatingPayment}
-              style={{
-                padding: "12px 24px",
-                background: "#7c3aed",
-                color: "white",
-                border: "none",
-                borderRadius: 8,
-                cursor: creatingPayment ? "not-allowed" : "pointer",
-                fontSize: 14,
-                fontWeight: 600,
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-              }}
+              className="mt-4 inline-flex items-center gap-2 rounded-lg bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-violet-700 disabled:opacity-60"
             >
-              <span style={{ fontSize: 18 }}>&#x1F4B3;</span>
+              <span aria-hidden>💳</span>
               Pagar consulta
             </button>
           ) : (
-            <div
-              style={{
-                border: "1px solid #e2e8f0",
-                borderRadius: 10,
-                padding: 16,
-                background: "#fafafa",
-              }}
-            >
-              <p style={{ margin: "0 0 8px", fontSize: 14, fontWeight: 600 }}>
-                Confirmar pago
-              </p>
-              <p style={{ margin: "0 0 4px", fontSize: 22, color: "#1e293b" }}>
+            <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <p className="font-semibold text-slate-800">Confirmar pago</p>
+              <p className="mt-2 text-2xl text-slate-900">
                 {consultationPrice.loading
                   ? "…"
                   : formatConsultationPrice(
@@ -1288,24 +794,16 @@ export default function ConsultationDetailPage() {
                       consultationPrice.currency,
                     )}
               </p>
-              <p style={{ margin: "0 0 16px", fontSize: 12, color: "#64748b" }}>
+              <p className="mt-1 text-xs text-slate-500">
                 Serás redirigido a nuestro proveedor de pago (Payku) para
                 completar la transacción de forma segura.
               </p>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+              <div className="mt-4 flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={() => handlePaymentAbandoned("user_cancelled_confirm")}
                   disabled={creatingPayment}
-                  style={{
-                    padding: "10px 18px",
-                    background: "white",
-                    color: "#475569",
-                    border: "1px solid #cbd5e1",
-                    borderRadius: 8,
-                    cursor: creatingPayment ? "not-allowed" : "pointer",
-                    fontSize: 14,
-                  }}
+                  className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 disabled:opacity-60"
                 >
                   Volver
                 </button>
@@ -1313,19 +811,7 @@ export default function ConsultationDetailPage() {
                   type="button"
                   onClick={() => void executePaymentToProvider()}
                   disabled={creatingPayment}
-                  style={{
-                    padding: "10px 18px",
-                    background: creatingPayment ? "#a78bfa" : "#7c3aed",
-                    color: "white",
-                    border: "none",
-                    borderRadius: 8,
-                    cursor: creatingPayment ? "wait" : "pointer",
-                    fontSize: 14,
-                    fontWeight: 600,
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 8,
-                  }}
+                  className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700 disabled:opacity-60"
                 >
                   {creatingPayment
                     ? "Conectando con el proveedor de pago…"
@@ -1334,39 +820,31 @@ export default function ConsultationDetailPage() {
               </div>
             </div>
           )}
-          {saveMsg && (
+          {saveMsg ? (
             <p
-              style={{
-                marginTop: 12,
-                fontSize: 13,
-                color:
-                  saveMsg.includes("expiró") ||
-                  saveMsg.includes("No pudimos") ||
-                  saveMsg.includes("No tienes") ||
-                  saveMsg.includes("no está disponible") ||
-                  saveMsg.includes("no encontramos")
-                    ? "#b91c1c"
-                    : "#16a34a",
-                lineHeight: 1.45,
-              }}
+              className={`mt-3 text-sm leading-relaxed ${
+                saveMsg.includes("expiró") ||
+                saveMsg.includes("No pudimos") ||
+                saveMsg.includes("No tienes") ||
+                saveMsg.includes("no está disponible") ||
+                saveMsg.includes("no encontramos")
+                  ? "text-red-600"
+                  : "text-green-700"
+              }`}
             >
               {saveMsg}
             </p>
-          )}
-        </div>
-      )}
+          ) : null}
+        </Card>
+      ) : null}
 
-      {/* General status message for non-editable states */}
-      {!isEditable && !canPay && !isLocked && saveMsg && (
+      {!isEditable && !canPay && !isLocked && saveMsg ? (
         <p
-          style={{
-            fontSize: 13,
-            color: saveMsg.includes("Error") ? "#c00" : "#16a34a",
-          }}
+          className={`text-sm ${saveMsg.includes("Error") ? "text-red-600" : "text-green-700"}`}
         >
           {saveMsg}
         </p>
-      )}
+      ) : null}
     </div>
   );
 }
