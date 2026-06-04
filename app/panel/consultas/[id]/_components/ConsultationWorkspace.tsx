@@ -1,21 +1,21 @@
 "use client";
 
-import {
-  AiInsightsPanel,
-  ClinicalRecordPanel,
-  ConsultationAssistPanel,
-} from "@/components/clinical";
-import { ChatPanel } from "@/components/telemedicine/ChatPanel";
 import type { NestConsultation } from "@/lib/services/consultations";
-import { cn } from "@/lib/utils";
-import { SoapSection, type SoapSectionProps } from "./SoapSection";
-import { OrdersTab, type OrdersSubTab } from "./OrdersTab";
-import { DocumentsTab } from "./DocumentsTab";
+import type { SoapSectionProps } from "./SoapSection";
+import type { OrdersSubTab } from "./OrdersTab";
 import type {
   ActionBarHandlers,
   ActionBarLoading,
 } from "@/components/clinical/ConsultationActionBar";
 import type { ActionResult } from "@/lib/services/consultation-actions";
+import { EncounterLeftPane, type EncounterLeftPaneTab } from "./EncounterLeftPane";
+import { EncounterRightPane, type EncounterRightPaneTab } from "./EncounterRightPane";
+import { EncounterSplitLayout } from "./EncounterSplitLayout";
+import { MobileConsultationWorkspace } from "./MobileConsultationWorkspace";
+import {
+  PatientContextRail,
+  type PatientContextRailProps,
+} from "./PatientContextRail";
 
 export type WorkspaceTab =
   | "soap"
@@ -24,13 +24,7 @@ export type WorkspaceTab =
   | "documents"
   | "assist";
 
-const MAIN_TABS: { id: WorkspaceTab; label: string }[] = [
-  { id: "soap", label: "Nota (SOAP)" },
-  { id: "record", label: "Ficha" },
-  { id: "orders", label: "Órdenes" },
-  { id: "documents", label: "Documentos" },
-  { id: "assist", label: "Asistencia" },
-];
+export type { EncounterLeftPaneTab, EncounterRightPaneTab };
 
 export interface ConsultationWorkspaceProps {
   consultation: NestConsultation;
@@ -38,6 +32,10 @@ export interface ConsultationWorkspaceProps {
   clinicId: string | null;
   activeTab: WorkspaceTab;
   onTabChange: (tab: WorkspaceTab) => void;
+  leftPaneTab: EncounterLeftPaneTab;
+  onLeftPaneTabChange: (tab: EncounterLeftPaneTab) => void;
+  rightPaneTab: EncounterRightPaneTab;
+  onRightPaneTabChange: (tab: EncounterRightPaneTab) => void;
   ordersSubTab: OrdersSubTab;
   onOrdersSubTabChange: (tab: OrdersSubTab) => void;
   soap: SoapSectionProps;
@@ -55,120 +53,83 @@ export interface ConsultationWorkspaceProps {
   documentDisabled: Partial<Record<string, boolean>>;
   onLegacyInvoiceResult: (label: string, result: ActionResult) => void;
   diagnosisCode?: string;
+  patientContext: PatientContextRailProps;
 }
 
+export type MobileConsultationWorkspaceProps = Omit<
+  ConsultationWorkspaceProps,
+  | "leftPaneTab"
+  | "onLeftPaneTabChange"
+  | "rightPaneTab"
+  | "onRightPaneTabChange"
+  | "patientContext"
+>;
+
 export function ConsultationWorkspace({
-  consultation,
-  consultationId,
-  clinicId,
-  activeTab,
-  onTabChange,
-  ordersSubTab,
-  onOrdersSubTabChange,
-  soap,
-  chiefComplaintDraft,
-  onChiefComplaintChange,
-  editMode,
-  isEditable,
-  aiTrigger,
-  onSaveClinicalRecord,
-  documentHandlers,
-  documentLoading,
-  documentDisabled,
-  onLegacyInvoiceResult,
-  diagnosisCode,
+  patientContext,
+  leftPaneTab,
+  onLeftPaneTabChange,
+  rightPaneTab,
+  onRightPaneTabChange,
+  ...props
 }: ConsultationWorkspaceProps) {
-  const patientId = consultation.patientId;
+  const {
+    consultation,
+    consultationId,
+    soap,
+    chiefComplaintDraft,
+    onChiefComplaintChange,
+    editMode,
+    isEditable,
+    aiTrigger,
+    onSaveClinicalRecord,
+    ordersSubTab,
+    onOrdersSubTabChange,
+    documentHandlers,
+    documentLoading,
+    documentDisabled,
+    onLegacyInvoiceResult,
+    diagnosisCode,
+  } = props;
 
   return (
-    <div className="space-y-4">
-      <div
-        className="flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1"
-        role="tablist"
-      >
-        {MAIN_TABS.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            role="tab"
-            aria-selected={activeTab === tab.id}
-            onClick={() => onTabChange(tab.id)}
-            className={cn(
-              "shrink-0 rounded-lg px-3 py-2 text-sm font-semibold transition-colors",
-              activeTab === tab.id
-                ? "bg-primary text-white"
-                : "text-slate-600 hover:bg-slate-50",
-            )}
-          >
-            {tab.label}
-          </button>
-        ))}
+    <>
+      <div className="xl:hidden">
+        <MobileConsultationWorkspace {...props} />
       </div>
-
-      {!patientId ? (
-        <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          Esta consulta no tiene paciente asociado. Las órdenes y asistencia no
-          están disponibles.
-        </p>
-      ) : null}
-
-      {activeTab === "soap" ? <SoapSection {...soap} /> : null}
-
-      {activeTab === "record" ? (
-        <div id="clinical-record-section">
-          <ClinicalRecordPanel
+      <EncounterSplitLayout
+        rail={<PatientContextRail {...patientContext} />}
+        left={
+          <EncounterLeftPane
+            consultation={consultation}
             consultationId={consultationId}
-            rawNotes={consultation.notes ?? ""}
-            chiefComplaint={chiefComplaintDraft}
+            activeTab={leftPaneTab}
+            onTabChange={onLeftPaneTabChange}
+            soap={soap}
+            chiefComplaintDraft={chiefComplaintDraft}
             onChiefComplaintChange={onChiefComplaintChange}
-            createdAt={consultation.createdAt ?? null}
-            editable={isEditable && editMode}
-            patient={
-              consultation.patient
-                ? { name: consultation.patient.name ?? null }
-                : null
-            }
-            onSave={onSaveClinicalRecord}
-            autofillRequest={aiTrigger}
+            editMode={editMode}
+            isEditable={isEditable}
+            aiTrigger={aiTrigger}
+            onSaveClinicalRecord={onSaveClinicalRecord}
           />
-        </div>
-      ) : null}
-
-      {activeTab === "orders" && patientId ? (
-        <OrdersTab
-          patientId={patientId}
-          consultationId={consultationId}
-          diagnosisCode={diagnosisCode}
-          activeSubTab={ordersSubTab}
-          onSubTabChange={onOrdersSubTabChange}
-          onLegacyInvoiceResult={onLegacyInvoiceResult}
-        />
-      ) : null}
-
-      {activeTab === "documents" ? (
-        <DocumentsTab
-          handlers={documentHandlers}
-          loading={documentLoading}
-          disabled={documentDisabled}
-        />
-      ) : null}
-
-      {activeTab === "assist" && patientId ? (
-        <div className="grid gap-5 lg:grid-cols-2">
-          <ConsultationAssistPanel
-            initialChiefComplaint={chiefComplaintDraft}
-            initialSymptoms=""
-            initialNotes={soap.notes}
+        }
+        right={
+          <EncounterRightPane
+            patientId={consultation.patientId}
+            consultationId={consultationId}
+            activeTab={rightPaneTab}
+            onTabChange={onRightPaneTabChange}
+            ordersSubTab={ordersSubTab}
+            onOrdersSubTabChange={onOrdersSubTabChange}
+            diagnosisCode={diagnosisCode}
+            documentHandlers={documentHandlers}
+            documentLoading={documentLoading}
+            documentDisabled={documentDisabled}
+            onLegacyInvoiceResult={onLegacyInvoiceResult}
           />
-          <div className="space-y-5">
-            <AiInsightsPanel
-              patientId={patientId}
-              consultationId={consultationId}
-            />
-            <ChatPanel consultationId={consultationId} sender="doctor" />
-          </div>
-        </div>
-      ) : null}
-    </div>
+        }
+      />
+    </>
   );
 }

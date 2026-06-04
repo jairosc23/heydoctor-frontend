@@ -28,7 +28,13 @@ import {
 } from "@/lib/consultation-pricing";
 import { useConsultationPrice } from "@/lib/hooks/useConsultationPrice";
 import { useConsultationAutosave } from "@/lib/hooks/useConsultationAutosave";
-import { ApiError } from "@/lib/heydoctor-api";
+import { ApiError, getApiErrorMessage } from "@/lib/heydoctor-api";
+import {
+  fetchPatientById,
+  fetchPatientProfile,
+  type PatientProfile,
+  type PatientRow,
+} from "@/lib/services/patients";
 import { getConsultationAccessErrorMessage } from "@/lib/consultation-access-errors";
 import { getWhatsAppUrlWithCustomMessage } from "@/lib/whatsapp-url";
 import {
@@ -52,6 +58,9 @@ import {
   serializeClinicalRecord,
 } from "@/lib/services/clinical-record";
 import { PatientBanner } from "./_components/PatientBanner";
+import { PatientContextRail } from "./_components/PatientContextRail";
+import type { EncounterLeftPaneTab } from "./_components/EncounterLeftPane";
+import type { EncounterRightPaneTab } from "./_components/EncounterRightPane";
 import {
   ConsultationWorkspace,
   type WorkspaceTab,
@@ -108,6 +117,9 @@ export default function ConsultationDetailPage() {
   const [diagnosisCode, setDiagnosisCode] = useState("");
   const [diagnosisError, setDiagnosisError] = useState<string | null>(null);
   const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTab>("soap");
+  const [leftPaneTab, setLeftPaneTab] = useState<EncounterLeftPaneTab>("soap");
+  const [rightPaneTab, setRightPaneTab] =
+    useState<EncounterRightPaneTab>("orders");
   const [ordersSubTab, setOrdersSubTab] = useState<OrdersSubTab>("prescriptions");
 
   const [actionLoading, setActionLoading] = useState({
@@ -127,6 +139,15 @@ export default function ConsultationDetailPage() {
 
   const [aiTrigger, setAiTrigger] = useState(0);
   const [shareOpen, setShareOpen] = useState(false);
+
+  const [patientRow, setPatientRow] = useState<PatientRow | null>(null);
+  const [patientProfile, setPatientProfile] = useState<PatientProfile | null>(
+    null,
+  );
+  const [patientContextLoading, setPatientContextLoading] = useState(false);
+  const [patientContextError, setPatientContextError] = useState<string | null>(
+    null,
+  );
 
   const paymentResult = searchParams.get("payment");
   const prevStatusRef = React.useRef<string | undefined>(undefined);
@@ -164,6 +185,49 @@ export default function ConsultationDetailPage() {
     if (!cid || !pid) return;
     attachConsultationSession(cid, pid);
   }, [consultation?.id, consultation?.patientId, attachConsultationSession]);
+
+  useEffect(() => {
+    const patientId = consultation?.patientId;
+    if (!patientId) {
+      setPatientRow(null);
+      setPatientProfile(null);
+      setPatientContextLoading(false);
+      setPatientContextError(null);
+      return;
+    }
+
+    let cancelled = false;
+    setPatientContextLoading(true);
+    setPatientContextError(null);
+
+    void (async () => {
+      try {
+        const [patient, profile] = await Promise.all([
+          fetchPatientById(patientId),
+          fetchPatientProfile(patientId).catch(() => null),
+        ]);
+        if (cancelled) return;
+        setPatientRow(patient);
+        setPatientProfile(profile);
+      } catch (err) {
+        if (cancelled) return;
+        setPatientRow(null);
+        setPatientProfile(null);
+        setPatientContextError(
+          getApiErrorMessage(
+            err,
+            "No se pudo cargar el contexto del paciente.",
+          ),
+        );
+      } finally {
+        if (!cancelled) setPatientContextLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [consultation?.patientId]);
 
   useEffect(() => {
     if (paymentResult !== "success" && paymentResult !== "mock") return;
@@ -393,11 +457,13 @@ export default function ConsultationDetailPage() {
 
   function handleOpenPrescription() {
     setWorkspaceTab("orders");
+    setRightPaneTab("orders");
     setOrdersSubTab("prescriptions");
   }
 
   function handleOpenDocuments() {
     setWorkspaceTab("documents");
+    setRightPaneTab("documents");
   }
 
   async function handleGenerateInvoice() {
@@ -417,11 +483,13 @@ export default function ConsultationDetailPage() {
   function handleToggleEdit() {
     setEditMode((v) => !v);
     setWorkspaceTab("record");
+    setLeftPaneTab("record");
   }
 
   function handleAnalyzeWithAi() {
     setAiTrigger((n) => n + 1);
     setWorkspaceTab("record");
+    setLeftPaneTab("record");
     flashAction(
       "info",
       "Generando propuesta con IA en la ficha clínica…",
@@ -549,7 +617,7 @@ export default function ConsultationDetailPage() {
           : "border-blue-200 bg-blue-50 text-blue-900";
 
   return (
-    <div className="mx-auto max-w-5xl space-y-5 p-4 md:p-6 lg:p-8">
+    <div className="mx-auto max-w-5xl space-y-5 p-4 md:p-6 lg:p-8 xl:max-w-none 2xl:mx-auto 2xl:max-w-[1600px]">
       <PatientBanner
         patientName={patientName}
         chiefComplaint={consultation.reason || consultation.chiefComplaint || "—"}
@@ -629,12 +697,35 @@ export default function ConsultationDetailPage() {
         </div>
       ) : null}
 
+      <div className="xl:hidden">
+        <PatientContextRail
+          patientId={consultation.patientId}
+          patient={patientRow}
+          profile={patientProfile}
+          loading={patientContextLoading}
+          error={patientContextError}
+          fallbackName={patientName}
+        />
+      </div>
+
       <ConsultationWorkspace
         consultation={consultation}
         consultationId={id}
         clinicId={consultation.clinicId ?? ctxClinicId ?? null}
         activeTab={workspaceTab}
         onTabChange={setWorkspaceTab}
+        leftPaneTab={leftPaneTab}
+        onLeftPaneTabChange={setLeftPaneTab}
+        rightPaneTab={rightPaneTab}
+        onRightPaneTabChange={setRightPaneTab}
+        patientContext={{
+          patientId: consultation.patientId,
+          patient: patientRow,
+          profile: patientProfile,
+          loading: patientContextLoading,
+          error: patientContextError,
+          fallbackName: patientName,
+        }}
         ordersSubTab={ordersSubTab}
         onOrdersSubTabChange={setOrdersSubTab}
         chiefComplaintDraft={chiefComplaintDraft}
