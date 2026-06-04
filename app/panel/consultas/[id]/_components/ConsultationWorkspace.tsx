@@ -8,6 +8,12 @@ import type {
   ActionBarLoading,
 } from "@/components/clinical/ConsultationActionBar";
 import type { ActionResult } from "@/lib/services/consultation-actions";
+import { EncounterLeftPane } from "./EncounterLeftPane";
+import { EncounterRightPane } from "./EncounterRightPane";
+import {
+  EncounterRailPlaceholder,
+  EncounterSplitLayout,
+} from "./EncounterSplitLayout";
 import { MobileConsultationWorkspace } from "./MobileConsultationWorkspace";
 
 export type WorkspaceTab =
@@ -44,8 +50,15 @@ export interface ConsultationWorkspaceProps {
 
 export function ConsultationWorkspace(props: ConsultationWorkspaceProps) {
   return (
-    <div className="xl:hidden">
-      <MobileConsultationWorkspace {...props} />
-    </div>
+    <>
+      <div className="xl:hidden">
+        <MobileConsultationWorkspace {...props} />
+      </div>
+      <EncounterSplitLayout
+        rail={<EncounterRailPlaceholder />}
+        left={<EncounterLeftPane />}
+        right={<EncounterRightPane />}
+      />
+    </>
   );
 }
