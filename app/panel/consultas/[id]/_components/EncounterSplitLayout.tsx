@@ -8,9 +8,7 @@ export interface EncounterSplitLayoutProps {
   right: ReactNode;
 }
 
-/**
- * Shell desktop del encounter (≥1280px). Fase 5 conectará paneles reales y el rail de paciente.
- */
+/** Layout desktop del encounter (viewport ≥1280px / Tailwind `xl`). */
 export function EncounterSplitLayout({
   rail,
   left,
@@ -25,23 +23,5 @@ export function EncounterSplitLayout({
       <div className="min-w-0">{left}</div>
       <div className="min-w-0">{right}</div>
     </div>
-  );
-}
-
-export function EncounterRailPlaceholder() {
-  return (
-    <aside
-      role="complementary"
-      aria-label="Contexto del paciente (vista escritorio)"
-      className="sticky top-20 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-600"
-    >
-      <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
-        Rail de paciente
-      </p>
-      <p className="mt-2 leading-relaxed">
-        Placeholder del contexto clínico en columna desktop. Se integrará con{" "}
-        <span className="font-medium">PatientContextRail</span> en Fase 5.
-      </p>
-    </aside>
   );
 }

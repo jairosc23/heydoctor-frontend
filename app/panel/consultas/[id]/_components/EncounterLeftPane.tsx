@@ -1,7 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import {
+  AiInsightsPanel,
+  ClinicalRecordPanel,
+  ConsultationAssistPanel,
+} from "@/components/clinical";
+import { ChatPanel } from "@/components/telemedicine/ChatPanel";
+import type { NestConsultation } from "@/lib/services/consultations";
 import { cn } from "@/lib/utils";
+import { SoapSection, type SoapSectionProps } from "./SoapSection";
 
 export type EncounterLeftPaneTab = "soap" | "record" | "assist";
 
@@ -11,14 +18,37 @@ const LEFT_TABS: { id: EncounterLeftPaneTab; label: string }[] = [
   { id: "assist", label: "Asistencia" },
 ];
 
-const PLACEHOLDER_COPY: Record<EncounterLeftPaneTab, string> = {
-  soap: "Nota SOAP, diagnóstico y plan de tratamiento.",
-  record: "Ficha clínica estructurada (HD_CR_V1).",
-  assist: "Asistencia IA, insights y chat de consulta.",
-};
+export interface EncounterLeftPaneProps {
+  consultation: NestConsultation;
+  consultationId: string;
+  activeTab: EncounterLeftPaneTab;
+  onTabChange: (tab: EncounterLeftPaneTab) => void;
+  soap: SoapSectionProps;
+  chiefComplaintDraft: string;
+  onChiefComplaintChange: (value: string) => void;
+  editMode: boolean;
+  isEditable: boolean;
+  aiTrigger: number;
+  onSaveClinicalRecord: (payload: {
+    notes: string;
+    chiefComplaint: string;
+  }) => Promise<void>;
+}
 
-export function EncounterLeftPane() {
-  const [activeTab, setActiveTab] = useState<EncounterLeftPaneTab>("soap");
+export function EncounterLeftPane({
+  consultation,
+  consultationId,
+  activeTab,
+  onTabChange,
+  soap,
+  chiefComplaintDraft,
+  onChiefComplaintChange,
+  editMode,
+  isEditable,
+  aiTrigger,
+  onSaveClinicalRecord,
+}: EncounterLeftPaneProps) {
+  const patientId = consultation.patientId;
 
   return (
     <section
@@ -37,7 +67,7 @@ export function EncounterLeftPane() {
             type="button"
             role="tab"
             aria-selected={activeTab === tab.id}
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => onTabChange(tab.id)}
             className={cn(
               "shrink-0 rounded-lg px-3 py-2 text-sm font-semibold transition-colors",
               activeTab === tab.id
@@ -50,20 +80,51 @@ export function EncounterLeftPane() {
         ))}
       </div>
 
-      <div
-        role="tabpanel"
-        className="rounded-xl border border-dashed border-slate-300 bg-white p-6"
-      >
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Placeholder — columna izquierda
+      {!patientId && (activeTab === "assist" || activeTab === "record") ? (
+        <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          Esta consulta no tiene paciente asociado. La asistencia no está
+          disponible.
         </p>
-        <p className="mt-2 text-sm leading-relaxed text-slate-600">
-          {PLACEHOLDER_COPY[activeTab]}
-        </p>
-        <p className="mt-3 text-xs text-slate-400">
-          Conexión a paneles reales en Fase 5.
-        </p>
-      </div>
+      ) : null}
+
+      {activeTab === "soap" ? <SoapSection {...soap} /> : null}
+
+      {activeTab === "record" ? (
+        <div id="clinical-record-section-desktop">
+          <ClinicalRecordPanel
+            consultationId={consultationId}
+            rawNotes={consultation.notes ?? ""}
+            chiefComplaint={chiefComplaintDraft}
+            onChiefComplaintChange={onChiefComplaintChange}
+            createdAt={consultation.createdAt ?? null}
+            editable={isEditable && editMode}
+            patient={
+              consultation.patient
+                ? { name: consultation.patient.name ?? null }
+                : null
+            }
+            onSave={onSaveClinicalRecord}
+            autofillRequest={aiTrigger}
+          />
+        </div>
+      ) : null}
+
+      {activeTab === "assist" && patientId ? (
+        <div className="grid gap-5 xl:grid-cols-1 2xl:grid-cols-2">
+          <ConsultationAssistPanel
+            initialChiefComplaint={chiefComplaintDraft}
+            initialSymptoms=""
+            initialNotes={soap.notes}
+          />
+          <div className="space-y-5">
+            <AiInsightsPanel
+              patientId={patientId}
+              consultationId={consultationId}
+            />
+            <ChatPanel consultationId={consultationId} sender="doctor" />
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }

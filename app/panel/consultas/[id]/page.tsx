@@ -59,6 +59,8 @@ import {
 } from "@/lib/services/clinical-record";
 import { PatientBanner } from "./_components/PatientBanner";
 import { PatientContextRail } from "./_components/PatientContextRail";
+import type { EncounterLeftPaneTab } from "./_components/EncounterLeftPane";
+import type { EncounterRightPaneTab } from "./_components/EncounterRightPane";
 import {
   ConsultationWorkspace,
   type WorkspaceTab,
@@ -115,6 +117,9 @@ export default function ConsultationDetailPage() {
   const [diagnosisCode, setDiagnosisCode] = useState("");
   const [diagnosisError, setDiagnosisError] = useState<string | null>(null);
   const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTab>("soap");
+  const [leftPaneTab, setLeftPaneTab] = useState<EncounterLeftPaneTab>("soap");
+  const [rightPaneTab, setRightPaneTab] =
+    useState<EncounterRightPaneTab>("orders");
   const [ordersSubTab, setOrdersSubTab] = useState<OrdersSubTab>("prescriptions");
 
   const [actionLoading, setActionLoading] = useState({
@@ -452,11 +457,13 @@ export default function ConsultationDetailPage() {
 
   function handleOpenPrescription() {
     setWorkspaceTab("orders");
+    setRightPaneTab("orders");
     setOrdersSubTab("prescriptions");
   }
 
   function handleOpenDocuments() {
     setWorkspaceTab("documents");
+    setRightPaneTab("documents");
   }
 
   async function handleGenerateInvoice() {
@@ -476,11 +483,13 @@ export default function ConsultationDetailPage() {
   function handleToggleEdit() {
     setEditMode((v) => !v);
     setWorkspaceTab("record");
+    setLeftPaneTab("record");
   }
 
   function handleAnalyzeWithAi() {
     setAiTrigger((n) => n + 1);
     setWorkspaceTab("record");
+    setLeftPaneTab("record");
     flashAction(
       "info",
       "Generando propuesta con IA en la ficha clínica…",
@@ -608,7 +617,7 @@ export default function ConsultationDetailPage() {
           : "border-blue-200 bg-blue-50 text-blue-900";
 
   return (
-    <div className="mx-auto max-w-5xl space-y-5 p-4 md:p-6 lg:p-8">
+    <div className="mx-auto max-w-5xl space-y-5 p-4 md:p-6 lg:p-8 xl:max-w-none 2xl:mx-auto 2xl:max-w-[1600px]">
       <PatientBanner
         patientName={patientName}
         chiefComplaint={consultation.reason || consultation.chiefComplaint || "—"}
@@ -688,14 +697,16 @@ export default function ConsultationDetailPage() {
         </div>
       ) : null}
 
-      <PatientContextRail
-        patientId={consultation.patientId}
-        patient={patientRow}
-        profile={patientProfile}
-        loading={patientContextLoading}
-        error={patientContextError}
-        fallbackName={patientName}
-      />
+      <div className="xl:hidden">
+        <PatientContextRail
+          patientId={consultation.patientId}
+          patient={patientRow}
+          profile={patientProfile}
+          loading={patientContextLoading}
+          error={patientContextError}
+          fallbackName={patientName}
+        />
+      </div>
 
       <ConsultationWorkspace
         consultation={consultation}
@@ -703,6 +714,18 @@ export default function ConsultationDetailPage() {
         clinicId={consultation.clinicId ?? ctxClinicId ?? null}
         activeTab={workspaceTab}
         onTabChange={setWorkspaceTab}
+        leftPaneTab={leftPaneTab}
+        onLeftPaneTabChange={setLeftPaneTab}
+        rightPaneTab={rightPaneTab}
+        onRightPaneTabChange={setRightPaneTab}
+        patientContext={{
+          patientId: consultation.patientId,
+          patient: patientRow,
+          profile: patientProfile,
+          loading: patientContextLoading,
+          error: patientContextError,
+          fallbackName: patientName,
+        }}
         ordersSubTab={ordersSubTab}
         onOrdersSubTabChange={setOrdersSubTab}
         chiefComplaintDraft={chiefComplaintDraft}

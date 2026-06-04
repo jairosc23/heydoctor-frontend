@@ -1,7 +1,13 @@
 "use client";
 
-import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { OrdersTab, type OrdersSubTab } from "./OrdersTab";
+import { DocumentsTab } from "./DocumentsTab";
+import type {
+  ActionBarHandlers,
+  ActionBarLoading,
+} from "@/components/clinical/ConsultationActionBar";
+import type { ActionResult } from "@/lib/services/consultation-actions";
 
 export type EncounterRightPaneTab = "orders" | "documents";
 
@@ -10,14 +16,33 @@ const RIGHT_TABS: { id: EncounterRightPaneTab; label: string }[] = [
   { id: "documents", label: "Documentos" },
 ];
 
-const PLACEHOLDER_COPY: Record<EncounterRightPaneTab, string> = {
-  orders: "Prescripciones, laboratorio, derivaciones y facturas.",
-  documents: "PDF de consulta, recetas firmadas y documentos clínicos.",
-};
+export interface EncounterRightPaneProps {
+  patientId: string | null | undefined;
+  consultationId: string;
+  activeTab: EncounterRightPaneTab;
+  onTabChange: (tab: EncounterRightPaneTab) => void;
+  ordersSubTab: OrdersSubTab;
+  onOrdersSubTabChange: (tab: OrdersSubTab) => void;
+  diagnosisCode?: string;
+  documentHandlers: ActionBarHandlers;
+  documentLoading: ActionBarLoading;
+  documentDisabled: Partial<Record<string, boolean>>;
+  onLegacyInvoiceResult: (label: string, result: ActionResult) => void;
+}
 
-export function EncounterRightPane() {
-  const [activeTab, setActiveTab] = useState<EncounterRightPaneTab>("orders");
-
+export function EncounterRightPane({
+  patientId,
+  consultationId,
+  activeTab,
+  onTabChange,
+  ordersSubTab,
+  onOrdersSubTabChange,
+  diagnosisCode,
+  documentHandlers,
+  documentLoading,
+  documentDisabled,
+  onLegacyInvoiceResult,
+}: EncounterRightPaneProps) {
   return (
     <section
       aria-label="Órdenes y documentos"
@@ -35,7 +60,7 @@ export function EncounterRightPane() {
             type="button"
             role="tab"
             aria-selected={activeTab === tab.id}
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => onTabChange(tab.id)}
             className={cn(
               "shrink-0 rounded-lg px-3 py-2 text-sm font-semibold transition-colors",
               activeTab === tab.id
@@ -48,20 +73,31 @@ export function EncounterRightPane() {
         ))}
       </div>
 
-      <div
-        role="tabpanel"
-        className="rounded-xl border border-dashed border-slate-300 bg-white p-6"
-      >
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Placeholder — columna derecha
+      {!patientId && activeTab === "orders" ? (
+        <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          Esta consulta no tiene paciente asociado. Las órdenes no están
+          disponibles.
         </p>
-        <p className="mt-2 text-sm leading-relaxed text-slate-600">
-          {PLACEHOLDER_COPY[activeTab]}
-        </p>
-        <p className="mt-3 text-xs text-slate-400">
-          Conexión a paneles reales en Fase 5.
-        </p>
-      </div>
+      ) : null}
+
+      {activeTab === "orders" && patientId ? (
+        <OrdersTab
+          patientId={patientId}
+          consultationId={consultationId}
+          diagnosisCode={diagnosisCode}
+          activeSubTab={ordersSubTab}
+          onSubTabChange={onOrdersSubTabChange}
+          onLegacyInvoiceResult={onLegacyInvoiceResult}
+        />
+      ) : null}
+
+      {activeTab === "documents" ? (
+        <DocumentsTab
+          handlers={documentHandlers}
+          loading={documentLoading}
+          disabled={documentDisabled}
+        />
+      ) : null}
     </section>
   );
 }

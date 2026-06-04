@@ -10,7 +10,10 @@ import { cn } from "@/lib/utils";
 import { SoapSection } from "./SoapSection";
 import { OrdersTab } from "./OrdersTab";
 import { DocumentsTab } from "./DocumentsTab";
-import type { ConsultationWorkspaceProps, WorkspaceTab } from "./ConsultationWorkspace";
+import type {
+  MobileConsultationWorkspaceProps,
+  WorkspaceTab,
+} from "./ConsultationWorkspace";
 
 const MAIN_TABS: { id: WorkspaceTab; label: string }[] = [
   { id: "soap", label: "Nota (SOAP)" },
@@ -39,7 +42,7 @@ export function MobileConsultationWorkspace({
   documentDisabled,
   onLegacyInvoiceResult,
   diagnosisCode,
-}: ConsultationWorkspaceProps) {
+}: MobileConsultationWorkspaceProps) {
   const patientId = consultation.patientId;
 
   return (
