@@ -5,6 +5,7 @@
 | Fecha cierre | 2026-05-31 |
 | Repo | jairosc23/heydoctor-frontend |
 | Rama | feat/clinical-modules-enterprise |
+| Commit | `7942fec2` |
 | Backend ref | SAVAC-HeyDoctor/heydoctor-backend-pro @ `1f5a785` (sin cambios) |
 | Alcance | F0–F7 P0 únicamente |
 
