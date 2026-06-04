@@ -28,7 +28,13 @@ import {
 } from "@/lib/consultation-pricing";
 import { useConsultationPrice } from "@/lib/hooks/useConsultationPrice";
 import { useConsultationAutosave } from "@/lib/hooks/useConsultationAutosave";
-import { ApiError } from "@/lib/heydoctor-api";
+import { ApiError, getApiErrorMessage } from "@/lib/heydoctor-api";
+import {
+  fetchPatientById,
+  fetchPatientProfile,
+  type PatientProfile,
+  type PatientRow,
+} from "@/lib/services/patients";
 import { getConsultationAccessErrorMessage } from "@/lib/consultation-access-errors";
 import { getWhatsAppUrlWithCustomMessage } from "@/lib/whatsapp-url";
 import {
@@ -52,6 +58,7 @@ import {
   serializeClinicalRecord,
 } from "@/lib/services/clinical-record";
 import { PatientBanner } from "./_components/PatientBanner";
+import { PatientContextRail } from "./_components/PatientContextRail";
 import {
   ConsultationWorkspace,
   type WorkspaceTab,
@@ -128,6 +135,15 @@ export default function ConsultationDetailPage() {
   const [aiTrigger, setAiTrigger] = useState(0);
   const [shareOpen, setShareOpen] = useState(false);
 
+  const [patientRow, setPatientRow] = useState<PatientRow | null>(null);
+  const [patientProfile, setPatientProfile] = useState<PatientProfile | null>(
+    null,
+  );
+  const [patientContextLoading, setPatientContextLoading] = useState(false);
+  const [patientContextError, setPatientContextError] = useState<string | null>(
+    null,
+  );
+
   const paymentResult = searchParams.get("payment");
   const prevStatusRef = React.useRef<string | undefined>(undefined);
 
@@ -164,6 +180,49 @@ export default function ConsultationDetailPage() {
     if (!cid || !pid) return;
     attachConsultationSession(cid, pid);
   }, [consultation?.id, consultation?.patientId, attachConsultationSession]);
+
+  useEffect(() => {
+    const patientId = consultation?.patientId;
+    if (!patientId) {
+      setPatientRow(null);
+      setPatientProfile(null);
+      setPatientContextLoading(false);
+      setPatientContextError(null);
+      return;
+    }
+
+    let cancelled = false;
+    setPatientContextLoading(true);
+    setPatientContextError(null);
+
+    void (async () => {
+      try {
+        const [patient, profile] = await Promise.all([
+          fetchPatientById(patientId),
+          fetchPatientProfile(patientId).catch(() => null),
+        ]);
+        if (cancelled) return;
+        setPatientRow(patient);
+        setPatientProfile(profile);
+      } catch (err) {
+        if (cancelled) return;
+        setPatientRow(null);
+        setPatientProfile(null);
+        setPatientContextError(
+          getApiErrorMessage(
+            err,
+            "No se pudo cargar el contexto del paciente.",
+          ),
+        );
+      } finally {
+        if (!cancelled) setPatientContextLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [consultation?.patientId]);
 
   useEffect(() => {
     if (paymentResult !== "success" && paymentResult !== "mock") return;
@@ -628,6 +687,15 @@ export default function ConsultationDetailPage() {
           ) : null}
         </div>
       ) : null}
+
+      <PatientContextRail
+        patientId={consultation.patientId}
+        patient={patientRow}
+        profile={patientProfile}
+        loading={patientContextLoading}
+        error={patientContextError}
+        fallbackName={patientName}
+      />
 
       <ConsultationWorkspace
         consultation={consultation}

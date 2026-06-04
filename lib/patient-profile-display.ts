@@ -1,5 +1,6 @@
 import {
   formatPatientAge,
+  type PatientProfile,
   type PatientRow,
   type PatientSex,
 } from "@/lib/services/patients";
@@ -40,6 +41,17 @@ export function jsonLinesToList(items?: Record<string, unknown>[]): string[] {
   const text = jsonLinesToText(items);
   if (!text) return [];
   return text.split("\n").map((line) => line.trim()).filter(Boolean);
+}
+
+/** Alertas clínicas + advertencias del perfil para el rail de consulta. */
+export function collectProfileAlerts(
+  profile: Pick<PatientProfile, "alerts" | "clinicalWarnings"> | null | undefined,
+): string[] {
+  if (!profile) return [];
+  return jsonLinesToList([
+    ...(profile.alerts ?? []),
+    ...(profile.clinicalWarnings ?? []),
+  ]);
 }
 
 export function formatPatientSex(

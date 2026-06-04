@@ -1,6 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
+  collectProfileAlerts,
   computeAgeFromBirthDate,
   formatPatientDocument,
   formatPatientSex,
@@ -90,6 +91,22 @@ describe("computeAgeFromBirthDate", () => {
 
   it("returns null for invalid birth dates", () => {
     assert.equal(computeAgeFromBirthDate("not-a-date"), null);
+  });
+});
+
+describe("collectProfileAlerts", () => {
+  it("merges alerts and clinical warnings", () => {
+    assert.deepEqual(
+      collectProfileAlerts({
+        alerts: [{ label: "Anticoagulante" }],
+        clinicalWarnings: [{ description: "Embarazo" }],
+      }),
+      ["Anticoagulante", "Embarazo"],
+    );
+  });
+
+  it("returns empty list when profile is missing", () => {
+    assert.deepEqual(collectProfileAlerts(null), []);
   });
 });
 
