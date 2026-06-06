@@ -1,17 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Button from "@/components/ui/Button";
 import {
   calendarStatusLabel,
+  collectClinicDoctorOptions,
   patientLabel,
 } from "@/lib/agenda/appointment-display";
 import { displayStatus } from "@/lib/agenda/appointment-display";
 import { resolveClinicTimezone } from "@/lib/agenda/calendar-utils";
+import { useAuth } from "@/lib/context/AuthContext";
 import { getApiErrorMessage } from "@/lib/heydoctor-api";
 import { APPOINTMENTS_LIST_ROOT } from "@/lib/queries/query-keys";
-import { usePatientsListQuery } from "@/lib/hooks/use-panel-list-queries";
+import {
+  useAppointmentsListQuery,
+  useConsultationsListQuery,
+  usePatientsListQuery,
+} from "@/lib/hooks/use-panel-list-queries";
 import {
   createAppointment,
   deleteAppointment,
@@ -43,17 +49,44 @@ export function AppointmentFormModal({
   onClose,
 }: Props) {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
   const tz = resolveClinicTimezone();
   const { data: patientsData } = usePatientsListQuery({ limit: 100 });
   const patients = patientsData?.data ?? [];
+  const { data: appointmentsData, isPending: appointmentsLoading } =
+    useAppointmentsListQuery({ limit: 500 });
+  const { data: consultationsData, isPending: consultationsLoading } =
+    useConsultationsListQuery({ limit: 200 }, { enabled: isAdmin });
+  const doctorOptions = useMemo(
+    () =>
+      collectClinicDoctorOptions(
+        appointmentsData?.data ?? [],
+        (consultationsData?.data ?? [])
+          .filter((c) => Boolean(c.doctorId))
+          .map((c) => ({
+            id: c.doctorId as string,
+            label: undefined,
+          })),
+      ),
+    [appointmentsData?.data, consultationsData?.data],
+  );
 
   const [patientId, setPatientId] = useState("");
+  const [doctorId, setDoctorId] = useState("");
   const [startsAtLocal, setStartsAtLocal] = useState("");
   const [durationMinutes, setDurationMinutes] = useState(30);
   const [reason, setReason] = useState("");
   const [calendarStatus, setCalendarStatus] =
     useState<CalendarAppointmentStatus>("SCHEDULED");
   const [error, setError] = useState<string | null>(null);
+
+  const isNewAdminAppointment = !appointment && isAdmin;
+  const doctorsLoading = appointmentsLoading || (isAdmin && consultationsLoading);
+  const adminHasNoDoctors =
+    isNewAdminAppointment && !doctorsLoading && doctorOptions.length === 0;
+  const adminNeedsDoctorSelection =
+    isNewAdminAppointment && doctorOptions.length > 0 && !doctorId.trim();
 
   useEffect(() => {
     if (!open) return;
@@ -79,10 +112,18 @@ export function AppointmentFormModal({
       setStartsAtLocal(local);
       setDurationMinutes(30);
       setPatientId("");
+      setDoctorId("");
       setReason("");
       setCalendarStatus("SCHEDULED");
     }
   }, [open, appointment, defaultStartsAt]);
+
+  useEffect(() => {
+    if (!open || appointment || !isAdmin) return;
+    if (doctorOptions.length === 1) {
+      setDoctorId(doctorOptions[0].id);
+    }
+  }, [open, appointment, isAdmin, doctorOptions]);
 
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: APPOINTMENTS_LIST_ROOT });
@@ -101,6 +142,12 @@ export function AppointmentFormModal({
         });
       }
       if (!patientId) throw new Error("Seleccione un paciente");
+      const resolvedDoctorId = isAdmin
+        ? doctorId
+        : user?.id;
+      if (isAdmin && !resolvedDoctorId) {
+        throw new Error("Seleccione un médico");
+      }
       return createAppointment({
         patientId,
         startsAt,
@@ -109,6 +156,7 @@ export function AppointmentFormModal({
         patientTimezone: tz,
         reason: reason || undefined,
         status: calendarStatus === "CONFIRMED" ? "CONFIRMED" : "PENDING_CONFIRMATION",
+        ...(resolvedDoctorId ? { doctorId: resolvedDoctorId } : {}),
       });
     },
     onSuccess: async () => {
@@ -175,6 +223,39 @@ export function AppointmentFormModal({
             </label>
           )}
 
+          {!appointment && isAdmin ? (
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+              Médico
+              <select
+                required
+                disabled={doctorsLoading || adminHasNoDoctors}
+                value={doctorId}
+                onChange={(e) => setDoctorId(e.target.value)}
+                className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-600 dark:bg-slate-800"
+              >
+                <option value="">
+                  {doctorsLoading
+                    ? "Cargando médicos…"
+                    : adminHasNoDoctors
+                      ? "Sin médicos disponibles"
+                      : "Seleccionar…"}
+                </option>
+                {doctorOptions.map((doctor) => (
+                  <option key={doctor.id} value={doctor.id}>
+                    {doctor.label}
+                  </option>
+                ))}
+              </select>
+              {adminHasNoDoctors ? (
+                <p className="mt-1 text-sm text-amber-700 dark:text-amber-400">
+                  No hay médicos registrados en citas o consultas previas. No se
+                  puede crear la cita hasta que exista al menos un médico en la
+                  clínica.
+                </p>
+              ) : null}
+            </label>
+          ) : null}
+
           <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
             Inicio ({tz})
             <input
@@ -231,7 +312,14 @@ export function AppointmentFormModal({
           )}
 
           <div className="flex flex-wrap gap-2 pt-2">
-            <Button type="submit" disabled={saveMutation.isPending}>
+            <Button
+              type="submit"
+              disabled={
+                saveMutation.isPending ||
+                adminHasNoDoctors ||
+                adminNeedsDoctorSelection
+              }
+            >
               {saveMutation.isPending ? "Guardando…" : "Guardar"}
             </Button>
             <Button type="button" variant="secondary" onClick={onClose}>

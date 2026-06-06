@@ -21,6 +21,26 @@ export function doctorLabel(appointment: Appointment): string {
   );
 }
 
+/** Opciones de médico de la clínica derivadas de citas y consultas existentes. */
+export function collectClinicDoctorOptions(
+  appointments: Appointment[],
+  consultationDoctors: Array<{ id: string; label?: string }> = [],
+): { id: string; label: string }[] {
+  const map = new Map<string, string>();
+  for (const appointment of appointments) {
+    const id = appointment.doctorId ?? appointment.doctor?.id;
+    if (!id) continue;
+    map.set(id, doctorLabel(appointment));
+  }
+  for (const doctor of consultationDoctors) {
+    if (!doctor.id || map.has(doctor.id)) continue;
+    map.set(doctor.id, doctor.label ?? `Médico ${doctor.id.slice(0, 8)}`);
+  }
+  return [...map.entries()]
+    .map(([id, label]) => ({ id, label }))
+    .sort((a, b) => a.label.localeCompare(b.label, "es"));
+}
+
 export const calendarStatusLabel: Record<CalendarAppointmentStatus, string> = {
   SCHEDULED: "Programada",
   CONFIRMED: "Confirmada",
