@@ -2,6 +2,7 @@ export * from "./patients";
 export * from "./consultations";
 export * from "./consultation-diagnosis";
 export * from "./diagnosis";
+export * from "./diagnosis-preferences";
 export * from "./prescriptions";
 export * from "./lab-orders";
 export * from "./referrals";
