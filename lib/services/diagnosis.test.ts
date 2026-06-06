@@ -1,0 +1,29 @@
+import { describe, it } from "node:test";
+import assert from "node:assert/strict";
+import { createDiagnosis } from "./diagnosis";
+
+describe("createDiagnosis", () => {
+  it("requires consultationId", async () => {
+    await assert.rejects(
+      () =>
+        createDiagnosis({
+          consultationId: "  ",
+          diagnostic_date: new Date().toISOString(),
+          diagnosis_details: "J06.9 - Resfriado",
+        }),
+      /consultationId is required/,
+    );
+  });
+
+  it("requires diagnosis_details", async () => {
+    await assert.rejects(
+      () =>
+        createDiagnosis({
+          consultationId: "c-1",
+          diagnostic_date: new Date().toISOString(),
+          diagnosis_details: "  ",
+        }),
+      /diagnosis_details is required/,
+    );
+  });
+});

@@ -1,6 +1,4 @@
-import { heydoctorApi } from "../heydoctor-api";
-
-const BASE = "/diagnosis";
+import { updateConsultation } from "./consultations";
 
 export interface CreateDiagnosisDto {
   consultationId: string;
@@ -13,7 +11,19 @@ export interface CreateDiagnosisDto {
   diagnosis_details?: string;
 }
 
+/**
+ * Persiste el diagnóstico CIE-10 en la consulta Nest (`PATCH /consultations/:id`).
+ * El endpoint legacy `POST /diagnosis` no existe en el backend actual.
+ */
 export async function createDiagnosis(dto: CreateDiagnosisDto) {
-  const res = await heydoctorApi.post<{ data: unknown }>(BASE, dto);
-  return res;
+  const consultationId = dto.consultationId?.trim();
+  if (!consultationId) {
+    throw new Error("consultationId is required");
+  }
+  const diagnosis = dto.diagnosis_details?.trim();
+  if (!diagnosis) {
+    throw new Error("diagnosis_details is required");
+  }
+  const updated = await updateConsultation(consultationId, { diagnosis });
+  return { data: updated };
 }
