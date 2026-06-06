@@ -1,19 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
-import { searchMedical, evaluateCdss } from "@/lib/services";
-import { silentCatch } from "@/lib/handle-error";
-import { filterFallbackDiagnoses } from "@/lib/clinical-fallbacks";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import {
+  searchDiagnostics,
+  type DiagnosticSearchResult,
+} from "@/lib/services/search";
 
-interface DiagnosisSuggestion {
-  code: string;
-  description: string;
-  cie10CodeId?: string;
-  confidence?: number;
-  source?: string;
-}
-
-interface DiagnosisItem {
+export interface DiagnosisItem {
   code: string;
   description: string;
   cie10CodeId?: string;
@@ -22,155 +15,111 @@ interface DiagnosisItem {
 interface SmartDiagnosisPickerProps {
   value?: string;
   onChange: (item: DiagnosisItem) => void;
-  onConfirm?: (item: DiagnosisItem) => void;
-  symptoms?: string[];
-  clinicId?: string | null;
+  onConfirm?: (item: DiagnosisItem) => void | Promise<void>;
   placeholder?: string;
   debounceMs?: number;
   className?: string;
+  /** @deprecated Sprint 1A.1: sin CDSS ni síntomas en el picker */
+  symptoms?: string[];
+  /** @deprecated Sprint 1A.1: sin CDSS */
+  clinicId?: string | null;
 }
 
+/**
+ * Picker CIE-10 con búsqueda incremental vía GET /api/search?type=diagnostic.
+ */
 export function SmartDiagnosisPicker({
   value = "",
   onChange,
   onConfirm,
-  symptoms = [],
-  clinicId,
   placeholder = "Buscar diagnóstico (CIE-10)...",
-  debounceMs = 300,
+  debounceMs = 280,
   className = "",
 }: SmartDiagnosisPickerProps) {
   const [input, setInput] = useState(value);
-  const [suggestions, setSuggestions] = useState<DiagnosisSuggestion[]>([]);
+  const [suggestions, setSuggestions] = useState<DiagnosticSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const [confirming, setConfirming] = useState(false);
+  const listRef = useRef<HTMLUListElement>(null);
 
-  const fetchSuggestions = useCallback(
-    async (q: string) => {
-      if (!q.trim()) {
-        setSuggestions([]);
-        setError(null);
-        return;
-      }
-      setLoading(true);
-      setError(null);
-      try {
-        const [searchRes, cdssRes] = await Promise.all([
-          searchMedical(q, "diagnostic"),
-          evaluateCdss([q], { clinicId: clinicId ?? undefined }),
-        ]);
-        const data = searchRes as { data?: { diagnostics?: { id?: string; code?: string; description?: string }[] } };
-        const diagnostics = data?.data?.diagnostics ?? [];
-        const fromSearch = (Array.isArray(diagnostics) ? diagnostics : []).map(
-          (d: { id?: string; code?: string; description?: string }) => ({
-            code: d.code ?? "",
-            description: d.description ?? "",
-            cie10CodeId: d.id,
-            confidence: 0.8,
-            source: "search",
-          })
-        );
-        const fromCdss = (cdssRes?.suggested_diagnoses ?? []).map((d) => ({
-          code: d.code ?? "",
-          description: d.description ?? d.code ?? "",
-          cie10CodeId: undefined,
-          confidence: 0.5,
-          source: "ai",
-        }));
-        const seen = new Set<string>();
-        const merged: DiagnosisSuggestion[] = [];
-        for (const s of [...fromSearch, ...fromCdss]) {
-          const key = `${s.code}-${(s.description || "").toLowerCase()}`;
-          if (s.code && !seen.has(key)) {
-            seen.add(key);
-            merged.push(s);
-          }
-        }
-        if (process.env.NODE_ENV === "development") {
-          console.debug("[heydoctor][diagnostic] sugerencias", {
-            query: q,
-            search: fromSearch.length,
-            cdss: fromCdss.length,
-            merged: merged.length,
-          });
-        }
-        if (merged.length === 0) {
-          /**
-           * Fallback demo: si ni search ni CDSS devuelven nada, mostramos un
-           * set de diagnósticos comunes filtrados por la query para que el
-           * médico pueda continuar el flujo. Marcamos `source: "fallback"`
-           * para señalizar visualmente.
-           */
-          const fb = filterFallbackDiagnoses(q, 8).map((d) => ({
-            code: d.code,
-            description: d.description,
-            cie10CodeId: undefined,
-            confidence: undefined,
-            source: "fallback",
-          }));
-          setSuggestions(fb);
-        } else {
-          setSuggestions(merged.slice(0, 12));
-        }
-      } catch (e) {
-        if (process.env.NODE_ENV === "development") {
-          console.error("[heydoctor][diagnostic] búsqueda falló", e);
-        }
-        const fb = filterFallbackDiagnoses(q, 8).map((d) => ({
-          code: d.code,
-          description: d.description,
-          cie10CodeId: undefined,
-          confidence: undefined,
-          source: "fallback",
-        }));
-        setSuggestions(fb);
-        setError(
-          e instanceof Error
-            ? e.message
-            : "No se pudieron cargar diagnósticos. Reintenta.",
-        );
-      } finally {
-        setLoading(false);
-      }
-    },
-    [clinicId]
-  );
+  const fetchSuggestions = useCallback(async (q: string) => {
+    if (!q.trim()) {
+      setSuggestions([]);
+      setActiveIndex(-1);
+      return;
+    }
+    setLoading(true);
+    try {
+      const results = await searchDiagnostics(q);
+      setSuggestions(results);
+      setActiveIndex(results.length > 0 ? 0 : -1);
+    } catch {
+      setSuggestions([]);
+      setActiveIndex(-1);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const t = setTimeout(() => fetchSuggestions(input), debounceMs);
-    return () => clearTimeout(t);
+    setInput(value);
+  }, [value]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => void fetchSuggestions(input), debounceMs);
+    return () => clearTimeout(timer);
   }, [input, debounceMs, fetchSuggestions]);
 
-  useEffect(() => {
-    if (symptoms.length > 0 && !input.trim()) {
-      evaluateCdss(symptoms, { clinicId: clinicId ?? undefined })
-        .then((res) => {
-          const diag = (res?.suggested_diagnoses ?? []).slice(0, 8);
-          setSuggestions(
-            diag.map((d) => ({
-              code: d.code ?? "",
-              description: d.description ?? d.code ?? "",
-              confidence: d.confidence ?? 0.5,
-              source: "ai",
-            }))
-          );
-        })
-        .catch(silentCatch("CDSS AI diagnóstico"));
-    }
-  }, [symptoms.join(","), clinicId]);
-
-  const select = (s: DiagnosisSuggestion) => {
-    const item: DiagnosisItem = {
-      code: s.code,
-      description: s.description,
-      cie10CodeId: s.cie10CodeId,
+  const select = async (item: DiagnosticSearchResult) => {
+    const diagnosisItem: DiagnosisItem = {
+      code: item.code,
+      description: item.description,
+      cie10CodeId: item.id,
     };
-    onChange(item);
-    onConfirm?.(item);
-    setInput(`${s.code} - ${s.description}`);
+    onChange(diagnosisItem);
+    setInput(`${item.code} - ${item.description}`);
     setOpen(false);
+    setActiveIndex(-1);
+
+    if (onConfirm) {
+      setConfirming(true);
+      try {
+        await onConfirm(diagnosisItem);
+      } finally {
+        setConfirming(false);
+      }
+    }
   };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!open || suggestions.length === 0) return;
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setActiveIndex((prev) => (prev + 1) % suggestions.length);
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setActiveIndex((prev) =>
+        prev <= 0 ? suggestions.length - 1 : prev - 1,
+      );
+    } else if (event.key === "Enter" && activeIndex >= 0) {
+      event.preventDefault();
+      void select(suggestions[activeIndex]);
+    } else if (event.key === "Escape") {
+      setOpen(false);
+      setActiveIndex(-1);
+    }
+  };
+
+  useEffect(() => {
+    if (activeIndex < 0 || !listRef.current) return;
+    const item = listRef.current.children[activeIndex] as HTMLElement | undefined;
+    item?.scrollIntoView({ block: "nearest" });
+  }, [activeIndex]);
+
+  const showDropdown = open && (suggestions.length > 0 || loading);
 
   return (
     <div className={`relative ${className}`}>
@@ -183,47 +132,52 @@ export function SmartDiagnosisPicker({
         }}
         onFocus={() => setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
+        onKeyDown={handleKeyDown}
         placeholder={placeholder}
-        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+        aria-autocomplete="list"
+        aria-expanded={showDropdown}
+        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
       />
-      {open && (suggestions.length > 0 || loading || error) && (
-        <ul className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
+      {confirming ? (
+        <span className="absolute right-2 top-2 text-xs text-slate-500">
+          Guardando...
+        </span>
+      ) : null}
+      {showDropdown ? (
+        <ul
+          ref={listRef}
+          role="listbox"
+          className="absolute z-10 mt-1 max-h-60 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg"
+        >
           {loading && suggestions.length === 0 ? (
-            <li className="px-3 py-2 text-sm text-gray-500">Buscando...</li>
-          ) : error && suggestions.length === 0 ? (
-            <li className="px-3 py-2 text-sm text-red-700 bg-red-50">
-              {error}
+            <li className="px-3 py-2 text-sm text-slate-500">Buscando...</li>
+          ) : suggestions.length === 0 ? (
+            <li className="px-3 py-2 text-sm text-slate-500">
+              Sin resultados para &quot;{input.trim()}&quot;
             </li>
           ) : (
-            suggestions.map((s, i) => (
+            suggestions.map((s, index) => (
               <li
-                key={`${s.code}-${i}`}
-                className="px-3 py-2 text-sm hover:bg-indigo-50 cursor-pointer flex justify-between items-center gap-2"
-                onMouseDown={() => select(s)}
+                key={s.id}
+                role="option"
+                aria-selected={index === activeIndex}
+                className={`cursor-pointer px-3 py-2 text-sm ${
+                  index === activeIndex
+                    ? "bg-indigo-100"
+                    : "hover:bg-indigo-50"
+                }`}
+                onMouseDown={() => void select(s)}
+                onMouseEnter={() => setActiveIndex(index)}
               >
-                <span className="truncate">
-                  <strong>{s.code}</strong> {s.description}
-                </span>
-                <span className="flex items-center gap-1 shrink-0">
-                  {s.source === "fallback" && (
-                    <span
-                      className="text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-800 rounded"
-                      title="Sugerencia de muestra (catálogo backend no disponible)."
-                    >
-                      demo
-                    </span>
-                  )}
-                  {s.confidence != null && (
-                    <span className="text-indigo-600 text-xs">
-                      {Math.round((s.confidence ?? 0) * 100)}%
-                    </span>
-                  )}
-                </span>
+                <div className="font-mono text-xs font-semibold text-indigo-800">
+                  {s.code}
+                </div>
+                <div className="text-slate-800">{s.description}</div>
               </li>
             ))
           )}
         </ul>
-      )}
+      ) : null}
     </div>
   );
 }

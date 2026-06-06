@@ -1,4 +1,5 @@
 export { SmartDiagnosisPicker } from "./SmartDiagnosisPicker";
+export { DiagnosisBadge } from "./DiagnosisBadge";
 export { PrescriptionPanel } from "./PrescriptionPanel";
 export { LabOrdersPanel } from "./LabOrdersPanel";
 export { ReferralsPanel } from "./ReferralsPanel";

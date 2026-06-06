@@ -10,7 +10,14 @@ import {
   startCall,
   type NestConsultation,
 } from "@/lib/services/consultations";
-import { createDiagnosis } from "@/lib/services";
+import {
+  buildSoapDraftKey,
+  buildSoapPatch,
+  emptyDiagnosisState,
+  hydrateDiagnosisFromConsultation,
+  structuredDiagnosisFromPicker,
+  type ConsultationDiagnosisState,
+} from "@/lib/services/consultation-diagnosis";
 import { useConsultation } from "@/context/ConsultationContext";
 import {
   createPaymentSession,
@@ -103,7 +110,8 @@ export default function ConsultationDetailPage() {
   const [error, setError] = useState("");
 
   const [notes, setNotes] = useState("");
-  const [diagnosis, setDiagnosis] = useState("");
+  const [diagnosisState, setDiagnosisState] =
+    useState<ConsultationDiagnosisState>(emptyDiagnosisState());
   const [treatment, setTreatment] = useState("");
   const [saveMsg, setSaveMsg] = useState("");
 
@@ -114,7 +122,6 @@ export default function ConsultationDetailPage() {
 
   const [chiefComplaintDraft, setChiefComplaintDraft] = useState("");
   const [editMode, setEditMode] = useState(true);
-  const [diagnosisCode, setDiagnosisCode] = useState("");
   const [diagnosisError, setDiagnosisError] = useState<string | null>(null);
   const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTab>("soap");
   const [leftPaneTab, setLeftPaneTab] = useState<EncounterLeftPaneTab>("soap");
@@ -165,7 +172,7 @@ export default function ConsultationDetailPage() {
       void trackConsultationStartedDeduped(id, { status: st, source: "detail" });
       setConsultation(c);
       setNotes(parseClinicalRecord(c.notes).freeNotes);
-      setDiagnosis(c.diagnosis ?? "");
+      setDiagnosisState(hydrateDiagnosisFromConsultation(c));
       setTreatment(c.treatmentPlan ?? c.treatment ?? "");
       setChiefComplaintDraft(c.chiefComplaint ?? c.reason ?? "");
     } catch (err) {
@@ -282,22 +289,32 @@ export default function ConsultationDetailPage() {
   const canStartCall = status === "draft" || status === "in_progress";
   const canPay = status === "signed" || status === "completed";
 
-  const persistSoapDraft = useCallback(async () => {
-    if (!consultation || !isEditable) return;
-    const currentRecord = parseClinicalRecord(consultation.notes);
-    const merged = serializeClinicalRecord({
-      ...currentRecord,
-      freeNotes: notes.trim(),
-    });
-    const updated = await updateConsultation(id, {
-      notes: merged.length > 0 ? merged : undefined,
-      diagnosis: diagnosis.trim() || undefined,
-      treatmentPlan: treatment.trim() || undefined,
-    });
-    setConsultation(updated);
-  }, [consultation, notes, diagnosis, treatment, id, isEditable]);
+  const persistSoapDraft = useCallback(
+    async (diagnosisOverride?: ConsultationDiagnosisState) => {
+      if (!consultation || !isEditable) return;
+      const diagnosis = diagnosisOverride ?? diagnosisState;
+      const currentRecord = parseClinicalRecord(consultation.notes);
+      const merged = serializeClinicalRecord({
+        ...currentRecord,
+        freeNotes: notes.trim(),
+      });
+      const patch = buildSoapPatch({
+        notes: merged.length > 0 ? merged : undefined,
+        treatment: treatment.trim() || undefined,
+        diagnosis,
+      });
+      const updated = await updateConsultation(id, patch);
+      setConsultation(updated);
+      setDiagnosisState(hydrateDiagnosisFromConsultation(updated));
+    },
+    [consultation, notes, treatment, diagnosisState, id, isEditable],
+  );
 
-  const soapDraftKey = `${diagnosis}\n${notes}\n${treatment}`;
+  const soapDraftKey = buildSoapDraftKey({
+    notes,
+    treatment,
+    diagnosis: diagnosisState,
+  });
 
   const { lastSavedAt, status: autosaveStatus, errorMessage: autosaveError } =
     useConsultationAutosave({
@@ -373,17 +390,15 @@ export default function ConsultationDetailPage() {
     description: string;
     cie10CodeId?: string;
   }) {
-    setDiagnosisCode(item.code);
-    setDiagnosis(`${item.code} - ${item.description}`);
+    const nextState = structuredDiagnosisFromPicker(item);
+    setDiagnosisState(nextState);
     setDiagnosisError(null);
     try {
-      await createDiagnosis({
-        consultationId: id,
-        cie10CodeId: item.cie10CodeId,
-        diagnostic_date: new Date().toISOString(),
-        diagnosis_details: `${item.code} - ${item.description}`,
-      });
+      await persistSoapDraft(nextState);
     } catch (e) {
+      if (consultation) {
+        setDiagnosisState(hydrateDiagnosisFromConsultation(consultation));
+      }
       setDiagnosisError(
         e instanceof Error
           ? e.message
@@ -754,13 +769,17 @@ export default function ConsultationDetailPage() {
           signedPrescription: !isSigned && !isLocked && !canSign,
         }}
         onLegacyInvoiceResult={handleActionResult}
-        diagnosisCode={diagnosisCode || diagnosis || undefined}
+        diagnosisCode={
+          diagnosisState.diagnosisCode || diagnosisState.diagnosis || undefined
+        }
         soap={{
           consultationId: id,
           clinicId: consultation.clinicId ?? ctxClinicId ?? null,
           editable: isEditable,
-          diagnosis,
-          onDiagnosisChange: setDiagnosis,
+          diagnosis: diagnosisState.diagnosis,
+          diagnosisCode: diagnosisState.diagnosisCode || null,
+          diagnosisDescription: diagnosisState.diagnosisDescription || null,
+          diagnosisSource: diagnosisState.source,
           onDiagnosisConfirm: handleDiagnosisConfirm,
           diagnosisError,
           notes,

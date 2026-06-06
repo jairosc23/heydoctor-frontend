@@ -27,4 +27,30 @@ describe("buildUpdateConsultationBody", () => {
       { treatment: "plan-a" },
     );
   });
+
+  it("includes cie10CodeId when provided", () => {
+    assert.deepEqual(
+      buildUpdateConsultationBody({
+        diagnosis: "I10 - Hipertensión esencial",
+        cie10CodeId: "550e8400-e29b-41d4-a716-446655440000",
+      }),
+      {
+        diagnosis: "I10 - Hipertensión esencial",
+        cie10CodeId: "550e8400-e29b-41d4-a716-446655440000",
+      },
+    );
+  });
+
+  it("allows null cie10CodeId to unlink structured diagnosis", () => {
+    assert.deepEqual(
+      buildUpdateConsultationBody({
+        diagnosis: "Texto libre",
+        cie10CodeId: null,
+      }),
+      {
+        diagnosis: "Texto libre",
+        cie10CodeId: null,
+      },
+    );
+  });
 });

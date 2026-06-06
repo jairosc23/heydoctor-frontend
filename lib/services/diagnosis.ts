@@ -1,3 +1,7 @@
+import {
+  buildSoapPatch,
+  diagnosisStateFromText,
+} from "./consultation-diagnosis";
 import { updateConsultation } from "./consultations";
 
 export interface CreateDiagnosisDto {
@@ -9,6 +13,21 @@ export interface CreateDiagnosisDto {
   diagnostic_date: string;
   /** Clinical description or "CODE - Description" when cie10CodeId not used */
   diagnosis_details?: string;
+}
+
+export interface SaveDiagnosisInput {
+  diagnosis: string;
+  cie10CodeId: string;
+}
+
+/** Parsea "I10 - Hipertensión esencial" cuando no hay relación cie10Code cargada. */
+export function parseDiagnosisLabel(
+  text: string,
+): { code: string; description: string } | null {
+  const trimmed = text.trim();
+  const match = trimmed.match(/^([A-Za-z][A-Za-z0-9.]+)\s*-\s*(.+)$/);
+  if (!match) return null;
+  return { code: match[1], description: match[2].trim() };
 }
 
 /**
@@ -24,6 +43,23 @@ export async function createDiagnosis(dto: CreateDiagnosisDto) {
   if (!diagnosis) {
     throw new Error("diagnosis_details is required");
   }
-  const updated = await updateConsultation(consultationId, { diagnosis });
+
+  const diagnosisState = diagnosisStateFromText(diagnosis, dto.cie10CodeId);
+  const updated = await updateConsultation(
+    consultationId,
+    buildSoapPatch({ diagnosis: diagnosisState }),
+  );
   return { data: updated };
+}
+
+export async function saveConsultationDiagnosis(
+  consultationId: string,
+  input: SaveDiagnosisInput,
+) {
+  return createDiagnosis({
+    consultationId,
+    cie10CodeId: input.cie10CodeId,
+    diagnostic_date: new Date().toISOString(),
+    diagnosis_details: input.diagnosis,
+  });
 }

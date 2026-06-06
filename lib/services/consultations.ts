@@ -48,6 +48,12 @@ export interface NestPatientRef {
   email?: string;
 }
 
+export interface NestCie10CodeRef {
+  id: string;
+  code: string;
+  descriptionEs: string;
+}
+
 export interface NestConsultation {
   id: string;
   patientId?: string;
@@ -57,6 +63,8 @@ export interface NestConsultation {
   /** @deprecated backend usa chiefComplaint */
   reason?: string;
   diagnosis?: string | null;
+  cie10CodeId?: string | null;
+  cie10Code?: NestCie10CodeRef | null;
   treatmentPlan?: string | null;
   /** @deprecated backend usa treatmentPlan */
   treatment?: string | null;
@@ -156,6 +164,7 @@ export interface UpdateConsultationDto {
   reason?: string;
   symptoms?: string;
   diagnosis?: string;
+  cie10CodeId?: string | null;
   treatmentPlan?: string;
   /** @deprecated usar treatmentPlan */
   treatment?: string;
@@ -171,6 +180,7 @@ export function buildUpdateConsultationBody(
   const reason = dto.chiefComplaint ?? dto.reason;
   if (reason !== undefined) body.reason = reason;
   if (dto.diagnosis !== undefined) body.diagnosis = dto.diagnosis;
+  if (dto.cie10CodeId !== undefined) body.cie10CodeId = dto.cie10CodeId;
   if (dto.notes !== undefined) body.notes = dto.notes;
   if (dto.status !== undefined) body.status = dto.status;
   const treatment = dto.treatment ?? dto.treatmentPlan;

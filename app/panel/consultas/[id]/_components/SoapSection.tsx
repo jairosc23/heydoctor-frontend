@@ -3,9 +3,14 @@
 import type { Dispatch, SetStateAction } from "react";
 import Card from "@/components/ui/Card";
 import {
+  DiagnosisBadge,
   LiveAiNoteSuggestions,
   SmartDiagnosisPicker,
 } from "@/components/clinical";
+import {
+  getDiagnosisBadgeVariant,
+  type DiagnosisSource,
+} from "@/lib/services/consultation-diagnosis";
 import { AutosaveIndicator } from "./AutosaveIndicator";
 import type { AutosaveStatus } from "@/lib/hooks/useConsultationAutosave";
 
@@ -14,7 +19,9 @@ export interface SoapSectionProps {
   clinicId: string | null;
   editable: boolean;
   diagnosis: string;
-  onDiagnosisChange: (text: string) => void;
+  diagnosisCode?: string | null;
+  diagnosisDescription?: string | null;
+  diagnosisSource?: DiagnosisSource;
   onDiagnosisConfirm: (item: {
     code: string;
     description: string;
@@ -35,7 +42,9 @@ export function SoapSection({
   clinicId,
   editable,
   diagnosis,
-  onDiagnosisChange,
+  diagnosisCode,
+  diagnosisDescription,
+  diagnosisSource = "empty",
   onDiagnosisConfirm,
   diagnosisError,
   notes,
@@ -46,6 +55,8 @@ export function SoapSection({
   lastSavedAt,
   autosaveError,
 }: SoapSectionProps) {
+  const badgeVariant = getDiagnosisBadgeVariant(diagnosisSource);
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -63,11 +74,19 @@ export function SoapSection({
 
       <Card className="p-5 shadow-soft">
         <h3 className="mb-3 text-base font-semibold text-slate-800">Diagnóstico</h3>
+        {(diagnosisCode || diagnosisDescription) && badgeVariant ? (
+          <DiagnosisBadge
+            code={diagnosisCode}
+            description={diagnosisDescription}
+            variant={badgeVariant}
+            className="mb-3"
+          />
+        ) : null}
         <SmartDiagnosisPicker
           value={diagnosis}
-          onChange={(item) =>
-            onDiagnosisChange(`${item.code} - ${item.description}`)
-          }
+          onChange={() => {
+            /* persistencia atómica vía onConfirm + autosave unificado */
+          }}
           onConfirm={onDiagnosisConfirm}
           clinicId={clinicId}
         />

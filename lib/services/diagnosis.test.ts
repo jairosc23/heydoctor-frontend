@@ -1,6 +1,19 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { createDiagnosis } from "./diagnosis";
+import { createDiagnosis, parseDiagnosisLabel } from "./diagnosis";
+
+describe("parseDiagnosisLabel", () => {
+  it("parses CODE - description format", () => {
+    assert.deepEqual(parseDiagnosisLabel("I10 - Hipertensión esencial"), {
+      code: "I10",
+      description: "Hipertensión esencial",
+    });
+  });
+
+  it("returns null for free text without code prefix", () => {
+    assert.equal(parseDiagnosisLabel("cefalea tensional"), null);
+  });
+});
 
 describe("createDiagnosis", () => {
   it("requires consultationId", async () => {

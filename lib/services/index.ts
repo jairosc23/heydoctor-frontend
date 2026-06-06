@@ -1,5 +1,6 @@
 export * from "./patients";
 export * from "./consultations";
+export * from "./consultation-diagnosis";
 export * from "./diagnosis";
 export * from "./prescriptions";
 export * from "./lab-orders";
