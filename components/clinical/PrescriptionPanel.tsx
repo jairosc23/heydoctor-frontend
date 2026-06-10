@@ -7,11 +7,11 @@ import {
   updatePrescription,
   deletePrescription,
   downloadPrescriptionPdf,
-  suggestMedications,
   type MedicationItem,
   type PrescriptionRecord,
 } from "@/lib/services";
 import { getApiErrorMessage } from "@/lib/heydoctor-api";
+import { MedicationSuggestInput } from "./MedicationSuggestInput";
 
 interface PrescriptionPanelProps {
   patientId: string;
@@ -31,9 +31,7 @@ export function PrescriptionPanel({
   className = "",
 }: PrescriptionPanelProps) {
   const [prescriptions, setPrescriptions] = useState<PrescriptionRecord[]>([]);
-  const [suggestedMeds, setSuggestedMeds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [suggestLoading, setSuggestLoading] = useState(false);
   const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftMeds, setDraftMeds] = useState<MedicationItem[]>([emptyMed()]);
@@ -74,19 +72,6 @@ export function PrescriptionPanel({
     setDiagnosis(diagnosisCode ?? "");
   }, [diagnosisCode]);
 
-  useEffect(() => {
-    const q = diagnosisCode?.trim() || "par";
-    if (!q) {
-      setSuggestedMeds([]);
-      return;
-    }
-    setSuggestLoading(true);
-    suggestMedications(q)
-      .then((list) => setSuggestedMeds(list.slice(0, 8)))
-      .catch(() => setSuggestedMeds([]))
-      .finally(() => setSuggestLoading(false));
-  }, [diagnosisCode]);
-
   const updateDraftMed = (index: number, patch: Partial<MedicationItem>) => {
     setDraftMeds((prev) =>
       prev.map((m, i) => (i === index ? { ...m, ...patch } : m)),
@@ -97,17 +82,6 @@ export function PrescriptionPanel({
 
   const removeDraftRow = (index: number) => {
     setDraftMeds((p) => (p.length <= 1 ? [emptyMed()] : p.filter((_, i) => i !== index)));
-  };
-
-  const addSuggested = (name: string) => {
-    setDraftMeds((p) => {
-      if (p.some((m) => m.name === name)) return p;
-      const next = [...p];
-      const emptyIdx = next.findIndex((m) => !m.name.trim());
-      if (emptyIdx >= 0) next[emptyIdx] = { ...next[emptyIdx], name };
-      else next.push({ name });
-      return next;
-    });
   };
 
   const resetForm = () => {
@@ -230,26 +204,6 @@ export function PrescriptionPanel({
             </div>
           )}
           <div className="space-y-2">
-            {suggestLoading && (
-              <p className="text-xs text-gray-500">Buscando medicamentos…</p>
-            )}
-            {suggestedMeds.length > 0 && (
-              <div>
-                <h4 className="text-xs font-medium text-gray-600 mb-1">Catálogo sugerido</h4>
-                <div className="flex flex-wrap gap-1">
-                  {suggestedMeds.map((m) => (
-                    <button
-                      key={m}
-                      type="button"
-                      onClick={() => addSuggested(m)}
-                      className="text-xs px-2 py-1 bg-indigo-50 text-indigo-700 rounded hover:bg-indigo-100"
-                    >
-                      + {m}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
             <input
               type="text"
               value={diagnosis}
@@ -259,12 +213,12 @@ export function PrescriptionPanel({
             />
             {draftMeds.map((med, idx) => (
               <div key={idx} className="grid grid-cols-1 sm:grid-cols-4 gap-1 border border-gray-100 rounded p-2">
-                <input
-                  type="text"
+                <MedicationSuggestInput
                   value={med.name}
-                  onChange={(e) => updateDraftMed(idx, { name: e.target.value })}
+                  onChange={(name) => updateDraftMed(idx, { name })}
                   placeholder="Medicamento"
-                  className="sm:col-span-2 px-2 py-1.5 border border-gray-300 rounded text-sm"
+                  className="sm:col-span-2"
+                  inputClassName="w-full px-2 py-1.5 border border-gray-300 rounded text-sm"
                 />
                 <input
                   type="text"
