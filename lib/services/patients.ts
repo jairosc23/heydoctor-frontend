@@ -287,7 +287,31 @@ export interface CreatePatientDto {
   name?: string;
   email: string;
   firstName?: string;
+  middleName?: string;
   lastName?: string;
+  secondLastName?: string;
+  preferredName?: string;
+  documentType?: PatientDocumentType;
+  documentNumber?: string;
+  sex?: PatientSex;
+  genderIdentity?: string;
+  birthDate?: string;
+  nationality?: string;
+  phone?: string;
+  mobilePhone?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  stateProvince?: string;
+  postalCode?: string;
+  country?: string;
+  insuranceProvider?: string;
+  insurancePlan?: string;
+  memberNumber?: string;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
+  emergencyRelationship?: string;
+  status?: PatientStatus;
 }
 
 export async function createPatient(dto: CreatePatientDto): Promise<PatientRow> {

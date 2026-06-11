@@ -67,6 +67,8 @@ import {
 } from "@/lib/services/clinical-record";
 import { PatientBanner } from "./_components/PatientBanner";
 import { PatientContextRail } from "./_components/PatientContextRail";
+import { ConsultationClinicalProviders } from "./_components/ConsultationClinicalProviders";
+import { ClinicalIntelligenceSync } from "./_components/ClinicalIntelligenceSync";
 import type { EncounterLeftPaneTab } from "./_components/EncounterLeftPane";
 import type { EncounterRightPaneTab } from "./_components/EncounterRightPane";
 import {
@@ -751,18 +753,29 @@ export default function ConsultationDetailPage() {
         </div>
       ) : null}
 
-      <div className="xl:hidden">
-        <PatientContextRail
+      {consultation.patientId ? (
+        <ConsultationClinicalProviders
+          consultationId={id}
           patientId={consultation.patientId}
-          patient={patientRow}
-          profile={patientProfile}
-          loading={patientContextLoading}
-          error={patientContextError}
-          fallbackName={patientName}
-        />
-      </div>
+        >
+          <ClinicalIntelligenceSync
+            consultationId={id}
+            patientId={consultation.patientId}
+            diagnosisState={diagnosisState}
+          />
 
-      <ConsultationWorkspace
+          <div className="xl:hidden">
+            <PatientContextRail
+              patientId={consultation.patientId}
+              patient={patientRow}
+              profile={patientProfile}
+              loading={patientContextLoading}
+              error={patientContextError}
+              fallbackName={patientName}
+            />
+          </div>
+
+          <ConsultationWorkspace
         consultation={consultation}
         consultationId={id}
         clinicId={consultation.clinicId ?? ctxClinicId ?? null}
@@ -829,7 +842,78 @@ export default function ConsultationDetailPage() {
           lastSavedAt,
           autosaveError,
         }}
-      />
+          />
+        </ConsultationClinicalProviders>
+      ) : (
+        <ConsultationWorkspace
+          consultation={consultation}
+          consultationId={id}
+          clinicId={consultation.clinicId ?? ctxClinicId ?? null}
+          activeTab={workspaceTab}
+          onTabChange={setWorkspaceTab}
+          leftPaneTab={leftPaneTab}
+          onLeftPaneTabChange={setLeftPaneTab}
+          rightPaneTab={rightPaneTab}
+          onRightPaneTabChange={setRightPaneTab}
+          patientContext={{
+            patientId: consultation.patientId,
+            patient: patientRow,
+            profile: patientProfile,
+            loading: patientContextLoading,
+            error: patientContextError,
+            fallbackName: patientName,
+          }}
+          ordersSubTab={ordersSubTab}
+          onOrdersSubTabChange={setOrdersSubTab}
+          chiefComplaintDraft={chiefComplaintDraft}
+          onChiefComplaintChange={setChiefComplaintDraft}
+          editMode={editMode}
+          isEditable={isEditable}
+          aiTrigger={aiTrigger}
+          onSaveClinicalRecord={handleSaveClinicalRecord}
+          documentHandlers={{
+            onStartTeleconsultation: () => void handleStartCall(),
+            onOpenPrescription: handleOpenPrescription,
+            onGenerateInvoice: () => void handleGenerateInvoice(),
+            onDownloadPdf: () => void handleDownloadPdf(),
+            onToggleEdit: handleToggleEdit,
+            onAnalyzeWithAi: handleAnalyzeWithAi,
+            onDelete: () => void handleDeleteConsultation(),
+            onGenerateSignedPrescription: () => void handleSignedPrescription(),
+            onGenerateSignedCertificate: () => void handleSignedCertificate(),
+            onGenerateSignedReferral: () => void handleSignedReferral(),
+            onGeneratePremiumDocument: () => void handlePremiumDocument(),
+          }}
+          documentLoading={actionLoading}
+          documentDisabled={{
+            pdf: isLocked,
+            invoice: isLocked,
+            signedPrescription: !isSigned && !isLocked && !canSign,
+          }}
+          onLegacyInvoiceResult={handleActionResult}
+          diagnosisCode={
+            diagnosisState.diagnosisCode || diagnosisState.diagnosis || undefined
+          }
+          soap={{
+            consultationId: id,
+            clinicId: consultation.clinicId ?? ctxClinicId ?? null,
+            editable: isEditable,
+            diagnosis: diagnosisState.diagnosis,
+            diagnosisCode: diagnosisState.diagnosisCode || null,
+            diagnosisDescription: diagnosisState.diagnosisDescription || null,
+            diagnosisSource: diagnosisState.source,
+            onDiagnosisConfirm: handleDiagnosisConfirm,
+            diagnosisError,
+            notes,
+            setNotes,
+            treatment,
+            onTreatmentChange: setTreatment,
+            autosaveStatus,
+            lastSavedAt,
+            autosaveError,
+          }}
+        />
+      )}
 
       {isLocked ? (
         <Card className="border-green-200 bg-green-50 p-4">

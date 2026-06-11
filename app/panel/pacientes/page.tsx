@@ -7,7 +7,7 @@ import { getApiErrorMessage } from "@/lib/heydoctor-api";
 import { useDebouncedValue } from "@/lib/hooks/useDebouncedValue";
 import { usePatientsListQuery } from "@/lib/hooks/use-panel-list-queries";
 import { PATIENTS_LIST_ROOT } from "@/lib/queries/query-keys";
-import { createPatient } from "@/lib/services";
+import { PatientIntakeForm } from "@/components/patients/PatientIntakeForm";
 import { formatPatientAge, formatPatientDisplayName } from "@/lib/services/patients";
 
 interface PatientItem {
@@ -27,10 +27,6 @@ export default function PacientesPage() {
   const debouncedSearch = useDebouncedValue(search, 350);
 
   const [showForm, setShowForm] = useState(false);
-  const [formName, setFormName] = useState("");
-  const [formEmail, setFormEmail] = useState("");
-  const [creating, setCreating] = useState(false);
-  const [formError, setFormError] = useState("");
 
   const patientsQuery = usePatientsListQuery({
     search: debouncedSearch || undefined,
@@ -49,28 +45,9 @@ export default function PacientesPage() {
       )
     : "";
 
-  async function handleCreatePatient(e: React.FormEvent) {
-    e.preventDefault();
-    setFormError("");
-    const name = formName.trim();
-    const email = formEmail.trim().toLowerCase();
-    if (!name || !email) {
-      setFormError("Nombre y email son requeridos.");
-      return;
-    }
-    setCreating(true);
-    try {
-      await createPatient({ name, email });
-      setFormName("");
-      setFormEmail("");
-      setShowForm(false);
-      await queryClient.invalidateQueries({ queryKey: PATIENTS_LIST_ROOT });
-    } catch (err) {
-      console.error("CREATE_PATIENT_FRONT_ERROR", err);
-      setFormError(getApiErrorMessage(err, "Error al crear paciente"));
-    } finally {
-      setCreating(false);
-    }
+  async function handlePatientCreated() {
+    setShowForm(false);
+    await queryClient.invalidateQueries({ queryKey: PATIENTS_LIST_ROOT });
   }
 
   function displayName(p: PatientItem): string {
@@ -117,77 +94,12 @@ export default function PacientesPage() {
         </p>
       )}
 
-      {showForm && (
-        <form
-          onSubmit={handleCreatePatient}
-          style={{
-            background: "white",
-            padding: 20,
-            borderRadius: 12,
-            marginBottom: 20,
-            boxShadow: "0 2px 10px rgba(0,0,0,0.06)",
-            display: "flex",
-            flexDirection: "column",
-            gap: 12,
-            maxWidth: 500,
-          }}
-        >
-          <h3 style={{ margin: 0, fontSize: 16, color: "#333" }}>
-            Crear paciente
-          </h3>
-          <input
-            type="text"
-            placeholder="Nombre completo"
-            value={formName}
-            onChange={(e) => setFormName(e.target.value)}
-            disabled={creating}
-            style={{
-              padding: "10px 14px",
-              border: "1px solid #ddd",
-              borderRadius: 8,
-              fontSize: 14,
-            }}
-          />
-          <input
-            type="email"
-            placeholder="Email"
-            value={formEmail}
-            onChange={(e) => setFormEmail(e.target.value)}
-            disabled={creating}
-            style={{
-              padding: "10px 14px",
-              border: "1px solid #ddd",
-              borderRadius: 8,
-              fontSize: 14,
-            }}
-          />
-          {formError && (
-            <p
-              className="text-red-500 text-sm"
-              style={{ margin: 0 }}
-              role="alert"
-            >
-              {formError}
-            </p>
-          )}
-          <button
-            type="submit"
-            disabled={creating}
-            style={{
-              padding: "10px 20px",
-              background: "#078a92",
-              color: "white",
-              border: "none",
-              borderRadius: 8,
-              cursor: creating ? "not-allowed" : "pointer",
-              fontSize: 14,
-              alignSelf: "flex-start",
-            }}
-          >
-            {creating ? "Creando..." : "Crear paciente"}
-          </button>
-        </form>
-      )}
+      {showForm ? (
+        <PatientIntakeForm
+          onSuccess={() => void handlePatientCreated()}
+          onCancel={() => setShowForm(false)}
+        />
+      ) : null}
 
       <input
         type="search"

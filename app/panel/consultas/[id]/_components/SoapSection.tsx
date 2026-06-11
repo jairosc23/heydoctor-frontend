@@ -13,6 +13,7 @@ import {
 } from "@/lib/services/consultation-diagnosis";
 import { AutosaveIndicator } from "./AutosaveIndicator";
 import type { AutosaveStatus } from "@/lib/hooks/useConsultationAutosave";
+import { UnifiedClinicalActionBar } from "@/components/clinical/UnifiedClinicalActionBar";
 
 export interface SoapSectionProps {
   consultationId: string;
@@ -99,6 +100,8 @@ export function SoapSection({
           </p>
         ) : null}
       </Card>
+
+      <UnifiedClinicalActionBar />
 
       <Card className="p-5 shadow-soft">
         <h3 className="mb-3 text-base font-semibold text-slate-800">

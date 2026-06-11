@@ -15,6 +15,8 @@ import {
   type PatientRow,
 } from "@/lib/services/patients";
 import { cn } from "@/lib/utils";
+import { PatientMemoryCard } from "@/components/clinical/PatientMemoryCard";
+import { DoctorDnaCard } from "@/components/clinical/DoctorDnaCard";
 
 export interface PatientContextRailProps {
   patientId: string | null | undefined;
@@ -183,6 +185,11 @@ export function PatientContextRail({
             <p className="text-sm text-slate-500">Sin alertas clínicas</p>
           )}
         </RailSection>
+      </div>
+
+      <div className="mt-4 space-y-4 border-t border-slate-100 pt-4">
+        <PatientMemoryCard patientId={patientId} />
+        <DoctorDnaCard />
       </div>
     </aside>
   );
