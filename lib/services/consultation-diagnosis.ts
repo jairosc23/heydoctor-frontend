@@ -155,6 +155,16 @@ export function buildSoapPatch(input: {
   return body;
 }
 
+/** Huella estable del PATCH SOAP para omitir escrituras idénticas consecutivas. */
+export function soapPatchFingerprint(patch: UpdateConsultationDto): string {
+  return JSON.stringify({
+    notes: patch.notes ?? null,
+    treatmentPlan: patch.treatmentPlan ?? null,
+    diagnosis: patch.diagnosis ?? null,
+    cie10CodeId: patch.cie10CodeId ?? null,
+  });
+}
+
 /** Clave de debounce del autosave — incluye FK para evitar carreras con el picker. */
 export function buildSoapDraftKey(parts: {
   notes: string;

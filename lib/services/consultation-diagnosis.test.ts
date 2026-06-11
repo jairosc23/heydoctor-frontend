@@ -4,6 +4,7 @@ import {
   buildSoapDraftKey,
   buildSoapPatch,
   emptyDiagnosisState,
+  soapPatchFingerprint,
   getDiagnosisBadgeVariant,
   hydrateDiagnosisFromConsultation,
   shouldShowUnlinkedWarning,
@@ -94,6 +95,21 @@ describe("buildSoapPatch consistency", () => {
     });
     assert.equal(patch.treatmentPlan, undefined);
     assert.equal(patch.cie10CodeId, CIE10_ID);
+  });
+});
+
+describe("soapPatchFingerprint", () => {
+  it("returns stable fingerprint for identical SOAP patches", () => {
+    const patch = buildSoapPatch({
+      notes: "nota",
+      treatment: "reposo",
+      diagnosis: structuredDiagnosisFromPicker({
+        code: "R51",
+        description: "Cefalea",
+        cie10CodeId: CIE10_ID,
+      }),
+    });
+    assert.equal(soapPatchFingerprint(patch), soapPatchFingerprint(patch));
   });
 });
 

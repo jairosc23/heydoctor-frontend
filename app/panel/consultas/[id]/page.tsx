@@ -15,6 +15,7 @@ import {
   buildSoapPatch,
   emptyDiagnosisState,
   hydrateDiagnosisFromConsultation,
+  soapPatchFingerprint,
   structuredDiagnosisFromPicker,
   type ConsultationDiagnosisState,
 } from "@/lib/services/consultation-diagnosis";
@@ -158,6 +159,8 @@ export default function ConsultationDetailPage() {
 
   const paymentResult = searchParams.get("payment");
   const prevStatusRef = React.useRef<string | undefined>(undefined);
+  const consultationRef = React.useRef<NestConsultation | null>(null);
+  const lastPersistedPatchRef = React.useRef<string | null>(null);
 
   useEffect(() => {
     prevStatusRef.current = undefined;
@@ -175,6 +178,18 @@ export default function ConsultationDetailPage() {
       setDiagnosisState(hydrateDiagnosisFromConsultation(c));
       setTreatment(c.treatmentPlan ?? c.treatment ?? "");
       setChiefComplaintDraft(c.chiefComplaint ?? c.reason ?? "");
+      const loadedRecord = parseClinicalRecord(c.notes);
+      const loadedMerged = serializeClinicalRecord({
+        ...loadedRecord,
+        freeNotes: loadedRecord.freeNotes.trim(),
+      });
+      lastPersistedPatchRef.current = soapPatchFingerprint(
+        buildSoapPatch({
+          notes: loadedMerged.length > 0 ? loadedMerged : undefined,
+          treatment: (c.treatmentPlan ?? c.treatment ?? "").trim() || undefined,
+          diagnosis: hydrateDiagnosisFromConsultation(c),
+        }),
+      );
     } catch (err) {
       setError(getConsultationAccessErrorMessage(err));
     } finally {
@@ -185,6 +200,10 @@ export default function ConsultationDetailPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    consultationRef.current = consultation;
+  }, [consultation]);
 
   useEffect(() => {
     const cid = consultation?.id;
@@ -291,9 +310,10 @@ export default function ConsultationDetailPage() {
 
   const persistSoapDraft = useCallback(
     async (diagnosisOverride?: ConsultationDiagnosisState) => {
-      if (!consultation || !isEditable) return;
+      const currentConsultation = consultationRef.current;
+      if (!currentConsultation || !isEditable) return;
       const diagnosis = diagnosisOverride ?? diagnosisState;
-      const currentRecord = parseClinicalRecord(consultation.notes);
+      const currentRecord = parseClinicalRecord(currentConsultation.notes);
       const merged = serializeClinicalRecord({
         ...currentRecord,
         freeNotes: notes.trim(),
@@ -303,11 +323,30 @@ export default function ConsultationDetailPage() {
         treatment: treatment.trim() || undefined,
         diagnosis,
       });
+      const patchFingerprint = soapPatchFingerprint(patch);
+      if (patchFingerprint === lastPersistedPatchRef.current) {
+        return;
+      }
       const updated = await updateConsultation(id, patch);
+      lastPersistedPatchRef.current = patchFingerprint;
       setConsultation(updated);
-      setDiagnosisState(hydrateDiagnosisFromConsultation(updated));
+      consultationRef.current = updated;
+      const nextDiagnosis = hydrateDiagnosisFromConsultation(updated);
+      setDiagnosisState((prev) => {
+        const prevKey = buildSoapDraftKey({
+          notes,
+          treatment,
+          diagnosis: prev,
+        });
+        const nextKey = buildSoapDraftKey({
+          notes,
+          treatment,
+          diagnosis: nextDiagnosis,
+        });
+        return prevKey === nextKey ? prev : nextDiagnosis;
+      });
     },
-    [consultation, notes, treatment, diagnosisState, id, isEditable],
+    [notes, treatment, diagnosisState, id, isEditable],
   );
 
   const soapDraftKey = buildSoapDraftKey({
