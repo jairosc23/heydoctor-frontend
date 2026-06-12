@@ -61,7 +61,7 @@ export function DoctorDnaCard({ className = "" }: DoctorDnaCardProps) {
         className={`rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500 ${className}`}
         aria-label="Doctor DNA"
       >
-        Cargando Doctor DNA™...
+        Cargando perfil de práctica…
       </section>
     );
   }
@@ -85,7 +85,7 @@ export function DoctorDnaCard({ className = "" }: DoctorDnaCardProps) {
       aria-label="Doctor DNA"
     >
       <header>
-        <h3 className="text-sm font-semibold text-slate-800">Doctor DNA™</h3>
+        <h3 className="text-sm font-semibold text-slate-800">Doctor DNA</h3>
         <p className="text-xs text-slate-500">
           Perfil de práctica clínica basado en actividad real
         </p>

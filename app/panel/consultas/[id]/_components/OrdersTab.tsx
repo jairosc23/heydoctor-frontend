@@ -16,10 +16,10 @@ export type OrdersSubTab =
   | "invoices";
 
 const SUB_TABS: { id: OrdersSubTab; label: string }[] = [
-  { id: "prescriptions", label: "Prescriptions" },
-  { id: "lab", label: "Lab Orders" },
-  { id: "referrals", label: "Referrals" },
-  { id: "invoices", label: "Invoices" },
+  { id: "prescriptions", label: "Recetas" },
+  { id: "lab", label: "Laboratorios" },
+  { id: "referrals", label: "Interconsultas" },
+  { id: "invoices", label: "Facturas" },
 ];
 
 export function OrdersTab({
@@ -29,6 +29,8 @@ export function OrdersTab({
   activeSubTab,
   onSubTabChange,
   onLegacyInvoiceResult,
+  highlight = false,
+  refreshKey = 0,
 }: {
   patientId: string;
   consultationId: string;
@@ -36,9 +38,17 @@ export function OrdersTab({
   activeSubTab: OrdersSubTab;
   onSubTabChange: (tab: OrdersSubTab) => void;
   onLegacyInvoiceResult: (label: string, result: ActionResult) => void;
+  highlight?: boolean;
+  refreshKey?: number;
 }) {
   return (
-    <div className="space-y-4">
+    <div
+      className={cn(
+        "space-y-3 rounded-lg transition-shadow",
+        highlight && "ring-2 ring-violet-400 ring-offset-2",
+      )}
+      data-testid="orders-tab-panel"
+    >
       <div className="flex flex-wrap gap-1 rounded-xl border border-slate-200 bg-white p-1">
         {SUB_TABS.map((tab) => (
           <button
@@ -60,6 +70,7 @@ export function OrdersTab({
       {activeSubTab === "prescriptions" ? (
         <div id="prescription-workspace">
           <PrescriptionPanel
+            key={`rx-${refreshKey}`}
             patientId={patientId}
             consultationId={consultationId}
             diagnosisCode={diagnosisCode}
@@ -68,6 +79,7 @@ export function OrdersTab({
       ) : null}
       {activeSubTab === "lab" ? (
         <LabOrdersPanel
+          key={`lab-${refreshKey}`}
           patientId={patientId}
           consultationId={consultationId}
           diagnosisCode={diagnosisCode}

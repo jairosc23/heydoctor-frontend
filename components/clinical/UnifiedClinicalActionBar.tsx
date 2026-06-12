@@ -153,13 +153,13 @@ export function UnifiedClinicalActionBar({ className = "" }: UnifiedClinicalActi
 
   return (
     <section
-      className={`rounded-lg border border-violet-200 bg-white p-4 space-y-4 shadow-sm ${className}`}
+      className={`rounded-lg border border-violet-200 bg-white p-3 space-y-3 shadow-sm ${className}`}
       aria-label="Unified Clinical Action Bar"
     >
       <header className="space-y-1">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-sm font-semibold text-violet-900">
-            Unified Clinical Action Bar™
+            Plan clínico unificado
           </h3>
           <span className="text-xs font-medium text-violet-700 bg-violet-50 px-2 py-0.5 rounded">
             {plan.sourceLabel}
@@ -172,8 +172,8 @@ export function UnifiedClinicalActionBar({ className = "" }: UnifiedClinicalActi
       {!showDetails ? <PlanSummaryCounts plan={plan} /> : null}
 
       {applied ? (
-        <p className="text-sm text-emerald-700 font-medium">
-          Plan aplicado. Receta y/o laboratorios creados según confirmación médica.
+        <p className="text-sm font-medium text-emerald-700">
+          Plan aplicado. Revise las órdenes en el panel derecho.
         </p>
       ) : null}
 

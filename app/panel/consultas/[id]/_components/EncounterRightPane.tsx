@@ -28,6 +28,8 @@ export interface EncounterRightPaneProps {
   documentLoading: ActionBarLoading;
   documentDisabled: Partial<Record<string, boolean>>;
   onLegacyInvoiceResult: (label: string, result: ActionResult) => void;
+  ordersHighlight?: boolean;
+  ordersRefreshKey?: number;
 }
 
 export function EncounterRightPane({
@@ -42,11 +44,13 @@ export function EncounterRightPane({
   documentLoading,
   documentDisabled,
   onLegacyInvoiceResult,
+  ordersHighlight = false,
+  ordersRefreshKey = 0,
 }: EncounterRightPaneProps) {
   return (
     <section
       aria-label="Órdenes y documentos"
-      className="min-w-0 space-y-4"
+      className="min-w-0 space-y-3"
       data-testid="encounter-right-pane"
     >
       <div
@@ -88,6 +92,8 @@ export function EncounterRightPane({
           activeSubTab={ordersSubTab}
           onSubTabChange={onOrdersSubTabChange}
           onLegacyInvoiceResult={onLegacyInvoiceResult}
+          highlight={ordersHighlight}
+          refreshKey={ordersRefreshKey}
         />
       ) : null}
 

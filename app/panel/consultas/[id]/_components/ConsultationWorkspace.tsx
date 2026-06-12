@@ -54,6 +54,8 @@ export interface ConsultationWorkspaceProps {
   onLegacyInvoiceResult: (label: string, result: ActionResult) => void;
   diagnosisCode?: string;
   patientContext: PatientContextRailProps;
+  ordersHighlight?: boolean;
+  ordersRefreshKey?: number;
 }
 
 export type MobileConsultationWorkspaceProps = Omit<
@@ -71,6 +73,8 @@ export function ConsultationWorkspace({
   onLeftPaneTabChange,
   rightPaneTab,
   onRightPaneTabChange,
+  ordersHighlight,
+  ordersRefreshKey,
   ...props
 }: ConsultationWorkspaceProps) {
   const {
@@ -95,7 +99,11 @@ export function ConsultationWorkspace({
   return (
     <>
       <div className="xl:hidden">
-        <MobileConsultationWorkspace {...props} />
+        <MobileConsultationWorkspace
+          {...props}
+          ordersHighlight={ordersHighlight}
+          ordersRefreshKey={ordersRefreshKey}
+        />
       </div>
       <EncounterSplitLayout
         rail={<PatientContextRail {...patientContext} />}
@@ -127,6 +135,8 @@ export function ConsultationWorkspace({
             documentLoading={documentLoading}
             documentDisabled={documentDisabled}
             onLegacyInvoiceResult={onLegacyInvoiceResult}
+            ordersHighlight={ordersHighlight}
+            ordersRefreshKey={ordersRefreshKey}
           />
         }
       />

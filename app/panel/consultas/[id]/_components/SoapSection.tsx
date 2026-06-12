@@ -59,7 +59,7 @@ export function SoapSection({
   const badgeVariant = getDiagnosisBadgeVariant(diagnosisSource);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-semibold text-slate-800">Nota clínica (SOAP)</h2>
         {editable ? (
@@ -73,8 +73,8 @@ export function SoapSection({
         )}
       </div>
 
-      <Card className="p-5 shadow-soft">
-        <h3 className="mb-3 text-base font-semibold text-slate-800">Diagnóstico</h3>
+      <Card className="p-4 shadow-soft">
+        <h3 className="mb-2 text-sm font-semibold text-slate-800">Diagnóstico</h3>
         {(diagnosisCode || diagnosisDescription) && badgeVariant ? (
           <DiagnosisBadge
             code={diagnosisCode}
@@ -103,8 +103,8 @@ export function SoapSection({
 
       <UnifiedClinicalActionBar />
 
-      <Card className="p-5 shadow-soft">
-        <h3 className="mb-3 text-base font-semibold text-slate-800">
+      <Card className="p-4 shadow-soft">
+        <h3 className="mb-2 text-sm font-semibold text-slate-800">
           Notas de consulta
         </h3>
         <LiveAiNoteSuggestions
@@ -117,7 +117,7 @@ export function SoapSection({
         />
       </Card>
 
-      <Card className="p-5 shadow-soft">
+      <Card className="p-4 shadow-soft">
         <label
           htmlFor="soap-treatment"
           className="mb-2 block text-sm font-semibold text-slate-700"

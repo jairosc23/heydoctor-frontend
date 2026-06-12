@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import Image from "next/image";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   fetchConsultation,
@@ -30,10 +29,6 @@ import {
   trackConsultationStartedDeduped,
   trackEvent,
 } from "@/lib/analytics";
-import {
-  formatConsultationPrice,
-  URGENCY_AVAILABLE_NOW,
-} from "@/lib/consultation-pricing";
 import { useConsultationPrice } from "@/lib/hooks/useConsultationPrice";
 import { useConsultationAutosave } from "@/lib/hooks/useConsultationAutosave";
 import { ApiError, getApiErrorMessage } from "@/lib/heydoctor-api";
@@ -49,7 +44,6 @@ import {
   ConsultationActionBar,
   ConsultationConsentCard,
   ShareConsultationDialog,
-  SignatureCanvas,
 } from "@/components/clinical";
 import {
   deleteConsultation,
@@ -67,6 +61,10 @@ import {
 } from "@/lib/services/clinical-record";
 import { PatientBanner } from "./_components/PatientBanner";
 import { PatientContextRail } from "./_components/PatientContextRail";
+import { SafetyStrip } from "./_components/SafetyStrip";
+import { DoctorDnaCollapsible } from "./_components/DoctorDnaCollapsible";
+import { EncounterHeaderActions } from "./_components/EncounterHeaderActions";
+import type { UnifiedPlanApplyResult } from "@/lib/types/unified-clinical-plan";
 import { ConsultationClinicalProviders } from "./_components/ConsultationClinicalProviders";
 import { ClinicalIntelligenceSync } from "./_components/ClinicalIntelligenceSync";
 import type { EncounterLeftPaneTab } from "./_components/EncounterLeftPane";
@@ -131,6 +129,8 @@ export default function ConsultationDetailPage() {
   const [rightPaneTab, setRightPaneTab] =
     useState<EncounterRightPaneTab>("orders");
   const [ordersSubTab, setOrdersSubTab] = useState<OrdersSubTab>("prescriptions");
+  const [ordersHighlight, setOrdersHighlight] = useState(false);
+  const [ordersRefreshKey, setOrdersRefreshKey] = useState(0);
 
   const [actionLoading, setActionLoading] = useState({
     invoice: false,
@@ -405,6 +405,21 @@ export default function ConsultationDetailPage() {
     }
   }
 
+  const handlePlanApplied = useCallback((result: UnifiedPlanApplyResult) => {
+    setRightPaneTab("orders");
+    setWorkspaceTab("orders");
+    if (result.labOrderCreated && !result.prescriptionCreated) {
+      setOrdersSubTab("lab");
+    } else if (result.prescriptionCreated) {
+      setOrdersSubTab("prescriptions");
+    } else if (result.labOrderCreated) {
+      setOrdersSubTab("lab");
+    }
+    setOrdersRefreshKey((k) => k + 1);
+    setOrdersHighlight(true);
+    window.setTimeout(() => setOrdersHighlight(false), 4000);
+  }, []);
+
   const handleStartCall = async () => {
     if (!consultation?.id) return;
     try {
@@ -673,7 +688,7 @@ export default function ConsultationDetailPage() {
           : "border-blue-200 bg-blue-50 text-blue-900";
 
   return (
-    <div className="mx-auto max-w-5xl space-y-5 p-4 md:p-6 lg:p-8 xl:max-w-none 2xl:mx-auto 2xl:max-w-[1600px]">
+    <div className="mx-auto max-w-5xl space-y-3 p-4 md:p-6 lg:p-8 xl:max-w-none 2xl:mx-auto 2xl:max-w-[1600px]">
       <PatientBanner
         patientName={patientName}
         chiefComplaint={consultation.reason || consultation.chiefComplaint || "—"}
@@ -687,6 +702,43 @@ export default function ConsultationDetailPage() {
             : undefined
         }
       />
+
+      <EncounterHeaderActions
+        canStartCall={canStartCall}
+        onStartTeleconsultation={() => void handleStartCall()}
+        isSigned={isSigned}
+        canSign={canSign}
+        signing={signing}
+        onSign={handleSign}
+        signedAt={consultation.signedAt}
+        doctorSignature={consultation.doctorSignature}
+        canPay={canPay}
+        isLocked={isLocked}
+        paymentStep={paymentStep}
+        creatingPayment={creatingPayment}
+        onPayClick={() => {
+          setSaveMsg("");
+          setPaymentStep("confirm");
+        }}
+        onPaymentConfirm={() => void executePaymentToProvider()}
+        onPaymentCancel={() => handlePaymentAbandoned("user_cancelled_confirm")}
+        paymentAmount={consultationPrice.amount}
+        paymentCurrency={consultationPrice.currency}
+        paymentLoading={consultationPrice.loading}
+        saveMsg={
+          saveMsg && (canPay || isSigned || signing) ? saveMsg : undefined
+        }
+      />
+
+      {consultation.patientId ? (
+        <>
+          <SafetyStrip
+            profile={patientProfile}
+            loading={patientContextLoading}
+          />
+          <DoctorDnaCollapsible />
+        </>
+      ) : null}
 
       <ShareConsultationDialog
         consultationId={id}
@@ -757,6 +809,7 @@ export default function ConsultationDetailPage() {
         <ConsultationClinicalProviders
           consultationId={id}
           patientId={consultation.patientId}
+          onPlanApplied={handlePlanApplied}
         >
           <ClinicalIntelligenceSync
             consultationId={id}
@@ -821,6 +874,8 @@ export default function ConsultationDetailPage() {
           signedPrescription: !isSigned && !isLocked && !canSign,
         }}
         onLegacyInvoiceResult={handleActionResult}
+        ordersHighlight={ordersHighlight}
+        ordersRefreshKey={ordersRefreshKey}
         diagnosisCode={
           diagnosisState.diagnosisCode || diagnosisState.diagnosis || undefined
         }
@@ -891,6 +946,8 @@ export default function ConsultationDetailPage() {
             signedPrescription: !isSigned && !isLocked && !canSign,
           }}
           onLegacyInvoiceResult={handleActionResult}
+          ordersHighlight={ordersHighlight}
+          ordersRefreshKey={ordersRefreshKey}
           diagnosisCode={
             diagnosisState.diagnosisCode || diagnosisState.diagnosis || undefined
           }
@@ -928,148 +985,6 @@ export default function ConsultationDetailPage() {
         consentGivenAt={consultation.consentGivenAt}
         consentVersion={consultation.consentVersion}
       />
-
-      {canStartCall ? (
-        <Card>
-          <h3 className="text-base font-semibold text-slate-800">Teleconsulta</h3>
-          <p className="mt-2 text-sm text-slate-600">
-            Inicie una videollamada con el paciente. La consulta cambiará
-            automáticamente a &quot;En progreso&quot;.
-          </p>
-          <button
-            type="button"
-            onClick={() => void handleStartCall()}
-            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-sky-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-sky-700"
-          >
-            <span aria-hidden>📹</span>
-            Iniciar Teleconsulta
-          </button>
-        </Card>
-      ) : null}
-
-      <Card>
-        <h3 className="text-base font-semibold text-slate-800">Firma del médico</h3>
-        {isSigned ? (
-          <div className="mt-3">
-            <p className="text-sm font-semibold text-green-700">
-              Consulta firmada el{" "}
-              {consultation.signedAt
-                ? new Date(consultation.signedAt).toLocaleString("es")
-                : "—"}
-            </p>
-            {consultation.doctorSignature ? (
-              <div className="mt-3 inline-block rounded-lg border border-slate-200 bg-slate-50 p-2">
-                <Image
-                  unoptimized
-                  src={`data:image/png;base64,${consultation.doctorSignature}`}
-                  alt="Firma del doctor"
-                  width={300}
-                  height={120}
-                  className="h-auto max-h-[120px] w-auto max-w-[300px]"
-                />
-              </div>
-            ) : null}
-          </div>
-        ) : canSign ? (
-          <div className="mt-3">
-            <p className="mb-3 text-sm text-slate-600">
-              Firme para cerrar esta consulta. La firma es inmutable una vez
-              registrada.
-            </p>
-            <SignatureCanvas onSign={handleSign} disabled={signing} />
-            {signing ? (
-              <p className="mt-2 text-sm text-slate-500">Firmando...</p>
-            ) : null}
-          </div>
-        ) : (
-          <p className="mt-3 text-sm text-slate-400">
-            La consulta debe estar en progreso o completada para poder firmar.
-          </p>
-        )}
-        {saveMsg && !isEditable && !canPay ? (
-          <p
-            className={`mt-2 text-sm ${saveMsg.includes("Error") ? "text-red-600" : "text-green-700"}`}
-          >
-            {saveMsg}
-          </p>
-        ) : null}
-      </Card>
-
-      {canPay && !isLocked ? (
-        <Card>
-          <h3 className="text-base font-semibold text-slate-800">Pago de consulta</h3>
-          <p className="mt-1 text-sm font-semibold text-primary">{URGENCY_AVAILABLE_NOW}</p>
-          <p className="mt-2 text-sm text-slate-600">
-            La consulta ha sido firmada. Confirma el monto y continúa al pago
-            seguro para finalizar y bloquear la consulta.
-          </p>
-          {paymentStep === "idle" ? (
-            <button
-              type="button"
-              onClick={() => {
-                setSaveMsg("");
-                setPaymentStep("confirm");
-              }}
-              disabled={creatingPayment}
-              className="mt-4 inline-flex items-center gap-2 rounded-lg bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-violet-700 disabled:opacity-60"
-            >
-              <span aria-hidden>💳</span>
-              Pagar consulta
-            </button>
-          ) : (
-            <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
-              <p className="font-semibold text-slate-800">Confirmar pago</p>
-              <p className="mt-2 text-2xl text-slate-900">
-                {consultationPrice.loading
-                  ? "…"
-                  : formatConsultationPrice(
-                      consultationPrice.amount,
-                      consultationPrice.currency,
-                    )}
-              </p>
-              <p className="mt-1 text-xs text-slate-500">
-                Serás redirigido a nuestro proveedor de pago (Payku) para
-                completar la transacción de forma segura.
-              </p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => handlePaymentAbandoned("user_cancelled_confirm")}
-                  disabled={creatingPayment}
-                  className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 disabled:opacity-60"
-                >
-                  Volver
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void executePaymentToProvider()}
-                  disabled={creatingPayment}
-                  className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700 disabled:opacity-60"
-                >
-                  {creatingPayment
-                    ? "Conectando con el proveedor de pago…"
-                    : "Continuar al pago"}
-                </button>
-              </div>
-            </div>
-          )}
-          {saveMsg ? (
-            <p
-              className={`mt-3 text-sm leading-relaxed ${
-                saveMsg.includes("expiró") ||
-                saveMsg.includes("No pudimos") ||
-                saveMsg.includes("No tienes") ||
-                saveMsg.includes("no está disponible") ||
-                saveMsg.includes("no encontramos")
-                  ? "text-red-600"
-                  : "text-green-700"
-              }`}
-            >
-              {saveMsg}
-            </p>
-          ) : null}
-        </Card>
-      ) : null}
 
       {!isEditable && !canPay && !isLocked && saveMsg ? (
         <p

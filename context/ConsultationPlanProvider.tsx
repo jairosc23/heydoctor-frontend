@@ -52,11 +52,13 @@ export function ConsultationPlanProvider({
   patientId,
   consultationId,
   countryCode = "CL",
+  onPlanApplied,
   children,
 }: {
   patientId: string;
   consultationId?: string;
   countryCode?: string;
+  onPlanApplied?: (result: UnifiedPlanApplyResult) => void;
   children: ReactNode;
 }) {
   const {
@@ -145,6 +147,7 @@ export function ConsultationPlanProvider({
       setApplied(true);
       setViewMode("summary");
       invalidateDrugSuggestions();
+      onPlanApplied?.(result);
       return result;
     } catch (e) {
       setApplyError(e instanceof Error ? e.message : "Error al aplicar plan");
@@ -159,6 +162,7 @@ export function ConsultationPlanProvider({
     cie10CodeId,
     diagnosisLabel,
     invalidateDrugSuggestions,
+    onPlanApplied,
   ]);
 
   const value = useMemo<ConsultationPlanContextValue>(

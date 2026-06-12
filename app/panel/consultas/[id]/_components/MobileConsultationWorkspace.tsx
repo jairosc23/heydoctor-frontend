@@ -42,6 +42,8 @@ export function MobileConsultationWorkspace({
   documentDisabled,
   onLegacyInvoiceResult,
   diagnosisCode,
+  ordersHighlight,
+  ordersRefreshKey,
 }: MobileConsultationWorkspaceProps) {
   const patientId = consultation.patientId;
 
@@ -107,6 +109,8 @@ export function MobileConsultationWorkspace({
           activeSubTab={ordersSubTab}
           onSubTabChange={onOrdersSubTabChange}
           onLegacyInvoiceResult={onLegacyInvoiceResult}
+          highlight={ordersHighlight}
+          refreshKey={ordersRefreshKey}
         />
       ) : null}
 

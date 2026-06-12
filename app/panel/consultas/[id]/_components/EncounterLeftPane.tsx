@@ -53,7 +53,7 @@ export function EncounterLeftPane({
   return (
     <section
       aria-label="Documentación clínica"
-      className="min-w-0 space-y-4"
+      className="min-w-0 space-y-3"
       data-testid="encounter-left-pane"
     >
       <div
