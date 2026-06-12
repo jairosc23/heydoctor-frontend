@@ -97,7 +97,7 @@ export function ConsultationWorkspace({
   } = props;
 
   return (
-    <>
+    <div className="clinical-workspace">
       <div className="xl:hidden">
         <MobileConsultationWorkspace
           {...props}
@@ -140,6 +140,6 @@ export function ConsultationWorkspace({
           />
         }
       />
-    </>
+    </div>
   );
 }

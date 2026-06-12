@@ -6,6 +6,8 @@ import {
   ConsultationAssistPanel,
 } from "@/components/clinical";
 import { ChatPanel } from "@/components/telemedicine/ChatPanel";
+import { ClinicalPanel } from "@/components/clinical/design";
+import { clinicalTabClass } from "@/lib/clinical-design-tokens";
 import { cn } from "@/lib/utils";
 import { SoapSection } from "./SoapSection";
 import { OrdersTab } from "./OrdersTab";
@@ -48,9 +50,9 @@ export function MobileConsultationWorkspace({
   const patientId = consultation.patientId;
 
   return (
-    <div className="space-y-4">
+    <ClinicalPanel depth={3} density="comfortable" focusPrimary className="clinical-focus-primary space-y-hd-4">
       <div
-        className="flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1"
+        className="flex gap-1 overflow-x-auto rounded-hd-lg border border-hd-border-subtle bg-hd-surface-raised p-1 shadow-hd-1"
         role="tablist"
       >
         {MAIN_TABS.map((tab) => (
@@ -61,10 +63,9 @@ export function MobileConsultationWorkspace({
             aria-selected={activeTab === tab.id}
             onClick={() => onTabChange(tab.id)}
             className={cn(
-              "shrink-0 rounded-lg px-3 py-2 text-sm font-semibold transition-colors",
-              activeTab === tab.id
-                ? "bg-primary text-white"
-                : "text-slate-600 hover:bg-slate-50",
+              clinicalTabClass(activeTab === tab.id, "rounded-hd-md border-b-0 text-sm"),
+              activeTab === tab.id && "bg-primary text-white hover:text-white",
+              activeTab !== tab.id && "hover:bg-hd-surface-muted",
             )}
           >
             {tab.label}
@@ -138,6 +139,6 @@ export function MobileConsultationWorkspace({
           </div>
         </div>
       ) : null}
-    </div>
+    </ClinicalPanel>
   );
 }

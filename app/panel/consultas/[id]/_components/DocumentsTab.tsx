@@ -1,6 +1,6 @@
 "use client";
 
-import Card from "@/components/ui/Card";
+import { ClinicalCard } from "@/components/clinical/design";
 import type { ActionBarHandlers, ActionBarLoading } from "@/components/clinical/ConsultationActionBar";
 import { cn } from "@/lib/utils";
 
@@ -89,7 +89,7 @@ export function DocumentsTab({
       <ul className="grid gap-3 sm:grid-cols-2">
         {actions.map((action) => (
           <li key={action.id}>
-            <Card className="flex h-full flex-col gap-3 p-4 shadow-soft">
+            <ClinicalCard interactive className="flex h-full flex-col gap-hd-3 p-hd-4">
               <div className="flex items-start gap-3">
                 <span className="text-2xl" aria-hidden>
                   {action.icon}
@@ -104,13 +104,13 @@ export function DocumentsTab({
                 onClick={action.onClick}
                 disabled={action.disabled || action.loading}
                 className={cn(
-                  "mt-auto w-full rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-white hover:bg-primaryMid",
+                  "clinical-interactive mt-auto w-full rounded-hd-md bg-primary px-hd-3 py-hd-2 text-sm font-semibold text-white hover:bg-primaryMid",
                   (action.disabled || action.loading) && "cursor-not-allowed opacity-55",
                 )}
               >
                 {action.loading ? "Procesando…" : "Generar / abrir"}
               </button>
-            </Card>
+            </ClinicalCard>
           </li>
         ))}
       </ul>

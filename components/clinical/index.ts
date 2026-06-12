@@ -17,3 +17,9 @@ export { PatientMemoryCard } from "./PatientMemoryCard";
 export { ClinicalTimeline } from "./ClinicalTimeline";
 export { DoctorDnaCard } from "./DoctorDnaCard";
 export { UnifiedClinicalActionBar } from "./UnifiedClinicalActionBar";
+export {
+  ClinicalSurface,
+  ClinicalCard,
+  ClinicalPanel,
+  ClinicalSection,
+} from "./design";

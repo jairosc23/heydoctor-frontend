@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { ClinicalSurface } from "@/components/clinical/design";
 
 export interface EncounterSplitLayoutProps {
   rail: ReactNode;
@@ -16,12 +17,22 @@ export function EncounterSplitLayout({
 }: EncounterSplitLayoutProps) {
   return (
     <div
-      className="hidden xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(0,3fr)_minmax(0,1fr)] xl:items-start xl:gap-2"
+      className="clinical-encounter-grid hidden xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(0,3fr)_minmax(0,1fr)] xl:items-start xl:gap-hd-3"
       data-testid="encounter-split-layout"
     >
-      <div className="min-w-0 shrink-0">{rail}</div>
-      <div className="min-w-0">{left}</div>
-      <div className="min-w-0">{right}</div>
+      <ClinicalSurface depth={5} secondary className="min-w-0 shrink-0 p-hd-3">
+        {rail}
+      </ClinicalSurface>
+      <ClinicalSurface
+        depth={3}
+        focusPrimary
+        className="clinical-focus-primary min-w-0 p-hd-1"
+      >
+        {left}
+      </ClinicalSurface>
+      <ClinicalSurface depth={4} secondary className="min-w-0 p-hd-3">
+        {right}
+      </ClinicalSurface>
     </div>
   );
 }

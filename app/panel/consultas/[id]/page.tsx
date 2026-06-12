@@ -697,12 +697,12 @@ export default function ConsultationDetailPage() {
           : "border-blue-200 bg-blue-50 text-blue-900";
 
   return (
-    <div className="mx-auto max-w-5xl space-y-2 p-3 md:p-4 lg:p-5 xl:max-w-none 2xl:mx-auto 2xl:max-w-[1600px]">
+    <div className="clinical-workspace mx-auto max-w-5xl space-y-hd-2 p-hd-3 md:p-hd-4 lg:p-hd-5 xl:max-w-none 2xl:mx-auto 2xl:max-w-[1600px]">
       <div
-        className="sticky top-0 z-30 -mx-3 border-b border-slate-200 bg-white/95 backdrop-blur md:-mx-4 lg:-mx-5"
+        className="clinical-encounter-chrome clinical-depth-1 sticky top-0 z-30 -mx-3 border-b border-hd-border-subtle bg-hd-surface-chrome/95 shadow-hd-2 backdrop-blur md:-mx-4 lg:-mx-5"
         style={{ ["--encounter-chrome-h" as string]: "5.5rem" }}
       >
-        <div className="px-3 md:px-4 lg:px-5">
+        <div className="clinical-depth-2 px-3 md:px-4 lg:px-5">
           <EncounterHeader
             status={status}
             transitioning={transitioning}
@@ -778,20 +778,22 @@ export default function ConsultationDetailPage() {
           <div className="flex justify-end pb-0.5">
             <DoctorDnaSignatureChip onClick={() => setDnaDrawerOpen(true)} />
           </div>
-          <PatientSnapshot
-            patientId={consultation.patientId}
-            patientName={patientName}
-            patient={patientRow}
-            profile={patientProfile}
-            status={status}
-          />
-          {consultation.patientId ? (
-            <SafetyStrip
+          <div className="clinical-depth-2 space-y-hd-2 pb-hd-2">
+            <PatientSnapshot
+              patientId={consultation.patientId}
+              patientName={patientName}
+              patient={patientRow}
               profile={patientProfile}
-              loading={patientContextLoading}
-              embedded
+              status={status}
             />
-          ) : null}
+            {consultation.patientId ? (
+              <SafetyStrip
+                profile={patientProfile}
+                loading={patientContextLoading}
+                embedded
+              />
+            ) : null}
+          </div>
         </div>
       </div>
 

@@ -1,6 +1,7 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import { ClinicalPanel, ClinicalSection } from "@/components/clinical/design";
+import { clinicalTabClass } from "@/lib/clinical-design-tokens";
 import { OrdersTab, type OrdersSubTab } from "./OrdersTab";
 import { DocumentsTab } from "./DocumentsTab";
 import type {
@@ -50,60 +51,59 @@ export function EncounterRightPane({
   return (
     <section
       aria-label="Órdenes y documentos"
-      className="min-w-0 space-y-2"
+      className="clinical-depth-secondary min-w-0"
       data-testid="encounter-right-pane"
     >
-      <div
-        className="flex gap-0.5 overflow-x-auto border-b border-slate-100"
-        role="tablist"
-        aria-label="Gestión clínica"
-      >
-        {RIGHT_TABS.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            role="tab"
-            aria-selected={activeTab === tab.id}
-            onClick={() => onTabChange(tab.id)}
-            className={cn(
-              "shrink-0 border-b-2 px-2.5 py-1.5 text-xs font-semibold transition-colors",
-              activeTab === tab.id
-                ? "border-primary text-primary"
-                : "border-transparent text-slate-500 hover:text-slate-700",
-            )}
+      <ClinicalPanel depth={4} density="compact" className="border-0 bg-transparent shadow-none">
+        <ClinicalSection>
+          <div
+            className="mb-hd-3 flex gap-0.5 overflow-x-auto border-b border-hd-border-subtle"
+            role="tablist"
+            aria-label="Gestión clínica"
           >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+            {RIGHT_TABS.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === tab.id}
+                onClick={() => onTabChange(tab.id)}
+                className={clinicalTabClass(activeTab === tab.id)}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
 
-      {!patientId && activeTab === "orders" ? (
-        <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          Esta consulta no tiene paciente asociado. Las órdenes no están
-          disponibles.
-        </p>
-      ) : null}
+          {!patientId && activeTab === "orders" ? (
+            <p className="rounded-hd-md border border-amber-200 bg-amber-50 px-hd-4 py-hd-3 text-sm text-amber-900">
+              Esta consulta no tiene paciente asociado. Las órdenes no están
+              disponibles.
+            </p>
+          ) : null}
 
-      {activeTab === "orders" && patientId ? (
-        <OrdersTab
-          patientId={patientId}
-          consultationId={consultationId}
-          diagnosisCode={diagnosisCode}
-          activeSubTab={ordersSubTab}
-          onSubTabChange={onOrdersSubTabChange}
-          onLegacyInvoiceResult={onLegacyInvoiceResult}
-          highlight={ordersHighlight}
-          refreshKey={ordersRefreshKey}
-        />
-      ) : null}
+          {activeTab === "orders" && patientId ? (
+            <OrdersTab
+              patientId={patientId}
+              consultationId={consultationId}
+              diagnosisCode={diagnosisCode}
+              activeSubTab={ordersSubTab}
+              onSubTabChange={onOrdersSubTabChange}
+              onLegacyInvoiceResult={onLegacyInvoiceResult}
+              highlight={ordersHighlight}
+              refreshKey={ordersRefreshKey}
+            />
+          ) : null}
 
-      {activeTab === "documents" ? (
-        <DocumentsTab
-          handlers={documentHandlers}
-          loading={documentLoading}
-          disabled={documentDisabled}
-        />
-      ) : null}
+          {activeTab === "documents" ? (
+            <DocumentsTab
+              handlers={documentHandlers}
+              loading={documentLoading}
+              disabled={documentDisabled}
+            />
+          ) : null}
+        </ClinicalSection>
+      </ClinicalPanel>
     </section>
   );
 }

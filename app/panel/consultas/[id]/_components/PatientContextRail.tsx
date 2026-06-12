@@ -12,6 +12,8 @@ import {
   type PatientRow,
 } from "@/lib/services/patients";
 import { PatientMemoryCard } from "@/components/clinical/PatientMemoryCard";
+import { ClinicalCard } from "@/components/clinical/design";
+import { CLINICAL_SECTION_TITLE } from "@/lib/clinical-design-tokens";
 
 export interface PatientContextRailProps {
   patientId: string | null | undefined;
@@ -31,7 +33,7 @@ function RailSkeleton() {
       role="complementary"
       aria-label="Contexto del paciente"
       aria-busy="true"
-      className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"
+      className="rounded-hd-lg border border-hd-border-subtle bg-hd-surface-raised p-hd-3 shadow-hd-1"
     >
       <div className="animate-pulse space-y-2">
         <div className="h-4 w-2/3 rounded bg-slate-200" />
@@ -69,10 +71,11 @@ export function PatientContextRail({
     <aside
       role="complementary"
       aria-label="Contexto del paciente"
-      className="sticky top-[5.5rem] z-10 space-y-2"
+      className="clinical-depth-secondary sticky top-[5.5rem] z-10 space-y-hd-2"
     >
-      <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+      <ClinicalCard className="border-0 bg-transparent p-0 shadow-none">
+      <div className="flex items-center justify-between gap-2 border-b border-hd-border-subtle pb-hd-2">
+        <p className={CLINICAL_SECTION_TITLE}>
           Contexto
         </p>
         <Link
@@ -97,11 +100,14 @@ export function PatientContextRail({
         {documentLabel !== "—" ? ` · ${documentLabel}` : ""}
       </p>
 
-      <PatientMemoryCard
-        patientId={patientId}
-        currentConsultationId={currentConsultationId}
-        className="border-0 p-0 shadow-none"
-      />
+      <div className="clinical-timeline-item rounded-hd-md">
+        <PatientMemoryCard
+          patientId={patientId}
+          currentConsultationId={currentConsultationId}
+          className="border-0 p-0 shadow-none"
+        />
+      </div>
+      </ClinicalCard>
     </aside>
   );
 }
