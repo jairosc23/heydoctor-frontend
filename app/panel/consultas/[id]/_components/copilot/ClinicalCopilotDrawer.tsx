@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
+import { usePatientClinicalMemory } from "@/hooks/usePatientClinicalMemory";
+import { buildClinicalMemoryView } from "@/lib/clinical-memory";
 import { buildCopilotContextFromEncounter } from "@/lib/clinical-copilot-mock";
 import { cn } from "@/lib/utils";
 import { CopilotActionSystem } from "./CopilotActionSystem";
@@ -11,6 +13,7 @@ import { CopilotInsightCards } from "./CopilotInsightCards";
 export interface ClinicalCopilotDrawerProps {
   open: boolean;
   onClose: () => void;
+  patientId?: string | null;
   diagnosis?: string | null;
   diagnosisDescription?: string | null;
   treatment?: string | null;
@@ -21,12 +24,29 @@ export interface ClinicalCopilotDrawerProps {
 export function ClinicalCopilotDrawer({
   open,
   onClose,
+  patientId,
   diagnosis,
   diagnosisDescription,
   treatment,
   notes,
   patientName,
 }: ClinicalCopilotDrawerProps) {
+  const { data: clinicalMemoryData } = usePatientClinicalMemory(
+    open ? patientId : null,
+  );
+
+  const clinicalMemory = useMemo(
+    () =>
+      patientId
+        ? buildClinicalMemoryView({
+            memory: clinicalMemoryData,
+            encounterDiagnosis:
+              diagnosisDescription?.trim() || diagnosis?.trim() || null,
+          })
+        : null,
+    [clinicalMemoryData, diagnosis, diagnosisDescription, patientId],
+  );
+
   const context = useMemo(
     () =>
       buildCopilotContextFromEncounter({
@@ -35,8 +55,16 @@ export function ClinicalCopilotDrawer({
         treatment,
         notes,
         patientName,
+        clinicalMemory,
       }),
-    [diagnosis, diagnosisDescription, treatment, notes, patientName],
+    [
+      diagnosis,
+      diagnosisDescription,
+      treatment,
+      notes,
+      patientName,
+      clinicalMemory,
+    ],
   );
 
   useEffect(() => {

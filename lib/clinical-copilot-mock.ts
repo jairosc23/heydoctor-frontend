@@ -1,9 +1,13 @@
+import type { ClinicalMemoryView } from "@/lib/clinical-memory";
+import { clinicalMemoryConfidenceLabel } from "@/lib/clinical-memory";
+
 export type CopilotContextSource =
   | "soap"
   | "timeline"
   | "doctor-dna"
   | "orders"
-  | "patient-snapshot";
+  | "patient-snapshot"
+  | "clinical-memory";
 
 export type CopilotContextView = {
   activeDiagnosis: string | null;
@@ -15,6 +19,8 @@ export type CopilotContextView = {
     plan: string;
     notesPreview: string;
   };
+  clinicalMemory: string[];
+  clinicalMemoryConfidence: string | null;
   sources: CopilotContextSource[];
 };
 
@@ -53,6 +59,7 @@ export const COPILOT_CONTEXT_SOURCE_LABELS: Record<
   "doctor-dna": { label: "Doctor DNA™", icon: "🧠" },
   orders: { label: "Orders Command Center™", icon: "📋" },
   "patient-snapshot": { label: "Patient Snapshot™", icon: "👤" },
+  "clinical-memory": { label: "Clinical Memory™", icon: "🧬" },
 };
 
 export const COPILOT_GOVERNANCE_LINES = [
@@ -136,6 +143,7 @@ export type BuildCopilotContextInput = {
   treatment?: string | null;
   notes?: string | null;
   patientName?: string | null;
+  clinicalMemory?: ClinicalMemoryView | null;
 };
 
 export function buildCopilotContextFromEncounter(
@@ -161,8 +169,13 @@ export function buildCopilotContextFromEncounter(
       plan: plan || "Sin plan registrado",
       notesPreview: notesPreview || "Sin notas en esta sesión",
     },
+    clinicalMemory: input.clinicalMemory?.highlights ?? [],
+    clinicalMemoryConfidence: input.clinicalMemory
+      ? clinicalMemoryConfidenceLabel(input.clinicalMemory.confidence)
+      : null,
     sources: [
       "patient-snapshot",
+      "clinical-memory",
       "soap",
       "timeline",
       "doctor-dna",

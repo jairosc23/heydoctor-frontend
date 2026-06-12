@@ -810,6 +810,7 @@ export default function ConsultationDetailPage() {
       <ClinicalCopilotDrawer
         open={copilotDrawerOpen}
         onClose={() => setCopilotDrawerOpen(false)}
+        patientId={consultation.patientId}
         diagnosis={diagnosisState.diagnosis}
         diagnosisDescription={diagnosisState.diagnosisDescription}
         treatment={treatment}
@@ -893,6 +894,10 @@ export default function ConsultationDetailPage() {
           error: patientContextError,
           fallbackName: patientName,
           currentConsultationId: id,
+          encounterDiagnosis:
+            diagnosisState.diagnosisDescription ||
+            diagnosisState.diagnosis ||
+            null,
         }}
         ordersSubTab={ordersSubTab}
         onOrdersSubTabChange={setOrdersSubTab}
@@ -966,6 +971,10 @@ export default function ConsultationDetailPage() {
             error: patientContextError,
             fallbackName: patientName,
             currentConsultationId: id,
+            encounterDiagnosis:
+              diagnosisState.diagnosisDescription ||
+              diagnosisState.diagnosis ||
+              null,
           }}
           ordersSubTab={ordersSubTab}
           onOrdersSubTabChange={setOrdersSubTab}

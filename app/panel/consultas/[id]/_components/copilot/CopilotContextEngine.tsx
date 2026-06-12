@@ -43,6 +43,33 @@ export function CopilotContextEngine({ context }: { context: CopilotContextView 
 
       <CopilotSourceStrip sources={context.sources} />
 
+      <div>
+        <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-primary/80">
+          Memoria clínica
+        </p>
+        {context.clinicalMemory.length === 0 ? (
+          <p className="text-[11px] text-slate-500">
+            Sin memoria clínica construida en contexto
+          </p>
+        ) : (
+          <ul className="space-y-1">
+            {context.clinicalMemory.map((line) => (
+              <li
+                key={line}
+                className="rounded-hd-md border border-primary/15 bg-primaryLight/25 px-hd-2 py-1 text-xs text-slate-700"
+              >
+                {line}
+              </li>
+            ))}
+          </ul>
+        )}
+        {context.clinicalMemoryConfidence ? (
+          <p className="mt-1 text-[10px] text-slate-500">
+            Confidence: {context.clinicalMemoryConfidence}
+          </p>
+        ) : null}
+      </div>
+
       <div className="grid gap-hd-2">
         <ContextRow
           label="Diagnóstico activo"

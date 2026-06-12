@@ -14,6 +14,7 @@ import {
 import { PatientMemoryCard } from "@/components/clinical/PatientMemoryCard";
 import { ClinicalCard } from "@/components/clinical/design";
 import { CLINICAL_SECTION_TITLE } from "@/lib/clinical-design-tokens";
+import { ClinicalMemoryCard } from "./memory/ClinicalMemoryCard";
 
 export interface PatientContextRailProps {
   patientId: string | null | undefined;
@@ -25,6 +26,8 @@ export interface PatientContextRailProps {
   fallbackName?: string;
   /** Consulta en curso — marca «Consulta actual» en el timeline. */
   currentConsultationId?: string;
+  encounterDiagnosis?: string | null;
+  snapshotConditionLabels?: string[];
 }
 
 function RailSkeleton() {
@@ -53,6 +56,8 @@ export function PatientContextRail({
   error,
   fallbackName = "Paciente",
   currentConsultationId,
+  encounterDiagnosis,
+  snapshotConditionLabels,
 }: PatientContextRailProps) {
   if (!patientId) return null;
 
@@ -99,6 +104,13 @@ export function PatientContextRail({
         {displayName} · {ageLabel} · {sexLabel}
         {documentLabel !== "—" ? ` · ${documentLabel}` : ""}
       </p>
+
+      <ClinicalMemoryCard
+        patientId={patientId}
+        encounterDiagnosis={encounterDiagnosis}
+        snapshotConditionLabels={snapshotConditionLabels}
+        className="mb-hd-2"
+      />
 
       <div className="clinical-timeline-item rounded-hd-md">
         <PatientMemoryCard

@@ -20,7 +20,9 @@ describe("clinical-copilot-mock", () => {
     assert.equal(context.activeDiagnosis, "Diabetes mellitus tipo 2");
     assert.ok(context.soapSummary.plan.includes("Control metabólico"));
     assert.ok(context.sources.includes("soap"));
+    assert.ok(context.sources.includes("clinical-memory"));
     assert.ok(context.sources.includes("timeline"));
+    assert.ok(Array.isArray(context.clinicalMemory));
     assert.equal(context.recentTimeline.length, 3);
     assert.equal(context.pendingLabs.length, 2);
   });
