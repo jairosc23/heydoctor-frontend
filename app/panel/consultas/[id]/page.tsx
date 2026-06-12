@@ -834,6 +834,7 @@ export default function ConsultationDetailPage() {
               loading={patientContextLoading}
               error={patientContextError}
               fallbackName={patientName}
+              currentConsultationId={id}
             />
           </div>
 
@@ -854,6 +855,7 @@ export default function ConsultationDetailPage() {
           loading: patientContextLoading,
           error: patientContextError,
           fallbackName: patientName,
+          currentConsultationId: id,
         }}
         ordersSubTab={ordersSubTab}
         onOrdersSubTabChange={setOrdersSubTab}
@@ -926,6 +928,7 @@ export default function ConsultationDetailPage() {
             loading: patientContextLoading,
             error: patientContextError,
             fallbackName: patientName,
+            currentConsultationId: id,
           }}
           ordersSubTab={ordersSubTab}
           onOrdersSubTabChange={setOrdersSubTab}

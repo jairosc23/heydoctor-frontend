@@ -14,5 +14,6 @@ export { ShareConsultationDialog } from "./ShareConsultationDialog";
 export { ClinicalRecordPanel } from "./ClinicalRecordPanel";
 export { ConsultationActionBar } from "./ConsultationActionBar";
 export { PatientMemoryCard } from "./PatientMemoryCard";
+export { ClinicalTimeline } from "./ClinicalTimeline";
 export { DoctorDnaCard } from "./DoctorDnaCard";
 export { UnifiedClinicalActionBar } from "./UnifiedClinicalActionBar";

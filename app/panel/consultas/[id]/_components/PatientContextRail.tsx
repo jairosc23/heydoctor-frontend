@@ -21,6 +21,8 @@ export interface PatientContextRailProps {
   error: string | null;
   /** Nombre de respaldo desde la consulta si el fetch del paciente falla. */
   fallbackName?: string;
+  /** Consulta en curso — marca «Consulta actual» en el timeline. */
+  currentConsultationId?: string;
 }
 
 function RailSkeleton() {
@@ -48,6 +50,7 @@ export function PatientContextRail({
   loading,
   error,
   fallbackName = "Paciente",
+  currentConsultationId,
 }: PatientContextRailProps) {
   if (!patientId) return null;
 
@@ -94,7 +97,11 @@ export function PatientContextRail({
         {documentLabel !== "—" ? ` · ${documentLabel}` : ""}
       </p>
 
-      <PatientMemoryCard patientId={patientId} className="border-0 p-0 shadow-none" />
+      <PatientMemoryCard
+        patientId={patientId}
+        currentConsultationId={currentConsultationId}
+        className="border-0 p-0 shadow-none"
+      />
     </aside>
   );
 }
