@@ -51,10 +51,14 @@ export function EncounterRightPane({
   return (
     <section
       aria-label="Órdenes y documentos"
-      className="clinical-depth-secondary min-w-0"
+      className="clinical-depth-secondary min-w-0 w-full"
       data-testid="encounter-right-pane"
     >
-      <ClinicalPanel depth={4} density="compact" className="border-0 bg-transparent shadow-none">
+      <ClinicalPanel
+        depth={4}
+        density="compact"
+        className="w-full min-w-0 border-0 bg-transparent p-0 shadow-none"
+      >
         <ClinicalSection>
           <div
             className="mb-hd-3 flex gap-0.5 overflow-x-auto border-b border-hd-border-subtle"

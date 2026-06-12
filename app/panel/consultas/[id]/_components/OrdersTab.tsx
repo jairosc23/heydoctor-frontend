@@ -39,7 +39,7 @@ export function OrdersTab({
   return (
     <div
       className={cn(
-        "orders-priority-panel space-y-hd-3 rounded-hd-lg transition-shadow duration-hd-base",
+        "orders-priority-panel min-w-0 w-full space-y-hd-3 rounded-hd-lg transition-shadow duration-hd-base",
         highlight && "ring-2 ring-primary/30 ring-offset-2",
       )}
       data-testid="orders-tab-panel"

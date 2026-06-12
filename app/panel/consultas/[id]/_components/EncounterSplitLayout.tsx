@@ -17,10 +17,10 @@ export function EncounterSplitLayout({
 }: EncounterSplitLayoutProps) {
   return (
     <div
-      className="clinical-encounter-grid hidden xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(0,3fr)_minmax(0,1fr)] xl:items-start xl:gap-hd-3"
+      className="clinical-encounter-grid hidden xl:grid xl:grid-cols-[minmax(220px,255px)_minmax(0,3fr)_minmax(300px,1.4fr)] xl:items-start xl:gap-hd-2"
       data-testid="encounter-split-layout"
     >
-      <ClinicalSurface depth={5} secondary className="min-w-0 shrink-0 p-hd-4">
+      <ClinicalSurface depth={5} secondary className="min-w-0 shrink-0 p-hd-3">
         {rail}
       </ClinicalSurface>
       <ClinicalSurface
@@ -30,7 +30,7 @@ export function EncounterSplitLayout({
       >
         {left}
       </ClinicalSurface>
-      <ClinicalSurface depth={4} secondary className="min-w-0 p-hd-3">
+      <ClinicalSurface depth={4} secondary className="min-w-0 p-hd-2">
         {right}
       </ClinicalSurface>
     </div>
