@@ -62,6 +62,10 @@ import { PatientContextRail } from "./_components/PatientContextRail";
 import { SafetyStrip } from "./_components/SafetyStrip";
 import { EncounterHeader } from "./_components/EncounterHeader";
 import { PatientSnapshot } from "./_components/PatientSnapshot";
+import {
+  DoctorDnaDrawer,
+  DoctorDnaSignatureChip,
+} from "./_components/DoctorDnaDrawer";
 import type { UnifiedPlanApplyResult } from "@/lib/types/unified-clinical-plan";
 import { ConsultationClinicalProviders } from "./_components/ConsultationClinicalProviders";
 import { ClinicalIntelligenceSync } from "./_components/ClinicalIntelligenceSync";
@@ -147,6 +151,7 @@ export default function ConsultationDetailPage() {
 
   const [aiTrigger, setAiTrigger] = useState(0);
   const [shareOpen, setShareOpen] = useState(false);
+  const [dnaDrawerOpen, setDnaDrawerOpen] = useState(false);
 
   const [patientRow, setPatientRow] = useState<PatientRow | null>(null);
   const [patientProfile, setPatientProfile] = useState<PatientProfile | null>(
@@ -767,7 +772,12 @@ export default function ConsultationDetailPage() {
               invoice: isLocked,
               pdf: isLocked,
             }}
+            dnaDrawerOpen={dnaDrawerOpen}
+            onOpenDoctorDna={() => setDnaDrawerOpen(true)}
           />
+          <div className="flex justify-end pb-0.5">
+            <DoctorDnaSignatureChip onClick={() => setDnaDrawerOpen(true)} />
+          </div>
           <PatientSnapshot
             patientId={consultation.patientId}
             patientName={patientName}
@@ -784,6 +794,11 @@ export default function ConsultationDetailPage() {
           ) : null}
         </div>
       </div>
+
+      <DoctorDnaDrawer
+        open={dnaDrawerOpen}
+        onClose={() => setDnaDrawerOpen(false)}
+      />
 
       <ShareConsultationDialog
         consultationId={id}

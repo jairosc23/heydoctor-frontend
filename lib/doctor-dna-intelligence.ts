@@ -36,13 +36,36 @@ export type TrendLine = {
   label: string;
 };
 
+export type ClinicalSignature = {
+  predominance: string;
+  style: string;
+  complexity: string;
+  profile: string;
+};
+
+export type RankedPathology = {
+  id: string;
+  rank: number;
+  medal: string;
+  label: string;
+  code: string | null;
+};
+
 export type DoctorDnaIntelligenceView = {
+  signature: ClinicalSignature;
+  physicianTraits: string[];
+  rankedPathologies: RankedPathology[];
+  frequentInterventions: string[];
+  observations: string[];
+  persistentChipLabel: string;
   activity: ActivityNarrativeLine[];
   dominantDiagnoses: DominantDiagnosisLine[];
   topMedications: MedicationLine[];
   clinicalProfile: ClinicalProfileSummary;
   trends: TrendLine[];
 };
+
+const RANK_MEDALS = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣"] as const;
 
 const CHRONIC_CODE_PREFIXES = [
   "E10",
@@ -217,6 +240,216 @@ export function buildClinicalProfile(data: DoctorDnaProfile): ClinicalProfileSum
   };
 }
 
+export function inferClinicalStyle(
+  data: DoctorDnaProfile,
+): string {
+  const { consultations30d, uniquePatients30d, prescriptions30d } =
+    data.practiceMetrics;
+  const patients = Math.max(uniquePatients30d, 1);
+  const consultsPerPatient = consultations30d / patients;
+
+  if (data.topFollowUps.length >= 2 || consultsPerPatient >= 2.5) {
+    return "Seguimiento longitudinal";
+  }
+  if (prescriptions30d > consultations30d * 0.7) {
+    return "Manejo terapéutico activo";
+  }
+  if (consultations30d > 15 && prescriptions30d < consultations30d * 0.4) {
+    return "Resolución ambulatoria de episodios";
+  }
+  return "Consulta clínica mixta";
+}
+
+export function inferSignatureProfile(
+  predominance: string,
+  metrics: DoctorDnaPracticeMetrics,
+): string {
+  if (predominance === "Enfermedad crónica") {
+    return "Atención ambulatoria crónica";
+  }
+  if (predominance === "Alta rotación ambulatoria") {
+    return "Consulta ambulatoria de alta demanda";
+  }
+  if (predominance === "Manejo farmacológico frecuente") {
+    return "Práctica orientada a tratamiento";
+  }
+  if (metrics.consultations30d < 5) {
+    return "Práctica en desarrollo";
+  }
+  return "Atención ambulatoria general";
+}
+
+export function buildClinicalSignature(data: DoctorDnaProfile): ClinicalSignature {
+  const profile = buildClinicalProfile(data);
+  const predominance = profile.mainArea;
+  const predominanceKind = profile.predominance;
+
+  return {
+    predominance,
+    style: inferClinicalStyle(data),
+    complexity: profile.complexity,
+    profile: inferSignatureProfile(predominanceKind, data.practiceMetrics),
+  };
+}
+
+export function buildPhysicianTraits(data: DoctorDnaProfile): string[] {
+  const traits: string[] = [];
+  const { consultations30d, uniquePatients30d, prescriptions30d, labOrders30d } =
+    data.practiceMetrics;
+  const patients = Math.max(uniquePatients30d, 1);
+  const consultsPerPatient = consultations30d / patients;
+  const predominance = inferPredominance(data.topDiagnoses, data.practiceMetrics);
+  const complexity = inferComplexity(data.topDiagnoses, data.practiceMetrics);
+
+  if (consultsPerPatient >= 2) {
+    traits.push("Alta continuidad de seguimiento");
+  }
+  if (predominance === "Enfermedad crónica") {
+    traits.push("Manejo frecuente de enfermedad crónica");
+  }
+  if (consultations30d >= 8) {
+    traits.push("Predominio ambulatorio");
+  }
+  if (complexity === "Baja" || complexity === "Baja a moderada") {
+    traits.push("Baja complejidad hospitalaria");
+  }
+  if (
+    matchesAnyPrefix(data.topDiagnoses[0]?.code, METABOLIC_PREFIXES) ||
+    labOrders30d >= 3
+  ) {
+    traits.push("Fuerte enfoque preventivo");
+  }
+  if (prescriptions30d >= 5 && traits.length < 5) {
+    traits.push("Intervención farmacológica recurrente");
+  }
+  if (data.topFollowUps.length >= 1 && traits.length < 5) {
+    traits.push("Hábito de control programado");
+  }
+  if (traits.length === 0) {
+    traits.push("Perfil clínico aún en consolidación");
+  }
+
+  return traits.slice(0, 5);
+}
+
+export function buildRankedPathologies(
+  items: DoctorDnaPatternItem[],
+  limit = 5,
+): RankedPathology[] {
+  return items.slice(0, limit).map((item, index) => ({
+    id: item.id,
+    rank: index + 1,
+    medal: RANK_MEDALS[index] ?? `${index + 1}.`,
+    label: item.label,
+    code: item.code ?? null,
+  }));
+}
+
+export function buildFrequentInterventions(data: DoctorDnaProfile): string[] {
+  const items: string[] = [];
+  const seen = new Set<string>();
+
+  const push = (label: string) => {
+    const key = label.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    items.push(label);
+  };
+
+  for (const med of data.topMedications.slice(0, 3)) {
+    push(med.label);
+  }
+
+  const predominance = inferPredominance(data.topDiagnoses, data.practiceMetrics);
+  if (predominance === "Enfermedad crónica") {
+    push("Educación terapéutica");
+  }
+  if (data.practiceMetrics.labOrders30d > 0) {
+    push("Solicitud de laboratorios");
+  }
+  if (matchesAnyPrefix(data.topDiagnoses[0]?.code, METABOLIC_PREFIXES)) {
+    push("Control metabólico");
+  }
+  if (data.topFollowUps.length > 0 || data.practiceMetrics.consultations30d >= 10) {
+    push("Seguimiento clínico");
+  }
+  if (data.practiceMetrics.prescriptions30d > 0 && items.length < 5) {
+    push("Prescripción farmacológica");
+  }
+  for (const lab of data.topLabs.slice(0, 2)) {
+    if (items.length >= 6) break;
+    push(lab.label);
+  }
+
+  return items.slice(0, 6);
+}
+
+export function buildDoctorDnaObservations(
+  data: DoctorDnaProfile,
+  signature: ClinicalSignature,
+): string[] {
+  const observations: string[] = [];
+  const { consultations30d, uniquePatients30d, prescriptions30d } =
+    data.practiceMetrics;
+  const patients = Math.max(uniquePatients30d, 1);
+  const consultsPerPatient = consultations30d / patients;
+  const topDx = data.topDiagnoses[0]?.label;
+
+  if (matchesAnyPrefix(data.topDiagnoses[0]?.code, METABOLIC_PREFIXES)) {
+    observations.push(
+      "Existe predominio de seguimiento de pacientes con enfermedad metabólica crónica.",
+    );
+  }
+  if (consultsPerPatient >= 2.5) {
+    observations.push(
+      "Se identifica continuidad clínica superior al promedio de la práctica registrada.",
+    );
+  }
+  if (
+    consultations30d >= 10 &&
+    inferPredominance(data.topDiagnoses, data.practiceMetrics) !== "Patología aguda y mixta"
+  ) {
+    observations.push(
+      "La actividad reciente muestra foco en control ambulatorio más que resolución de cuadros agudos.",
+    );
+  }
+  if (signature.style === "Seguimiento longitudinal") {
+    observations.push(
+      "Tu práctica sugiere un estilo de acompañamiento longitudinal más que intervención puntual.",
+    );
+  }
+  if (prescriptions30d >= 5 && topDx) {
+    observations.push(
+      `Los patrones recientes asocian tu práctica con manejo farmacológico de ${topDx.toLowerCase()}.`,
+    );
+  }
+  if (data.topDiagnoses.length >= 3) {
+    observations.push(
+      "Doctor DNA detecta diversidad diagnóstica con núcleo claro de patologías crónicas.",
+    );
+  }
+  if (observations.length === 0) {
+    observations.push(
+      "Doctor DNA aún está consolidando tu huella clínica a partir de la actividad registrada.",
+    );
+  }
+
+  return observations.slice(0, 4);
+}
+
+export function buildPersistentChipLabel(signature: ClinicalSignature): string {
+  if (signature.profile.includes("crónica")) {
+    return signature.profile;
+  }
+  if (signature.style === "Seguimiento longitudinal") {
+    return "Seguimiento longitudinal";
+  }
+  if (signature.predominance !== "Sin área dominante aún") {
+    return `${signature.predominance} predominante`;
+  }
+  return signature.profile;
+}
+
 export function inferTrendDirection(
   item: DoctorDnaPatternItem,
   rank: number,
@@ -246,7 +479,14 @@ export function buildTrendLines(
 export function buildDoctorDnaIntelligenceView(
   data: DoctorDnaProfile,
 ): DoctorDnaIntelligenceView {
+  const signature = buildClinicalSignature(data);
   return {
+    signature,
+    physicianTraits: buildPhysicianTraits(data),
+    rankedPathologies: buildRankedPathologies(data.topDiagnoses),
+    frequentInterventions: buildFrequentInterventions(data),
+    observations: buildDoctorDnaObservations(data, signature),
+    persistentChipLabel: buildPersistentChipLabel(signature),
     activity: buildActivityNarrative(data.practiceMetrics),
     dominantDiagnoses: buildDominantDiagnoses(data.topDiagnoses),
     topMedications: buildTopMedications(data.topMedications),

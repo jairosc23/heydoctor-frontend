@@ -15,7 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 import { NEXT_STATUS_LABELS } from "./consultation-status";
 import { EncounterActionMenu } from "./EncounterActionMenu";
-import { DoctorDnaDrawer, DoctorDnaDrawerTrigger } from "./DoctorDnaDrawer";
+import { DoctorDnaDrawerTrigger } from "./DoctorDnaDrawer";
 
 function HeaderIconButton({
   icon,
@@ -105,6 +105,8 @@ export interface EncounterHeaderProps {
   actionLoading?: ActionBarLoading;
   actionDisabled?: ActionBarDisabled;
   isEditing?: boolean;
+  dnaDrawerOpen?: boolean;
+  onOpenDoctorDna?: () => void;
   className?: string;
 }
 
@@ -140,10 +142,11 @@ export function EncounterHeader({
   actionLoading,
   actionDisabled,
   isEditing,
+  dnaDrawerOpen = false,
+  onOpenDoctorDna,
   className,
 }: EncounterHeaderProps) {
   const [signPanelOpen, setSignPanelOpen] = useState(false);
-  const [dnaDrawerOpen, setDnaDrawerOpen] = useState(false);
 
   const transitionLabel = NEXT_STATUS_LABELS[status];
   const showPay = canPay && !isLocked;
@@ -169,7 +172,7 @@ export function EncounterHeader({
           aria-label="Acciones del encuentro"
         >
           <DoctorDnaDrawerTrigger
-            onClick={() => setDnaDrawerOpen(true)}
+            onClick={() => onOpenDoctorDna?.()}
             active={dnaDrawerOpen}
           />
           <HeaderIconButton
@@ -303,10 +306,6 @@ export function EncounterHeader({
         </p>
       ) : null}
 
-      <DoctorDnaDrawer
-        open={dnaDrawerOpen}
-        onClose={() => setDnaDrawerOpen(false)}
-      />
     </header>
   );
 }

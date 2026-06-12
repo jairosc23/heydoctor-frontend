@@ -3,7 +3,9 @@ import assert from "node:assert/strict";
 import {
   buildActivityNarrative,
   buildClinicalProfile,
+  buildClinicalSignature,
   buildDoctorDnaIntelligenceView,
+  buildPersistentChipLabel,
   buildTrendLines,
   inferTrendDirection,
 } from "./doctor-dna-intelligence";
@@ -108,6 +110,45 @@ describe("buildTrendLines", () => {
   });
 });
 
+describe("buildClinicalSignature", () => {
+  it("genera firma clínica sin métricas expuestas como scores", () => {
+    const signature = buildClinicalSignature({
+      ...BASE,
+      topDiagnoses: [
+        {
+          id: "1",
+          code: "E11.9",
+          label: "Diabetes mellitus tipo 2",
+          frequency: 8,
+          lastUsedAt: new Date().toISOString(),
+          preferenceScore: 0.8,
+        },
+      ],
+      topFollowUps: [
+        {
+          diagnosisCode: "E11.9",
+          diagnosisLabel: "DM2",
+          intervalDays: 90,
+          frequency: 3,
+          lastUsedAt: new Date().toISOString(),
+          preferenceScore: 0.7,
+        },
+      ],
+      practiceMetrics: {
+        consultations30d: 20,
+        prescriptions30d: 12,
+        labOrders30d: 4,
+        uniquePatients30d: 6,
+        generatedAt: new Date().toISOString(),
+      },
+    });
+    assert.equal(signature.predominance, "Control metabólico");
+    assert.ok(signature.style.length > 0);
+    assert.ok(signature.profile.includes("crónica") || signature.profile.length > 0);
+    assert.ok(buildPersistentChipLabel(signature).length > 0);
+  });
+});
+
 describe("buildDoctorDnaIntelligenceView", () => {
   it("compone todas las secciones del drawer", () => {
     const view = buildDoctorDnaIntelligenceView({
@@ -143,5 +184,11 @@ describe("buildDoctorDnaIntelligenceView", () => {
     assert.equal(view.dominantDiagnoses[0]?.display, "J45.9 Asma");
     assert.equal(view.topMedications[0]?.label, "Metformina");
     assert.ok(view.trends.length >= 1);
+    assert.ok(view.signature.predominance);
+    assert.ok(view.physicianTraits.length >= 1);
+    assert.equal(view.rankedPathologies[0]?.medal, "🥇");
+    assert.ok(view.frequentInterventions.length >= 1);
+    assert.ok(view.observations.length >= 1);
+    assert.ok(view.persistentChipLabel.length > 0);
   });
 });
