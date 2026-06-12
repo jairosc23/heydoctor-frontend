@@ -66,52 +66,35 @@ export function PatientContextRail({
     <aside
       role="complementary"
       aria-label="Contexto del paciente"
-      className="sticky top-28 z-20 space-y-3"
+      className="sticky top-[5.5rem] z-10 space-y-2"
     >
-      <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-2">
-          <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-primary">
-              Paciente
-            </p>
-            <h2 className="mt-0.5 font-[Montserrat] text-base font-bold text-slate-900">
-              {displayName}
-            </h2>
-          </div>
-          <Link
-            href={`/panel/pacientes/${patientId}`}
-            className="shrink-0 rounded-md border border-primary px-2 py-1 text-[11px] font-semibold text-primary hover:bg-primaryLight"
-          >
-            Ficha
-          </Link>
-        </div>
-
-        {error ? (
-          <p
-            className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-2 py-1.5 text-xs text-amber-900"
-            role="alert"
-          >
-            {error}
-          </p>
-        ) : null}
-
-        <dl className="mt-2 grid grid-cols-3 gap-1 text-xs">
-          <div>
-            <dt className="text-slate-500">Edad</dt>
-            <dd className="font-medium text-slate-800">{ageLabel}</dd>
-          </div>
-          <div>
-            <dt className="text-slate-500">Sexo</dt>
-            <dd className="font-medium text-slate-800">{sexLabel}</dd>
-          </div>
-          <div>
-            <dt className="text-slate-500">Doc.</dt>
-            <dd className="font-medium text-slate-800 break-words">{documentLabel}</dd>
-          </div>
-        </dl>
+      <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+          Contexto
+        </p>
+        <Link
+          href={`/panel/pacientes/${patientId}`}
+          className="shrink-0 text-[11px] font-semibold text-primary hover:underline"
+        >
+          Ver ficha
+        </Link>
       </div>
 
-      <PatientMemoryCard patientId={patientId} />
+      {error ? (
+        <p
+          className="rounded border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] text-amber-900"
+          role="alert"
+        >
+          {error}
+        </p>
+      ) : null}
+
+      <p className="text-[11px] text-slate-500">
+        {displayName} · {ageLabel} · {sexLabel}
+        {documentLabel !== "—" ? ` · ${documentLabel}` : ""}
+      </p>
+
+      <PatientMemoryCard patientId={patientId} className="border-0 p-0 shadow-none" />
     </aside>
   );
 }

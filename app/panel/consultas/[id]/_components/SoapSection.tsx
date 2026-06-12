@@ -1,7 +1,6 @@
 "use client";
 
 import type { Dispatch, SetStateAction } from "react";
-import Card from "@/components/ui/Card";
 import {
   DiagnosisBadge,
   LiveAiNoteSuggestions,
@@ -61,7 +60,7 @@ export function SoapSection({
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-lg font-semibold text-slate-800">Nota clínica (SOAP)</h2>
+        <h2 className="text-base font-semibold text-slate-900">Nota clínica</h2>
         {editable ? (
           <AutosaveIndicator
             status={autosaveStatus}
@@ -69,18 +68,20 @@ export function SoapSection({
             errorMessage={autosaveError}
           />
         ) : (
-          <p className="text-sm text-slate-500">Solo lectura</p>
+          <p className="text-xs text-slate-500">Solo lectura</p>
         )}
       </div>
 
-      <Card className="p-4 shadow-soft">
-        <h3 className="mb-2 text-sm font-semibold text-slate-800">Diagnóstico</h3>
+      <section className="space-y-2 border-b border-slate-100 pb-3">
+        <h3 className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+          Diagnóstico
+        </h3>
         {(diagnosisCode || diagnosisDescription) && badgeVariant ? (
           <DiagnosisBadge
             code={diagnosisCode}
             description={diagnosisDescription}
             variant={badgeVariant}
-            className="mb-3"
+            className="mb-2"
           />
         ) : null}
         <SmartDiagnosisPicker
@@ -94,17 +95,17 @@ export function SoapSection({
         {diagnosisError ? (
           <p
             role="alert"
-            className="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+            className="mt-1 rounded border border-red-200 bg-red-50 px-2 py-1.5 text-xs text-red-700"
           >
             {diagnosisError}
           </p>
         ) : null}
-      </Card>
+      </section>
 
       <UnifiedClinicalActionBar />
 
-      <Card className="p-4 shadow-soft">
-        <h3 className="mb-2 text-sm font-semibold text-slate-800">
+      <section className="space-y-2 border-b border-slate-100 pb-3">
+        <h3 className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
           Notas de consulta
         </h3>
         <LiveAiNoteSuggestions
@@ -115,12 +116,12 @@ export function SoapSection({
           patientAge={undefined}
           patientSex={undefined}
         />
-      </Card>
+      </section>
 
-      <Card className="p-4 shadow-soft">
+      <section className="space-y-2">
         <label
           htmlFor="soap-treatment"
-          className="mb-2 block text-sm font-semibold text-slate-700"
+          className="block text-[11px] font-semibold uppercase tracking-wide text-slate-500"
         >
           Tratamiento / plan
         </label>
@@ -129,11 +130,11 @@ export function SoapSection({
           value={treatment}
           onChange={(e) => onTreatmentChange(e.target.value)}
           disabled={!editable}
-          rows={4}
+          rows={5}
           placeholder="Indicaciones, medicación, seguimiento…"
-          className="w-full resize-y rounded-lg border border-slate-200 px-3 py-2 text-sm disabled:bg-slate-50"
+          className="w-full resize-y rounded-md border border-slate-200 px-3 py-2 text-sm disabled:bg-slate-50"
         />
-      </Card>
+      </section>
     </div>
   );
 }

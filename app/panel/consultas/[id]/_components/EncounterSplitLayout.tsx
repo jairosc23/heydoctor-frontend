@@ -16,7 +16,7 @@ export function EncounterSplitLayout({
 }: EncounterSplitLayoutProps) {
   return (
     <div
-      className="hidden xl:grid xl:grid-cols-[minmax(17rem,18rem)_minmax(0,3fr)_minmax(0,2fr)] xl:items-start xl:gap-3"
+      className="hidden xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(0,3fr)_minmax(0,1fr)] xl:items-start xl:gap-2"
       data-testid="encounter-split-layout"
     >
       <div className="min-w-0 shrink-0">{rail}</div>

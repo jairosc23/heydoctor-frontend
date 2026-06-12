@@ -41,7 +41,6 @@ import {
 import { getConsultationAccessErrorMessage } from "@/lib/consultation-access-errors";
 import { getWhatsAppUrlWithCustomMessage } from "@/lib/whatsapp-url";
 import {
-  ConsultationActionBar,
   ConsultationConsentCard,
   ShareConsultationDialog,
 } from "@/components/clinical";
@@ -59,11 +58,10 @@ import {
   parseClinicalRecord,
   serializeClinicalRecord,
 } from "@/lib/services/clinical-record";
-import { PatientBanner } from "./_components/PatientBanner";
 import { PatientContextRail } from "./_components/PatientContextRail";
 import { SafetyStrip } from "./_components/SafetyStrip";
 import { DoctorDnaCollapsible } from "./_components/DoctorDnaCollapsible";
-import { EncounterHeaderActions } from "./_components/EncounterHeaderActions";
+import { EncounterHeader } from "./_components/EncounterHeader";
 import type { UnifiedPlanApplyResult } from "@/lib/types/unified-clinical-plan";
 import { ConsultationClinicalProviders } from "./_components/ConsultationClinicalProviders";
 import { ClinicalIntelligenceSync } from "./_components/ClinicalIntelligenceSync";
@@ -532,6 +530,12 @@ export default function ConsultationDetailPage() {
     setOrdersSubTab("prescriptions");
   }
 
+  function handleOpenLabOrders() {
+    setWorkspaceTab("orders");
+    setRightPaneTab("orders");
+    setOrdersSubTab("lab");
+  }
+
   function handleOpenDocuments() {
     setWorkspaceTab("documents");
     setRightPaneTab("documents");
@@ -688,99 +692,104 @@ export default function ConsultationDetailPage() {
           : "border-blue-200 bg-blue-50 text-blue-900";
 
   return (
-    <div className="mx-auto max-w-5xl space-y-3 p-4 md:p-6 lg:p-8 xl:max-w-none 2xl:mx-auto 2xl:max-w-[1600px]">
-      <PatientBanner
-        patientName={patientName}
-        chiefComplaint={consultation.reason || consultation.chiefComplaint || "—"}
-        status={status}
-        transitioning={transitioning}
-        onBack={() => router.push("/panel/consultas")}
-        onShare={() => setShareOpen(true)}
-        onTransition={
-          status === "draft" || status === "in_progress"
-            ? () => void handleTransition()
-            : undefined
-        }
-      />
-
-      <EncounterHeaderActions
-        canStartCall={canStartCall}
-        onStartTeleconsultation={() => void handleStartCall()}
-        isSigned={isSigned}
-        canSign={canSign}
-        signing={signing}
-        onSign={handleSign}
-        signedAt={consultation.signedAt}
-        doctorSignature={consultation.doctorSignature}
-        canPay={canPay}
-        isLocked={isLocked}
-        paymentStep={paymentStep}
-        creatingPayment={creatingPayment}
-        onPayClick={() => {
-          setSaveMsg("");
-          setPaymentStep("confirm");
-        }}
-        onPaymentConfirm={() => void executePaymentToProvider()}
-        onPaymentCancel={() => handlePaymentAbandoned("user_cancelled_confirm")}
-        paymentAmount={consultationPrice.amount}
-        paymentCurrency={consultationPrice.currency}
-        paymentLoading={consultationPrice.loading}
-        saveMsg={
-          saveMsg && (canPay || isSigned || signing) ? saveMsg : undefined
-        }
-      />
-
-      {consultation.patientId ? (
-        <>
-          <SafetyStrip
-            profile={patientProfile}
-            loading={patientContextLoading}
+    <div className="mx-auto max-w-5xl space-y-2 p-3 md:p-4 lg:p-5 xl:max-w-none 2xl:mx-auto 2xl:max-w-[1600px]">
+      <div
+        className="sticky top-0 z-30 -mx-3 border-b border-slate-200 bg-white/95 backdrop-blur md:-mx-4 lg:-mx-5"
+        style={{ ["--encounter-chrome-h" as string]: "4.5rem" }}
+      >
+        <div className="px-3 md:px-4 lg:px-5">
+          <EncounterHeader
+            patientName={patientName}
+            patient={patientRow}
+            chiefComplaint={
+              consultation.reason || consultation.chiefComplaint || "—"
+            }
+            status={status}
+            transitioning={transitioning}
+            onBack={() => router.push("/panel/consultas")}
+            onShare={() => setShareOpen(true)}
+            onTransition={
+              status === "draft" || status === "in_progress"
+                ? () => void handleTransition()
+                : undefined
+            }
+            canStartCall={canStartCall}
+            onStartTeleconsultation={() => void handleStartCall()}
+            onOpenPrescription={handleOpenPrescription}
+            onOpenLabOrders={handleOpenLabOrders}
+            onOpenDocuments={handleOpenDocuments}
+            isSigned={isSigned}
+            canSign={canSign}
+            signing={signing}
+            onSign={handleSign}
+            signedAt={consultation.signedAt}
+            doctorSignature={consultation.doctorSignature}
+            canPay={canPay}
+            isLocked={isLocked}
+            paymentStep={paymentStep}
+            creatingPayment={creatingPayment}
+            onPayClick={() => {
+              setSaveMsg("");
+              setPaymentStep("confirm");
+            }}
+            onPaymentConfirm={() => void executePaymentToProvider()}
+            onPaymentCancel={() =>
+              handlePaymentAbandoned("user_cancelled_confirm")
+            }
+            paymentAmount={consultationPrice.amount}
+            paymentCurrency={consultationPrice.currency}
+            paymentLoading={consultationPrice.loading}
+            saveMsg={
+              saveMsg && (canPay || isSigned || signing) ? saveMsg : undefined
+            }
+            isEditing={editMode}
+            actionHandlers={{
+              onStartTeleconsultation: () => void handleStartCall(),
+              onOpenPrescription: handleOpenPrescription,
+              onGenerateInvoice: () => void handleGenerateInvoice(),
+              onDownloadPdf: () => void handleDownloadPdf(),
+              onToggleEdit: handleToggleEdit,
+              onAnalyzeWithAi: handleAnalyzeWithAi,
+              onDelete: () => void handleDeleteConsultation(),
+              onGenerateSignedPrescription: () =>
+                void handleSignedPrescription(),
+              onGenerateSignedCertificate: () =>
+                void handleSignedCertificate(),
+              onGenerateSignedReferral: () => void handleSignedReferral(),
+              onGeneratePremiumDocument: () => void handlePremiumDocument(),
+            }}
+            actionLoading={{
+              invoice: actionLoading.invoice,
+              pdf: actionLoading.pdf,
+              deleting: actionLoading.deleting,
+              ai: false,
+            }}
+            actionDisabled={{
+              prescription: isLocked,
+              edit: isLocked,
+              ai: isLocked,
+              delete: isLocked,
+              invoice: isLocked,
+              pdf: isLocked,
+            }}
           />
-          <DoctorDnaCollapsible />
-        </>
-      ) : null}
+          {consultation.patientId ? (
+            <SafetyStrip
+              profile={patientProfile}
+              loading={patientContextLoading}
+              embedded
+            />
+          ) : null}
+        </div>
+      </div>
+
+      {consultation.patientId ? <DoctorDnaCollapsible /> : null}
 
       <ShareConsultationDialog
         consultationId={id}
         open={shareOpen}
         patientName={patientName}
         onClose={() => setShareOpen(false)}
-      />
-
-      <ConsultationActionBar
-        isEditing={editMode}
-        patientId={consultation.patientId ?? null}
-        loading={{
-          invoice: actionLoading.invoice,
-          pdf: actionLoading.pdf,
-          deleting: actionLoading.deleting,
-          signedPrescription: actionLoading.signedPrescription,
-          signedCertificate: actionLoading.signedCertificate,
-          signedReferral: actionLoading.signedReferral,
-          premium: actionLoading.premium,
-        }}
-        disabled={{
-          startTele: !canStartCall || isLocked,
-          prescription: isLocked,
-          edit: isLocked,
-          ai: isLocked,
-          delete: isLocked,
-          signedPrescription: !isSigned && !isLocked && !canSign,
-        }}
-        handlers={{
-          onStartTeleconsultation: () => void handleStartCall(),
-          onOpenPrescription: handleOpenPrescription,
-          onGenerateInvoice: () => void handleGenerateInvoice(),
-          onDownloadPdf: () => void handleDownloadPdf(),
-          onToggleEdit: handleToggleEdit,
-          onAnalyzeWithAi: handleAnalyzeWithAi,
-          onDelete: () => void handleDeleteConsultation(),
-          onGenerateSignedPrescription: () => void handleSignedPrescription(),
-          onGenerateSignedCertificate: () => void handleSignedCertificate(),
-          onGenerateSignedReferral: () => void handleSignedReferral(),
-          onGeneratePremiumDocument: () => void handlePremiumDocument(),
-        }}
-        onOpenDocuments={handleOpenDocuments}
       />
 
       {actionMsg ? (

@@ -53,11 +53,11 @@ export function EncounterLeftPane({
   return (
     <section
       aria-label="Documentación clínica"
-      className="min-w-0 space-y-3"
+      className="min-w-0 space-y-2"
       data-testid="encounter-left-pane"
     >
       <div
-        className="flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1"
+        className="flex gap-0.5 overflow-x-auto border-b border-slate-100"
         role="tablist"
         aria-label="Sección clínica"
       >
@@ -69,10 +69,10 @@ export function EncounterLeftPane({
             aria-selected={activeTab === tab.id}
             onClick={() => onTabChange(tab.id)}
             className={cn(
-              "shrink-0 rounded-lg px-3 py-2 text-sm font-semibold transition-colors",
+              "shrink-0 border-b-2 px-2.5 py-1.5 text-xs font-semibold transition-colors",
               activeTab === tab.id
-                ? "bg-primary text-white"
-                : "text-slate-600 hover:bg-slate-50",
+                ? "border-primary text-primary"
+                : "border-transparent text-slate-500 hover:text-slate-700",
             )}
           >
             {tab.label}
