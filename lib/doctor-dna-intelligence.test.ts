@@ -6,6 +6,8 @@ import {
   buildClinicalSignature,
   buildDoctorDnaIntelligenceView,
   buildPersistentChipLabel,
+  buildPrimaryClinicalInsight,
+  buildPhysicianTraits,
   buildTrendLines,
   inferTrendDirection,
 } from "./doctor-dna-intelligence";
@@ -149,6 +151,47 @@ describe("buildClinicalSignature", () => {
   });
 });
 
+describe("buildPrimaryClinicalInsight", () => {
+  it("sintetiza una frase de firma clínica desde heurísticas existentes", () => {
+    const profile = {
+      ...BASE,
+      topDiagnoses: [
+        {
+          id: "1",
+          code: "E11.9",
+          label: "Diabetes mellitus tipo 2",
+          frequency: 8,
+          lastUsedAt: new Date().toISOString(),
+          preferenceScore: 0.8,
+        },
+      ],
+      topFollowUps: [
+        {
+          diagnosisCode: "E11.9",
+          diagnosisLabel: "DM2",
+          intervalDays: 90,
+          frequency: 3,
+          lastUsedAt: new Date().toISOString(),
+          preferenceScore: 0.7,
+        },
+      ],
+      practiceMetrics: {
+        consultations30d: 20,
+        prescriptions30d: 12,
+        labOrders30d: 4,
+        uniquePatients30d: 6,
+        generatedAt: new Date().toISOString(),
+      },
+    };
+    const signature = buildClinicalSignature(profile);
+    const traits = buildPhysicianTraits(profile);
+    const insight = buildPrimaryClinicalInsight(profile, signature, traits);
+    assert.match(insight, /metabólicas crónicas/);
+    assert.match(insight, /continuidad asistencial/);
+    assert.ok(insight.length > 0);
+  });
+});
+
 describe("buildDoctorDnaIntelligenceView", () => {
   it("compone todas las secciones del drawer", () => {
     const view = buildDoctorDnaIntelligenceView({
@@ -189,6 +232,7 @@ describe("buildDoctorDnaIntelligenceView", () => {
     assert.equal(view.rankedPathologies[0]?.medal, "🥇");
     assert.ok(view.frequentInterventions.length >= 1);
     assert.ok(view.observations.length >= 1);
+    assert.ok(view.primaryInsight.length > 0);
     assert.ok(view.persistentChipLabel.length > 0);
   });
 });

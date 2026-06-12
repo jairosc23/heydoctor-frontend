@@ -16,6 +16,15 @@ function SectionTitle({ children }: { children: ReactNode }) {
   );
 }
 
+const CLINICAL_INSIGHT_ICONS = ["◆", "◇", "◈", "◊"] as const;
+
+const SIGNATURE_CARDS = [
+  { icon: "🧠", label: "Predominio Clínico", key: "predominance" as const },
+  { icon: "📈", label: "Estilo de Atención", key: "style" as const },
+  { icon: "🏥", label: "Complejidad", key: "complexity" as const },
+  { icon: "👥", label: "Perfil Asistencial", key: "profile" as const },
+];
+
 export interface DoctorDnaDrawerProps {
   open: boolean;
   onClose: () => void;
@@ -81,36 +90,45 @@ export function DoctorDnaDrawer({ open, onClose }: DoctorDnaDrawerProps) {
             </p>
           ) : intelligence ? (
             <div className="space-y-6">
+              <section
+                aria-label="Clinical Insight"
+                className="rounded-lg border border-slate-200 bg-gradient-to-br from-slate-50 to-white px-3 py-3 shadow-sm"
+              >
+                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                  Clinical Insight™
+                </p>
+                <p className="text-xs leading-snug text-slate-800">
+                  <span className="font-medium text-slate-600">
+                    Doctor DNA detecta:{" "}
+                  </span>
+                  <span className="font-medium text-slate-900">
+                    &ldquo;{intelligence.primaryInsight}&rdquo;
+                  </span>
+                </p>
+              </section>
+
               <section className="border-b border-slate-100 pb-4">
                 <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-slate-700">
                   Clinical Signature™
                 </p>
-                <dl className="space-y-2 text-xs">
-                  <div>
-                    <dt className="text-slate-500">Predominio</dt>
-                    <dd className="font-medium text-slate-900">
-                      {intelligence.signature.predominance}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-slate-500">Estilo</dt>
-                    <dd className="font-medium text-slate-900">
-                      {intelligence.signature.style}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-slate-500">Complejidad</dt>
-                    <dd className="font-medium text-slate-900">
-                      {intelligence.signature.complexity}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-slate-500">Perfil</dt>
-                    <dd className="font-medium text-slate-900">
-                      {intelligence.signature.profile}
-                    </dd>
-                  </div>
-                </dl>
+                <div className="grid grid-cols-2 gap-2">
+                  {SIGNATURE_CARDS.map((card) => (
+                    <div
+                      key={card.key}
+                      className="rounded-md border border-slate-100 bg-slate-50/60 px-2.5 py-2"
+                    >
+                      <p className="mb-1 text-[10px] leading-tight text-slate-500">
+                        <span aria-hidden className="mr-0.5">
+                          {card.icon}
+                        </span>
+                        {card.label}
+                      </p>
+                      <p className="text-[11px] font-medium leading-snug text-slate-900">
+                        {intelligence.signature[card.key]}
+                      </p>
+                    </div>
+                  ))}
+                </div>
               </section>
 
               <section>
@@ -132,25 +150,22 @@ export function DoctorDnaDrawer({ open, onClose }: DoctorDnaDrawerProps) {
                     Aún no hay patologías representativas en tu práctica.
                   </p>
                 ) : (
-                  <ul className="space-y-2">
+                  <ul className="space-y-3">
                     {intelligence.rankedPathologies.map((pathology) => (
-                      <li
-                        key={pathology.id}
-                        className="flex items-start gap-2 text-xs"
-                      >
-                        <span className="shrink-0" aria-hidden>
+                      <li key={pathology.id} className="flex items-start gap-2">
+                        <span className="shrink-0 text-sm" aria-hidden>
                           {pathology.medal}
                         </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="font-medium text-slate-900">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-medium leading-snug text-slate-900">
                             {pathology.label}
-                          </span>
+                          </p>
                           {pathology.code ? (
-                            <span className="ml-1.5 font-mono text-[10px] text-slate-400">
+                            <p className="mt-0.5 font-mono text-[10px] text-slate-400">
                               {pathology.code}
-                            </span>
+                            </p>
                           ) : null}
-                        </span>
+                        </div>
                       </li>
                     ))}
                   </ul>
@@ -164,24 +179,37 @@ export function DoctorDnaDrawer({ open, onClose }: DoctorDnaDrawerProps) {
                     Sin intervenciones recurrentes identificadas.
                   </p>
                 ) : (
-                  <ul className="list-inside list-disc space-y-1 text-xs text-slate-800">
+                  <div className="flex flex-wrap gap-1.5">
                     {intelligence.frequentInterventions.map((item) => (
-                      <li key={item}>{item}</li>
+                      <span
+                        key={item}
+                        className="inline-flex rounded border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] text-slate-700"
+                      >
+                        {item}
+                      </span>
                     ))}
-                  </ul>
+                  </div>
                 )}
               </section>
 
               <section className="border-t border-slate-100 pt-4">
-                <SectionTitle>Observaciones de Doctor DNA™</SectionTitle>
-                <div className="space-y-2">
-                  {intelligence.observations.map((observation) => (
-                    <p
+                <SectionTitle>Insights clínicos</SectionTitle>
+                <div className="space-y-2.5">
+                  {intelligence.observations.map((observation, index) => (
+                    <div
                       key={observation}
-                      className="border-l-2 border-slate-200 pl-2.5 text-xs italic leading-relaxed text-slate-700"
+                      className="flex items-start gap-2 rounded-md bg-slate-50/50 px-2 py-1.5"
                     >
-                      {observation}
-                    </p>
+                      <span
+                        className="mt-0.5 shrink-0 text-[9px] text-slate-400"
+                        aria-hidden
+                      >
+                        {CLINICAL_INSIGHT_ICONS[index % CLINICAL_INSIGHT_ICONS.length]}
+                      </span>
+                      <p className="text-[11px] leading-snug text-slate-700">
+                        {observation}
+                      </p>
+                    </div>
                   ))}
                 </div>
               </section>

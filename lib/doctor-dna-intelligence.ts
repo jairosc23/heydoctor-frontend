@@ -53,6 +53,7 @@ export type RankedPathology = {
 
 export type DoctorDnaIntelligenceView = {
   signature: ClinicalSignature;
+  primaryInsight: string;
   physicianTraits: string[];
   rankedPathologies: RankedPathology[];
   frequentInterventions: string[];
@@ -384,6 +385,50 @@ export function buildFrequentInterventions(data: DoctorDnaProfile): string[] {
   return items.slice(0, 6);
 }
 
+export function buildPrimaryClinicalInsight(
+  data: DoctorDnaProfile,
+  signature: ClinicalSignature,
+  physicianTraits: string[],
+): string {
+  const hasContinuity =
+    physicianTraits.some((trait) => trait.toLowerCase().includes("continuidad")) ||
+    signature.style === "Seguimiento longitudinal";
+
+  const isMetabolic =
+    matchesAnyPrefix(data.topDiagnoses[0]?.code, METABOLIC_PREFIXES) ||
+    signature.predominance === "Control metabólico";
+
+  const isChronic =
+    signature.profile.toLowerCase().includes("crónica") ||
+    inferPredominance(data.topDiagnoses, data.practiceMetrics) ===
+      "Enfermedad crónica";
+
+  if (isMetabolic && hasContinuity) {
+    return "Práctica predominantemente orientada al seguimiento de enfermedades metabólicas crónicas con alta continuidad asistencial.";
+  }
+
+  if (isChronic && hasContinuity) {
+    const area =
+      signature.predominance !== "Sin área dominante aún"
+        ? signature.predominance.toLowerCase()
+        : "enfermedades crónicas";
+    return `Práctica predominantemente orientada al seguimiento de ${area} con alta continuidad asistencial.`;
+  }
+
+  if (
+    signature.predominance !== "Sin área dominante aún" &&
+    signature.predominance !== "Práctica en consolidación"
+  ) {
+    return `Práctica con predominio en ${signature.predominance.toLowerCase()} y estilo de ${signature.style.toLowerCase()}.`;
+  }
+
+  if (signature.style !== "Consulta clínica mixta") {
+    return `Práctica clínica con estilo de ${signature.style.toLowerCase()} y perfil de ${signature.profile.toLowerCase()}.`;
+  }
+
+  return "Doctor DNA aún está consolidando tu huella clínica a partir de la actividad registrada.";
+}
+
 export function buildDoctorDnaObservations(
   data: DoctorDnaProfile,
   signature: ClinicalSignature,
@@ -480,9 +525,11 @@ export function buildDoctorDnaIntelligenceView(
   data: DoctorDnaProfile,
 ): DoctorDnaIntelligenceView {
   const signature = buildClinicalSignature(data);
+  const physicianTraits = buildPhysicianTraits(data);
   return {
     signature,
-    physicianTraits: buildPhysicianTraits(data),
+    primaryInsight: buildPrimaryClinicalInsight(data, signature, physicianTraits),
+    physicianTraits,
     rankedPathologies: buildRankedPathologies(data.topDiagnoses),
     frequentInterventions: buildFrequentInterventions(data),
     observations: buildDoctorDnaObservations(data, signature),
