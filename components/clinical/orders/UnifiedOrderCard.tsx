@@ -33,22 +33,22 @@ export function UnifiedOrderCard({
         isPriority && "ring-1 ring-black/[0.03]",
       )}
     >
-      <div className="mb-hd-2 flex items-start justify-between gap-hd-2">
-        <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+      <header className="mb-hd-3 space-y-hd-2">
+        <div className="flex min-h-[1.375rem] items-center justify-between gap-hd-2">
+          <p className="min-w-0 flex-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
             {kind}
           </p>
-          <p
-            className={cn(
-              "leading-snug text-slate-900",
-              isPriority ? "text-sm font-semibold" : "text-sm font-medium",
-            )}
-          >
-            {title}
-          </p>
+          <OrderStatusChip status={status} priority={isPriority} />
         </div>
-        <OrderStatusChip status={status} priority={isPriority} className="shrink-0" />
-      </div>
+        <p
+          className={cn(
+            "leading-snug text-slate-900",
+            isPriority ? "text-sm font-semibold" : "text-sm font-medium",
+          )}
+        >
+          {title}
+        </p>
+      </header>
       <div className="flex flex-wrap items-center justify-between gap-hd-2 border-t border-hd-border-subtle pt-hd-2">
         <p className="text-[10px] text-slate-500">
           <span className="font-medium text-slate-600">Última actualización:</span>{" "}

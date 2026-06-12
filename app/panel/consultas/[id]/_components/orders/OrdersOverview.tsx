@@ -68,26 +68,31 @@ export function OrdersOverview({
   }, [patientId, consultationId, refreshKey]);
 
   return (
-    <header className="orders-priority-header heydoctor-presence rounded-hd-lg border border-hd-border-subtle bg-gradient-to-br from-hd-surface-muted to-hd-surface-raised px-hd-4 py-hd-3 shadow-hd-1">
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-        Orders Command Center™
-      </p>
-      <h2 className="text-base font-semibold text-slate-900">Órdenes</h2>
+    <header className="orders-priority-header rounded-hd-lg border border-hd-border-subtle bg-gradient-to-br from-hd-surface-muted to-hd-surface-raised px-hd-4 py-hd-3 shadow-hd-1">
+      <div className="heydoctor-presence space-y-hd-1">
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+          Orders Command Center™
+        </p>
+        <h2 className="text-base font-semibold text-slate-900">Órdenes</h2>
+      </div>
       {loading ? (
-        <p className="mt-1 text-xs text-slate-500">Resumiendo bandeja clínica…</p>
+        <p className="mt-hd-2 text-xs text-slate-500">Resumiendo bandeja clínica…</p>
       ) : summary ? (
-        <div className="mt-hd-2 flex flex-wrap items-center gap-hd-2">
+        <div className="mt-hd-3 flex min-h-[1.375rem] flex-wrap items-center gap-2">
           <ClinicalStatusBadge
             status="active"
             label={`${summary.active} activas`}
+            className="w-fit"
           />
           <ClinicalStatusBadge
             status="completed"
             label={`${summary.completed} completadas`}
+            className="w-fit"
           />
           <ClinicalStatusBadge
             status="pending"
             label={`${summary.pending} pendientes`}
+            className="w-fit"
           />
         </div>
       ) : null}

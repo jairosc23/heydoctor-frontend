@@ -24,6 +24,7 @@ export function OrderStatusChip({
       status={orderStatusToClinical(status)}
       label={presentation.label}
       className={cn(
+        "shrink-0 w-fit",
         priority && "ring-1 ring-inset ring-black/5 shadow-hd-1",
         className,
       )}
