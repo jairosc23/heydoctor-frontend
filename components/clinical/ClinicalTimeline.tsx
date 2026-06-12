@@ -44,13 +44,13 @@ function TimelineNode({
   return (
     <li
       className={cn(
-        "clinical-timeline-item relative pb-hd-3",
+        "clinical-timeline-item relative pb-hd-4",
         isLastInSection && "pb-0",
       )}
     >
       <span
         className={cn(
-          "absolute -left-[1.35rem] top-3 flex h-2.5 w-2.5 -translate-x-1/2 items-center justify-center rounded-full border-2 border-white shadow-sm",
+          "absolute -left-[1.625rem] top-4 flex h-2.5 w-2.5 -translate-x-1/2 items-center justify-center rounded-full border-2 border-white shadow-sm",
           event.kind === "diagnosis" && "bg-indigo-500",
           event.kind === "consultation" && "bg-slate-400",
           event.kind === "medication" && "bg-teal-500",
@@ -61,28 +61,32 @@ function TimelineNode({
       />
       <div
         className={cn(
-          "min-w-0 rounded-hd-md border border-l-[3px] border-hd-border-subtle px-hd-2 py-hd-2 transition-all duration-hd-base",
+          "min-w-0 rounded-hd-md border border-l-[3px] border-hd-border-subtle px-hd-3 py-hd-2.5 transition-all duration-hd-base",
           KIND_ACCENT[event.kind],
           recent && "shadow-hd-1",
           isDiagnosis && "ring-1 ring-indigo-100/80",
         )}
       >
-        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+        <div className="space-y-1.5">
+          <span className="block text-[10px] font-semibold uppercase tracking-wide text-slate-500">
             {KIND_LABEL[event.kind]}
           </span>
-          {recent ? (
-            <ClinicalStatusBadge status="active" label="Reciente" />
-          ) : null}
-          {event.code ? (
-            <span className="font-mono text-[10px] font-medium text-indigo-700">
-              {event.code}
-            </span>
+          {recent || event.code ? (
+            <div className="flex flex-wrap items-center gap-2">
+              {recent ? (
+                <ClinicalStatusBadge status="active" label="Reciente" />
+              ) : null}
+              {event.code ? (
+                <span className="font-mono text-[10px] font-medium text-indigo-700">
+                  {event.code}
+                </span>
+              ) : null}
+            </div>
           ) : null}
         </div>
         <p
           className={cn(
-            "leading-snug text-slate-800",
+            "mt-hd-2 leading-snug text-slate-800",
             isDiagnosis ? "text-sm font-semibold" : "text-sm font-medium",
           )}
         >
@@ -124,7 +128,7 @@ function YearGroup({
           aria-hidden
         />
       </div>
-      <ol className="relative m-0 list-none pl-4">
+      <ol className="relative m-0 list-none pl-5">
         {group.events.map((event, index) => (
           <TimelineNode
             key={event.id}
@@ -208,7 +212,7 @@ export function ClinicalTimeline({
           </span>
         </summary>
 
-        <div className="pt-hd-2">
+        <div className="pt-hd-3">
           <AlertsStrip alerts={data.alerts} />
 
           {model.isEmpty ? (
@@ -216,7 +220,7 @@ export function ClinicalTimeline({
               Sin eventos clínicos registrados en la memoria del paciente.
             </p>
           ) : (
-            <div className="relative ml-2 border-l-2 border-gradient-to-b border-slate-200 pl-4">
+            <div className="relative ml-2 border-l-2 border-gradient-to-b border-slate-200 pl-5">
               {model.undated.length > 0 ? (
                 <div className="relative mb-hd-4">
                   <div className="mb-hd-2 flex items-center gap-hd-2">
@@ -225,7 +229,7 @@ export function ClinicalTimeline({
                     </span>
                     <span className="h-px flex-1 bg-slate-200" aria-hidden />
                   </div>
-                  <ol className="relative m-0 list-none pl-4">
+                  <ol className="relative m-0 list-none pl-5">
                     {model.undated.map((event, index) => (
                       <TimelineNode
                         key={event.id}
@@ -249,22 +253,28 @@ export function ClinicalTimeline({
               </div>
 
               <div className="relative mt-hd-4 rounded-hd-md border border-primary/20 bg-primaryLight/30 px-hd-3 py-hd-3">
-                <div className="mb-hd-2 flex items-center gap-hd-2">
-                  <span className="font-mono text-xs font-bold tabular-nums text-primary">
-                    {currentYear}
-                  </span>
-                  <span className="h-px flex-1 bg-primary/25" aria-hidden />
-                  <ClinicalStatusBadge status="active" label="Consulta actual" />
+                <div className="mb-hd-3 space-y-1.5">
+                  <div className="flex items-center gap-hd-2">
+                    <span className="font-mono text-xs font-bold tabular-nums text-primary">
+                      {currentYear}
+                    </span>
+                    <span className="h-px flex-1 bg-primary/25" aria-hidden />
+                  </div>
+                  <ClinicalStatusBadge
+                    status="active"
+                    label="Consulta actual"
+                    className="w-fit"
+                  />
                 </div>
-                <div className="relative pl-4">
+                <div className="relative pl-5">
                   <span
-                    className="absolute -left-[1.35rem] top-1 flex h-3 w-3 -translate-x-1/2 rounded-full bg-primary ring-4 ring-primary/15"
+                    className="absolute -left-[1.625rem] top-1.5 flex h-3 w-3 -translate-x-1/2 rounded-full bg-primary ring-4 ring-primary/15"
                     aria-hidden
                   />
                   <p className="text-sm font-semibold text-primary">
                     Encuentro en curso
                   </p>
-                  <p className="text-[11px] text-slate-600">
+                  <p className="mt-1 text-[11px] text-slate-600">
                     Punto activo de la línea temporal
                   </p>
                 </div>

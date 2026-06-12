@@ -82,23 +82,26 @@ export function ClinicalMemoryCard({
         className,
       )}
     >
-      <div className="mb-hd-2 flex items-start justify-between gap-hd-2">
-        <div className="heydoctor-presence min-w-0">
-          <h3 className={cn(CLINICAL_SECTION_TITLE, "text-primary/90")}>
-            Clinical Memory™
-          </h3>
-          <p className="text-xs font-medium text-slate-800">
-            Lo importante de este paciente
-          </p>
-        </div>
+      <div className="mb-hd-3 space-y-hd-2">
+        <h3
+          className={cn(
+            CLINICAL_SECTION_TITLE,
+            "heydoctor-presence text-primary/90",
+          )}
+        >
+          Clinical Memory™
+        </h3>
         <ClinicalStatusBadge
           status={confidenceStatus}
           label={`Confidence: ${clinicalMemoryConfidenceLabel(memoryView.confidence)}`}
-          className="shrink-0"
+          className="w-fit"
         />
+        <p className="text-xs font-medium text-slate-800">
+          Lo importante de este paciente
+        </p>
       </div>
 
-      <ul className="space-y-1.5">
+      <ul className="space-y-2">
         {memoryView.highlights.map((line) => (
           <li
             key={line}

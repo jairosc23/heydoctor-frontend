@@ -36,7 +36,7 @@ function RailSkeleton() {
       role="complementary"
       aria-label="Contexto del paciente"
       aria-busy="true"
-      className="rounded-hd-lg border border-hd-border-subtle bg-hd-surface-raised p-hd-3 shadow-hd-1"
+      className="rounded-hd-lg border border-hd-border-subtle bg-hd-surface-raised p-hd-4 shadow-hd-1"
     >
       <div className="animate-pulse space-y-2">
         <div className="h-4 w-2/3 rounded bg-slate-200" />
@@ -76,10 +76,10 @@ export function PatientContextRail({
     <aside
       role="complementary"
       aria-label="Contexto del paciente"
-      className="clinical-depth-secondary sticky top-[5.5rem] z-10 space-y-hd-2"
+      className="clinical-depth-secondary sticky top-[5.5rem] z-10 space-y-hd-3"
     >
-      <ClinicalCard className="border-0 bg-transparent p-0 shadow-none">
-      <div className="flex items-center justify-between gap-2 border-b border-hd-border-subtle pb-hd-2">
+      <ClinicalCard className="space-y-hd-3 border-0 bg-transparent p-hd-1 shadow-none">
+      <div className="flex items-center justify-between gap-2 border-b border-hd-border-subtle pb-hd-3">
         <p className={CLINICAL_SECTION_TITLE}>
           Contexto
         </p>
@@ -100,7 +100,7 @@ export function PatientContextRail({
         </p>
       ) : null}
 
-      <p className="text-[11px] text-slate-500">
+      <p className="text-[11px] leading-relaxed text-slate-500">
         {displayName} · {ageLabel} · {sexLabel}
         {documentLabel !== "—" ? ` · ${documentLabel}` : ""}
       </p>
@@ -109,10 +109,9 @@ export function PatientContextRail({
         patientId={patientId}
         encounterDiagnosis={encounterDiagnosis}
         snapshotConditionLabels={snapshotConditionLabels}
-        className="mb-hd-2"
       />
 
-      <div className="clinical-timeline-item rounded-hd-md">
+      <div className="clinical-timeline-item rounded-hd-md border-t border-hd-border-subtle pt-hd-3">
         <PatientMemoryCard
           patientId={patientId}
           currentConsultationId={currentConsultationId}
