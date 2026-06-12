@@ -13,6 +13,7 @@ import {
 import { AutosaveIndicator } from "./AutosaveIndicator";
 import type { AutosaveStatus } from "@/lib/hooks/useConsultationAutosave";
 import { UnifiedClinicalActionBar } from "@/components/clinical/UnifiedClinicalActionBar";
+import { SoapCommandBlock } from "./SoapCommandBlock";
 
 export interface SoapSectionProps {
   consultationId: string;
@@ -58,9 +59,19 @@ export function SoapSection({
   const badgeVariant = getDiagnosisBadgeVariant(diagnosisSource);
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-base font-semibold text-slate-900">Nota clínica</h2>
+    <div className="soap-command-center space-y-hd-4">
+      <header className="flex flex-wrap items-center justify-between gap-hd-2 border-b border-hd-border-subtle pb-hd-3">
+        <div className="heydoctor-presence">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-primary/80">
+            SOAP Command Center™
+          </p>
+          <h2 className="text-lg font-semibold tracking-tight text-slate-900">
+            Nota clínica
+          </h2>
+          <p className="text-[11px] text-slate-500">
+            Centro de gravedad del encuentro
+          </p>
+        </div>
         {editable ? (
           <AutosaveIndicator
             status={autosaveStatus}
@@ -70,18 +81,15 @@ export function SoapSection({
         ) : (
           <p className="text-xs text-slate-500">Solo lectura</p>
         )}
-      </div>
+      </header>
 
-      <section className="space-y-2 border-b border-slate-100 pb-3">
-        <h3 className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-          Diagnóstico
-        </h3>
+      <SoapCommandBlock step={1} title="Diagnóstico" priority="primary">
         {(diagnosisCode || diagnosisDescription) && badgeVariant ? (
           <DiagnosisBadge
             code={diagnosisCode}
             description={diagnosisDescription}
             variant={badgeVariant}
-            className="mb-2"
+            className="mb-hd-2"
           />
         ) : null}
         <SmartDiagnosisPicker
@@ -95,19 +103,18 @@ export function SoapSection({
         {diagnosisError ? (
           <p
             role="alert"
-            className="mt-1 rounded border border-red-200 bg-red-50 px-2 py-1.5 text-xs text-red-700"
+            className="clinical-status clinical-status--critical mt-hd-2 rounded-hd-md border px-hd-2 py-hd-2 text-xs"
           >
             {diagnosisError}
           </p>
         ) : null}
-      </section>
+      </SoapCommandBlock>
 
-      <UnifiedClinicalActionBar />
+      <SoapCommandBlock step={2} title="Plan clínico">
+        <UnifiedClinicalActionBar />
+      </SoapCommandBlock>
 
-      <section className="space-y-2 border-b border-slate-100 pb-3">
-        <h3 className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-          Notas de consulta
-        </h3>
+      <SoapCommandBlock step={3} title="Notas de consulta">
         <LiveAiNoteSuggestions
           consultationId={consultationId}
           notes={notes}
@@ -116,13 +123,10 @@ export function SoapSection({
           patientAge={undefined}
           patientSex={undefined}
         />
-      </section>
+      </SoapCommandBlock>
 
-      <section className="space-y-2">
-        <label
-          htmlFor="soap-treatment"
-          className="block text-[11px] font-semibold uppercase tracking-wide text-slate-500"
-        >
+      <SoapCommandBlock step={4} title="Tratamiento / plan">
+        <label htmlFor="soap-treatment" className="sr-only">
           Tratamiento / plan
         </label>
         <textarea
@@ -132,9 +136,9 @@ export function SoapSection({
           disabled={!editable}
           rows={5}
           placeholder="Indicaciones, medicación, seguimiento…"
-          className="w-full resize-y rounded-md border border-slate-200 px-3 py-2 text-sm disabled:bg-slate-50"
+          className="clinical-interactive w-full resize-y rounded-hd-md border border-hd-border-subtle bg-hd-surface-raised px-hd-3 py-hd-2 text-sm shadow-hd-1 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/15 disabled:bg-slate-50"
         />
-      </section>
+      </SoapCommandBlock>
     </div>
   );
 }

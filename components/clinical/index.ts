@@ -22,4 +22,5 @@ export {
   ClinicalCard,
   ClinicalPanel,
   ClinicalSection,
+  ClinicalStatusBadge,
 } from "./design";

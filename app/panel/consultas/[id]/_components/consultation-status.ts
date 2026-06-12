@@ -1,3 +1,8 @@
+import {
+  clinicalStatusBadgeClass,
+  consultationStatusToClinical,
+} from "@/lib/clinical-status-language";
+
 export const STATUS_LABELS: Record<string, string> = {
   draft: "Borrador",
   in_progress: "En progreso",
@@ -7,12 +12,16 @@ export const STATUS_LABELS: Record<string, string> = {
 };
 
 export const STATUS_BADGE_CLASS: Record<string, string> = {
-  draft: "bg-slate-400",
-  in_progress: "bg-sky-600",
-  completed: "bg-green-600",
-  signed: "bg-violet-600",
-  locked: "bg-red-600",
+  draft: clinicalStatusBadgeClass("draft"),
+  in_progress: clinicalStatusBadgeClass("active"),
+  completed: clinicalStatusBadgeClass("completed"),
+  signed: clinicalStatusBadgeClass("completed"),
+  locked: clinicalStatusBadgeClass("critical"),
 };
+
+export function consultationStatusBadgeClass(status: string): string {
+  return clinicalStatusBadgeClass(consultationStatusToClinical(status));
+}
 
 export const NEXT_STATUS: Record<string, string> = {
   draft: "in_progress",

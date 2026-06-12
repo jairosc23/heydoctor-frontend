@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ClinicalStatusBadge } from "@/components/clinical/design";
+import { autosaveStatusToClinical } from "@/lib/clinical-status-language";
 import type { AutosaveStatus } from "@/lib/hooks/useConsultationAutosave";
 import { cn } from "@/lib/utils";
 
@@ -33,17 +35,23 @@ export function AutosaveIndicator({
 
   if (status === "saving" || status === "pending") {
     return (
-      <p className={cn("text-sm text-slate-500", className)} role="status">
-        Guardando…
-      </p>
+      <ClinicalStatusBadge
+        status={autosaveStatusToClinical(status)}
+        label="Guardando…"
+        className={cn(className)}
+      />
     );
   }
 
   if (status === "error" && errorMessage) {
     return (
-      <p className={cn("text-sm text-red-600", className)} role="alert">
-        {errorMessage}
-      </p>
+      <span className={cn(className)} role="alert">
+        <ClinicalStatusBadge
+          status="critical"
+          label={errorMessage}
+          showDot={false}
+        />
+      </span>
     );
   }
 
@@ -51,9 +59,11 @@ export function AutosaveIndicator({
     const ago = formatSecondsAgo(lastSavedAt);
     if (ago) {
       return (
-        <p className={cn("text-sm text-green-700", className)} role="status">
-          Guardado hace {ago}
-        </p>
+        <ClinicalStatusBadge
+          status={autosaveStatusToClinical("saved")}
+          label={`Guardado hace ${ago}`}
+          className={cn(className)}
+        />
       );
     }
   }

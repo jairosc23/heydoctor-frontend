@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ClinicalStatusBadge } from "@/components/clinical/design";
 import { fetchInvoiceDashboard } from "@/lib/services/invoices";
 import { fetchLabOrdersByPatient } from "@/lib/services/lab-orders";
 import { fetchPrescriptionsByPatient } from "@/lib/services/prescriptions";
@@ -67,7 +68,7 @@ export function OrdersOverview({
   }, [patientId, consultationId, refreshKey]);
 
   return (
-    <header className="rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white px-4 py-3">
+    <header className="orders-priority-header heydoctor-presence rounded-hd-lg border border-hd-border-subtle bg-gradient-to-br from-hd-surface-muted to-hd-surface-raised px-hd-4 py-hd-3 shadow-hd-1">
       <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
         Orders Command Center™
       </p>
@@ -75,25 +76,19 @@ export function OrdersOverview({
       {loading ? (
         <p className="mt-1 text-xs text-slate-500">Resumiendo bandeja clínica…</p>
       ) : summary ? (
-        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-600">
-          <span>
-            <span className="font-semibold tabular-nums text-slate-900">
-              {summary.active}
-            </span>{" "}
-            activas
-          </span>
-          <span>
-            <span className="font-semibold tabular-nums text-slate-900">
-              {summary.completed}
-            </span>{" "}
-            completadas
-          </span>
-          <span>
-            <span className="font-semibold tabular-nums text-slate-900">
-              {summary.pending}
-            </span>{" "}
-            pendientes
-          </span>
+        <div className="mt-hd-2 flex flex-wrap items-center gap-hd-2">
+          <ClinicalStatusBadge
+            status="active"
+            label={`${summary.active} activas`}
+          />
+          <ClinicalStatusBadge
+            status="completed"
+            label={`${summary.completed} completadas`}
+          />
+          <ClinicalStatusBadge
+            status="pending"
+            label={`${summary.pending} pendientes`}
+          />
         </div>
       ) : null}
     </header>

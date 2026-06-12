@@ -107,6 +107,69 @@ body {
   outline: none;
 }
 
+/* HeyDoctor Presence™ — identidad sutil */
+.heydoctor-presence {
+  position: relative;
+  padding-left: 0.625rem;
+}
+
+.heydoctor-presence::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.15rem;
+  bottom: 0.15rem;
+  width: 3px;
+  border-radius: 999px;
+  background: linear-gradient(
+    180deg,
+    rgba(7, 138, 146, 0.85) 0%,
+    rgba(7, 138, 146, 0.35) 100%
+  );
+}
+
+.clinical-encounter-chrome::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(7, 138, 146, 0.25) 20%,
+    rgba(7, 138, 146, 0.45) 50%,
+    rgba(7, 138, 146, 0.25) 80%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+.clinical-encounter-chrome {
+  position: relative;
+}
+
+/* Clinical Status Language™ */
+.clinical-status {
+  transition:
+    background-color var(--hd-motion-fast) ease,
+    border-color var(--hd-motion-fast) ease,
+    color var(--hd-motion-fast) ease;
+}
+
+.soap-command-center-shell:focus-within {
+  box-shadow: var(--hd-shadow-focus);
+}
+
+.clinical-timeline-elevated .clinical-timeline-item:hover > div {
+  box-shadow: var(--hd-shadow-1);
+}
+
+.orders-priority-panel .clinical-order-card[data-priority="high"] {
+  transform: translateY(-1px);
+}
+
 @keyframes spin {
   from {
     transform: rotate(0deg);

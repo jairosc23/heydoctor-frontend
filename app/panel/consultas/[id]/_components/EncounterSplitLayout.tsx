@@ -26,7 +26,7 @@ export function EncounterSplitLayout({
       <ClinicalSurface
         depth={3}
         focusPrimary
-        className="clinical-focus-primary min-w-0 p-hd-1"
+        className="soap-command-center-shell clinical-focus-primary min-w-0 p-hd-2 shadow-hd-3 ring-1 ring-primary/10"
       >
         {left}
       </ClinicalSurface>

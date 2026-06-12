@@ -29,7 +29,7 @@ export function OrdersQuickActions({
           type="button"
           onClick={() => onSelect(action.id)}
           className={cn(
-            "inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors",
+            "clinical-chip clinical-interactive inline-flex items-center gap-1 rounded-hd-md border px-2.5 py-1.5 text-xs font-medium",
             activeSubTab === action.id
               ? "border-primary/30 bg-primaryLight text-primary"
               : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
