@@ -1,64 +1,27 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo, type ReactNode } from "react";
 import { useDoctorDna } from "@/hooks/useDoctorDna";
-import type { DoctorDnaProfile } from "@/lib/types/doctor-dna";
+import {
+  buildDoctorDnaIntelligenceView,
+  TREND_SYMBOL,
+} from "@/lib/doctor-dna-intelligence";
 import { cn } from "@/lib/utils";
 
-function MetricCell({ value, label }: { value: number; label: string }) {
+function SectionTitle({ children }: { children: ReactNode }) {
   return (
-    <div className="min-w-0">
-      <p className="text-lg font-semibold tabular-nums text-slate-900">{value}</p>
-      <p className="text-[10px] text-slate-500">{label}</p>
-    </div>
+    <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+      {children}
+    </h3>
   );
 }
 
-function PatternRow({
-  label,
-  code,
-  frequency,
-}: {
-  label: string;
-  code?: string | null;
-  frequency: number;
-}) {
+function ClinicalListItem({ children }: { children: ReactNode }) {
   return (
-    <div className="flex items-baseline justify-between gap-2 border-b border-slate-50 py-1.5 last:border-0">
-      <div className="min-w-0 flex-1">
-        {code ? (
-          <span className="mr-1.5 font-mono text-[10px] text-indigo-600">{code}</span>
-        ) : null}
-        <span className="text-xs text-slate-800">{label}</span>
-      </div>
-      <span className="shrink-0 text-[10px] tabular-nums text-slate-400">{frequency}×</span>
-    </div>
+    <li className="border-b border-slate-50 py-1.5 text-xs leading-snug text-slate-800 last:border-0">
+      {children}
+    </li>
   );
-}
-
-function buildInsights(data: DoctorDnaProfile) {
-  const topDx = data.topDiagnoses[0];
-  const { consultations30d, prescriptions30d } = data.practiceMetrics;
-
-  const dominantPattern =
-    data.topDiagnoses.length >= 3 && prescriptions30d > 5
-      ? "Medicina crónica"
-      : consultations30d > 15
-        ? "Alta rotación ambulatoria"
-        : "Práctica diversificada";
-
-  const recentActivity =
-    consultations30d === 0
-      ? "sin actividad reciente"
-      : consultations30d < 5
-        ? "moderada"
-        : "estable";
-
-  return {
-    dominantPattern,
-    mainFocus: topDx?.label ?? "Sin patrón dominante",
-    recentActivity,
-  };
 }
 
 export interface DoctorDnaDrawerProps {
@@ -68,6 +31,11 @@ export interface DoctorDnaDrawerProps {
 
 export function DoctorDnaDrawer({ open, onClose }: DoctorDnaDrawerProps) {
   const { data, loading, error } = useDoctorDna();
+
+  const intelligence = useMemo(
+    () => (loading || error ? null : buildDoctorDnaIntelligenceView(data)),
+    [data, loading, error],
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -79,9 +47,6 @@ export function DoctorDnaDrawer({ open, onClose }: DoctorDnaDrawerProps) {
   }, [open, onClose]);
 
   if (!open) return null;
-
-  const insights = buildInsights(data);
-  const metrics = data.practiceMetrics;
 
   return (
     <>
@@ -102,10 +67,8 @@ export function DoctorDnaDrawer({ open, onClose }: DoctorDnaDrawerProps) {
       >
         <header className="flex shrink-0 items-center justify-between border-b border-slate-100 px-4 py-3">
           <div>
-            <h2 className="text-sm font-semibold text-slate-900">
-              Doctor DNA Intelligence™
-            </h2>
-            <p className="text-[10px] text-slate-500">Perfil de práctica clínica</p>
+            <h2 className="text-sm font-semibold text-slate-900">Doctor DNA™</h2>
+            <p className="text-[10px] text-slate-500">Clinical Intelligence Layer</p>
           </div>
           <button
             type="button"
@@ -119,91 +82,119 @@ export function DoctorDnaDrawer({ open, onClose }: DoctorDnaDrawerProps) {
 
         <div className="flex-1 overflow-y-auto px-4 py-4">
           {loading ? (
-            <p className="text-xs text-slate-500">Cargando perfil de práctica…</p>
+            <p className="text-xs text-slate-500">Interpretando perfil clínico…</p>
           ) : error ? (
             <p className="text-xs text-red-600">
               No se pudo cargar el perfil clínico del médico.
             </p>
-          ) : (
+          ) : intelligence ? (
             <div className="space-y-6">
               <section>
-                <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                  Actividad
-                </h3>
-                <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-                  <MetricCell value={metrics.consultations30d} label="Consultas 30d" />
-                  <MetricCell value={metrics.uniquePatients30d} label="Pacientes 30d" />
-                  <MetricCell value={metrics.prescriptions30d} label="Recetas 30d" />
-                  <MetricCell value={metrics.labOrders30d} label="Labs 30d" />
-                </div>
+                <SectionTitle>Actividad reciente</SectionTitle>
+                <ul className="space-y-1.5">
+                  {intelligence.activity.map((line) => (
+                    <li key={line.id} className="text-xs text-slate-800">
+                      <span className="font-semibold tabular-nums text-slate-900">
+                        {line.value}
+                      </span>{" "}
+                      {line.text.replace(/^\d+\s*/, "")}
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-2 text-[10px] leading-relaxed text-slate-400">
+                  Resumen interpretativo de tu práctica en los últimos 30 días.
+                </p>
               </section>
 
               <section>
-                <h3 className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                  Diagnósticos frecuentes
-                </h3>
-                {data.topDiagnoses.length === 0 ? (
-                  <p className="text-xs text-slate-400">Sin patrones aún</p>
+                <SectionTitle>Diagnósticos dominantes</SectionTitle>
+                {intelligence.dominantDiagnoses.length === 0 ? (
+                  <p className="text-xs text-slate-400">
+                    Aún no hay patrones diagnósticos suficientes.
+                  </p>
                 ) : (
-                  <div>
-                    {data.topDiagnoses.map((item) => (
-                      <PatternRow
-                        key={item.id}
-                        label={item.label}
-                        code={item.code}
-                        frequency={item.frequency}
-                      />
+                  <ul className="list-none">
+                    {intelligence.dominantDiagnoses.map((dx) => (
+                      <ClinicalListItem key={dx.id}>{dx.display}</ClinicalListItem>
                     ))}
-                  </div>
+                  </ul>
                 )}
               </section>
 
               <section>
-                <h3 className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                  Medicamentos frecuentes
-                </h3>
-                {data.topMedications.length === 0 ? (
-                  <p className="text-xs text-slate-400">Sin patrones aún</p>
+                <SectionTitle>Medicamentos más prescritos</SectionTitle>
+                {intelligence.topMedications.length === 0 ? (
+                  <p className="text-xs text-slate-400">
+                    Sin medicación recurrente registrada.
+                  </p>
                 ) : (
-                  <div>
-                    {data.topMedications.map((item) => (
-                      <PatternRow
-                        key={item.id}
-                        label={item.label}
-                        frequency={item.frequency}
-                      />
+                  <ul className="list-none">
+                    {intelligence.topMedications.map((med) => (
+                      <ClinicalListItem key={med.id}>{med.label}</ClinicalListItem>
                     ))}
-                  </div>
+                  </ul>
                 )}
               </section>
 
               <section className="border-t border-slate-100 pt-4">
-                <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                  Insights
-                </h3>
+                <SectionTitle>Perfil clínico detectado</SectionTitle>
                 <dl className="space-y-2 text-xs">
-                  <div className="flex justify-between gap-3">
-                    <dt className="text-slate-500">Patrón dominante</dt>
-                    <dd className="text-right font-medium text-slate-800">
-                      {insights.dominantPattern}
+                  <div>
+                    <dt className="text-slate-500">Predominio</dt>
+                    <dd className="font-medium text-slate-900">
+                      {intelligence.clinicalProfile.predominance}
                     </dd>
                   </div>
-                  <div className="flex justify-between gap-3">
-                    <dt className="text-slate-500">Enfoque principal</dt>
-                    <dd className="text-right font-medium text-slate-800">
-                      {insights.mainFocus}
+                  <div>
+                    <dt className="text-slate-500">Área principal</dt>
+                    <dd className="font-medium text-slate-900">
+                      {intelligence.clinicalProfile.mainArea}
                     </dd>
                   </div>
-                  <div className="flex justify-between gap-3">
-                    <dt className="text-slate-500">Actividad reciente</dt>
-                    <dd className="text-right font-medium text-slate-800">
-                      {insights.recentActivity}
+                  <div>
+                    <dt className="text-slate-500">Complejidad</dt>
+                    <dd className="font-medium text-slate-900">
+                      {intelligence.clinicalProfile.complexity}
                     </dd>
                   </div>
                 </dl>
               </section>
+
+              <section>
+                <SectionTitle>Tendencias recientes</SectionTitle>
+                {intelligence.trends.length === 0 ? (
+                  <p className="text-xs text-slate-400">
+                    Sin tendencias diagnósticas identificables.
+                  </p>
+                ) : (
+                  <ul className="list-none space-y-1">
+                    {intelligence.trends.map((trend) => (
+                      <li
+                        key={trend.id}
+                        className="flex items-start gap-2 text-xs text-slate-800"
+                      >
+                        <span
+                          className={cn(
+                            "shrink-0 font-mono font-semibold",
+                            trend.direction === "up" && "text-emerald-700",
+                            trend.direction === "stable" && "text-slate-500",
+                            trend.direction === "down" && "text-amber-700",
+                          )}
+                          aria-hidden
+                        >
+                          {TREND_SYMBOL[trend.direction]}
+                        </span>
+                        <span>{trend.label}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <p className="mt-2 text-[10px] text-slate-400">
+                  Tendencias inferidas por frecuencia, recencia y preferencia clínica.
+                </p>
+              </section>
             </div>
-          )}
+          ) : null}
         </div>
       </aside>
     </>
