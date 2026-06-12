@@ -13,7 +13,13 @@ import {
 } from "@/lib/services/consultation-actions";
 import { getApiErrorMessage } from "@/lib/heydoctor-api";
 import { useConsultationPrice } from "@/lib/hooks/useConsultationPrice";
-import { cn } from "@/lib/utils";
+import {
+  formatInvoiceTitle,
+  inferInvoiceStatus,
+  sortOrdersByStatusThenDate,
+} from "@/lib/orders-command-center";
+import { OrdersEmptyState } from "@/components/clinical/orders/OrdersEmptyState";
+import { UnifiedOrderCard } from "@/components/clinical/orders/UnifiedOrderCard";
 
 export function InvoicesSubTab({
   consultationId,
@@ -88,74 +94,81 @@ export function InvoicesSubTab({
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-slate-600">
-        Facturas asociadas a esta consulta. Usa las APIs de facturación clínica
-        ya desplegadas.
-      </p>
-      <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={() => void handleCreateEnterprise()}
-          disabled={creating || consultationPrice.loading}
-          className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primaryMid disabled:opacity-60"
-        >
-          {creating ? "Creando…" : "Crear factura (módulo clínico)"}
-        </button>
-        <button
-          type="button"
-          onClick={() => void handleLegacyGenerate()}
-          disabled={legacyLoading}
-          className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
-        >
-          {legacyLoading ? "Procesando…" : "Generar factura (consulta)"}
-        </button>
-        <button
-          type="button"
-          onClick={() => void reload()}
-          className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50"
-        >
-          Actualizar
-        </button>
-      </div>
-      {error ? (
-        <p className="text-sm text-red-600" role="alert">
-          {error}
-        </p>
-      ) : null}
       {loading ? (
         <p className="text-sm text-slate-500">Cargando facturas…</p>
       ) : invoices.length === 0 ? (
-        <p className="text-sm text-slate-500">No hay facturas para esta consulta.</p>
+        <OrdersEmptyState
+          message="Sin órdenes registradas"
+          actionLabel="Crear nueva factura"
+          onAction={() => {
+            document
+              .getElementById("invoice-form")
+              ?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }}
+        />
       ) : (
-        <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white">
-          {invoices.map((inv) => (
-            <li
+        <div className="space-y-2">
+          {sortOrdersByStatusThenDate(
+            invoices,
+            (invoice) => inferInvoiceStatus(invoice.status),
+            (invoice) => invoice.issuedAt ?? invoice.paidAt,
+          ).map((inv) => (
+            <UnifiedOrderCard
               key={inv.id}
-              className="flex flex-wrap items-center justify-between gap-2 px-4 py-3"
-            >
-              <div>
-                <p className="font-medium text-slate-800">
-                  {inv.documentNumber || inv.id.slice(0, 8)}
-                </p>
-                <p className="text-xs text-slate-500">
-                  {inv.status} · ${inv.amountClp?.toLocaleString("es-CL")} CLP
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => void handlePdf(inv.id)}
-                disabled={pdfLoadingId === inv.id}
-                className={cn(
-                  "rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-primary hover:bg-primaryLight",
-                  pdfLoadingId === inv.id && "opacity-60",
-                )}
-              >
-                {pdfLoadingId === inv.id ? "PDF…" : "PDF"}
-              </button>
-            </li>
+              kind="Factura"
+              title={formatInvoiceTitle(inv)}
+              status={inferInvoiceStatus(inv.status)}
+              updatedAt={inv.issuedAt ?? inv.paidAt}
+              actions={
+                <button
+                  type="button"
+                  onClick={() => void handlePdf(inv.id)}
+                  disabled={pdfLoadingId === inv.id}
+                  className="font-medium text-slate-600 hover:text-primary hover:underline disabled:opacity-50"
+                >
+                  {pdfLoadingId === inv.id ? "PDF…" : "PDF"}
+                </button>
+              }
+            />
           ))}
-        </ul>
+        </div>
       )}
+
+      <div id="invoice-form" className="space-y-3 border-t border-slate-100 pt-4">
+        <p className="text-sm text-slate-600">
+          Facturas asociadas a esta consulta.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => void handleCreateEnterprise()}
+            disabled={creating || consultationPrice.loading}
+            className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primaryMid disabled:opacity-60"
+          >
+            {creating ? "Creando…" : "Crear factura (módulo clínico)"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleLegacyGenerate()}
+            disabled={legacyLoading}
+            className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+          >
+            {legacyLoading ? "Procesando…" : "Generar factura (consulta)"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void reload()}
+            className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50"
+          >
+            Actualizar
+          </button>
+        </div>
+        {error ? (
+          <p className="text-sm text-red-600" role="alert">
+            {error}
+          </p>
+        ) : null}
+      </div>
     </div>
   );
 }

@@ -7,6 +7,8 @@ import {
 } from "@/components/clinical";
 import { cn } from "@/lib/utils";
 import { InvoicesSubTab } from "./InvoicesSubTab";
+import { OrdersOverview } from "./orders/OrdersOverview";
+import { OrdersQuickActions } from "./orders/OrdersQuickActions";
 import type { ActionResult } from "@/lib/services/consultation-actions";
 
 export type OrdersSubTab =
@@ -14,13 +16,6 @@ export type OrdersSubTab =
   | "lab"
   | "referrals"
   | "invoices";
-
-const SUB_TABS: { id: OrdersSubTab; label: string }[] = [
-  { id: "prescriptions", label: "Recetas" },
-  { id: "lab", label: "Laboratorios" },
-  { id: "referrals", label: "Interconsultas" },
-  { id: "invoices", label: "Facturas" },
-];
 
 export function OrdersTab({
   patientId,
@@ -49,23 +44,16 @@ export function OrdersTab({
       )}
       data-testid="orders-tab-panel"
     >
-      <div className="flex flex-wrap gap-1 rounded-xl border border-slate-200 bg-white p-1">
-        {SUB_TABS.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => onSubTabChange(tab.id)}
-            className={cn(
-              "rounded-lg px-3 py-2 text-sm font-semibold transition-colors",
-              activeSubTab === tab.id
-                ? "bg-primary text-white"
-                : "text-slate-600 hover:bg-slate-50",
-            )}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      <OrdersOverview
+        patientId={patientId}
+        consultationId={consultationId}
+        refreshKey={refreshKey}
+      />
+
+      <OrdersQuickActions
+        activeSubTab={activeSubTab}
+        onSelect={onSubTabChange}
+      />
 
       {activeSubTab === "prescriptions" ? (
         <div id="prescription-workspace">
@@ -78,21 +66,27 @@ export function OrdersTab({
         </div>
       ) : null}
       {activeSubTab === "lab" ? (
-        <LabOrdersPanel
-          key={`lab-${refreshKey}`}
-          patientId={patientId}
-          consultationId={consultationId}
-          diagnosisCode={diagnosisCode}
-        />
+        <div id="lab-orders-workspace">
+          <LabOrdersPanel
+            key={`lab-${refreshKey}`}
+            patientId={patientId}
+            consultationId={consultationId}
+            diagnosisCode={diagnosisCode}
+          />
+        </div>
       ) : null}
       {activeSubTab === "referrals" ? (
-        <ReferralsPanel patientId={patientId} consultationId={consultationId} />
+        <div id="referrals-workspace">
+          <ReferralsPanel patientId={patientId} consultationId={consultationId} />
+        </div>
       ) : null}
       {activeSubTab === "invoices" ? (
-        <InvoicesSubTab
-          consultationId={consultationId}
-          onLegacyInvoiceResult={onLegacyInvoiceResult}
-        />
+        <div id="invoices-workspace">
+          <InvoicesSubTab
+            consultationId={consultationId}
+            onLegacyInvoiceResult={onLegacyInvoiceResult}
+          />
+        </div>
       ) : null}
     </div>
   );

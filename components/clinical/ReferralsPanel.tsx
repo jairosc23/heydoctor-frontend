@@ -10,6 +10,13 @@ import {
   type ReferralStatus,
 } from "@/lib/services";
 import { getApiErrorMessage } from "@/lib/heydoctor-api";
+import {
+  formatReferralTitle,
+  inferReferralStatus,
+  sortOrdersByStatusThenDate,
+} from "@/lib/orders-command-center";
+import { OrdersEmptyState } from "./orders/OrdersEmptyState";
+import { UnifiedOrderCard } from "./orders/UnifiedOrderCard";
 
 interface ReferralsPanelProps {
   patientId: string;
@@ -128,47 +135,64 @@ export function ReferralsPanel({
         <p className="text-sm text-gray-500">Cargando interconsultas…</p>
       ) : (
         <>
-          {referrals.length > 0 && (
-            <div className="mb-4 space-y-2 max-h-48 overflow-y-auto">
-              {referrals.map((r) => (
-                <div key={r.id} className="border border-gray-100 rounded p-2 text-sm">
-                  <div className="flex flex-wrap justify-between gap-2">
-                    <span>
-                      <strong>{r.specialty}</strong> → {r.receivingDoctorName}
-                    </span>
-                    <span className="text-xs px-2 py-0.5 rounded bg-slate-100">
-                      {STATUS_LABEL[r.status] ?? r.status}
-                    </span>
-                  </div>
-                  <p className="text-gray-600 mt-1">{r.reason}</p>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {(["PENDING", "ACCEPTED", "COMPLETED"] as ReferralStatus[]).map(
-                      (st) => (
+          {referrals.length === 0 ? (
+            <div className="mb-4">
+              <OrdersEmptyState
+                message="Sin órdenes registradas"
+                actionLabel="Crear nueva interconsulta"
+                onAction={() => {
+                  document
+                    .getElementById("referral-form")
+                    ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+              />
+            </div>
+          ) : (
+            <div className="mb-4 max-h-56 space-y-2 overflow-y-auto">
+              {sortOrdersByStatusThenDate(
+                referrals,
+                (item) => inferReferralStatus(item.status),
+                (item) => item.createdAt,
+              ).map((r) => (
+                  <UnifiedOrderCard
+                    key={r.id}
+                    kind="Interconsulta"
+                    title={formatReferralTitle(r)}
+                    status={inferReferralStatus(r.status)}
+                    updatedAt={r.createdAt}
+                    actions={
+                      <>
+                        {(["PENDING", "ACCEPTED", "COMPLETED"] as ReferralStatus[]).map(
+                          (st) => (
+                            <button
+                              key={st}
+                              type="button"
+                              disabled={r.status === st}
+                              onClick={() => void handleStatus(r.id, st)}
+                              className="font-medium text-slate-600 hover:text-primary hover:underline disabled:opacity-40"
+                            >
+                              {STATUS_LABEL[st]}
+                            </button>
+                          ),
+                        )}
+                        <span className="text-slate-300" aria-hidden>
+                          |
+                        </span>
                         <button
-                          key={st}
                           type="button"
-                          disabled={r.status === st}
-                          onClick={() => void handleStatus(r.id, st)}
-                          className="text-xs text-indigo-600 hover:underline disabled:opacity-40"
+                          onClick={() => void handlePdf(r.id)}
+                          disabled={pdfLoadingId === r.id}
+                          className="font-medium text-slate-600 hover:text-primary hover:underline disabled:opacity-50"
                         >
-                          {STATUS_LABEL[st]}
+                          {pdfLoadingId === r.id ? "PDF…" : "PDF"}
                         </button>
-                      ),
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => void handlePdf(r.id)}
-                      disabled={pdfLoadingId === r.id}
-                      className="text-xs text-teal-700 hover:underline disabled:opacity-50"
-                    >
-                      {pdfLoadingId === r.id ? "PDF…" : "PDF"}
-                    </button>
-                  </div>
-                </div>
-              ))}
+                      </>
+                    }
+                  />
+                ))}
             </div>
           )}
-          <div className="space-y-2">
+          <div id="referral-form" className="space-y-2">
             <input
               type="text"
               value={receivingDoctorName}

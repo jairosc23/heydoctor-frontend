@@ -13,6 +13,13 @@ import {
   type LabTemplate,
 } from "@/lib/services";
 import { getApiErrorMessage } from "@/lib/heydoctor-api";
+import {
+  formatLabOrderTitle,
+  inferLabOrderStatus,
+  sortOrdersByStatusThenDate,
+} from "@/lib/orders-command-center";
+import { OrdersEmptyState } from "./orders/OrdersEmptyState";
+import { UnifiedOrderCard } from "./orders/UnifiedOrderCard";
 
 interface LabOrdersPanelProps {
   patientId: string;
@@ -187,22 +194,43 @@ export function LabOrdersPanel({
               {listError}
             </p>
           )}
-          {orders.length > 0 && (
-            <div className="mb-3 max-h-32 overflow-y-auto space-y-1">
-              <h4 className="text-xs font-medium text-gray-600">Órdenes recientes</h4>
-              {orders.slice(0, 5).map((o) => (
-                <div key={o.id} className="text-sm flex justify-between gap-2 border border-gray-100 rounded p-2">
-                  <span>{(o.exams ?? []).map((e) => e.exam).join(", ")}</span>
-                  <button
-                    type="button"
-                    onClick={() => void handlePdf(o.id)}
-                    disabled={pdfLoadingId === o.id}
-                    className="text-xs text-teal-700 hover:underline shrink-0 disabled:opacity-50"
-                  >
-                    {pdfLoadingId === o.id ? "PDF…" : "Descargar PDF"}
-                  </button>
-                </div>
-              ))}
+          {orders.length === 0 ? (
+            <div className="mb-3">
+              <OrdersEmptyState
+                message="Sin órdenes registradas"
+                actionLabel="Crear nuevo laboratorio"
+                onAction={() => {
+                  document
+                    .getElementById("lab-order-form")
+                    ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+              />
+            </div>
+          ) : (
+            <div className="mb-3 max-h-56 space-y-2 overflow-y-auto">
+              {sortOrdersByStatusThenDate(
+                orders,
+                () => inferLabOrderStatus(),
+                (order) => order.createdAt,
+              ).map((o) => (
+                  <UnifiedOrderCard
+                    key={o.id}
+                    kind="Laboratorio"
+                    title={formatLabOrderTitle(o)}
+                    status={inferLabOrderStatus()}
+                    updatedAt={o.createdAt}
+                    actions={
+                      <button
+                        type="button"
+                        onClick={() => void handlePdf(o.id)}
+                        disabled={pdfLoadingId === o.id}
+                        className="font-medium text-slate-600 hover:text-primary hover:underline disabled:opacity-50"
+                      >
+                        {pdfLoadingId === o.id ? "PDF…" : "PDF"}
+                      </button>
+                    }
+                  />
+                ))}
             </div>
           )}
           {(favorites.length > 0 || others.length > 0) && (
@@ -227,7 +255,7 @@ export function LabOrdersPanel({
               </div>
             </div>
           )}
-          <div className="space-y-2">
+          <div id="lab-order-form" className="space-y-2">
             {suggestLoading && <p className="text-xs text-gray-500">Buscando exámenes…</p>}
             {suggestedTests.length > 0 && (
               <div>

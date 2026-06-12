@@ -11,7 +11,14 @@ import {
   type PrescriptionRecord,
 } from "@/lib/services";
 import { getApiErrorMessage } from "@/lib/heydoctor-api";
+import {
+  formatPrescriptionTitle,
+  inferPrescriptionStatus,
+  sortOrdersByStatusThenDate,
+} from "@/lib/orders-command-center";
 import { MedicationSuggestInput } from "./MedicationSuggestInput";
+import { OrdersEmptyState } from "./orders/OrdersEmptyState";
+import { UnifiedOrderCard } from "./orders/UnifiedOrderCard";
 
 interface PrescriptionPanelProps {
   patientId: string;
@@ -171,39 +178,68 @@ export function PrescriptionPanel({
               {listError}
             </p>
           )}
-          {prescriptions.length > 0 && (
-            <div className="mb-4 space-y-2 max-h-40 overflow-y-auto">
-              <h4 className="text-xs font-medium text-gray-600">Recetas registradas</h4>
-              {prescriptions.map((p) => (
-                <div
-                  key={p.id}
-                  className="text-sm border border-gray-100 rounded-md p-2 flex flex-wrap items-center justify-between gap-2"
-                >
-                  <span className="text-gray-700">
-                    {(p.medications ?? []).map((m) => m.name).filter(Boolean).join(", ")}
-                    {p.diagnosis ? ` · ${p.diagnosis}` : ""}
-                  </span>
-                  <span className="flex gap-1 shrink-0">
-                    <button type="button" onClick={() => startEdit(p)} className="text-xs text-indigo-600 hover:underline">
-                      Editar
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void handlePdf(p.id)}
-                      disabled={pdfLoadingId === p.id}
-                      className="text-xs text-teal-700 hover:underline disabled:opacity-50"
-                    >
-                      {pdfLoadingId === p.id ? "PDF…" : "PDF"}
-                    </button>
-                    <button type="button" onClick={() => void handleDelete(p.id)} className="text-xs text-red-600 hover:underline">
-                      Eliminar
-                    </button>
-                  </span>
-                </div>
-              ))}
+          {prescriptions.length === 0 ? (
+            <div className="mb-4">
+              <OrdersEmptyState
+                message="Sin órdenes registradas"
+                actionLabel="Crear nueva receta"
+                onAction={() => {
+                  document
+                    .getElementById("prescription-form")
+                    ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+              />
+            </div>
+          ) : (
+            <div className="mb-4 max-h-56 space-y-2 overflow-y-auto">
+              {sortOrdersByStatusThenDate(
+                prescriptions,
+                (item) => inferPrescriptionStatus(item.status),
+                (item) => item.createdAt,
+              ).map((p) => (
+                  <UnifiedOrderCard
+                    key={p.id}
+                    kind="Receta médica"
+                    title={formatPrescriptionTitle(p)}
+                    status={inferPrescriptionStatus(p.status)}
+                    updatedAt={p.createdAt}
+                    actions={
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => startEdit(p)}
+                          className="font-medium text-slate-600 hover:text-primary hover:underline"
+                        >
+                          Editar
+                        </button>
+                        <span className="text-slate-300" aria-hidden>
+                          |
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => void handlePdf(p.id)}
+                          disabled={pdfLoadingId === p.id}
+                          className="font-medium text-slate-600 hover:text-primary hover:underline disabled:opacity-50"
+                        >
+                          {pdfLoadingId === p.id ? "PDF…" : "PDF"}
+                        </button>
+                        <span className="text-slate-300" aria-hidden>
+                          |
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => void handleDelete(p.id)}
+                          className="font-medium text-slate-500 hover:text-red-600 hover:underline"
+                        >
+                          Eliminar
+                        </button>
+                      </>
+                    }
+                  />
+                ))}
             </div>
           )}
-          <div className="space-y-2">
+          <div id="prescription-form" className="space-y-2">
             <input
               type="text"
               value={diagnosis}
