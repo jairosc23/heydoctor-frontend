@@ -60,7 +60,6 @@ import {
 } from "@/lib/services/clinical-record";
 import { PatientContextRail } from "./_components/PatientContextRail";
 import { SafetyStrip } from "./_components/SafetyStrip";
-import { DoctorDnaCollapsible } from "./_components/DoctorDnaCollapsible";
 import { EncounterHeader } from "./_components/EncounterHeader";
 import { PatientSnapshot } from "./_components/PatientSnapshot";
 import type { UnifiedPlanApplyResult } from "@/lib/types/unified-clinical-plan";
@@ -785,8 +784,6 @@ export default function ConsultationDetailPage() {
           ) : null}
         </div>
       </div>
-
-      {consultation.patientId ? <DoctorDnaCollapsible /> : null}
 
       <ShareConsultationDialog
         consultationId={id}

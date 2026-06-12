@@ -15,6 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 import { NEXT_STATUS_LABELS } from "./consultation-status";
 import { EncounterActionMenu } from "./EncounterActionMenu";
+import { DoctorDnaDrawer, DoctorDnaDrawerTrigger } from "./DoctorDnaDrawer";
 
 function HeaderIconButton({
   icon,
@@ -142,6 +143,7 @@ export function EncounterHeader({
   className,
 }: EncounterHeaderProps) {
   const [signPanelOpen, setSignPanelOpen] = useState(false);
+  const [dnaDrawerOpen, setDnaDrawerOpen] = useState(false);
 
   const transitionLabel = NEXT_STATUS_LABELS[status];
   const showPay = canPay && !isLocked;
@@ -166,6 +168,10 @@ export function EncounterHeader({
           role="toolbar"
           aria-label="Acciones del encuentro"
         >
+          <DoctorDnaDrawerTrigger
+            onClick={() => setDnaDrawerOpen(true)}
+            active={dnaDrawerOpen}
+          />
           <HeaderIconButton
             icon="📹"
             label="Iniciar teleconsulta"
@@ -296,6 +302,11 @@ export function EncounterHeader({
           {saveMsg}
         </p>
       ) : null}
+
+      <DoctorDnaDrawer
+        open={dnaDrawerOpen}
+        onClose={() => setDnaDrawerOpen(false)}
+      />
     </header>
   );
 }
