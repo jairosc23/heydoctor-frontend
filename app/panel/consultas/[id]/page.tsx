@@ -62,6 +62,7 @@ import { PatientContextRail } from "./_components/PatientContextRail";
 import { SafetyStrip } from "./_components/SafetyStrip";
 import { EncounterHeader } from "./_components/EncounterHeader";
 import { PatientSnapshot } from "./_components/PatientSnapshot";
+import { ClinicalCopilotDrawer } from "./_components/copilot/ClinicalCopilotDrawer";
 import {
   DoctorDnaDrawer,
   DoctorDnaSignatureChip,
@@ -152,6 +153,7 @@ export default function ConsultationDetailPage() {
   const [aiTrigger, setAiTrigger] = useState(0);
   const [shareOpen, setShareOpen] = useState(false);
   const [dnaDrawerOpen, setDnaDrawerOpen] = useState(false);
+  const [copilotDrawerOpen, setCopilotDrawerOpen] = useState(false);
 
   const [patientRow, setPatientRow] = useState<PatientRow | null>(null);
   const [patientProfile, setPatientProfile] = useState<PatientProfile | null>(
@@ -773,7 +775,15 @@ export default function ConsultationDetailPage() {
               pdf: isLocked,
             }}
             dnaDrawerOpen={dnaDrawerOpen}
-            onOpenDoctorDna={() => setDnaDrawerOpen(true)}
+            onOpenDoctorDna={() => {
+              setCopilotDrawerOpen(false);
+              setDnaDrawerOpen(true);
+            }}
+            copilotDrawerOpen={copilotDrawerOpen}
+            onOpenCopilot={() => {
+              setDnaDrawerOpen(false);
+              setCopilotDrawerOpen(true);
+            }}
           />
           <div className="flex justify-end pb-0.5">
             <DoctorDnaSignatureChip onClick={() => setDnaDrawerOpen(true)} />
@@ -796,6 +806,16 @@ export default function ConsultationDetailPage() {
           </div>
         </div>
       </div>
+
+      <ClinicalCopilotDrawer
+        open={copilotDrawerOpen}
+        onClose={() => setCopilotDrawerOpen(false)}
+        diagnosis={diagnosisState.diagnosis}
+        diagnosisDescription={diagnosisState.diagnosisDescription}
+        treatment={treatment}
+        notes={notes}
+        patientName={patientName}
+      />
 
       <DoctorDnaDrawer
         open={dnaDrawerOpen}

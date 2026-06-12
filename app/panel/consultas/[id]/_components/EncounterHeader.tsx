@@ -15,6 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 import { NEXT_STATUS_LABELS } from "./consultation-status";
 import { EncounterActionMenu } from "./EncounterActionMenu";
+import { ClinicalCopilotTrigger } from "./copilot/ClinicalCopilotDrawer";
 import { DoctorDnaDrawerTrigger } from "./DoctorDnaDrawer";
 
 function HeaderIconButton({
@@ -107,6 +108,8 @@ export interface EncounterHeaderProps {
   isEditing?: boolean;
   dnaDrawerOpen?: boolean;
   onOpenDoctorDna?: () => void;
+  copilotDrawerOpen?: boolean;
+  onOpenCopilot?: () => void;
   className?: string;
 }
 
@@ -144,6 +147,8 @@ export function EncounterHeader({
   isEditing,
   dnaDrawerOpen = false,
   onOpenDoctorDna,
+  copilotDrawerOpen = false,
+  onOpenCopilot,
   className,
 }: EncounterHeaderProps) {
   const [signPanelOpen, setSignPanelOpen] = useState(false);
@@ -171,6 +176,10 @@ export function EncounterHeader({
           role="toolbar"
           aria-label="Acciones del encuentro"
         >
+          <ClinicalCopilotTrigger
+            onClick={() => onOpenCopilot?.()}
+            active={copilotDrawerOpen}
+          />
           <DoctorDnaDrawerTrigger
             onClick={() => onOpenDoctorDna?.()}
             active={dnaDrawerOpen}
