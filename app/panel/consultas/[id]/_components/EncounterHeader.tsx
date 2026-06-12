@@ -12,30 +12,9 @@ import {
   formatConsultationPrice,
   URGENCY_AVAILABLE_NOW,
 } from "@/lib/consultation-pricing";
-import {
-  formatPatientDocument,
-  formatPatientSex,
-  resolvePatientAge,
-} from "@/lib/patient-profile-display";
-import type { PatientRow } from "@/lib/services/patients";
 import { cn } from "@/lib/utils";
-import {
-  NEXT_STATUS_LABELS,
-  STATUS_LABELS,
-} from "./consultation-status";
+import { NEXT_STATUS_LABELS } from "./consultation-status";
 import { EncounterActionMenu } from "./EncounterActionMenu";
-
-const STATUS_DOT: Record<string, string> = {
-  draft: "bg-slate-400",
-  in_progress: "bg-emerald-500",
-  completed: "bg-green-500",
-  signed: "bg-violet-500",
-  locked: "bg-red-500",
-};
-
-const STATUS_CLINICAL_LABEL: Record<string, string> = {
-  in_progress: "Consulta activa",
-};
 
 function HeaderIconButton({
   icon,
@@ -94,9 +73,6 @@ function HeaderIconButton({
 }
 
 export interface EncounterHeaderProps {
-  patientName: string;
-  patient: PatientRow | null;
-  chiefComplaint: string;
   status: string;
   transitioning: boolean;
   onBack: () => void;
@@ -132,9 +108,6 @@ export interface EncounterHeaderProps {
 }
 
 export function EncounterHeader({
-  patientName,
-  patient,
-  chiefComplaint,
   status,
   transitioning,
   onBack,
@@ -170,53 +143,26 @@ export function EncounterHeader({
 }: EncounterHeaderProps) {
   const [signPanelOpen, setSignPanelOpen] = useState(false);
 
-  const ageLabel = patient ? resolvePatientAge(patient) : "—";
-  const sexLabel = patient ? formatPatientSex(patient.sex) : "—";
-  const documentLabel = patient ? formatPatientDocument(patient) : "—";
-  const statusLabel = STATUS_CLINICAL_LABEL[status] ?? STATUS_LABELS[status] ?? status;
-  const statusDot = STATUS_DOT[status] ?? "bg-slate-400";
   const transitionLabel = NEXT_STATUS_LABELS[status];
   const showPay = canPay && !isLocked;
   const showSign = canSign && !isSigned;
 
   return (
-    <header className={cn("py-2", className)} aria-label="Encuentro clínico">
-      <div className="flex items-start gap-2">
+    <header className={cn("py-1.5", className)} aria-label="Acciones del encuentro">
+      <div className="flex items-center gap-2">
         <button
           type="button"
           onClick={onBack}
           aria-label="Volver a consultas"
-          title="Volver"
-          className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-primary"
+          title="Volver a consultas"
+          className="inline-flex h-7 shrink-0 items-center gap-1 text-xs font-medium text-slate-500 hover:text-primary"
         >
-          ←
+          <span aria-hidden>←</span>
+          <span className="hidden sm:inline">Consultas</span>
         </button>
 
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-            <h1 className="truncate font-[Montserrat] text-sm font-bold uppercase tracking-wide text-slate-900">
-              {patientName}
-            </h1>
-            <span className="inline-flex items-center gap-1 text-xs text-slate-600">
-              <span
-                className={cn("h-1.5 w-1.5 shrink-0 rounded-full", statusDot)}
-                aria-hidden
-              />
-              {statusLabel}
-            </span>
-          </div>
-          <p className="truncate text-xs text-slate-600">
-            {ageLabel} · {sexLabel} · {documentLabel}
-          </p>
-          {chiefComplaint && chiefComplaint !== "—" ? (
-            <p className="truncate text-[11px] text-slate-500">
-              {chiefComplaint}
-            </p>
-          ) : null}
-        </div>
-
         <div
-          className="flex shrink-0 flex-wrap items-center justify-end gap-1"
+          className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-1"
           role="toolbar"
           aria-label="Acciones del encuentro"
         >

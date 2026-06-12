@@ -62,6 +62,7 @@ import { PatientContextRail } from "./_components/PatientContextRail";
 import { SafetyStrip } from "./_components/SafetyStrip";
 import { DoctorDnaCollapsible } from "./_components/DoctorDnaCollapsible";
 import { EncounterHeader } from "./_components/EncounterHeader";
+import { PatientSnapshot } from "./_components/PatientSnapshot";
 import type { UnifiedPlanApplyResult } from "@/lib/types/unified-clinical-plan";
 import { ConsultationClinicalProviders } from "./_components/ConsultationClinicalProviders";
 import { ClinicalIntelligenceSync } from "./_components/ClinicalIntelligenceSync";
@@ -695,15 +696,10 @@ export default function ConsultationDetailPage() {
     <div className="mx-auto max-w-5xl space-y-2 p-3 md:p-4 lg:p-5 xl:max-w-none 2xl:mx-auto 2xl:max-w-[1600px]">
       <div
         className="sticky top-0 z-30 -mx-3 border-b border-slate-200 bg-white/95 backdrop-blur md:-mx-4 lg:-mx-5"
-        style={{ ["--encounter-chrome-h" as string]: "4.5rem" }}
+        style={{ ["--encounter-chrome-h" as string]: "5.5rem" }}
       >
         <div className="px-3 md:px-4 lg:px-5">
           <EncounterHeader
-            patientName={patientName}
-            patient={patientRow}
-            chiefComplaint={
-              consultation.reason || consultation.chiefComplaint || "—"
-            }
             status={status}
             transitioning={transitioning}
             onBack={() => router.push("/panel/consultas")}
@@ -772,6 +768,13 @@ export default function ConsultationDetailPage() {
               invoice: isLocked,
               pdf: isLocked,
             }}
+          />
+          <PatientSnapshot
+            patientId={consultation.patientId}
+            patientName={patientName}
+            patient={patientRow}
+            profile={patientProfile}
+            status={status}
           />
           {consultation.patientId ? (
             <SafetyStrip
