@@ -65,6 +65,23 @@ export function SafetyStrip({
   }
 
   if (!hasContent) {
+    if (embedded) {
+      return (
+        <div
+          className={cn(shellClass, "flex items-center py-0.5")}
+          role="status"
+          aria-label="Sin riesgos críticos"
+          data-variant="compact-safe"
+        >
+          <span
+            aria-hidden
+            className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500"
+          />
+          <span className="sr-only">Sin riesgos críticos</span>
+        </div>
+      );
+    }
+
     return (
       <div
         className={cn(shellClass, "flex items-center gap-1.5 text-xs text-emerald-800")}

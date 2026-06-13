@@ -110,6 +110,8 @@ export interface EncounterHeaderProps {
   onOpenDoctorDna?: () => void;
   copilotDrawerOpen?: boolean;
   onOpenCopilot?: () => void;
+  /** Phase 4.2.3a — oculta atajos duplicados en Clinical Action Bar™. */
+  hideModuleShortcuts?: boolean;
   className?: string;
 }
 
@@ -149,6 +151,7 @@ export function EncounterHeader({
   onOpenDoctorDna,
   copilotDrawerOpen = false,
   onOpenCopilot,
+  hideModuleShortcuts = false,
   className,
 }: EncounterHeaderProps) {
   const [signPanelOpen, setSignPanelOpen] = useState(false);
@@ -190,24 +193,28 @@ export function EncounterHeader({
             onClick={onStartTeleconsultation}
             disabled={!canStartCall || isLocked}
           />
-          <HeaderIconButton
-            icon="💊"
-            label="Recetas"
-            onClick={onOpenPrescription}
-            disabled={actionDisabled?.prescription ?? isLocked}
-          />
-          <HeaderIconButton
-            icon="🧪"
-            label="Laboratorios"
-            onClick={onOpenLabOrders}
-            disabled={isLocked}
-          />
-          <HeaderIconButton
-            icon="📄"
-            label="Documentos"
-            onClick={onOpenDocuments}
-            disabled={!onOpenDocuments}
-          />
+          {!hideModuleShortcuts ? (
+            <>
+              <HeaderIconButton
+                icon="💊"
+                label="Recetas"
+                onClick={onOpenPrescription}
+                disabled={actionDisabled?.prescription ?? isLocked}
+              />
+              <HeaderIconButton
+                icon="🧪"
+                label="Laboratorios"
+                onClick={onOpenLabOrders}
+                disabled={isLocked}
+              />
+              <HeaderIconButton
+                icon="📄"
+                label="Documentos"
+                onClick={onOpenDocuments}
+                disabled={!onOpenDocuments}
+              />
+            </>
+          ) : null}
           <HeaderIconButton
             icon="✍"
             label={isSigned ? "Consulta firmada" : "Firmar consulta"}

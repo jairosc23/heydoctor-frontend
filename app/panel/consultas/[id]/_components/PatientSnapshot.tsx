@@ -48,6 +48,8 @@ export interface PatientSnapshotProps {
   patient: PatientRow | null;
   profile: PatientProfile | null;
   status: string;
+  /** Phase 4.2.3a — fila única en desktop xl+ (Context Rail cubre detalle). */
+  compact?: boolean;
   className?: string;
 }
 
@@ -57,6 +59,7 @@ export function PatientSnapshot({
   patient,
   profile,
   status,
+  compact = false,
   className,
 }: PatientSnapshotProps) {
   const { data: memory, loading: memoryLoading } =
@@ -85,17 +88,62 @@ export function PatientSnapshot({
   const alertCount = memory.alerts.length;
   const pendingLabCount = memory.pendingLabs.length;
 
-  return (
+  const compactRow = compact ? (
     <section
       className={cn(
-        "max-h-20 border-b border-slate-100 py-2",
-        "flex flex-col gap-2",
-        "md:grid md:max-h-none md:grid-cols-2 md:gap-x-4 md:gap-y-1.5",
-        "lg:flex lg:max-h-20 lg:flex-row lg:items-center lg:gap-4",
+        "border-b border-slate-100 py-1",
+        "hidden xl:flex xl:min-h-0 xl:max-h-none xl:items-center xl:gap-3 xl:overflow-hidden",
         className,
       )}
       aria-label="Patient Snapshot"
+      data-variant="compact"
     >
+      <p className="min-w-0 shrink-0 truncate font-[Montserrat] text-xs font-bold uppercase tracking-wide text-slate-900">
+        {patientName}
+      </p>
+      <span className="shrink-0 text-[11px] text-slate-500" aria-hidden>
+        ·
+      </span>
+      <p className="shrink-0 text-[11px] text-slate-600">
+        {ageLabel} · {sexLabel}
+      </p>
+      <span className="shrink-0 text-[11px] text-slate-300" aria-hidden>
+        ·
+      </span>
+      <div className="min-w-0 flex-1 truncate">
+        {memoryLoading ? (
+          <span className="text-[11px] text-slate-400">…</span>
+        ) : conditions.length === 0 ? (
+          <span className="text-[11px] text-slate-400">Sin condiciones activas</span>
+        ) : (
+          <span className="truncate text-[11px] font-medium text-slate-800">
+            {conditions.map((c) => c.label).join(" · ")}
+            {extraConditions > 0 ? ` · +${extraConditions}` : ""}
+          </span>
+        )}
+      </div>
+      <p className="inline-flex shrink-0 items-center gap-1 text-[11px] font-semibold text-slate-700">
+        <span aria-hidden>{statusMeta.emoji}</span>
+        {statusMeta.label}
+      </p>
+    </section>
+  ) : null;
+
+  return (
+    <>
+      {compactRow}
+      <section
+        className={cn(
+          "max-h-20 border-b border-slate-100 py-2",
+          "flex flex-col gap-2",
+          "md:grid md:max-h-none md:grid-cols-2 md:gap-x-4 md:gap-y-1.5",
+          "lg:flex lg:max-h-20 lg:flex-row lg:items-center lg:gap-4",
+          compact && "xl:hidden",
+          !compact ? className : undefined,
+        )}
+        aria-label={compact ? undefined : "Patient Snapshot"}
+        data-variant="default"
+      >
       {/* Bloque A — Identidad */}
       <div className="min-w-0 shrink-0 lg:max-w-[14rem]">
         <p className="truncate font-[Montserrat] text-sm font-bold uppercase tracking-wide text-slate-900">
@@ -175,5 +223,6 @@ export function PatientSnapshot({
         </div>
       </div>
     </section>
+    </>
   );
 }

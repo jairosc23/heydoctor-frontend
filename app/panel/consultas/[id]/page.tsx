@@ -65,7 +65,6 @@ import { PatientSnapshot } from "./_components/PatientSnapshot";
 import { ClinicalCopilotDrawer } from "./_components/copilot/ClinicalCopilotDrawer";
 import {
   DoctorDnaDrawer,
-  DoctorDnaSignatureChip,
 } from "./_components/DoctorDnaDrawer";
 import type { UnifiedPlanApplyResult } from "@/lib/types/unified-clinical-plan";
 import { ConsultationClinicalProviders } from "./_components/ConsultationClinicalProviders";
@@ -88,6 +87,7 @@ import {
 } from "./_components/action-workspace/ClinicalActionWorkspaceProvider";
 import { ClinicalModuleSheet } from "./_components/action-workspace/ClinicalModuleSheet";
 import { ClinicalModuleSheetContent } from "./_components/action-workspace/ClinicalModuleSheetContent";
+import { EncounterChromeShell } from "./_components/EncounterChromeShell";
 
 const clinicalActionWorkspaceEnabled = isClinicalActionWorkspaceEnabled();
 
@@ -147,6 +147,7 @@ export default function ConsultationDetailPage() {
   const [ordersRefreshKey, setOrdersRefreshKey] = useState(0);
   const clinicalActionWorkspaceNavRef =
     useRef<ClinicalActionWorkspaceContextValue | null>(null);
+  const workspaceRef = useRef<HTMLDivElement>(null);
 
   function openClinicalModule(moduleId: ClinicalActionModuleId) {
     clinicalActionWorkspaceNavRef.current?.openModule(moduleId);
@@ -742,15 +743,13 @@ export default function ConsultationDetailPage() {
       enabled={clinicalActionWorkspaceEnabled}
       navigationRef={clinicalActionWorkspaceNavRef}
     >
-    <div className="clinical-workspace mx-auto max-w-5xl space-y-hd-2 p-hd-3 md:p-hd-4 lg:p-hd-5 xl:max-w-none 2xl:mx-auto 2xl:max-w-[1600px]">
-      <div
+    <div
+      ref={workspaceRef}
+      className="clinical-workspace mx-auto max-w-5xl space-y-hd-2 p-hd-3 md:p-hd-4 lg:p-hd-5 xl:max-w-none 2xl:mx-auto 2xl:max-w-[1600px]"
+    >
+      <EncounterChromeShell
+        workspaceRef={workspaceRef}
         className="clinical-encounter-chrome clinical-depth-1 sticky top-0 z-30 -mx-3 border-b border-hd-border-subtle bg-hd-surface-chrome/95 shadow-hd-2 backdrop-blur md:-mx-4 lg:-mx-5"
-        style={{
-          ["--encounter-chrome-h" as string]:
-            clinicalActionWorkspaceEnabled && consultation.patientId
-              ? "8.25rem"
-              : "5.5rem",
-        }}
       >
         <div className="clinical-depth-2 px-3 md:px-4 lg:px-5">
           <EncounterHeader
@@ -768,6 +767,9 @@ export default function ConsultationDetailPage() {
             onOpenPrescription={handleOpenPrescription}
             onOpenLabOrders={handleOpenLabOrders}
             onOpenDocuments={handleOpenDocuments}
+            hideModuleShortcuts={
+              clinicalActionWorkspaceEnabled && !!consultation.patientId
+            }
             isSigned={isSigned}
             canSign={canSign}
             signing={signing}
@@ -833,9 +835,6 @@ export default function ConsultationDetailPage() {
               setCopilotDrawerOpen(true);
             }}
           />
-          <div className="flex justify-end pb-0.5">
-            <DoctorDnaSignatureChip onClick={() => setDnaDrawerOpen(true)} />
-          </div>
           <div className="clinical-depth-2 space-y-hd-2 pb-hd-2">
             <PatientSnapshot
               patientId={consultation.patientId}
@@ -843,6 +842,9 @@ export default function ConsultationDetailPage() {
               patient={patientRow}
               profile={patientProfile}
               status={status}
+              compact={
+                clinicalActionWorkspaceEnabled && !!consultation.patientId
+              }
             />
             {consultation.patientId ? (
               <SafetyStrip
@@ -860,7 +862,7 @@ export default function ConsultationDetailPage() {
             ) : null}
           </div>
         </div>
-      </div>
+      </EncounterChromeShell>
 
       <ClinicalModuleSheet>
         <ClinicalModuleSheetContent

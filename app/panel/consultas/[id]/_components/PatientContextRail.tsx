@@ -76,7 +76,7 @@ export function PatientContextRail({
     <aside
       role="complementary"
       aria-label="Contexto del paciente"
-      className="clinical-depth-secondary sticky top-[5.5rem] z-10 min-w-0 space-y-hd-3"
+      className="clinical-depth-secondary sticky top-[var(--encounter-chrome-h,5.5rem)] z-10 min-w-0 space-y-hd-3"
     >
       <ClinicalCard className="min-w-0 space-y-hd-3 border-0 bg-transparent p-0 shadow-none">
       <div className="flex items-center justify-between gap-2 border-b border-hd-border-subtle pb-hd-3">
