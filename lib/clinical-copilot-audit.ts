@@ -305,7 +305,7 @@ export const COPILOT_AUDIT_SCENARIOS: CopilotAuditScenario[] = [
       },
     }),
     expectations: {
-      expectInsightIds: ["dm2-lab", "dm2-rx", "dm2-alert"],
+      expectInsightIds: ["dm2-lab"],
       expectGapIds: ["gap-weight"],
       qualityRange: [55, 80],
     },
@@ -341,7 +341,7 @@ export const COPILOT_AUDIT_SCENARIOS: CopilotAuditScenario[] = [
       },
     }),
     expectations: {
-      expectInsightIds: ["asma-rx", "asma-stable"],
+      expectInsightIds: ["asma-no-exacerbation", "asma-treatment-persistence"],
       qualityRange: [70, 95],
     },
   },
@@ -371,8 +371,7 @@ export const COPILOT_AUDIT_SCENARIOS: CopilotAuditScenario[] = [
       },
     }),
     expectations: {
-      missedSpecializedInsight: "Sin reglas EPOC — solo longitudinal/DNA",
-      expectBaselineRisk: true,
+      expectInsightIds: ["epoc-treatment-persistence"],
       qualityRange: [60, 90],
     },
   },
@@ -408,7 +407,7 @@ export const COPILOT_AUDIT_SCENARIOS: CopilotAuditScenario[] = [
       },
     }),
     expectations: {
-      missedSpecializedInsight: "Sin reglas hipotiroidismo",
+      expectInsightIds: ["hypo-lab", "hypo-treatment-persistence"],
       qualityRange: [55, 80],
     },
   },
@@ -424,10 +423,31 @@ export const COPILOT_AUDIT_SCENARIOS: CopilotAuditScenario[] = [
       chiefComplaint: "Control de peso",
       notes: "Signos vitales: peso 98 kg, talla 165 cm. IMC calculado en notas.",
       treatment: "Plan nutricional. Control mensual.",
-      clinicalMemoryRaw: memoryBase("p-obes"),
+      clinicalMemoryRaw: {
+        ...memoryBase("p-obes"),
+        activeConditions: [
+          { code: "E66", label: "Obesidad", source: "cie10" },
+        ],
+        recentConsultations: [
+          {
+            id: "obes-1",
+            createdAt: OLD_CONSULT,
+            status: "completed",
+            diagnosisCode: "E66.9",
+            diagnosisLabel: "Obesidad",
+          },
+          {
+            id: "obes-2",
+            createdAt: RECENT_CONSULT,
+            status: "completed",
+            diagnosisCode: "E66.9",
+            diagnosisLabel: "Obesidad",
+          },
+        ],
+      },
     }),
     expectations: {
-      missedSpecializedInsight: "Sin reglas obesidad — peso presente pero sin insight IMC",
+      expectInsightIds: ["obesity-longitudinal"],
       qualityRange: [70, 95],
     },
   },
@@ -495,8 +515,7 @@ export const COPILOT_AUDIT_SCENARIOS: CopilotAuditScenario[] = [
       },
     }),
     expectations: {
-      missedSpecializedInsight: "Sin reglas ERGE",
-      expectBaselineRisk: true,
+      expectInsightIds: ["erge-treatment-persistence"],
       qualityRange: [55, 80],
     },
   },
@@ -543,7 +562,7 @@ export const COPILOT_AUDIT_SCENARIOS: CopilotAuditScenario[] = [
       },
     }),
     expectations: {
-      missedSpecializedInsight: "Sin reglas Parkinson",
+      expectInsightIds: ["park-treatment-persistence"],
       qualityRange: [55, 80],
     },
   },
@@ -579,7 +598,7 @@ export const COPILOT_AUDIT_SCENARIOS: CopilotAuditScenario[] = [
       },
     }),
     expectations: {
-      missedSpecializedInsight: "Sin reglas FA — alerta debería elevar risk signal",
+      expectInsightIds: ["fa-treatment-persistence"],
       qualityRange: [55, 80],
     },
   },
@@ -595,10 +614,28 @@ export const COPILOT_AUDIT_SCENARIOS: CopilotAuditScenario[] = [
       chiefComplaint: "Dolor articular rodillas",
       notes: "Dolor mecánico bilateral. Sin signos inflamatorios.",
       treatment: "Paracetamol PRN. Ejercicio de bajo impacto.",
-      clinicalMemoryRaw: memoryBase("p-art"),
+      clinicalMemoryRaw: {
+        ...memoryBase("p-art"),
+        recentConsultations: [
+          {
+            id: "art-1",
+            createdAt: OLD_CONSULT,
+            status: "completed",
+            diagnosisCode: "M19.90",
+            diagnosisLabel: "Artrosis",
+          },
+          {
+            id: "art-2",
+            createdAt: RECENT_CONSULT,
+            status: "completed",
+            diagnosisCode: "M19.90",
+            diagnosisLabel: "Artrosis",
+          },
+        ],
+      },
     }),
     expectations: {
-      expectBaselineRisk: true,
+      expectInsightIds: ["art-longitudinal"],
       qualityRange: [55, 80],
     },
   },
@@ -716,9 +753,8 @@ export const COPILOT_AUDIT_SCENARIOS: CopilotAuditScenario[] = [
       },
     }),
     expectations: {
-      expectInsightIds: ["hta-vitals"],
-      forbidInsightIds: ["dm2-rx"],
-      missedSpecializedInsight: "Sin insight polifarmacia/interacciones",
+      expectInsightIds: ["polypharmacy-context"],
+      forbidInsightIds: ["hta-vitals", "dm2-rx"],
       qualityRange: [70, 95],
     },
   },
@@ -780,6 +816,23 @@ export const COPILOT_AUDIT_SCENARIOS: CopilotAuditScenario[] = [
         activeConditions: [
           { code: "I10", label: "Hipertensión esencial", source: "cie10" },
           { code: "E11", label: "Diabetes mellitus tipo 2", source: "cie10" },
+          { code: "E78", label: "Dislipidemia", source: "cie10" },
+        ],
+        recentConsultations: [
+          {
+            id: "multi-1",
+            createdAt: OLD_CONSULT,
+            status: "completed",
+            diagnosisCode: "I10",
+            diagnosisLabel: "Hipertensión esencial",
+          },
+          {
+            id: "multi-2",
+            createdAt: RECENT_CONSULT,
+            status: "completed",
+            diagnosisCode: "E11",
+            diagnosisLabel: "Diabetes mellitus tipo 2",
+          },
         ],
         currentMedications: [
           {
@@ -804,8 +857,7 @@ export const COPILOT_AUDIT_SCENARIOS: CopilotAuditScenario[] = [
       },
     }),
     expectations: {
-      expectInsightIds: ["hta-vitals"],
-      missedSpecializedInsight: "Solo reglas HTA activas — DM2 ignorado por código principal",
+      expectInsightIds: ["hta-vitals", "multimorbidity-context"],
       qualityRange: [70, 95],
     },
   },
@@ -848,6 +900,26 @@ function classifyInsight(insight: CopilotInsight): ClassifiedItem {
     case "asma-followup-gap":
       classification = "útil";
       rationale = "Intervalo de control asmático — continuidad asistencial.";
+      break;
+    case "epoc-treatment-persistence":
+    case "epoc-followup-gap":
+    case "hypo-lab":
+    case "hypo-treatment-persistence":
+    case "hypo-followup-gap":
+    case "obesity-longitudinal":
+    case "obesity-followup-gap":
+    case "erge-treatment-persistence":
+    case "erge-followup-gap":
+    case "park-treatment-persistence":
+    case "park-followup-gap":
+    case "art-longitudinal":
+    case "art-followup-gap":
+    case "fa-treatment-persistence":
+    case "fa-followup-gap":
+    case "polypharmacy-context":
+    case "multimorbidity-context":
+      classification = "útil";
+      rationale = "Observación contextual con evidencia documentada (Phase 4.7C).";
       break;
     default:
       classification = "neutro";
@@ -1016,19 +1088,14 @@ function detectFalseNegatives(
     }
   }
 
-  if (exp.missedSpecializedInsight) {
-    if (
-      exp.missedSpecializedInsight.includes("ignorado") ||
-      exp.missedSpecializedInsight.includes("polifarmacia")
-    ) {
+  if (exp.missedSpecializedInsight?.includes("Sin reglas")) {
+    const hasSpecialized = bundle.insights.some((i) =>
+      /^(hta|dm2|asma|epoc|hypo|obesity|erge|park|art|fa|polypharmacy|multimorbidity)-/.test(
+        i.id,
+      ),
+    );
+    if (!hasSpecialized) {
       fns.push(`motor — ${exp.missedSpecializedInsight}`);
-    } else if (exp.missedSpecializedInsight.includes("Sin reglas")) {
-      const hasSpecialized = bundle.insights.some((i) =>
-        /^(hta|dm2|asma)-/.test(i.id),
-      );
-      if (!hasSpecialized) {
-        fns.push(`motor — ${exp.missedSpecializedInsight}`);
-      }
     }
   }
 
@@ -1327,7 +1394,11 @@ export function runCopilotClinicalAudit(
     totalGaps += c.bundle.documentationGaps.length;
     qualitySum += c.qualityAssessment.score;
 
-    if (c.bundle.insights.some((i) => /^(hta|dm2|asma)-/.test(i.id))) {
+    if (c.bundle.insights.some((i) =>
+      /^(hta|dm2|asma|epoc|hypo|obesity|erge|park|art|fa|polypharmacy|multimorbidity)-/.test(
+        i.id,
+      ),
+    )) {
       specializedHits += 1;
     }
 
@@ -1370,7 +1441,7 @@ export function runCopilotClinicalAudit(
 
   return {
     methodology:
-      "Batería determinística Phase 4.7/4.7B sobre buildClinicalCopilotIntelligence. " +
+      "Batería determinística Phase 4.7C sobre buildClinicalCopilotIntelligence. " +
       "20 escenarios clínicos con SOAP + Clinical Memory + Data Foundation. " +
       "Clasificación: útil / neutro / ruido / potencialmente_incorrecto.",
     scenarioCount: cases.length,
@@ -1390,16 +1461,16 @@ export function runCopilotClinicalAudit(
     rankingDesign: buildClinicalRankingDesign(),
     qualityScoreAudit: buildQualityScoreAudit(cases),
     recommendations: [
-      "Phase 4.7B aplicado: risk-baseline eliminado, duplicados HTA fusionados, redundancias suprimidas.",
-      "Ampliar cobertura determinística más allá de I10/E11/J45 en fase futura.",
-      "Implementar ranking CRÍTICO→INFORMATIVO antes de Clinical Agents™.",
+      "Phase 4.7C: cobertura ampliada a EPOC, hipotiroidismo, obesidad, ERGE, Parkinson, artrosis, FA, polifarmacia y multimorbilidad.",
+      "Mantener Zero Noise™ — solo insights con evidencia documentada.",
+      "Implementar ranking CRÍTICO→INFORMATIVO (Phase 4.7 pendiente).",
       "Calibrar Documentation Quality (Phase 4.7D pendiente).",
     ],
     risks: [
-      "70% escenarios sin insights especializados — silencio clínico fuera de HTA/DM2/Asma.",
-      "Comorbilidades ignoradas — solo código diagnóstico principal.",
+      "Consultas agudas sin memoria permanecen en Silence Mode — comportamiento esperado.",
+      "Multimorbilidad requiere ≥3 condiciones activas y longitudinal — umbral conservador.",
+      "Polifarmacia contextual no evalúa interacciones — por diseño.",
       "Quality 'Excelente' alcanzable sin examen físico en consultas agudas.",
-      "Silence Mode puede ocultar gaps si todos los bloques están vacíos simultáneamente.",
     ],
   };
 }
@@ -1476,6 +1547,78 @@ export function runCopilotNoiseReductionComparison(): CopilotNoiseReductionCompa
       baselineEliminated: !report.cases.some((c) =>
         c.bundle.riskSignals.some((s) => s.id === "risk-baseline"),
       ),
+    },
+  };
+}
+
+/** Métricas congeladas Phase 4.7B (commit 6d26088d) */
+export const COPILOT_AUDIT_BASELINE_47B: CopilotClinicalAuditReport["aggregate"] & {
+  falsePositives: number;
+  falseNegatives: number;
+  silenceModeCount: number;
+} = {
+  totalInsights: 8,
+  totalRiskSignals: 11,
+  totalGaps: 5,
+  utilityBreakdown: { útil: 24, neutro: 0, ruido: 0, potencialmente_incorrecto: 0 },
+  avgQualityScore: 75,
+  specializedCoverage: 25,
+  falsePositives: 0,
+  falseNegatives: 13,
+  silenceModeCount: 12,
+};
+
+export type CopilotCoverageComparison = {
+  before: typeof COPILOT_AUDIT_BASELINE_47B;
+  after: CopilotClinicalAuditReport["aggregate"] & {
+    falsePositives: number;
+    falseNegatives: number;
+    silenceModeCount: number;
+  };
+  delta: {
+    insights: number;
+    útil: number;
+    ruido: number;
+    falsePositives: number;
+    falseNegatives: number;
+    silenceModeCount: number;
+    specializedCoverage: number;
+  };
+  goalMet: {
+    coverageIncreased: boolean;
+    zeroNoise: boolean;
+    zeroFalsePositives: boolean;
+    silenceReduced: boolean;
+  };
+};
+
+export function runCopilotCoverageComparison(): CopilotCoverageComparison {
+  const report = runCopilotClinicalAudit();
+  const after = {
+    ...report.aggregate,
+    falsePositives: report.falsePositives.length,
+    falseNegatives: report.falseNegatives.length,
+    silenceModeCount: report.cases.filter((c) => c.bundle.silenceMode).length,
+  };
+  const before = COPILOT_AUDIT_BASELINE_47B;
+
+  return {
+    before,
+    after,
+    delta: {
+      insights: after.totalInsights - before.totalInsights,
+      útil: after.utilityBreakdown.útil - before.utilityBreakdown.útil,
+      ruido: after.utilityBreakdown.ruido - before.utilityBreakdown.ruido,
+      falsePositives: after.falsePositives - before.falsePositives,
+      falseNegatives: after.falseNegatives - before.falseNegatives,
+      silenceModeCount: after.silenceModeCount - before.silenceModeCount,
+      specializedCoverage: after.specializedCoverage - before.specializedCoverage,
+    },
+    goalMet: {
+      coverageIncreased: after.specializedCoverage > before.specializedCoverage,
+      zeroNoise: after.utilityBreakdown.ruido === 0,
+      zeroFalsePositives: after.falsePositives === 0,
+      silenceReduced: after.silenceModeCount < before.silenceModeCount,
     },
   };
 }

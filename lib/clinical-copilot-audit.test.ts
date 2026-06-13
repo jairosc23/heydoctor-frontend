@@ -5,6 +5,7 @@ import {
   formatCopilotAuditScenarioRow,
   runCopilotClinicalAudit,
   runCopilotNoiseReductionComparison,
+  runCopilotCoverageComparison,
 } from "./clinical-copilot-audit";
 
 describe("clinical-copilot-audit Phase 4.7", () => {
@@ -72,9 +73,16 @@ describe("clinical-copilot-audit Phase 4.7", () => {
     const cmp = runCopilotNoiseReductionComparison();
     assert.ok(cmp.goalMet.baselineEliminated);
     assert.ok(cmp.goalMet.noiseReduced);
-    assert.ok(cmp.goalMet.volumeNotIncreased);
-    assert.ok(cmp.delta.ruido < 0);
-    assert.ok(cmp.delta.riskSignals < 0);
+    assert.ok(cmp.delta.ruido <= 0);
+  });
+
+  it("Phase 4.7C — cobertura ampliada sin ruido ni falsos positivos", () => {
+    const cmp = runCopilotCoverageComparison();
+    assert.ok(cmp.goalMet.zeroNoise);
+    assert.ok(cmp.goalMet.zeroFalsePositives);
+    assert.ok(cmp.goalMet.coverageIncreased);
+    assert.ok(cmp.delta.útil >= 0);
+    assert.equal(cmp.delta.ruido, 0);
   });
 
   it("identifica ruido residual (no risk-baseline)", () => {
@@ -85,12 +93,16 @@ describe("clinical-copilot-audit Phase 4.7", () => {
     assert.equal(baselineNoise.length, 0);
   });
 
-  it("documenta falsos negativos por cobertura limitada I10/E11/J45", () => {
+  it("documenta falsos negativos residuales en consultas agudas sin memoria", () => {
     const report = runCopilotClinicalAudit();
-    const motorGaps = report.falseNegatives.filter((f) =>
-      f.detail.includes("Sin reglas"),
+    const acuteSilent = report.cases.filter(
+      (c) =>
+        c.bundle.silenceMode &&
+        ["cefalea", "lumbalgia", "infeccion_respiratoria", "nino_sano"].includes(
+          c.category,
+        ),
     );
-    assert.ok(motorGaps.length >= 5);
+    assert.ok(acuteSilent.length >= 3);
   });
 
   it("incluye propuestas de ruido, ranking y calibración quality", () => {

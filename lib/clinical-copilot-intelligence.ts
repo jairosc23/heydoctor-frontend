@@ -1,6 +1,7 @@
 /**
  * Phase 4.6 — Clinical Copilot Intelligence™
- * Phase 4.7B — Noise Reduction: menos output, más valor clínico.
+ * Phase 4.7B — Noise Reduction
+ * Phase 4.7C — Clinical Coverage (evidencia documentada únicamente)
  */
 
 import { buildClinicalDataFoundation } from "./clinical-data-foundation";
@@ -155,8 +156,121 @@ function isAsthma(code: string | null): boolean {
   return code != null && /^J45/i.test(code);
 }
 
+function isCopd(code: string | null): boolean {
+  return code != null && /^J44/i.test(code);
+}
+
+function isHypothyroidism(code: string | null): boolean {
+  return code != null && /^E03/i.test(code);
+}
+
+function isObesity(code: string | null): boolean {
+  return code != null && /^E66/i.test(code);
+}
+
+function isErge(code: string | null): boolean {
+  return code != null && /^K21/i.test(code);
+}
+
+function isParkinson(code: string | null): boolean {
+  return code != null && /^G20/i.test(code);
+}
+
+function isArthritis(code: string | null): boolean {
+  return code != null && /^M19/i.test(code);
+}
+
+function isAtrialFibrillation(code: string | null): boolean {
+  return code != null && /^I48/i.test(code);
+}
+
 function isElevatedBp(systolic?: number | null, diastolic?: number | null): boolean {
   return (systolic != null && systolic >= 140) || (diastolic != null && diastolic >= 90);
+}
+
+function getPriorConsultation(
+  memory: PatientClinicalMemory | null | undefined,
+  consultationId?: string | null,
+) {
+  return memory?.recentConsultations.find((c) => c.id !== consultationId) ?? null;
+}
+
+function monthsSinceLastConsult(
+  memory: PatientClinicalMemory | null | undefined,
+  consultationId?: string | null,
+): number | null {
+  const prior = getPriorConsultation(memory, consultationId);
+  return prior ? monthsSince(prior.createdAt) : null;
+}
+
+function persistentMedications(
+  memory: PatientClinicalMemory | null | undefined,
+  pattern: RegExp,
+  minMonths = 6,
+) {
+  return (
+    memory?.currentMedications.filter((m) => {
+      if (!pattern.test(m.name)) return false;
+      const months = monthsSince(m.since);
+      return months != null && months >= minMonths;
+    }) ?? []
+  );
+}
+
+function isPolymedicated(memory: PatientClinicalMemory | null | undefined): boolean {
+  return (memory?.currentMedications.length ?? 0) >= 5;
+}
+
+function countActiveChronicConditions(
+  memory: PatientClinicalMemory | null | undefined,
+): number {
+  return memory?.activeConditions.length ?? 0;
+}
+
+function pushFollowupGapInsight(
+  insights: CopilotInsight[],
+  opts: {
+    id: string;
+    title: string;
+    memory: PatientClinicalMemory | null | undefined;
+    consultationId?: string | null;
+    minMonths?: number;
+  },
+) {
+  const months = monthsSinceLastConsult(opts.memory, opts.consultationId);
+  if (months != null && months >= (opts.minMonths ?? 3)) {
+    insights.push({
+      id: opts.id,
+      kind: "continuity",
+      title: opts.title,
+      body: `Última consulta previa en memoria: hace ~${months} mes(es). Contexto de continuidad asistencial.`,
+    });
+  }
+}
+
+function pushTreatmentPersistenceInsight(
+  insights: CopilotInsight[],
+  opts: {
+    id: string;
+    title: string;
+    memory: PatientClinicalMemory | null | undefined;
+    pattern: RegExp;
+    minMonths?: number;
+  },
+) {
+  const meds = persistentMedications(
+    opts.memory,
+    opts.pattern,
+    opts.minMonths ?? 6,
+  );
+  if (meds.length) {
+    insights.push({
+      id: opts.id,
+      kind: "medication",
+      title: opts.title,
+      body: `${meds.map((m) => m.name).join(", ")} documentado ≥${opts.minMonths ?? 6} meses en memoria clínica.`,
+    });
+  }
 }
 
 export function buildCopilotContextV2(
@@ -369,7 +483,152 @@ export function buildClinicalInsightCards(
     }
   }
 
-  return insights.slice(0, 6);
+  if (isCopd(code)) {
+    pushTreatmentPersistenceInsight(insights, {
+      id: "epoc-treatment-persistence",
+      title: "Broncodilatador persistente documentado",
+      memory,
+      pattern: /tiotropio|salmeterol|formoterol|ipratropio|bronco|inhal/i,
+    });
+    pushFollowupGapInsight(insights, {
+      id: "epoc-followup-gap",
+      title: "Intervalo desde último control EPOC",
+      memory,
+      consultationId: input.consultationId,
+    });
+  }
+
+  if (isHypothyroidism(code)) {
+    const tshLab = memory?.pendingLabs.find((l) =>
+      /tsh|tiroid/i.test(l.exam),
+    );
+    if (tshLab) {
+      insights.push({
+        id: "hypo-lab",
+        kind: "lab",
+        title: "TSH en contexto de laboratorio",
+        body: `${tshLab.exam} — dato documentado en memoria clínica. No constituye interpretación clínica automática.`,
+      });
+    }
+    pushTreatmentPersistenceInsight(insights, {
+      id: "hypo-treatment-persistence",
+      title: "Tratamiento tiroideo persistente",
+      memory,
+      pattern: /levotiroxina|eutirox|levothyroxine/i,
+    });
+    pushFollowupGapInsight(insights, {
+      id: "hypo-followup-gap",
+      title: "Intervalo desde último control tiroideo",
+      memory,
+      consultationId: input.consultationId,
+    });
+  }
+
+  if (isObesity(code)) {
+    const priorConsults =
+      memory?.recentConsultations.filter((c) => c.id !== input.consultationId) ??
+      [];
+    if (priorConsults.length >= 2) {
+      insights.push({
+        id: "obesity-longitudinal",
+        kind: "continuity",
+        title: "Seguimiento longitudinal documentado",
+        body: `${priorConsults.length} consulta(s) previa(s) en memoria clínica — contexto de continuidad en manejo de peso.`,
+      });
+    }
+    pushFollowupGapInsight(insights, {
+      id: "obesity-followup-gap",
+      title: "Intervalo desde último control de peso",
+      memory,
+      consultationId: input.consultationId,
+    });
+  }
+
+  if (isErge(code)) {
+    pushTreatmentPersistenceInsight(insights, {
+      id: "erge-treatment-persistence",
+      title: "IBP persistente documentado",
+      memory,
+      pattern: /omeprazol|esomeprazol|lansoprazol|pantoprazol|rabeprazol/i,
+    });
+    pushFollowupGapInsight(insights, {
+      id: "erge-followup-gap",
+      title: "Intervalo desde último control ERGE",
+      memory,
+      consultationId: input.consultationId,
+    });
+  }
+
+  if (isParkinson(code)) {
+    pushTreatmentPersistenceInsight(insights, {
+      id: "park-treatment-persistence",
+      title: "Tratamiento neurológico persistente",
+      memory,
+      pattern: /levodopa|carbidopa|pramipexol|ropinirol|entacapona/i,
+    });
+    pushFollowupGapInsight(insights, {
+      id: "park-followup-gap",
+      title: "Intervalo desde último control neurológico",
+      memory,
+      consultationId: input.consultationId,
+    });
+  }
+
+  if (isArthritis(code)) {
+    pushFollowupGapInsight(insights, {
+      id: "art-followup-gap",
+      title: "Intervalo desde último control articular",
+      memory,
+      consultationId: input.consultationId,
+    });
+    const priorConsults =
+      memory?.recentConsultations.filter((c) => c.id !== input.consultationId) ??
+      [];
+    if (priorConsults.length >= 2) {
+      insights.push({
+        id: "art-longitudinal",
+        kind: "continuity",
+        title: "Manejo crónico con consultas previas",
+        body: `${priorConsults.length} consulta(s) previa(s) documentadas — continuidad en manejo articular.`,
+      });
+    }
+  }
+
+  if (isAtrialFibrillation(code)) {
+    pushTreatmentPersistenceInsight(insights, {
+      id: "fa-treatment-persistence",
+      title: "Anticoagulación persistente documentada",
+      memory,
+      pattern: /apixabán|rivaroxabán|warfarina|acenocumarol|dabigatrán|edoxabán/i,
+    });
+    pushFollowupGapInsight(insights, {
+      id: "fa-followup-gap",
+      title: "Intervalo desde último control cardiovascular",
+      memory,
+      consultationId: input.consultationId,
+    });
+  }
+
+  if (isPolymedicated(memory)) {
+    insights.push({
+      id: "polypharmacy-context",
+      kind: "context",
+      title: "Polifarmacia documentada",
+      body: `${memory!.currentMedications.length} medicamentos activos en memoria clínica. Observación contextual documental.`,
+    });
+  }
+
+  const chronicCount = countActiveChronicConditions(memory);
+  if (chronicCount >= 3 && foundation.longitudinal.hasData) {
+    insights.push({
+      id: "multimorbidity-context",
+      kind: "context",
+      title: "Multimorbilidad con seguimiento longitudinal",
+      body: `${chronicCount} condiciones crónicas activas documentadas con continuidad asistencial en memoria clínica.`,
+    });
+  }
+
+  return insights.slice(0, 8);
 }
 
 export function buildClinicalRiskSignals(

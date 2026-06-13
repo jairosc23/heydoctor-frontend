@@ -185,6 +185,89 @@ describe("clinical-copilot-intelligence Phase 4.6 / 4.7B", () => {
     assert.match(COPILOT_SILENCE_MESSAGE, /Sin observaciones clínicas relevantes/);
   });
 
+  it("EPOC — broncodilatador persistente con evidencia", () => {
+    const bundle = buildClinicalCopilotIntelligence({
+      consultationId: "c-epoc",
+      diagnosisCode: "J44.9",
+      diagnosisDescription: "EPOC",
+      chiefComplaint: "Disnea",
+      notes: "Disnea de esfuerzo.",
+      treatment: "Broncodilatador. Control en 2 semanas.",
+      clinicalMemoryRaw: {
+        ...memoryBase("p-epoc"),
+        currentMedications: [
+          {
+            name: "Tiotropio inhalado",
+            prescriptionId: "rx5",
+            since: "2023-01-01",
+          },
+        ],
+      },
+    });
+    assert.ok(bundle.insights.some((i) => i.id === "epoc-treatment-persistence"));
+  });
+
+  it("Polifarmacia — observación contextual sin listar medicación redundante", () => {
+    const bundle = buildClinicalCopilotIntelligence({
+      consultationId: "c-poly",
+      diagnosisCode: "I10",
+      diagnosisDescription: "Hipertensión",
+      chiefComplaint: "Control",
+      notes: "Signos vitales: PA 134/84 mmHg.",
+      treatment: "Control en 1 mes.",
+      clinicalMemoryRaw: {
+        ...memoryBase("p-poly"),
+        currentMedications: [
+          { name: "Losartán", prescriptionId: "r1", since: "2020-01-01" },
+          { name: "Amlodipino", prescriptionId: "r2", since: "2020-01-01" },
+          { name: "HCTZ", prescriptionId: "r3", since: "2021-01-01" },
+          { name: "Atorvastatina", prescriptionId: "r4", since: "2021-01-01" },
+          { name: "Aspirina", prescriptionId: "r5", since: "2022-01-01" },
+        ],
+      },
+    });
+    const poly = bundle.insights.find((i) => i.id === "polypharmacy-context");
+    assert.ok(poly);
+    assert.match(poly!.body, /5 medicamentos/);
+    assert.ok(!bundle.insights.some((i) => i.id === "hta-vitals"));
+  });
+
+  it("Multimorbilidad — ≥3 condiciones con longitudinal", () => {
+    const bundle = buildClinicalCopilotIntelligence({
+      consultationId: "c-multi",
+      diagnosisCode: "I10",
+      diagnosisDescription: "Hipertensión",
+      chiefComplaint: "Control crónico",
+      notes: "Signos vitales: PA 148/92 mmHg.",
+      treatment: "Control en 1 mes.",
+      clinicalMemoryRaw: {
+        ...memoryBase("p-multi"),
+        activeConditions: [
+          { code: "I10", label: "HTA", source: "cie10" },
+          { code: "E11", label: "DM2", source: "cie10" },
+          { code: "E78", label: "Dislipidemia", source: "cie10" },
+        ],
+        recentConsultations: [
+          {
+            id: "m1",
+            createdAt: "2024-08-15T10:00:00.000Z",
+            status: "completed",
+            diagnosisCode: "I10",
+            diagnosisLabel: "HTA",
+          },
+          {
+            id: "m2",
+            createdAt: "2026-04-01T10:00:00.000Z",
+            status: "completed",
+            diagnosisCode: "E11",
+            diagnosisLabel: "DM2",
+          },
+        ],
+      },
+    });
+    assert.ok(bundle.insights.some((i) => i.id === "multimorbidity-context"));
+  });
+
   it("no emite diagnósticos ni recomendaciones terapéuticas en insights", () => {
     const bundle = buildClinicalCopilotIntelligence({
       diagnosisCode: "I10",
