@@ -627,7 +627,7 @@ export function validateScenario(
     weaknesses.push("Notas en curso no van al bloque symptoms de assist");
   }
   if (soap.includes("Por documentar en consulta")) {
-    weaknesses.push("Examen físico permanece placeholder genérico");
+    weaknesses.push("Examen físico permanece sin documentar");
   }
   if (!contextAudit.sentToAssist.vitals) {
     weaknesses.push("Signos vitales no integrados al prompt");

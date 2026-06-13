@@ -23,6 +23,19 @@ describe("clinical-summary-quality", () => {
     assert.match(note, /Anamnesis/);
     assert.match(note, /Impresión diagnóstica/);
     assert.match(note, /Seguimiento/);
+    assert.doesNotMatch(note, /Por documentar en consulta/);
+  });
+
+  it("incluye examen físico documentado sin placeholders ficticios", () => {
+    const note = formatStructuredClinicalNote({
+      chiefComplaint: "Control HTA",
+      draftNotes: "[[HD_PE_V1]]\n{\"v\":1,\"cardiovascular\":\"Ritmo regular\"}\n[[/HD_PE_V1]]",
+      encounterNotes:
+        "[[HD_PE_V1]]\n{\"v\":1,\"cardiovascular\":\"Ritmo regular\"}\n[[/HD_PE_V1]]",
+      activeDiagnosis: "I10 — Hipertensión esencial",
+    });
+    assert.match(note, /Examen clínico/);
+    assert.match(note, /Ritmo regular/);
   });
 
   it("mapea consultation-assist a summary clínico", () => {

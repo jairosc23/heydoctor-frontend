@@ -1,4 +1,9 @@
+import {
+  buildClinicalDataFoundation,
+  formatClinicalDataFoundationPrompt,
+} from "./clinical-data-foundation";
 import { buildClinicalMemoryView } from "./clinical-memory";
+import { formatPhysicalExamForSoap } from "./physical-exam-framework";
 import type { PatientClinicalMemory } from "./types/clinical-memory";
 
 export type ClinicalAiDiagnosis = {
@@ -16,6 +21,10 @@ export type ClinicalAiContextInput = {
   memory?: PatientClinicalMemory | null;
   allergyLines?: string[];
   encounterDiagnosis?: string | null;
+  /** Consulta activa — excluye del resumen longitudinal. */
+  currentConsultationId?: string | null;
+  /** Notas del encuentro (incluye marcadores HD_VS / HD_PE / HD_CR). */
+  encounterNotes?: string | null;
 };
 
 function uniqueLabels(items: Array<{ label: string }>, limit: number): string[] {
@@ -121,6 +130,17 @@ export function buildClinicalAiContextPrompt(
     lines.push(`Tratamiento / plan documentado: ${input.treatment.trim()}.`);
   }
 
+  const foundation = buildClinicalDataFoundation({
+    encounterNotes: input.encounterNotes ?? input.draftNotes,
+    treatment: input.treatment,
+    memory: input.memory,
+    currentConsultationId: input.currentConsultationId,
+  });
+  const foundationBlock = formatClinicalDataFoundationPrompt(foundation);
+  if (foundationBlock) {
+    lines.push(foundationBlock);
+  }
+
   lines.push(
     "",
     "Instrucción: generar evolución clínica profesional, estructurada y sin inventar hallazgos no documentados.",
@@ -140,6 +160,16 @@ export function formatPatientDemographics(input: {
   const sex = input.sex?.trim() || null;
   if (age && sex) return `${sex}, ${age}`;
   return age || sex;
+}
+
+/** Examen físico documentado para SOAP — vacío si no hay datos. */
+export function resolvePhysicalExamTextFromInput(
+  input: Pick<ClinicalAiContextInput, "encounterNotes" | "draftNotes">,
+): string {
+  const foundation = buildClinicalDataFoundation({
+    encounterNotes: input.encounterNotes ?? input.draftNotes,
+  });
+  return formatPhysicalExamForSoap(foundation.physicalExam);
 }
 
 export function hashClinicalText(

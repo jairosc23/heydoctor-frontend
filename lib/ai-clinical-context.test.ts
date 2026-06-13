@@ -49,4 +49,27 @@ describe("ai-clinical-context", () => {
     const b = hashClinicalText("c1", "notas", "I10");
     assert.equal(a, b);
   });
+
+  it("incluye Clinical Data Foundation en el prompt", () => {
+    const prompt = buildClinicalAiContextPrompt({
+      activeDiagnosis: { code: "I10", description: "HTA" },
+      encounterNotes: "PA 130/85 mmHg",
+      memory: {
+        ...BASE_MEMORY,
+        recentConsultations: [
+          {
+            id: "prev",
+            createdAt: "2026-01-15T00:00:00.000Z",
+            status: "completed",
+            diagnosisCode: "I10",
+            diagnosisLabel: "HTA",
+          },
+        ],
+      },
+      currentConsultationId: "current",
+    });
+    assert.match(prompt, /Signos vitales/);
+    assert.match(prompt, /130\/85/);
+    assert.match(prompt, /Contexto clínico reciente/);
+  });
 });

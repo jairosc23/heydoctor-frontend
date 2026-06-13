@@ -87,7 +87,11 @@ export async function requestEnrichedClinicalDocumentation(
       ? `${input.activeDiagnosis.code} — ${input.activeDiagnosis.description}`
       : input.diagnosisText?.trim() || null;
 
-  const contextPrompt = buildClinicalAiContextPrompt(input);
+  const contextPrompt = buildClinicalAiContextPrompt({
+    ...input,
+    encounterNotes: input.encounterNotes ?? input.draftNotes,
+    currentConsultationId: input.currentConsultationId ?? input.consultationId,
+  });
 
   try {
     await syncConsultationForAi(input);
@@ -109,6 +113,7 @@ export async function requestEnrichedClinicalDocumentation(
       draftNotes: input.draftNotes,
       treatment: input.treatment,
       activeDiagnosis,
+      encounterNotes: input.draftNotes,
     });
     recordAiResponseMetric({
       kind: "enriched_documentation",
@@ -147,6 +152,7 @@ export async function requestEnrichedClinicalDocumentation(
       treatment: input.treatment,
       activeDiagnosis,
       assist,
+      encounterNotes: input.draftNotes,
     });
     recordAiResponseMetric({
       kind: "consultation_summary",
@@ -171,6 +177,7 @@ export async function requestEnrichedClinicalDocumentation(
         draftNotes: input.draftNotes,
         treatment: input.treatment,
         activeDiagnosis,
+        encounterNotes: input.draftNotes,
       });
     }
     throw summaryError;

@@ -1,3 +1,4 @@
+import { resolvePhysicalExamTextFromInput } from "./ai-clinical-context";
 import type { ConsultationAssistResponse } from "./services/consultation-assist";
 import type { ConsultationSummaryResponse } from "./services/ai-clinical";
 
@@ -40,6 +41,8 @@ export function formatStructuredClinicalNote(input: {
   activeDiagnosis?: string | null;
   assist?: ConsultationAssistResponse | null;
   summary?: string | null;
+  physicalExamText?: string | null;
+  encounterNotes?: string | null;
 }): string {
   const anamnesis =
     input.draftNotes?.trim() ||
@@ -54,6 +57,13 @@ export function formatStructuredClinicalNote(input: {
   const conduct = dedupeLines(input.assist?.recommendations ?? []);
   const education = dedupeLines(input.assist?.generalEducation ?? []);
 
+  const physicalExam =
+    input.physicalExamText?.trim() ||
+    resolvePhysicalExamTextFromInput({
+      encounterNotes: input.encounterNotes,
+      draftNotes: input.draftNotes,
+    });
+
   const blocks = [
     sectionBlock(
       "Motivo de consulta",
@@ -66,10 +76,9 @@ export function formatStructuredClinicalNote(input: {
         ? impression.slice(1).join("\n")
         : "Sin antecedentes adicionales documentados.",
     ),
-    sectionBlock(
-      "Examen clínico",
-      "Por documentar en consulta. No inferir hallazgos no registrados.",
-    ),
+    physicalExam.trim()
+      ? sectionBlock("Examen clínico", physicalExam)
+      : null,
     sectionBlock(
       "Impresión diagnóstica",
       impression[0] ?? input.activeDiagnosis ?? "Por confirmar.",
@@ -101,6 +110,7 @@ export function enhanceConsultationSummary(
     treatment?: string | null;
     activeDiagnosis?: string | null;
     assist?: ConsultationAssistResponse | null;
+    encounterNotes?: string | null;
   },
 ): ConsultationSummaryResponse {
   const improved =
@@ -117,6 +127,7 @@ export function enhanceConsultationSummary(
           activeDiagnosis: input.activeDiagnosis,
           assist: input.assist,
           summary: summary.summary,
+          encounterNotes: input.encounterNotes ?? input.draftNotes,
         });
 
   const suggestedDiagnosis = dedupeLines([
@@ -144,6 +155,7 @@ export function mapAssistToClinicalSummary(
     draftNotes?: string | null;
     treatment?: string | null;
     activeDiagnosis?: string | null;
+    encounterNotes?: string | null;
   },
 ): ConsultationSummaryResponse {
   const improved = formatStructuredClinicalNote({
@@ -152,6 +164,7 @@ export function mapAssistToClinicalSummary(
     treatment: input.treatment,
     activeDiagnosis: input.activeDiagnosis,
     assist,
+    encounterNotes: input.encounterNotes ?? input.draftNotes,
   });
 
   return {

@@ -218,6 +218,8 @@ export function LiveAiNoteSuggestions({
         activeDiagnosis,
         chiefComplaint,
         draftNotes: trimmed,
+        encounterNotes: trimmed,
+        currentConsultationId: consultationKey,
         treatment,
         diagnosisText: diagnosisContext || clinicalIntelligence?.diagnosisLabel,
         memory: clinicalMemory.patientId ? clinicalMemory : null,
