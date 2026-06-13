@@ -92,7 +92,8 @@ export function UnifiedClinicalActionBar({
     return null;
   }
 
-  const { cie10CodeId } = clinicalIntelligence;
+  const { cie10CodeId, diagnosisContext } = clinicalIntelligence;
+  const hasDiagnosis = Boolean(cie10CodeId || diagnosisContext?.code?.trim());
   const {
     plan,
     loading,
@@ -110,7 +111,7 @@ export function UnifiedClinicalActionBar({
     canApply,
   } = consultationPlan;
 
-  if (!cie10CodeId && !plan && !loading) {
+  if (!hasDiagnosis && !plan && !loading) {
     return (
       <section
         className={`rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500 ${className}`}
@@ -121,7 +122,7 @@ export function UnifiedClinicalActionBar({
     );
   }
 
-  if (loading) {
+  if (loading || (hasDiagnosis && (!plan || itemCount === 0))) {
     return (
       <section
         className={`rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500 ${className}`}
@@ -144,14 +145,7 @@ export function UnifiedClinicalActionBar({
   }
 
   if (!plan || itemCount === 0) {
-    return (
-      <section
-        className={`rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 ${className}`}
-        aria-label="Unified Clinical Action Bar"
-      >
-        Sin acciones clínicas sugeridas para este diagnóstico. Use órdenes manuales si corresponde.
-      </section>
-    );
+    return null;
   }
 
   const editable = viewMode === "edit";

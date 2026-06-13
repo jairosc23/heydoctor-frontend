@@ -199,13 +199,7 @@ export function LiveAiNoteSuggestions({
   };
 
   return (
-    <div
-      style={{
-        position: "relative",
-        paddingBottom: fetching || suggestions.length > 0 ? 96 : 0,
-        transition: "padding-bottom 0.2s ease",
-      }}
-    >
+    <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
       <div
         style={{
           borderRadius: 8,
@@ -246,7 +240,7 @@ export function LiveAiNoteSuggestions({
         }}
       >
         {suggestions.length > 0 && !fetching
-          ? "Tab · insertar 1.ª sugerencia"
+          ? "Tab · insertar sugerencia"
           : "\u00a0"}
       </p>
 
@@ -270,48 +264,38 @@ export function LiveAiNoteSuggestions({
       {(fetching || suggestions.length > 0) && (
         <div
           style={{
-            position: "absolute",
-            left: 8,
-            right: 8,
-            top: "100%",
-            marginTop: 6,
-            zIndex: 5,
-            pointerEvents: "auto",
+            marginTop: 8,
+            background: "rgba(255,255,255,0.97)",
+            border: "1px solid #dbeafe",
+            borderRadius: 10,
+            boxShadow: "0 4px 20px rgba(15,23,42,0.08)",
+            padding: "8px 10px",
+            maxWidth: "100%",
           }}
         >
           <div
             style={{
-              background: "rgba(255,255,255,0.97)",
-              border: "1px solid #dbeafe",
-              borderRadius: 10,
-              boxShadow: "0 4px 20px rgba(15,23,42,0.08)",
-              padding: "8px 10px",
-              maxWidth: "100%",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              marginBottom: suggestions.length ? 6 : 0,
             }}
           >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                marginBottom: suggestions.length ? 6 : 0,
-              }}
-            >
-              {fetching && (
-                <span
-                  style={{
-                    width: 6,
-                    height: 6,
-                    borderRadius: "50%",
-                    background: "#38bdf8",
-                    animation: "live-ai-pulse 1s ease-in-out infinite",
-                  }}
-                />
-              )}
-              <span style={{ fontSize: 10, color: "#64748b", fontWeight: 600 }}>
-                {fetching ? "IA…" : "Sugerencias"}
-              </span>
-            </div>
+            {fetching && (
+              <span
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: "50%",
+                  background: "#38bdf8",
+                  animation: "live-ai-pulse 1s ease-in-out infinite",
+                }}
+              />
+            )}
+            <span style={{ fontSize: 10, color: "#64748b", fontWeight: 600 }}>
+              {fetching ? "IA…" : "💡 Sugerencias IA"}
+            </span>
+          </div>
             <style>{`@keyframes live-ai-pulse { 50% { opacity: 0.35; } }`}</style>
             <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
               {suggestions.map((s) => (
@@ -370,7 +354,6 @@ export function LiveAiNoteSuggestions({
                 </li>
               ))}
             </ul>
-          </div>
         </div>
       )}
     </div>

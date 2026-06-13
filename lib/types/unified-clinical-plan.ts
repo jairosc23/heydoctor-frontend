@@ -7,7 +7,8 @@ export type UnifiedPlanItemCategory =
 export type UnifiedPlanSource =
   | "autonomous_workflow"
   | "care_pathway"
-  | "clinical_flow";
+  | "clinical_flow"
+  | "fallback_plan";
 
 export type UnifiedClinicalPlanItem = {
   id: string;

@@ -16,9 +16,9 @@ import { applyUnifiedClinicalPlan } from "@/lib/apply-unified-clinical-plan";
 import { recordWorkflowPlanDecision } from "@/lib/services/autonomous-workflow";
 import {
   applyItemOverrides,
-  buildUnifiedPlanFromFlow,
   buildUnifiedPlanFromWorkflow,
   countUnifiedPlanItems,
+  resolveUnifiedClinicalPlan,
   unifiedPlanHasActions,
 } from "@/lib/unified-clinical-plan";
 import type {
@@ -64,6 +64,7 @@ export function ConsultationPlanProvider({
   const {
     cie10CodeId,
     diagnosisLabel,
+    diagnosisContext,
     flowSuggestionsRefreshKey,
     invalidateDrugSuggestions,
   } = useClinicalIntelligence();
@@ -74,28 +75,50 @@ export function ConsultationPlanProvider({
     countryCode,
   });
 
-  const hasWorkflowPlan = Boolean(workflow.data?.plan);
+  const diagnosisCode = useMemo(
+    () =>
+      diagnosisContext?.code?.trim() ||
+      workflow.data?.plan?.diagnosis[0]?.code?.trim() ||
+      null,
+    [diagnosisContext?.code, workflow.data?.plan?.diagnosis],
+  );
+
+  const workflowHasItems = useMemo(() => {
+    if (!workflow.data?.plan) return false;
+    return unifiedPlanHasActions(
+      buildUnifiedPlanFromWorkflow(workflow.data.plan),
+    );
+  }, [workflow.data?.plan]);
+
+  const hasDiagnosis = Boolean(cie10CodeId || diagnosisCode);
+
   const flow = useClinicalFlowSuggestions({
     cie10CodeId: cie10CodeId ?? undefined,
+    cie10Code: diagnosisCode ?? undefined,
     countryCode,
-    enabled: Boolean(cie10CodeId) && !hasWorkflowPlan && !workflow.loading,
+    enabled: hasDiagnosis && !workflowHasItems && !workflow.loading,
     refreshKey: flowSuggestionsRefreshKey,
   });
 
-  const basePlan = useMemo(() => {
-    if (workflow.data?.plan) {
-      return buildUnifiedPlanFromWorkflow(workflow.data.plan);
-    }
-    if (
-      flow.data.medications.length > 0 ||
-      flow.data.labs.length > 0 ||
-      flow.data.education.length > 0 ||
-      flow.data.followUp.length > 0
-    ) {
-      return buildUnifiedPlanFromFlow(flow.data);
-    }
-    return null;
-  }, [workflow.data?.plan, flow.data]);
+  const basePlan = useMemo(
+    () =>
+      resolveUnifiedClinicalPlan({
+        workflowPlan: workflow.data?.plan ?? null,
+        flow: flow.data,
+        diagnosisCode,
+        diagnosisLabel:
+          diagnosisContext?.description ??
+          workflow.data?.plan?.diagnosis[0]?.label ??
+          diagnosisLabel,
+      }),
+    [
+      workflow.data?.plan,
+      flow.data,
+      diagnosisCode,
+      diagnosisContext?.description,
+      diagnosisLabel,
+    ],
+  );
 
   const [itemOverrides, setItemOverrides] = useState<Record<string, boolean>>({});
   const [viewMode, setViewMode] = useState<UnifiedPlanViewMode>("summary");
@@ -116,7 +139,8 @@ export function ConsultationPlanProvider({
   );
 
   const loading =
-    workflow.loading || (Boolean(cie10CodeId) && !hasWorkflowPlan && flow.loading);
+    workflow.loading ||
+    (hasDiagnosis && !workflowHasItems && flow.loading && !basePlan);
   const error = workflow.error ?? flow.error;
 
   const toggleItem = useCallback((itemId: string, enabled: boolean) => {

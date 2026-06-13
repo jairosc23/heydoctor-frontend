@@ -1,3 +1,4 @@
+import { buildFallbackUnifiedPlan } from "./fallback-clinical-plan";
 import type { WorkflowClinicalPlan } from "./types/autonomous-workflow";
 import type { ClinicalFlowSuggestionsResponse } from "./types/clinical-intelligence-flow";
 import type {
@@ -5,6 +6,43 @@ import type {
   UnifiedClinicalPlanItem,
   UnifiedPlanSource,
 } from "./types/unified-clinical-plan";
+
+export function flowResponseHasActions(
+  flow: ClinicalFlowSuggestionsResponse,
+): boolean {
+  return (
+    flow.medications.length > 0 ||
+    flow.labs.length > 0 ||
+    flow.education.length > 0 ||
+    flow.followUp.length > 0
+  );
+}
+
+/** Workflow → Flow → Fallback (Phase 4.3.1). */
+export function resolveUnifiedClinicalPlan(input: {
+  workflowPlan?: WorkflowClinicalPlan | null;
+  flow?: ClinicalFlowSuggestionsResponse | null;
+  diagnosisCode?: string | null;
+  diagnosisLabel?: string | null;
+}): UnifiedClinicalPlan | null {
+  if (input.workflowPlan) {
+    const fromWorkflow = buildUnifiedPlanFromWorkflow(input.workflowPlan);
+    if (unifiedPlanHasActions(fromWorkflow)) return fromWorkflow;
+  }
+
+  if (input.flow && flowResponseHasActions(input.flow)) {
+    return buildUnifiedPlanFromFlow(input.flow);
+  }
+
+  if (input.diagnosisCode?.trim()) {
+    return buildFallbackUnifiedPlan({
+      code: input.diagnosisCode,
+      description: input.diagnosisLabel,
+    });
+  }
+
+  return null;
+}
 
 function workflowItem(
   item: {
