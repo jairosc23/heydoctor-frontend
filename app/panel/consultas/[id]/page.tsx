@@ -38,6 +38,10 @@ import {
   type PatientProfile,
   type PatientRow,
 } from "@/lib/services/patients";
+import {
+  formatPatientSex,
+  resolvePatientAge,
+} from "@/lib/patient-profile-display";
 import { getConsultationAccessErrorMessage } from "@/lib/consultation-access-errors";
 import { getWhatsAppUrlWithCustomMessage } from "@/lib/whatsapp-url";
 import {
@@ -730,6 +734,8 @@ export default function ConsultationDetailPage() {
 
   const patientName =
     consultation.patient?.name || consultation.patient?.email || "Paciente";
+  const soapPatientAge = patientRow ? resolvePatientAge(patientRow) : undefined;
+  const soapPatientSex = patientRow ? formatPatientSex(patientRow.sex) : undefined;
 
   const actionMsgClass =
     actionMsg?.kind === "success"
@@ -1044,6 +1050,11 @@ export default function ConsultationDetailPage() {
           autosaveStatus,
           lastSavedAt,
           autosaveError,
+          smartWorkspaceEnabled: smartClinicalWorkspaceEnabled,
+          chiefComplaint: chiefComplaintDraft,
+          patientId: consultation.patientId,
+          patientAge: soapPatientAge,
+          patientSex: soapPatientSex,
         }}
           />
         </ConsultationClinicalProviders>
@@ -1123,6 +1134,11 @@ export default function ConsultationDetailPage() {
             autosaveStatus,
             lastSavedAt,
             autosaveError,
+            smartWorkspaceEnabled: smartClinicalWorkspaceEnabled,
+            chiefComplaint: chiefComplaintDraft,
+            patientId: consultation.patientId,
+            patientAge: soapPatientAge,
+            patientSex: soapPatientSex,
           }}
         />
       )}

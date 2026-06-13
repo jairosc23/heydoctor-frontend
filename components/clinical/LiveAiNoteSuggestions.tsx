@@ -1,15 +1,24 @@
 "use client";
 
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { useOptionalClinicalIntelligence } from "@/context/ClinicalIntelligenceContext";
 import { useDebouncedValue } from "@/lib/hooks/useDebouncedValue";
+import { usePatientClinicalMemory } from "@/hooks/usePatientClinicalMemory";
 import {
-  postConsultationSummary,
+  formatPatientDemographics,
+  hashClinicalText,
+} from "@/lib/ai-clinical-context";
+import { humanizeAiClinicalError } from "@/lib/ai-clinical-errors";
+import {
+  requestEnrichedClinicalDocumentation,
   type ConsultationSummaryResponse,
 } from "@/lib/services/ai-clinical";
 
-const DEBOUNCE_MS = 700;
+const DEBOUNCE_MS = 2500;
+const MIN_COOLDOWN_MS = 8000;
 const MIN_NOTES_LENGTH = 30;
 const MAX_SUGGESTIONS = 2;
+const IMPROVED_EXCERPT_MAX = 320;
 
 type Priority = "high" | "consider" | "optional";
 
@@ -21,6 +30,12 @@ const PRIORITY_LABEL: Record<Priority, string> = {
 
 type Suggestion = { id: string; text: string; priority: Priority };
 
+function excerpt(text: string, max = IMPROVED_EXCERPT_MAX): string {
+  const trimmed = text.trim();
+  if (trimmed.length <= max) return trimmed;
+  return `${trimmed.slice(0, max - 1).trim()}…`;
+}
+
 function buildSuggestions(res: ConsultationSummaryResponse): Suggestion[] {
   const out: Suggestion[] = [];
   const dx = (res.suggestedDiagnosis ?? []).filter((s) => s?.trim());
@@ -30,46 +45,45 @@ function buildSuggestions(res: ConsultationSummaryResponse): Suggestion[] {
 
   const improved = res.improvedNotes?.trim();
   if (improved && out.length < MAX_SUGGESTIONS) {
-    const short =
-      improved.length > 180 ? `${improved.slice(0, 177).trim()}…` : improved;
+    const short = excerpt(improved);
     const dup = out.some(
       (o) =>
         short.startsWith(o.text.slice(0, 25)) ||
-        o.text.startsWith(short.slice(0, 25))
+        o.text.startsWith(short.slice(0, 25)),
     );
-    if (!dup)
+    if (!dup) {
       out.push({
         id: "imp",
         text: short,
         priority: out.length === 0 ? "high" : "consider",
       });
+    }
   }
 
   if (out.length < MAX_SUGGESTIONS && res.summary?.trim()) {
-    const s = res.summary.trim();
-    const short = s.length > 180 ? `${s.slice(0, 177).trim()}…` : s;
+    const short = excerpt(res.summary.trim(), 180);
     const dup = out.some(
-      (o) => o.text === short || short.includes(o.text.slice(0, 40))
+      (o) => o.text === short || short.includes(o.text.slice(0, 40)),
     );
-    if (!dup)
+    if (!dup) {
       out.push({
         id: "sum",
         text: short,
         priority: out.length === 0 ? "consider" : "optional",
       });
+    }
   }
 
   return out.slice(0, MAX_SUGGESTIONS);
 }
 
-function cacheKeyForPayload(consultationId: string, trimmed: string): string {
-  return `${consultationId}:${trimmed.length}:${trimmed.slice(-80)}`;
-}
-
 type Props = {
   consultationId: string;
+  patientId?: string | null;
   notes: string;
   setNotes: React.Dispatch<React.SetStateAction<string>>;
+  chiefComplaint?: string;
+  treatment?: string;
   diagnosisContext?: string;
   patientAge?: string | number;
   patientSex?: string;
@@ -77,20 +91,55 @@ type Props = {
 
 export function LiveAiNoteSuggestions({
   consultationId,
+  patientId,
   notes,
   setNotes,
+  chiefComplaint = "",
+  treatment = "",
+  diagnosisContext = "",
+  patientAge,
+  patientSex,
 }: Props) {
+  const clinicalIntelligence = useOptionalClinicalIntelligence();
+  const { data: clinicalMemory } = usePatientClinicalMemory(patientId);
   const debouncedNotes = useDebouncedValue(notes, DEBOUNCE_MS);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [fetching, setFetching] = useState(false);
   const [insertFlash, setInsertFlash] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [softNotice, setSoftNotice] = useState<string | null>(null);
   const requestSeq = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
   const cacheRef = useRef<{ key: string; items: Suggestion[] } | null>(null);
+  const lastSuccessAtRef = useRef(0);
+  const cooldownTimerRef = useRef<number | null>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
   const pendingSelectRef = useRef<{ start: number; end: number } | null>(null);
   const flashTimerRef = useRef<number | null>(null);
+
+  const activeDiagnosis = useMemo(() => {
+    const ctx = clinicalIntelligence?.diagnosisContext;
+    if (ctx?.code) {
+      return {
+        code: ctx.code,
+        description: ctx.description || ctx.code,
+      };
+    }
+    const parsed = diagnosisContext.trim();
+    if (!parsed) return null;
+    const dash = parsed.indexOf(" — ");
+    if (dash > 0) {
+      return {
+        code: parsed.slice(0, dash).trim(),
+        description: parsed.slice(dash + 3).trim(),
+      };
+    }
+    return { code: "", description: parsed };
+  }, [clinicalIntelligence?.diagnosisContext, diagnosisContext]);
+
+  const demographics = useMemo(
+    () => formatPatientDemographics({ age: patientAge, sex: patientSex }),
+    [patientAge, patientSex],
+  );
 
   const insertSuggestion = useCallback(
     (text: string) => {
@@ -105,7 +154,7 @@ export function LiveAiNoteSuggestions({
         return next;
       });
     },
-    [setNotes]
+    [setNotes],
   );
 
   useEffect(() => {
@@ -133,56 +182,108 @@ export function LiveAiNoteSuggestions({
       abortRef.current?.abort();
       setSuggestions([]);
       setFetching(false);
-      setError(null);
+      setSoftNotice(null);
       cacheRef.current = null;
       return;
     }
 
-    const key = cacheKeyForPayload(consultationKey, trimmed);
-    if (cacheRef.current?.key === key) {
+    const cacheKey = hashClinicalText(
+      consultationKey,
+      trimmed,
+      chiefComplaint,
+      treatment,
+      activeDiagnosis?.code,
+      demographics,
+    );
+
+    if (cacheRef.current?.key === cacheKey) {
       setSuggestions(cacheRef.current.items);
-      setError(null);
+      setSoftNotice(null);
       return;
     }
 
-    abortRef.current?.abort();
-    const ac = new AbortController();
-    abortRef.current = ac;
+    const runRequest = () => {
+      abortRef.current?.abort();
+      const ac = new AbortController();
+      abortRef.current = ac;
 
-    const seq = ++requestSeq.current;
-    setFetching(true);
-    setError(null);
+      const seq = ++requestSeq.current;
+      setFetching(true);
+      setSoftNotice(null);
 
-    postConsultationSummary(consultationKey, ac.signal)
-      .then((res) => {
-        if (seq !== requestSeq.current || ac.signal.aborted) return;
-        const items = buildSuggestions(res);
-        cacheRef.current = { key, items };
-        setSuggestions(items);
-        setError(null);
+      requestEnrichedClinicalDocumentation({
+        consultationId: consultationKey,
+        signal: ac.signal,
+        patientDemographics: demographics,
+        activeDiagnosis,
+        chiefComplaint,
+        draftNotes: trimmed,
+        treatment,
+        diagnosisText: diagnosisContext || clinicalIntelligence?.diagnosisLabel,
+        memory: clinicalMemory.patientId ? clinicalMemory : null,
+        cie10CodeId: clinicalIntelligence?.cie10CodeId,
       })
-      .catch((e: unknown) => {
-        if (e instanceof Error && e.name === "AbortError") return;
-        if (seq !== requestSeq.current) return;
-        if (process.env.NODE_ENV === "development") {
-          console.error("[heydoctor][ai-suggestions] fallo", e);
+        .then((res) => {
+          if (seq !== requestSeq.current || ac.signal.aborted) return;
+          const items = buildSuggestions(res);
+          cacheRef.current = { key: cacheKey, items };
+          lastSuccessAtRef.current = Date.now();
+          setSuggestions(items);
+          setSoftNotice(null);
+        })
+        .catch((e: unknown) => {
+          if (e instanceof Error && e.name === "AbortError") return;
+          if (seq !== requestSeq.current) return;
+          if (process.env.NODE_ENV === "development") {
+            console.error("[heydoctor][ai-suggestions] fallo", e);
+          }
+          setSuggestions([]);
+          setSoftNotice(humanizeAiClinicalError(e));
+        })
+        .finally(() => {
+          if (seq === requestSeq.current) setFetching(false);
+        });
+    };
+
+    const elapsed = Date.now() - lastSuccessAtRef.current;
+    if (lastSuccessAtRef.current > 0 && elapsed < MIN_COOLDOWN_MS) {
+      setSoftNotice("La asistencia clínica se actualizará en unos segundos.");
+      if (cooldownTimerRef.current) window.clearTimeout(cooldownTimerRef.current);
+      cooldownTimerRef.current = window.setTimeout(() => {
+        cooldownTimerRef.current = null;
+        runRequest();
+      }, MIN_COOLDOWN_MS - elapsed);
+      return () => {
+        if (cooldownTimerRef.current) {
+          window.clearTimeout(cooldownTimerRef.current);
+          cooldownTimerRef.current = null;
         }
-        setSuggestions([]);
-        setError(
-          e instanceof Error
-            ? e.message
-            : "Las sugerencias de IA no están disponibles ahora.",
-        );
-      })
-      .finally(() => {
-        if (seq === requestSeq.current) setFetching(false);
-      });
-  }, [consultationId, debouncedNotes]);
+      };
+    }
+
+    runRequest();
+
+    return () => {
+      abortRef.current?.abort();
+    };
+  }, [
+    consultationId,
+    debouncedNotes,
+    chiefComplaint,
+    treatment,
+    diagnosisContext,
+    demographics,
+    activeDiagnosis,
+    clinicalIntelligence?.cie10CodeId,
+    clinicalIntelligence?.diagnosisLabel,
+    clinicalMemory,
+  ]);
 
   useEffect(() => {
     return () => {
       abortRef.current?.abort();
       if (flashTimerRef.current) window.clearTimeout(flashTimerRef.current);
+      if (cooldownTimerRef.current) window.clearTimeout(cooldownTimerRef.current);
     };
   }, []);
 
@@ -244,22 +345,17 @@ export function LiveAiNoteSuggestions({
           : "\u00a0"}
       </p>
 
-      {error && !fetching && suggestions.length === 0 && (
+      {softNotice && !fetching && suggestions.length === 0 ? (
         <p
-          role="alert"
           style={{
             margin: "6px 0 0",
-            fontSize: 12,
-            color: "#92400e",
-            background: "#fffbeb",
-            border: "1px solid #fde68a",
-            borderRadius: 8,
-            padding: "6px 10px",
+            fontSize: 11,
+            color: "#64748b",
           }}
         >
-          {error}
+          {softNotice}
         </p>
-      )}
+      ) : null}
 
       {(fetching || suggestions.length > 0) && (
         <div
@@ -296,64 +392,64 @@ export function LiveAiNoteSuggestions({
               {fetching ? "IA…" : "💡 Sugerencias IA"}
             </span>
           </div>
-            <style>{`@keyframes live-ai-pulse { 50% { opacity: 0.35; } }`}</style>
-            <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
-              {suggestions.map((s) => (
-                <li key={s.id} style={{ marginBottom: 6 }}>
-                  <div
+          <style>{`@keyframes live-ai-pulse { 50% { opacity: 0.35; } }`}</style>
+          <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+            {suggestions.map((s) => (
+              <li key={s.id} style={{ marginBottom: 6 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    marginBottom: 4,
+                  }}
+                >
+                  <span
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                      marginBottom: 4,
+                      fontSize: 9,
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.04em",
+                      color:
+                        s.priority === "high"
+                          ? "#b45309"
+                          : s.priority === "consider"
+                            ? "#0369a1"
+                            : "#64748b",
+                      background:
+                        s.priority === "high"
+                          ? "#fef3c7"
+                          : s.priority === "consider"
+                            ? "#e0f2fe"
+                            : "#f1f5f9",
+                      padding: "2px 6px",
+                      borderRadius: 4,
                     }}
                   >
-                    <span
-                      style={{
-                        fontSize: 9,
-                        fontWeight: 700,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.04em",
-                        color:
-                          s.priority === "high"
-                            ? "#b45309"
-                            : s.priority === "consider"
-                              ? "#0369a1"
-                              : "#64748b",
-                        background:
-                          s.priority === "high"
-                            ? "#fef3c7"
-                            : s.priority === "consider"
-                              ? "#e0f2fe"
-                              : "#f1f5f9",
-                        padding: "2px 6px",
-                        borderRadius: 4,
-                      }}
-                    >
-                      {PRIORITY_LABEL[s.priority]}
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => insertSuggestion(s.text)}
-                    style={{
-                      width: "100%",
-                      textAlign: "left",
-                      fontSize: 12,
-                      lineHeight: 1.4,
-                      padding: "6px 8px",
-                      borderRadius: 6,
-                      border: "1px solid #e0f2fe",
-                      background: "#f8fafc",
-                      color: "#334155",
-                      cursor: "pointer",
-                    }}
-                  >
-                    + {s.text}
-                  </button>
-                </li>
-              ))}
-            </ul>
+                    {PRIORITY_LABEL[s.priority]}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => insertSuggestion(s.text)}
+                  style={{
+                    width: "100%",
+                    textAlign: "left",
+                    fontSize: 12,
+                    lineHeight: 1.4,
+                    padding: "6px 8px",
+                    borderRadius: 6,
+                    border: "1px solid #e0f2fe",
+                    background: "#f8fafc",
+                    color: "#334155",
+                    cursor: "pointer",
+                  }}
+                >
+                  + {s.text}
+                </button>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </div>

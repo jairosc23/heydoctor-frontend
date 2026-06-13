@@ -44,6 +44,10 @@ export interface SoapSectionProps {
   lastSavedAt: Date | null;
   autosaveError: string | null;
   smartWorkspaceEnabled?: boolean;
+  chiefComplaint?: string;
+  patientId?: string | null;
+  patientAge?: string | number;
+  patientSex?: string;
 }
 
 export function SoapSection({
@@ -64,6 +68,10 @@ export function SoapSection({
   lastSavedAt,
   autosaveError,
   smartWorkspaceEnabled = false,
+  chiefComplaint = "",
+  patientId,
+  patientAge,
+  patientSex,
 }: SoapSectionProps) {
   const badgeVariant = getDiagnosisBadgeVariant(diagnosisSource);
 
@@ -167,11 +175,14 @@ export function SoapSection({
       >
         <LiveAiNoteSuggestions
           consultationId={consultationId}
+          patientId={patientId}
           notes={notes}
           setNotes={setNotes}
+          chiefComplaint={chiefComplaint}
+          treatment={treatment}
           diagnosisContext={diagnosis}
-          patientAge={undefined}
-          patientSex={undefined}
+          patientAge={patientAge}
+          patientSex={patientSex}
         />
       </SoapCommandBlock>
 

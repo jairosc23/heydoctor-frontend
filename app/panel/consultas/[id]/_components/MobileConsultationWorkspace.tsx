@@ -98,6 +98,7 @@ export function MobileConsultationWorkspace({
         <div id="clinical-record-section">
           <ClinicalRecordPanel
             consultationId={consultationId}
+            patientId={patientId}
             rawNotes={consultation.notes ?? ""}
             chiefComplaint={chiefComplaintDraft}
             onChiefComplaintChange={onChiefComplaintChange}
@@ -108,6 +109,10 @@ export function MobileConsultationWorkspace({
                 ? { name: consultation.patient.name ?? null }
                 : null
             }
+            activeDiagnosis={
+              soap.diagnosisDescription || soap.diagnosisCode || soap.diagnosis
+            }
+            treatment={soap.treatment}
             onSave={onSaveClinicalRecord}
             autofillRequest={aiTrigger}
           />

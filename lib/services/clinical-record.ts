@@ -15,6 +15,9 @@
 
 import { heydoctorApi } from "../heydoctor-api";
 import { createClinicalLogger } from "../clinical-logger";
+import { buildClinicalAiContextPrompt } from "../ai-clinical-context";
+import { formatStructuredClinicalNote } from "../clinical-summary-quality";
+import type { PatientClinicalMemory } from "../types/clinical-memory";
 
 const log = createClinicalLogger("clinical");
 
@@ -155,6 +158,9 @@ export interface AutofillContext {
   patientName?: string | null;
   patientAge?: number | null;
   patientSex?: string | null;
+  activeDiagnosis?: string | null;
+  treatment?: string | null;
+  memory?: PatientClinicalMemory | null;
   /** Notas previas (texto libre o estructura ya parseada). */
   currentRecord?: ClinicalRecord;
 }
@@ -175,18 +181,40 @@ function buildHeuristicRecord(ctx: AutofillContext): ClinicalRecord {
   const reason = (ctx.chiefComplaint ?? "").toLowerCase();
   const has = (kw: string) => reason.includes(kw);
 
-  const presentIllness =
-    [
-      ctx.patientName ? `Paciente ${ctx.patientName}` : "Paciente",
-      ctx.patientAge ? `de ${ctx.patientAge} a\u00f1os` : null,
-      ctx.patientSex ? `(${ctx.patientSex})` : null,
-      ctx.chiefComplaint
-        ? `consulta por: ${ctx.chiefComplaint}.`
-        : "consulta por motivo a documentar.",
-      "Refiere [completar evoluci\u00f3n y s\u00edntomas asociados].",
-    ]
-      .filter(Boolean)
-      .join(" ");
+  const structuredNote = formatStructuredClinicalNote({
+    chiefComplaint: ctx.chiefComplaint,
+    draftNotes: ctx.currentRecord?.presentIllnessHistory || ctx.currentRecord?.freeNotes,
+    treatment: ctx.treatment,
+    activeDiagnosis: ctx.activeDiagnosis,
+  });
+
+  const contextBlock = buildClinicalAiContextPrompt({
+    patientDemographics:
+      ctx.patientAge || ctx.patientSex
+        ? [ctx.patientSex, ctx.patientAge ? `${ctx.patientAge} años` : null]
+            .filter(Boolean)
+            .join(", ")
+        : null,
+    chiefComplaint: ctx.chiefComplaint,
+    treatment: ctx.treatment,
+    activeDiagnosis: ctx.activeDiagnosis
+      ? {
+          code: ctx.activeDiagnosis.split(" — ")[0] ?? ctx.activeDiagnosis,
+          description:
+            ctx.activeDiagnosis.split(" — ").slice(1).join(" — ") ||
+            ctx.activeDiagnosis,
+        }
+      : null,
+    memory: ctx.memory ?? null,
+    draftNotes: ctx.currentRecord?.freeNotes,
+  });
+
+  const presentIllness = [
+    structuredNote.split("\n\n").slice(0, 3).join("\n\n"),
+    "",
+    "Contexto clínico disponible:",
+    contextBlock,
+  ].join("\n");
 
   /**
    * Plantillas r\u00e1pidas por palabras clave del motivo. Solo escribimos

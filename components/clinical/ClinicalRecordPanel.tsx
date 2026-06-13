@@ -16,6 +16,7 @@
  */
 
 import React, { useEffect, useMemo, useState } from "react";
+import { usePatientClinicalMemory } from "@/hooks/usePatientClinicalMemory";
 import {
   ClinicalRecord,
   SystemsReview,
@@ -28,6 +29,7 @@ import { cn } from "@/lib/utils";
 
 interface ClinicalRecordPanelProps {
   consultationId: string;
+  patientId?: string | null;
   /** Notas crudas del backend (campo `notes`). Se parsean al montar. */
   rawNotes: string | null | undefined;
   /** Motivo de consulta (chiefComplaint). */
@@ -43,6 +45,8 @@ interface ClinicalRecordPanelProps {
     age?: number | null;
     sex?: string | null;
   } | null;
+  activeDiagnosis?: string | null;
+  treatment?: string | null;
   /**
    * Handler para guardar. Recibe la cadena serializada lista para PATCH al
    * campo `notes` del backend, ms el chiefComplaint actual. La pgina padre
@@ -85,15 +89,19 @@ function fmtDate(input?: string | null): string {
 
 export function ClinicalRecordPanel({
   consultationId,
+  patientId,
   rawNotes,
   chiefComplaint,
   onChiefComplaintChange,
   createdAt,
   editable,
   patient,
+  activeDiagnosis,
+  treatment,
   onSave,
   autofillRequest = 0,
 }: ClinicalRecordPanelProps) {
+  const { data: clinicalMemory } = usePatientClinicalMemory(patientId);
   const initial = useMemo<ClinicalRecord>(
     () => parseClinicalRecord(rawNotes),
     [rawNotes],
@@ -145,6 +153,9 @@ export function ClinicalRecordPanel({
         patientName: patient?.name ?? null,
         patientAge: patient?.age ?? null,
         patientSex: patient?.sex ?? null,
+        activeDiagnosis: activeDiagnosis ?? null,
+        treatment: treatment ?? null,
+        memory: clinicalMemory.patientId ? clinicalMemory : null,
         currentRecord: record,
       });
       setRecord(result.record);

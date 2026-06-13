@@ -104,6 +104,7 @@ export function EncounterLeftPane({
             <div id="clinical-record-section-desktop">
               <ClinicalRecordPanel
                 consultationId={consultationId}
+                patientId={patientId}
                 rawNotes={consultation.notes ?? ""}
                 chiefComplaint={chiefComplaintDraft}
                 onChiefComplaintChange={onChiefComplaintChange}
@@ -114,6 +115,10 @@ export function EncounterLeftPane({
                     ? { name: consultation.patient.name ?? null }
                     : null
                 }
+                activeDiagnosis={
+                  soap.diagnosisDescription || soap.diagnosisCode || soap.diagnosis
+                }
+                treatment={soap.treatment}
                 onSave={onSaveClinicalRecord}
                 autofillRequest={aiTrigger}
               />
