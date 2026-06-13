@@ -107,6 +107,7 @@ export function ConsultationWorkspace({
           {...props}
           ordersHighlight={ordersHighlight}
           ordersRefreshKey={ordersRefreshKey}
+          smartWorkspaceEnabled={smartWorkspaceEnabled}
         />
       </div>
       <EncounterSplitLayout

@@ -11,6 +11,7 @@ import { ChatPanel } from "@/components/telemedicine/ChatPanel";
 import type { NestConsultation } from "@/lib/services/consultations";
 import { SoapSection, type SoapSectionProps } from "./SoapSection";
 import { SoapStickyNav } from "./SoapStickyNav";
+import { useSoapScrollSpy } from "@/hooks/useSoapScrollSpy";
 
 export type EncounterLeftPaneTab = "soap" | "record" | "assist";
 
@@ -53,6 +54,7 @@ export function EncounterLeftPane({
   smartWorkspaceEnabled = false,
 }: EncounterLeftPaneProps) {
   const patientId = consultation.patientId;
+  const activeSoapStep = useSoapScrollSpy(smartWorkspaceEnabled);
 
   return (
     <section
@@ -90,7 +92,10 @@ export function EncounterLeftPane({
 
           {activeTab === "soap" ? (
             <>
-              <SoapStickyNav enabled={smartWorkspaceEnabled} />
+              <SoapStickyNav
+                enabled={smartWorkspaceEnabled}
+                activeStep={activeSoapStep}
+              />
               <SoapSection {...soap} smartWorkspaceEnabled={smartWorkspaceEnabled} />
             </>
           ) : null}

@@ -14,6 +14,12 @@ import { AutosaveIndicator } from "./AutosaveIndicator";
 import type { AutosaveStatus } from "@/lib/hooks/useConsultationAutosave";
 import { UnifiedClinicalActionBar } from "@/components/clinical/UnifiedClinicalActionBar";
 import { SoapCommandBlock } from "./SoapCommandBlock";
+import {
+  SoapDiagnosisPreview,
+  SoapNotesPreview,
+  SoapPlanPreview,
+  SoapTreatmentPreview,
+} from "./SoapCompactPreviews";
 import { cn } from "@/lib/utils";
 
 export interface SoapSectionProps {
@@ -104,7 +110,20 @@ export function SoapSection({
         )}
       </header>
 
-      <SoapCommandBlock step={1} title="Diagnóstico" priority="primary">
+      <SoapCommandBlock
+        step={1}
+        title="Diagnóstico"
+        priority="primary"
+        preview={
+          smartWorkspaceEnabled ? (
+            <SoapDiagnosisPreview
+              diagnosisCode={diagnosisCode}
+              diagnosisDescription={diagnosisDescription}
+              diagnosis={diagnosis}
+            />
+          ) : undefined
+        }
+      >
         {(diagnosisCode || diagnosisDescription) && badgeVariant ? (
           <DiagnosisBadge
             code={diagnosisCode}
@@ -131,11 +150,21 @@ export function SoapSection({
         ) : null}
       </SoapCommandBlock>
 
-      <SoapCommandBlock step={2} title="Plan clínico">
+      <SoapCommandBlock
+        step={2}
+        title="Plan clínico"
+        preview={smartWorkspaceEnabled ? <SoapPlanPreview /> : undefined}
+      >
         <UnifiedClinicalActionBar compact={smartWorkspaceEnabled} />
       </SoapCommandBlock>
 
-      <SoapCommandBlock step={3} title="Notas de consulta">
+      <SoapCommandBlock
+        step={3}
+        title="Notas de consulta"
+        preview={
+          smartWorkspaceEnabled ? <SoapNotesPreview notes={notes} /> : undefined
+        }
+      >
         <LiveAiNoteSuggestions
           consultationId={consultationId}
           notes={notes}
@@ -146,7 +175,15 @@ export function SoapSection({
         />
       </SoapCommandBlock>
 
-      <SoapCommandBlock step={4} title="Tratamiento / plan">
+      <SoapCommandBlock
+        step={4}
+        title="Tratamiento / plan"
+        preview={
+          smartWorkspaceEnabled ? (
+            <SoapTreatmentPreview treatment={treatment} />
+          ) : undefined
+        }
+      >
         <label htmlFor="soap-treatment" className="sr-only">
           Tratamiento / plan
         </label>

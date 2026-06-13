@@ -7,6 +7,7 @@ import {
   buildClinicalMemoryView,
   clinicalMemoryConfidenceLabel,
 } from "@/lib/clinical-memory";
+import { partitionMemoryHighlights } from "@/lib/clinical-memory-prioritization";
 import { usePatientClinicalMemory } from "@/hooks/usePatientClinicalMemory";
 import { cn } from "@/lib/utils";
 
@@ -16,6 +17,7 @@ export interface ClinicalMemoryCardProps {
   patientId: string;
   encounterDiagnosis?: string | null;
   snapshotConditionLabels?: string[];
+  allergyLines?: string[];
   /** Phase 4.3 — densidad reducida en Context Rail. */
   compact?: boolean;
   className?: string;
@@ -25,6 +27,7 @@ export function ClinicalMemoryCard({
   patientId,
   encounterDiagnosis,
   snapshotConditionLabels,
+  allergyLines = [],
   compact = false,
   className,
 }: ClinicalMemoryCardProps) {
@@ -82,11 +85,22 @@ export function ClinicalMemoryCard({
         : "draft";
 
   const primaryHighlights = compact
-    ? memoryView.highlights.slice(0, COMPACT_VISIBLE_HIGHLIGHTS)
-    : memoryView.highlights;
-  const extraHighlights = compact
-    ? memoryView.highlights.slice(COMPACT_VISIBLE_HIGHLIGHTS)
-    : [];
+    ? partitionMemoryHighlights({
+        highlights: memoryView.highlights,
+        allergyLines,
+        alerts: data.alerts,
+        compactVisibleSlots: COMPACT_VISIBLE_HIGHLIGHTS,
+      })
+    : {
+        visible: memoryView.highlights.map((text) => ({
+          id: text,
+          text,
+          tier: "standard" as const,
+        })),
+        overflow: [],
+      };
+  const extraHighlights = compact ? primaryHighlights.overflow : [];
+  const visibleHighlights = compact ? primaryHighlights.visible : primaryHighlights.visible;
 
   return (
     <ClinicalCard
@@ -129,15 +143,30 @@ export function ClinicalMemoryCard({
       </div>
 
       <ul className={cn(compact ? "space-y-1" : "space-y-2")}>
-        {primaryHighlights.map((line) => (
+        {visibleHighlights.map((item) => (
           <li
-            key={line}
-            className="flex items-start gap-1.5 text-[11px] leading-snug text-slate-700"
+            key={item.id}
+            className={cn(
+              "flex items-start gap-1.5 text-[11px] leading-snug",
+              item.tier === "allergy" || item.tier === "critical"
+                ? "font-medium text-amber-900"
+                : item.tier === "high_risk"
+                  ? "text-amber-800"
+                  : "text-slate-700",
+            )}
           >
-            <span className="mt-0.5 shrink-0 text-primary" aria-hidden>
+            <span
+              className={cn(
+                "mt-0.5 shrink-0",
+                item.tier === "allergy" || item.tier === "critical"
+                  ? "text-amber-600"
+                  : "text-primary",
+              )}
+              aria-hidden
+            >
               •
             </span>
-            <span>{line}</span>
+            <span>{item.text}</span>
           </li>
         ))}
       </ul>
@@ -148,15 +177,15 @@ export function ClinicalMemoryCard({
             +{extraHighlights.length} más
           </summary>
           <ul className="mt-hd-1 space-y-1 border-t border-hd-border-subtle pt-hd-1">
-            {extraHighlights.map((line) => (
+            {extraHighlights.map((item) => (
               <li
-                key={line}
+                key={item.id}
                 className="flex items-start gap-1.5 text-[11px] leading-snug text-slate-600"
               >
                 <span className="mt-0.5 shrink-0 text-slate-400" aria-hidden>
                   •
                 </span>
-                <span>{line}</span>
+                <span>{item.text}</span>
               </li>
             ))}
           </ul>

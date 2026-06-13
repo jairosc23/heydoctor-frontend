@@ -58,6 +58,7 @@ export function PatientMemoryCard({
       data={data}
       currentConsultationId={currentConsultationId}
       progressiveDisclosure={progressiveDisclosure}
+      dense={progressiveDisclosure}
       className={className}
     />
   );

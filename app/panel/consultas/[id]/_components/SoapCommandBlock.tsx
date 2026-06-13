@@ -8,12 +8,15 @@ export function SoapCommandBlock({
   step,
   title,
   children,
+  preview,
   priority = "default",
   className,
 }: {
   step: number;
   title: string;
   children: ReactNode;
+  /** Phase 4.4A — Compact Preview Mode™ cuando otro bloque tiene foco. */
+  preview?: ReactNode;
   priority?: "primary" | "default";
   className?: string;
 }) {
@@ -21,14 +24,14 @@ export function SoapCommandBlock({
     <section
       id={`soap-block-${step}`}
       className={cn(
-        "soap-command-block clinical-interactive scroll-mt-16 rounded-hd-lg border border-hd-border-subtle bg-hd-surface-raised p-hd-4 transition-all duration-hd-base",
+        "soap-command-block clinical-interactive scroll-mt-[calc(var(--encounter-chrome-h,5.5rem)+2.75rem)] rounded-hd-lg border border-hd-border-subtle bg-hd-surface-raised p-hd-4 transition-all duration-hd-base",
         priority === "primary"
           ? "border-l-[3px] border-l-primary/50 shadow-hd-2 ring-1 ring-primary/5"
           : "shadow-hd-1",
         className,
       )}
     >
-      <div className="mb-hd-3 flex items-center gap-hd-2">
+      <div className="soap-command-block-header mb-hd-3 flex items-center gap-hd-2">
         <span
           className={cn(
             "flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold tabular-nums",
@@ -44,7 +47,10 @@ export function SoapCommandBlock({
           {title}
         </h3>
       </div>
-      {children}
+      {preview ? (
+        <div className="soap-command-block-preview">{preview}</div>
+      ) : null}
+      <div className="soap-command-block-content">{children}</div>
     </section>
   );
 }

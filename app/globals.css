@@ -193,28 +193,51 @@ body {
   box-shadow: var(--hd-shadow-focus);
 }
 
-/* Phase 4.3 — SOAP Focus Layout: colapsa bloques inactivos al escribir */
+/* Phase 4.4A — SOAP Focus Layout v2: Compact Preview Mode™ (sin display:none en contexto clínico) */
+.soap-command-block-preview {
+  display: none;
+}
+
 .soap-focus-layout:focus-within .soap-command-block:not(:focus-within) {
   padding-top: 0.625rem;
   padding-bottom: 0.625rem;
 }
 
-.soap-focus-layout:focus-within .soap-command-block:not(:focus-within) > :not(:first-child) {
+.soap-focus-layout:focus-within .soap-command-block:not(:focus-within) .soap-command-block-header {
+  margin-bottom: 0.375rem;
+}
+
+.soap-focus-layout:focus-within .soap-command-block:not(:focus-within) .soap-command-block-content {
   display: none;
 }
 
-.soap-focus-layout:focus-within .soap-command-block:not(:focus-within):hover > :not(:first-child),
-.soap-focus-layout:focus-within .soap-command-block:not(:focus-within):focus-within > :not(:first-child) {
+.soap-focus-layout:focus-within .soap-command-block:not(:focus-within) .soap-command-block-preview {
   display: block;
 }
 
+.soap-focus-layout:focus-within .soap-command-block:focus-within {
+  padding: 1rem;
+}
+
+.soap-focus-layout:focus-within .soap-command-block:focus-within .soap-command-block-preview {
+  display: none;
+}
+
+.soap-focus-layout:focus-within .soap-command-block:focus-within .soap-command-block-content {
+  display: block;
+}
+
+.soap-focus-layout:focus-within .soap-command-block:focus-within .soap-command-block-header {
+  margin-bottom: 0.75rem;
+}
+
 .soap-sticky-nav {
-  top: 0;
+  top: calc(var(--encounter-chrome-h, 5.5rem) + 4px);
 }
 
 @media (min-width: 1280px) {
   .soap-sticky-nav {
-    top: 0;
+    top: calc(var(--encounter-chrome-h, 5.5rem) + 4px);
   }
 }
 

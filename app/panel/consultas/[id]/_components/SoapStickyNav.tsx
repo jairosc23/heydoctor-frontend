@@ -1,15 +1,22 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import type { SoapNavStep } from "@/hooks/useSoapScrollSpy";
 
-const SOAP_SECTIONS = [
+const SOAP_SECTIONS: Array<{ step: SoapNavStep; label: string }> = [
   { step: 1, label: "Diagnóstico" },
   { step: 2, label: "Plan" },
   { step: 3, label: "Notas" },
   { step: 4, label: "Tratamiento" },
-] as const;
+];
 
-export function SoapStickyNav({ enabled }: { enabled?: boolean }) {
+export function SoapStickyNav({
+  enabled,
+  activeStep = 1,
+}: {
+  enabled?: boolean;
+  activeStep?: SoapNavStep;
+}) {
   if (!enabled) return null;
 
   return (
@@ -21,18 +28,27 @@ export function SoapStickyNav({ enabled }: { enabled?: boolean }) {
         "rounded-hd-md border border-hd-border-subtle bg-hd-surface-raised/95 px-hd-1 py-0.5 backdrop-blur-sm",
       )}
     >
-      {SOAP_SECTIONS.map((section) => (
-        <a
-          key={section.step}
-          href={`#soap-block-${section.step}`}
-          className={cn(
-            "clinical-interactive shrink-0 rounded-hd-sm px-2 py-1 text-[11px] font-medium text-slate-600",
-            "hover:bg-slate-100 hover:text-primary",
-          )}
-        >
-          {section.label}
-        </a>
-      ))}
+      {SOAP_SECTIONS.map((section) => {
+        const isActive = activeStep === section.step;
+        return (
+          <a
+            key={section.step}
+            href={`#soap-block-${section.step}`}
+            aria-current={isActive ? "true" : undefined}
+            className={cn(
+              "clinical-interactive shrink-0 rounded-hd-sm px-2 py-1 text-[11px] font-medium",
+              isActive
+                ? "bg-primary/12 font-semibold text-primary ring-1 ring-primary/25"
+                : "text-slate-600 hover:bg-slate-100 hover:text-primary",
+            )}
+          >
+            {section.label}
+            {isActive ? (
+              <span className="sr-only"> (sección actual)</span>
+            ) : null}
+          </a>
+        );
+      })}
     </nav>
   );
 }

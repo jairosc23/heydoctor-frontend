@@ -4,6 +4,7 @@ import Link from "next/link";
 import {
   formatPatientDocument,
   formatPatientSex,
+  jsonLinesToList,
   resolvePatientAge,
 } from "@/lib/patient-profile-display";
 import {
@@ -52,7 +53,7 @@ function RailSkeleton() {
 export function PatientContextRail({
   patientId,
   patient,
-  profile: _profile,
+  profile,
   loading,
   error,
   fallbackName = "Paciente",
@@ -73,6 +74,7 @@ export function PatientContextRail({
   const ageLabel = patient ? resolvePatientAge(patient) : "—";
   const sexLabel = patient ? formatPatientSex(patient.sex) : "—";
   const documentLabel = patient ? formatPatientDocument(patient) : "—";
+  const allergyLines = profile ? jsonLinesToList(profile.allergies) : [];
 
   return (
     <aside
@@ -111,6 +113,7 @@ export function PatientContextRail({
         patientId={patientId}
         encounterDiagnosis={encounterDiagnosis}
         snapshotConditionLabels={snapshotConditionLabels}
+        allergyLines={allergyLines}
         compact={smartWorkspaceEnabled}
       />
 

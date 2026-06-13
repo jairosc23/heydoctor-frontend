@@ -10,6 +10,8 @@ import { ClinicalPanel } from "@/components/clinical/design";
 import { clinicalTabClass } from "@/lib/clinical-design-tokens";
 import { cn } from "@/lib/utils";
 import { SoapSection } from "./SoapSection";
+import { SoapStickyNav } from "./SoapStickyNav";
+import { useSoapScrollSpy } from "@/hooks/useSoapScrollSpy";
 import { OrdersTab } from "./OrdersTab";
 import { DocumentsTab } from "./DocumentsTab";
 import type {
@@ -46,8 +48,10 @@ export function MobileConsultationWorkspace({
   diagnosisCode,
   ordersHighlight,
   ordersRefreshKey,
+  smartWorkspaceEnabled = false,
 }: MobileConsultationWorkspaceProps) {
   const patientId = consultation.patientId;
+  const activeSoapStep = useSoapScrollSpy(smartWorkspaceEnabled);
 
   return (
     <ClinicalPanel depth={3} density="comfortable" focusPrimary className="clinical-focus-primary space-y-hd-4">
@@ -80,7 +84,15 @@ export function MobileConsultationWorkspace({
         </p>
       ) : null}
 
-      {activeTab === "soap" ? <SoapSection {...soap} /> : null}
+      {activeTab === "soap" ? (
+        <>
+          <SoapStickyNav
+            enabled={smartWorkspaceEnabled}
+            activeStep={activeSoapStep}
+          />
+          <SoapSection {...soap} smartWorkspaceEnabled={smartWorkspaceEnabled} />
+        </>
+      ) : null}
 
       {activeTab === "record" ? (
         <div id="clinical-record-section">
