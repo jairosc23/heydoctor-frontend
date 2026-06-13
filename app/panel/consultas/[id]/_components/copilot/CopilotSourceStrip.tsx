@@ -1,9 +1,7 @@
 "use client";
 
-import {
-  COPILOT_CONTEXT_SOURCE_LABELS,
-  type CopilotContextSource,
-} from "@/lib/clinical-copilot-mock";
+import type { CopilotContextSource } from "@/lib/clinical-copilot-intelligence";
+import { COPILOT_CONTEXT_SOURCE_LABELS } from "@/lib/clinical-copilot-mock";
 
 export function CopilotSourceStrip({ sources }: { sources: CopilotContextSource[] }) {
   return (

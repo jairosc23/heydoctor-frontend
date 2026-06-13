@@ -4,9 +4,8 @@ import { ClinicalCard } from "@/components/clinical/design";
 import { CLINICAL_SECTION_TITLE } from "@/lib/clinical-design-tokens";
 import {
   getCopilotInsightIcon,
-  MOCK_COPILOT_INSIGHTS,
   type CopilotInsight,
-} from "@/lib/clinical-copilot-mock";
+} from "@/lib/clinical-copilot-intelligence";
 
 function InsightCard({ insight }: { insight: CopilotInsight }) {
   return (
@@ -23,29 +22,32 @@ function InsightCard({ insight }: { insight: CopilotInsight }) {
           <p className="mt-0.5 text-[11px] leading-snug text-slate-600">
             {insight.body}
           </p>
-          <p className="mt-1 text-[9px] font-medium uppercase tracking-wide text-slate-400">
-            Datos simulados — sin IA
-          </p>
         </div>
       </div>
     </ClinicalCard>
   );
 }
 
-export function CopilotInsightCards() {
+export function CopilotInsightCards({ insights }: { insights: CopilotInsight[] }) {
   return (
     <section aria-label="Clinical Insight Cards" className="space-y-hd-2">
       <div>
         <h3 className={CLINICAL_SECTION_TITLE}>Clinical Insight Cards™</h3>
         <p className="text-[11px] text-slate-500">
-          Vista previa de insights — contenido mock
+          Observaciones contextuales — sin diagnósticos automáticos
         </p>
       </div>
-      <div className="space-y-hd-2">
-        {MOCK_COPILOT_INSIGHTS.map((insight) => (
-          <InsightCard key={insight.id} insight={insight} />
-        ))}
-      </div>
+      {insights.length === 0 ? (
+        <p className="text-[11px] text-slate-500">
+          Sin observaciones contextuales con los datos documentados actuales.
+        </p>
+      ) : (
+        <div className="space-y-hd-2">
+          {insights.map((insight) => (
+            <InsightCard key={insight.id} insight={insight} />
+          ))}
+        </div>
+      )}
     </section>
   );
 }

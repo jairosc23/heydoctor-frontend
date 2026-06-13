@@ -1,0 +1,669 @@
+/**
+ * Phase 4.6 — Clinical Copilot Intelligence™
+ * Motor determinístico: insights contextuales, señales de riesgo,
+ * gaps documentales y calidad — sin IA, sin diagnósticos, sin prescripciones.
+ */
+
+import { buildClinicalDataFoundation } from "./clinical-data-foundation";
+import type { ClinicalMemoryView } from "./clinical-memory";
+import { clinicalMemoryConfidenceLabel } from "./clinical-memory";
+import type { DoctorDnaIntelligenceView } from "./doctor-dna-intelligence";
+import {
+  hasPhysicalExamData,
+  resolvePhysicalExamFromNotes,
+} from "./physical-exam-framework";
+import { buildLongitudinalSummary } from "./longitudinal-summary";
+import {
+  hasClinicalVitalSignsData,
+  parseClinicalVitalSignsFromNotes,
+} from "./clinical-vital-signs-context";
+import type { PatientClinicalMemory } from "./types/clinical-memory";
+
+export type CopilotContextSource =
+  | "soap"
+  | "timeline"
+  | "doctor-dna"
+  | "orders"
+  | "patient-snapshot"
+  | "clinical-memory"
+  | "vitals"
+  | "physical-exam"
+  | "longitudinal";
+
+export type CopilotContextView = {
+  activeDiagnosis: string | null;
+  activeDiagnosisCode: string | null;
+  activeMedications: string[];
+  recentTimeline: string[];
+  pendingLabs: string[];
+  soapSummary: {
+    diagnosis: string;
+    plan: string;
+    notesPreview: string;
+    chiefComplaint: string;
+  };
+  clinicalMemory: string[];
+  clinicalMemoryConfidence: string | null;
+  vitalsSummary: string | null;
+  physicalExamSummary: string | null;
+  longitudinalSummary: string | null;
+  doctorDnaObservation: string | null;
+  sources: CopilotContextSource[];
+};
+
+export type CopilotInsightKind =
+  | "context"
+  | "continuity"
+  | "lab"
+  | "medication"
+  | "vitals";
+
+export type CopilotInsight = {
+  id: string;
+  kind: CopilotInsightKind;
+  title: string;
+  body: string;
+};
+
+export type ClinicalRiskLevel = "bajo" | "moderado" | "alto";
+
+export type ClinicalRiskSignal = {
+  id: string;
+  level: ClinicalRiskLevel;
+  title: string;
+  body: string;
+};
+
+export type DocumentationGap = {
+  id: string;
+  field: string;
+  message: string;
+};
+
+export type DocumentationQualityLabel = "Excelente" | "Adecuado" | "Incompleto";
+
+export type DocumentationQuality = {
+  score: number;
+  label: DocumentationQualityLabel;
+  factors: Array<{ id: string; label: string; points: number; max: number }>;
+};
+
+export type ClinicalCopilotIntelligenceBundle = {
+  context: CopilotContextView;
+  insights: CopilotInsight[];
+  riskSignals: ClinicalRiskSignal[];
+  documentationGaps: DocumentationGap[];
+  documentationQuality: DocumentationQuality;
+};
+
+export type BuildClinicalCopilotInput = {
+  consultationId?: string | null;
+  diagnosis?: string | null;
+  diagnosisCode?: string | null;
+  diagnosisDescription?: string | null;
+  chiefComplaint?: string | null;
+  treatment?: string | null;
+  notes?: string | null;
+  patientName?: string | null;
+  patientAge?: string | number | null;
+  patientSex?: string | null;
+  clinicalMemory?: ClinicalMemoryView | null;
+  clinicalMemoryRaw?: PatientClinicalMemory | null;
+  doctorDna?: DoctorDnaIntelligenceView | null;
+};
+
+function truncatePreview(text: string, max = 120): string {
+  const trimmed = text.trim();
+  if (trimmed.length <= max) return trimmed;
+  return `${trimmed.slice(0, max).trim()}…`;
+}
+
+function monthsSince(iso: string): number | null {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  const now = new Date();
+  return (
+    (now.getFullYear() - d.getFullYear()) * 12 +
+    (now.getMonth() - d.getMonth())
+  );
+}
+
+function extractCode(
+  code?: string | null,
+  diagnosis?: string | null,
+): string | null {
+  const c = code?.trim();
+  if (c) return c.toUpperCase();
+  const m = diagnosis?.trim().match(/^([A-Z]\d{2}(?:\.\d+)?)/i);
+  return m?.[1]?.toUpperCase() ?? null;
+}
+
+function isHypertension(code: string | null): boolean {
+  return code != null && /^I1[0-5]/i.test(code);
+}
+
+function isDiabetes(code: string | null): boolean {
+  return code != null && /^E11/i.test(code);
+}
+
+function isAsthma(code: string | null): boolean {
+  return code != null && /^J45/i.test(code);
+}
+
+function isElevatedBp(systolic?: number | null, diastolic?: number | null): boolean {
+  return (systolic != null && systolic >= 140) || (diastolic != null && diastolic >= 90);
+}
+
+export function buildCopilotContextV2(
+  input: BuildClinicalCopilotInput,
+): CopilotContextView {
+  const diagnosis =
+    input.diagnosisDescription?.trim() ||
+    input.diagnosis?.trim() ||
+    null;
+  const code = extractCode(input.diagnosisCode, input.diagnosis);
+  const plan = input.treatment?.trim() ?? "";
+  const notesPreview = truncatePreview(input.notes ?? "");
+  const chiefComplaint = input.chiefComplaint?.trim() ?? "";
+
+  const memory = input.clinicalMemoryRaw;
+  const foundation = buildClinicalDataFoundation({
+    encounterNotes: input.notes,
+    treatment: input.treatment,
+    memory,
+    currentConsultationId: input.consultationId,
+  });
+
+  const activeMedications =
+    memory?.currentMedications
+      .map((m) => m.name.trim())
+      .filter(Boolean)
+      .slice(0, 6) ?? [];
+
+  const longitudinal = foundation.longitudinal;
+  const recentTimeline = longitudinal.entries.map((e) => {
+    const parts = [e.dateLabel];
+    if (e.primaryDiagnosis) parts.push(e.primaryDiagnosis);
+    return parts.join(" · ");
+  });
+
+  const pendingLabs =
+    memory?.pendingLabs.map((l) => l.exam.trim()).filter(Boolean).slice(0, 6) ??
+    [];
+
+  const vitalsCtx = foundation.vitalSigns;
+  const vitalsSummary = vitalsCtx.hasData
+    ? [
+        vitalsCtx.vitals.systolic != null && vitalsCtx.vitals.diastolic != null
+          ? `PA ${vitalsCtx.vitals.systolic}/${vitalsCtx.vitals.diastolic} mmHg`
+          : null,
+        vitalsCtx.vitals.heartRate != null
+          ? `FC ${vitalsCtx.vitals.heartRate} lpm`
+          : null,
+        vitalsCtx.vitals.oxygenSaturation != null
+          ? `SatO2 ${vitalsCtx.vitals.oxygenSaturation}%`
+          : null,
+      ]
+        .filter(Boolean)
+        .join("; ") || null
+    : null;
+
+  const pe = foundation.physicalExam;
+  const peSections = hasPhysicalExamData(pe)
+    ? Object.entries(pe)
+        .filter(([, v]) => v?.trim())
+        .map(([k, v]) => `${k}: ${v}`)
+        .slice(0, 4)
+        .join(" · ")
+    : null;
+
+  const longText = longitudinal.hasData
+    ? recentTimeline.join(" | ")
+    : null;
+
+  const sources: CopilotContextSource[] = [];
+  if (chiefComplaint || diagnosis || plan || notesPreview) sources.push("soap");
+  if (input.clinicalMemory?.highlights.length) sources.push("clinical-memory");
+  if (longitudinal.hasData) sources.push("longitudinal", "timeline");
+  if (vitalsSummary) sources.push("vitals");
+  if (peSections) sources.push("physical-exam");
+  if (input.patientName || input.patientAge || input.patientSex) {
+    sources.push("patient-snapshot");
+  }
+  if (input.doctorDna?.primaryInsight) sources.push("doctor-dna");
+  if (pendingLabs.length) sources.push("orders");
+
+  return {
+    activeDiagnosis: diagnosis,
+    activeDiagnosisCode: code,
+    activeMedications,
+    recentTimeline,
+    pendingLabs,
+    soapSummary: {
+      diagnosis: diagnosis ?? "Sin diagnóstico estructurado",
+      plan: plan || "Sin plan registrado",
+      notesPreview: notesPreview || "Sin notas en esta sesión",
+      chiefComplaint: chiefComplaint || "Sin motivo registrado",
+    },
+    clinicalMemory: input.clinicalMemory?.highlights ?? [],
+    clinicalMemoryConfidence: input.clinicalMemory
+      ? clinicalMemoryConfidenceLabel(input.clinicalMemory.confidence)
+      : null,
+    vitalsSummary,
+    physicalExamSummary: peSections,
+    longitudinalSummary: longText,
+    doctorDnaObservation: input.doctorDna?.primaryInsight?.trim() || null,
+    sources,
+  };
+}
+
+export function buildClinicalInsightCards(
+  input: BuildClinicalCopilotInput,
+  context: CopilotContextView,
+): CopilotInsight[] {
+  const insights: CopilotInsight[] = [];
+  const code = context.activeDiagnosisCode;
+  const memory = input.clinicalMemoryRaw;
+  const foundation = buildClinicalDataFoundation({
+    encounterNotes: input.notes,
+    treatment: input.treatment,
+    memory,
+    currentConsultationId: input.consultationId,
+  });
+  const vitals = foundation.vitalSigns.vitals;
+
+  if (isHypertension(code)) {
+    if (vitals.systolic != null && vitals.diastolic != null) {
+      const elevated = isElevatedBp(vitals.systolic, vitals.diastolic);
+      insights.push({
+        id: "hta-vitals",
+        kind: "vitals",
+        title: elevated
+          ? "Presión arterial elevada documentada"
+          : "Presión arterial registrada en consulta",
+        body: `En la documentación actual consta PA ${vitals.systolic}/${vitals.diastolic} mmHg. Observación contextual — verificar en punto de atención.`,
+      });
+    }
+    const lastConsult = memory?.recentConsultations.find(
+      (c) => c.id !== input.consultationId,
+    );
+    if (lastConsult) {
+      const months = monthsSince(lastConsult.createdAt);
+      if (months != null && months >= 3) {
+        insights.push({
+          id: "hta-gap-control",
+          kind: "continuity",
+          title: "Intervalo desde último control registrado",
+          body: `La última consulta previa en memoria clínica data de hace aproximadamente ${months} mes(es). Contexto de continuidad asistencial.`,
+        });
+      }
+    }
+  }
+
+  if (isDiabetes(code)) {
+    const hba1cLab = memory?.pendingLabs.find((l) =>
+      /hba1c|hemoglobina glicosilada/i.test(l.exam),
+    );
+    if (hba1cLab) {
+      insights.push({
+        id: "dm2-lab",
+        kind: "lab",
+        title: "HbA1c presente en contexto de laboratorio",
+        body: `${hba1cLab.exam} — dato documentado en memoria clínica. No constituye interpretación clínica automática.`,
+      });
+    }
+    const metformin = memory?.currentMedications.find((m) =>
+      /metformina/i.test(m.name),
+    );
+    if (metformin) {
+      insights.push({
+        id: "dm2-rx",
+        kind: "medication",
+        title: "Tratamiento antidiabético en memoria activa",
+        body: `${metformin.name} aparece como medicación actual documentada.`,
+      });
+    }
+    const alert = memory?.alerts.find((a) =>
+      /hba1c|gluc|dm/i.test(a.message),
+    );
+    if (alert) {
+      insights.push({
+        id: "dm2-alert",
+        kind: "context",
+        title: "Alerta clínica registrada",
+        body: alert.message,
+      });
+    }
+  }
+
+  if (isAsthma(code)) {
+    const inhalers = memory?.currentMedications.filter((m) =>
+      /salbutamol|budesonida|formoterol|inhal/i.test(m.name),
+    );
+    if (inhalers?.length) {
+      insights.push({
+        id: "asma-rx",
+        kind: "medication",
+        title: "Tratamiento inhalatorio documentado",
+        body: `Medicación activa: ${inhalers.map((m) => m.name).join(", ")}.`,
+      });
+    }
+    const exacerbationAlert = memory?.alerts.find((a) =>
+      /exacerb|asma|crisis/i.test(a.message),
+    );
+    if (!exacerbationAlert && memory?.activeConditions.some((c) => /asma/i.test(c.label))) {
+      insights.push({
+        id: "asma-stable",
+        kind: "context",
+        title: "Sin alertas de exacerbación recientes",
+        body: "No hay alertas activas de exacerbación asmática en memoria clínica. Contexto de control ambulatorio documentado.",
+      });
+    }
+  }
+
+  if (foundation.longitudinal.hasData && insights.length < 5) {
+    const latest = foundation.longitudinal.entries[0];
+    if (latest?.primaryDiagnosis) {
+      insights.push({
+        id: "longitudinal-context",
+        kind: "continuity",
+        title: "Continuidad asistencial reciente",
+        body: `Consulta previa (${latest.dateLabel}): ${latest.primaryDiagnosis}.`,
+      });
+    }
+  }
+
+  if (input.doctorDna?.observations[0] && insights.length < 6) {
+    insights.push({
+      id: "dna-context",
+      kind: "context",
+      title: "Contexto de práctica (Doctor DNA™)",
+      body: input.doctorDna.observations[0],
+    });
+  }
+
+  return insights.slice(0, 6);
+}
+
+export function buildClinicalRiskSignals(
+  input: BuildClinicalCopilotInput,
+  context: CopilotContextView,
+): ClinicalRiskSignal[] {
+  const signals: ClinicalRiskSignal[] = [];
+  const code = context.activeDiagnosisCode;
+  const memory = input.clinicalMemoryRaw;
+  const vitals = parseClinicalVitalSignsFromNotes(
+    input.notes,
+    input.treatment,
+  ).vitals;
+
+  if (isElevatedBp(vitals.systolic, vitals.diastolic)) {
+    signals.push({
+      id: "risk-elevated-bp",
+      level: vitals.systolic != null && vitals.systolic >= 160 ? "alto" : "moderado",
+      title: "Signos vitales — PA elevada documentada",
+      body: `PA ${vitals.systolic}/${vitals.diastolic} mmHg registrada en notas actuales.`,
+    });
+  }
+
+  for (const alert of memory?.alerts.filter(
+    (a) => a.severity === "critical" || a.severity === "warning",
+  ) ?? []) {
+    signals.push({
+      id: `risk-alert-${alert.code}`,
+      level: alert.severity === "critical" ? "alto" : "moderado",
+      title: "Alerta clínica activa",
+      body: alert.message,
+    });
+  }
+
+  const pendingLabs = memory?.pendingLabs.filter(
+    (l) => l.status === "pending" || /pendiente/i.test(l.status),
+  );
+  if (pendingLabs?.length) {
+    signals.push({
+      id: "risk-pending-labs",
+      level: pendingLabs.length >= 2 ? "moderado" : "bajo",
+      title: "Laboratorios pendientes",
+      body: pendingLabs.map((l) => l.exam).slice(0, 3).join("; "),
+    });
+  }
+
+  const lastConsult = memory?.recentConsultations.find(
+    (c) => c.id !== input.consultationId,
+  );
+  if (lastConsult && (isHypertension(code) || isDiabetes(code) || isAsthma(code))) {
+    const months = monthsSince(lastConsult.createdAt);
+    if (months != null && months >= 4) {
+      signals.push({
+        id: "risk-overdue-followup",
+        level: months >= 6 ? "moderado" : "bajo",
+        title: "Control ambulatorio no registrado recientemente",
+        body: `Última consulta en memoria: hace ~${months} mes(es).`,
+      });
+    }
+  }
+
+  if (signals.length === 0) {
+    signals.push({
+      id: "risk-baseline",
+      level: "bajo",
+      title: "Sin señales determinísticas elevadas",
+      body: "No se detectaron reglas de riesgo activas con los datos documentados actuales.",
+    });
+  }
+
+  return signals.slice(0, 6);
+}
+
+export function buildDocumentationGaps(
+  input: BuildClinicalCopilotInput,
+  context: CopilotContextView,
+): DocumentationGap[] {
+  const gaps: DocumentationGap[] = [];
+  const code = context.activeDiagnosisCode;
+  const notes = input.notes ?? "";
+  const vitals = parseClinicalVitalSignsFromNotes(notes, input.treatment);
+  const pe = resolvePhysicalExamFromNotes(notes);
+  const treatment = input.treatment?.trim() ?? "";
+
+  if (isHypertension(code) && !vitals.hasData) {
+    gaps.push({
+      id: "gap-pa",
+      field: "Signos vitales",
+      message: "No hay presión arterial documentada en la consulta actual.",
+    });
+  }
+
+  if (isHypertension(code) && !pe.cardiovascular?.trim()) {
+    gaps.push({
+      id: "gap-pe-cv",
+      field: "Examen cardiovascular",
+      message: "No consta examen cardiovascular estructurado en la documentación.",
+    });
+  }
+
+  if (isDiabetes(code) && vitals.vitals.weightKg == null) {
+    gaps.push({
+      id: "gap-weight",
+      field: "Peso",
+      message: "No hay peso registrado — útil para seguimiento metabólico.",
+    });
+  }
+
+  if (!input.chiefComplaint?.trim()) {
+    gaps.push({
+      id: "gap-motivo",
+      field: "Motivo de consulta",
+      message: "Motivo de consulta no documentado.",
+    });
+  }
+
+  if ((isHypertension(code) || isDiabetes(code) || isAsthma(code)) && !treatment) {
+    gaps.push({
+      id: "gap-plan",
+      field: "Plan de seguimiento",
+      message: "No hay plan terapéutico o seguimiento documentado.",
+    });
+  } else if (
+    treatment &&
+    !/seguim|control|revis|semana|mes/i.test(treatment) &&
+    (isHypertension(code) || isDiabetes(code))
+  ) {
+    gaps.push({
+      id: "gap-followup-text",
+      field: "Seguimiento",
+      message: "El plan no menciona plazo de control o seguimiento.",
+    });
+  }
+
+  if (!notes.trim() || notes.trim().length < 20) {
+    gaps.push({
+      id: "gap-notes",
+      field: "Anamnesis",
+      message: "Notas clínicas breves o ausentes.",
+    });
+  }
+
+  return gaps.slice(0, 6);
+}
+
+export function buildDocumentationQuality(
+  input: BuildClinicalCopilotInput,
+  context: CopilotContextView,
+): DocumentationQuality {
+  const factors: DocumentationQuality["factors"] = [];
+  let score = 0;
+
+  const add = (id: string, label: string, points: number, max: number, ok: boolean) => {
+    const earned = ok ? points : 0;
+    score += earned;
+    factors.push({ id, label, points: earned, max });
+  };
+
+  add(
+    "dx",
+    "Diagnóstico documentado",
+    20,
+    20,
+    Boolean(context.activeDiagnosis),
+  );
+  add(
+    "motivo",
+    "Motivo de consulta",
+    10,
+    10,
+    Boolean(input.chiefComplaint?.trim()),
+  );
+  add(
+    "anamnesis",
+    "Anamnesis / notas",
+    15,
+    15,
+    (input.notes?.trim().length ?? 0) >= 30,
+  );
+  add(
+    "vitals",
+    "Signos vitales",
+    15,
+    15,
+    parseClinicalVitalSignsFromNotes(input.notes, input.treatment).hasData,
+  );
+  add(
+    "pe",
+    "Examen físico",
+    15,
+    15,
+    hasPhysicalExamData(resolvePhysicalExamFromNotes(input.notes ?? "")),
+  );
+  add(
+    "plan",
+    "Conducta / tratamiento",
+    15,
+    15,
+    Boolean(input.treatment?.trim()),
+  );
+  add(
+    "followup",
+    "Seguimiento documentado",
+    10,
+    10,
+    /seguim|control|revis|semana|mes/i.test(input.treatment ?? ""),
+  );
+
+  let label: DocumentationQualityLabel = "Incompleto";
+  if (score >= 85) label = "Excelente";
+  else if (score >= 60) label = "Adecuado";
+
+  return { score, label, factors };
+}
+
+export function buildClinicalCopilotIntelligence(
+  input: BuildClinicalCopilotInput,
+): ClinicalCopilotIntelligenceBundle {
+  const context = buildCopilotContextV2(input);
+  return {
+    context,
+    insights: buildClinicalInsightCards(input, context),
+    riskSignals: buildClinicalRiskSignals(input, context),
+    documentationGaps: buildDocumentationGaps(input, context),
+    documentationQuality: buildDocumentationQuality(input, context),
+  };
+}
+
+export function getCopilotInsightIcon(kind: CopilotInsightKind): string {
+  switch (kind) {
+    case "context":
+      return "📋";
+    case "continuity":
+      return "📆";
+    case "lab":
+      return "🧪";
+    case "medication":
+      return "💊";
+    case "vitals":
+      return "🫀";
+  }
+}
+
+export function getRiskLevelStyles(level: ClinicalRiskLevel): {
+  border: string;
+  bg: string;
+  text: string;
+  badge: string;
+} {
+  switch (level) {
+    case "alto":
+      return {
+        border: "border-red-200",
+        bg: "bg-red-50/60",
+        text: "text-red-900",
+        badge: "bg-red-100 text-red-800",
+      };
+    case "moderado":
+      return {
+        border: "border-amber-200",
+        bg: "bg-amber-50/60",
+        text: "text-amber-900",
+        badge: "bg-amber-100 text-amber-800",
+      };
+    case "bajo":
+      return {
+        border: "border-emerald-200",
+        bg: "bg-emerald-50/40",
+        text: "text-emerald-900",
+        badge: "bg-emerald-100 text-emerald-800",
+      };
+  }
+}
+
+export function getQualityLabelStyles(label: DocumentationQualityLabel): string {
+  switch (label) {
+    case "Excelente":
+      return "bg-emerald-100 text-emerald-800";
+    case "Adecuado":
+      return "bg-sky-100 text-sky-800";
+    case "Incompleto":
+      return "bg-slate-100 text-slate-700";
+  }
+}

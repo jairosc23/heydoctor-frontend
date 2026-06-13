@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
+import { useDoctorDna } from "@/hooks/useDoctorDna";
 import { usePatientClinicalMemory } from "@/hooks/usePatientClinicalMemory";
 import { buildClinicalMemoryView } from "@/lib/clinical-memory";
-import { buildCopilotContextFromEncounter } from "@/lib/clinical-copilot-mock";
+import { buildClinicalCopilotIntelligence } from "@/lib/clinical-copilot-intelligence";
+import { buildDoctorDnaIntelligenceView } from "@/lib/doctor-dna-intelligence";
 import { cn } from "@/lib/utils";
 import {
   CLINICAL_OVERLAY_BACKDROP_CLASS,
@@ -11,33 +13,48 @@ import {
 } from "@/lib/clinical-overlay-contract";
 import { CopilotActionSystem } from "./CopilotActionSystem";
 import { CopilotContextEngine } from "./CopilotContextEngine";
+import { CopilotDocumentationGaps } from "./CopilotDocumentationGaps";
+import { CopilotDocumentationQuality } from "./CopilotDocumentationQuality";
 import { CopilotGovernanceBoundary } from "./CopilotGovernanceBoundary";
 import { CopilotInsightCards } from "./CopilotInsightCards";
+import { CopilotRiskSignals } from "./CopilotRiskSignals";
 
 export interface ClinicalCopilotDrawerProps {
   open: boolean;
   onClose: () => void;
+  consultationId?: string | null;
   patientId?: string | null;
   diagnosis?: string | null;
+  diagnosisCode?: string | null;
   diagnosisDescription?: string | null;
+  chiefComplaint?: string | null;
   treatment?: string | null;
   notes?: string | null;
   patientName?: string | null;
+  patientAge?: string | number | null;
+  patientSex?: string | null;
 }
 
 export function ClinicalCopilotDrawer({
   open,
   onClose,
+  consultationId,
   patientId,
   diagnosis,
+  diagnosisCode,
   diagnosisDescription,
+  chiefComplaint,
   treatment,
   notes,
   patientName,
+  patientAge,
+  patientSex,
 }: ClinicalCopilotDrawerProps) {
   const { data: clinicalMemoryData } = usePatientClinicalMemory(
     open ? patientId : null,
   );
+  const { data: doctorDnaData, loading: dnaLoading, error: dnaError } =
+    useDoctorDna();
 
   const clinicalMemory = useMemo(
     () =>
@@ -51,23 +68,47 @@ export function ClinicalCopilotDrawer({
     [clinicalMemoryData, diagnosis, diagnosisDescription, patientId],
   );
 
-  const context = useMemo(
+  const doctorDna = useMemo(
     () =>
-      buildCopilotContextFromEncounter({
+      !dnaLoading && !dnaError
+        ? buildDoctorDnaIntelligenceView(doctorDnaData)
+        : null,
+    [doctorDnaData, dnaLoading, dnaError],
+  );
+
+  const intelligence = useMemo(
+    () =>
+      buildClinicalCopilotIntelligence({
+        consultationId,
         diagnosis,
+        diagnosisCode,
         diagnosisDescription,
+        chiefComplaint,
         treatment,
         notes,
         patientName,
+        patientAge,
+        patientSex,
         clinicalMemory,
+        clinicalMemoryRaw: clinicalMemoryData.patientId
+          ? clinicalMemoryData
+          : null,
+        doctorDna,
       }),
     [
+      consultationId,
       diagnosis,
+      diagnosisCode,
       diagnosisDescription,
+      chiefComplaint,
       treatment,
       notes,
       patientName,
+      patientAge,
+      patientSex,
       clinicalMemory,
+      clinicalMemoryData,
+      doctorDna,
     ],
   );
 
@@ -106,13 +147,13 @@ export function ClinicalCopilotDrawer({
         <header className="shrink-0 border-b border-hd-border-subtle px-hd-4 py-hd-3">
           <div className="heydoctor-presence">
             <p className="text-[10px] font-semibold uppercase tracking-wide text-primary/80">
-              Phase 4.0 Foundation
+              Phase 4.6 Intelligence
             </p>
             <h2 className="text-sm font-semibold text-slate-900">
               Clinical Copilot™
             </h2>
             <p className="text-[10px] text-slate-500">
-              Asistente clínico — shell sin IA conectada
+              Asistente de contexto clínico — reglas determinísticas
             </p>
           </div>
           <button
@@ -127,8 +168,11 @@ export function ClinicalCopilotDrawer({
 
         <div className="flex-1 space-y-hd-5 overflow-y-auto px-hd-4 py-hd-4">
           <CopilotGovernanceBoundary />
-          <CopilotContextEngine context={context} />
-          <CopilotInsightCards />
+          <CopilotDocumentationQuality quality={intelligence.documentationQuality} />
+          <CopilotContextEngine context={intelligence.context} />
+          <CopilotInsightCards insights={intelligence.insights} />
+          <CopilotRiskSignals signals={intelligence.riskSignals} />
+          <CopilotDocumentationGaps gaps={intelligence.documentationGaps} />
           <CopilotActionSystem />
         </div>
       </aside>

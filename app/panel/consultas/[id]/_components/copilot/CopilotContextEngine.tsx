@@ -1,7 +1,7 @@
 "use client";
 
 import { CLINICAL_SECTION_TITLE } from "@/lib/clinical-design-tokens";
-import type { CopilotContextView } from "@/lib/clinical-copilot-mock";
+import type { CopilotContextView } from "@/lib/clinical-copilot-intelligence";
 import { CopilotSourceStrip } from "./CopilotSourceStrip";
 
 function ContextRow({
@@ -35,9 +35,9 @@ export function CopilotContextEngine({ context }: { context: CopilotContextView 
   return (
     <section aria-label="Context Engine" className="space-y-hd-3">
       <div>
-        <h3 className={CLINICAL_SECTION_TITLE}>Context Engine™</h3>
+        <h3 className={CLINICAL_SECTION_TITLE}>Context Engine v2™</h3>
         <p className="text-[11px] text-slate-500">
-          Información clínica en observación (solo visualización)
+          Clinical Data Foundation — contexto clínico real
         </p>
       </div>
 
@@ -76,61 +76,90 @@ export function CopilotContextEngine({ context }: { context: CopilotContextView 
           value={context.activeDiagnosis ?? "No disponible en contexto"}
         />
         <ContextRow
-          label="SOAP — plan"
-          value={context.soapSummary.plan}
+          label="Motivo de consulta"
+          value={context.soapSummary.chiefComplaint}
         />
+        <ContextRow label="SOAP — plan" value={context.soapSummary.plan} />
         <ContextRow
           label="SOAP — notas"
           value={context.soapSummary.notesPreview}
         />
       </div>
 
+      {context.vitalsSummary ? (
+        <ContextRow label="Signos vitales" value={context.vitalsSummary} />
+      ) : null}
+
+      {context.physicalExamSummary ? (
+        <ContextRow label="Examen físico" value={context.physicalExamSummary} />
+      ) : null}
+
+      {context.longitudinalSummary ? (
+        <ContextRow label="Longitudinal" value={context.longitudinalSummary} />
+      ) : null}
+
+      {context.doctorDnaObservation ? (
+        <ContextRow label="Doctor DNA™" value={context.doctorDnaObservation} />
+      ) : null}
+
       <div>
         <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wide text-slate-400">
-          Medicamentos activos (mock)
+          Medicamentos activos
         </p>
-        <ul className="space-y-1">
-          {context.activeMedications.map((med) => (
-            <li
-              key={med}
-              className="rounded-hd-md border border-hd-border-subtle bg-teal-50/40 px-hd-2 py-1 text-xs text-slate-700"
-            >
-              {med}
-            </li>
-          ))}
-        </ul>
+        {context.activeMedications.length === 0 ? (
+          <p className="text-[11px] text-slate-500">Sin medicación en memoria</p>
+        ) : (
+          <ul className="space-y-1">
+            {context.activeMedications.map((med) => (
+              <li
+                key={med}
+                className="rounded-hd-md border border-hd-border-subtle bg-teal-50/40 px-hd-2 py-1 text-xs text-slate-700"
+              >
+                {med}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <div>
         <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wide text-slate-400">
-          Timeline reciente (mock)
+          Timeline reciente
         </p>
-        <ul className="space-y-1">
-          {context.recentTimeline.map((item) => (
-            <li
-              key={item}
-              className="rounded-hd-md border border-hd-border-subtle bg-hd-surface-muted px-hd-2 py-1 text-xs text-slate-700"
-            >
-              {item}
-            </li>
-          ))}
-        </ul>
+        {context.recentTimeline.length === 0 ? (
+          <p className="text-[11px] text-slate-500">Sin consultas previas en memoria</p>
+        ) : (
+          <ul className="space-y-1">
+            {context.recentTimeline.map((item) => (
+              <li
+                key={item}
+                className="rounded-hd-md border border-hd-border-subtle bg-hd-surface-muted px-hd-2 py-1 text-xs text-slate-700"
+              >
+                {item}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <div>
         <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wide text-slate-400">
-          Laboratorios (mock)
+          Laboratorios
         </p>
-        <ul className="flex flex-wrap gap-1">
-          {context.pendingLabs.map((lab) => (
-            <li
-              key={lab}
-              className="rounded-full border border-amber-200/80 bg-amber-50 px-2 py-0.5 text-[11px] text-amber-900"
-            >
-              {lab}
-            </li>
-          ))}
-        </ul>
+        {context.pendingLabs.length === 0 ? (
+          <p className="text-[11px] text-slate-500">Sin labs en memoria</p>
+        ) : (
+          <ul className="flex flex-wrap gap-1">
+            {context.pendingLabs.map((lab) => (
+              <li
+                key={lab}
+                className="rounded-full border border-amber-200/80 bg-amber-50 px-2 py-0.5 text-[11px] text-amber-900"
+              >
+                {lab}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </section>
   );

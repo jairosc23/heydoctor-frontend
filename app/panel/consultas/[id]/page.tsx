@@ -909,12 +909,17 @@ export default function ConsultationDetailPage() {
       <ClinicalCopilotDrawer
         open={copilotDrawerOpen}
         onClose={() => setCopilotDrawerOpen(false)}
+        consultationId={id}
         patientId={consultation.patientId}
         diagnosis={diagnosisState.diagnosis}
+        diagnosisCode={diagnosisState.diagnosisCode}
         diagnosisDescription={diagnosisState.diagnosisDescription}
+        chiefComplaint={chiefComplaintDraft}
         treatment={treatment}
         notes={notes}
         patientName={patientName}
+        patientAge={soapPatientAge}
+        patientSex={soapPatientSex}
       />
 
       <DoctorDnaDrawer

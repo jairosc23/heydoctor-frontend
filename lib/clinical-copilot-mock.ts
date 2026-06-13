@@ -1,41 +1,23 @@
+/**
+ * Phase 4.0 — Copilot shell: governance, acciones UI y re-exports.
+ * Contexto e insights reales: clinical-copilot-intelligence.ts (Phase 4.6).
+ */
+
 import type { ClinicalMemoryView } from "@/lib/clinical-memory";
-import { clinicalMemoryConfidenceLabel } from "@/lib/clinical-memory";
+import {
+  buildCopilotContextV2,
+  type CopilotContextSource,
+  type CopilotContextView,
+  type CopilotInsight,
+  type CopilotInsightKind,
+} from "./clinical-copilot-intelligence";
 
-export type CopilotContextSource =
-  | "soap"
-  | "timeline"
-  | "doctor-dna"
-  | "orders"
-  | "patient-snapshot"
-  | "clinical-memory";
-
-export type CopilotContextView = {
-  activeDiagnosis: string | null;
-  activeMedications: string[];
-  recentTimeline: string[];
-  pendingLabs: string[];
-  soapSummary: {
-    diagnosis: string;
-    plan: string;
-    notesPreview: string;
-  };
-  clinicalMemory: string[];
-  clinicalMemoryConfidence: string | null;
-  sources: CopilotContextSource[];
-};
-
-export type CopilotInsightKind =
-  | "diagnosis"
-  | "follow-up"
-  | "lab"
-  | "medication";
-
-export type CopilotInsight = {
-  id: string;
-  kind: CopilotInsightKind;
-  title: string;
-  body: string;
-};
+export type {
+  CopilotContextSource,
+  CopilotContextView,
+  CopilotInsight,
+  CopilotInsightKind,
+} from "./clinical-copilot-intelligence";
 
 export type CopilotActionId =
   | "add-to-soap"
@@ -60,6 +42,9 @@ export const COPILOT_CONTEXT_SOURCE_LABELS: Record<
   orders: { label: "Orders Command Center™", icon: "📋" },
   "patient-snapshot": { label: "Patient Snapshot™", icon: "👤" },
   "clinical-memory": { label: "Clinical Memory™", icon: "🧬" },
+  vitals: { label: "Vital Signs Context™", icon: "🫀" },
+  "physical-exam": { label: "Physical Exam Framework™", icon: "🩺" },
+  longitudinal: { label: "Longitudinal Summary™", icon: "📊" },
 };
 
 export const COPILOT_GOVERNANCE_LINES = [
@@ -68,33 +53,6 @@ export const COPILOT_GOVERNANCE_LINES = [
   "No realiza diagnósticos",
   "No realiza indicaciones automáticas",
 ] as const;
-
-export const MOCK_COPILOT_INSIGHTS: CopilotInsight[] = [
-  {
-    id: "insight-dx",
-    kind: "diagnosis",
-    title: "Diagnóstico detectado",
-    body: "Patrón compatible con seguimiento de enfermedad metabólica crónica (mock).",
-  },
-  {
-    id: "insight-follow",
-    kind: "follow-up",
-    title: "Seguimiento sugerido",
-    body: "Control ambulatorio en 8–12 semanas según continuidad registrada (mock).",
-  },
-  {
-    id: "insight-lab",
-    kind: "lab",
-    title: "Laboratorio relacionado",
-    body: "Hemoglobina glicosilada y perfil lipídico frecuentes en este contexto (mock).",
-  },
-  {
-    id: "insight-rx",
-    kind: "medication",
-    title: "Medicamento asociado",
-    body: "Metformina aparece como intervención recurrente en práctica similar (mock).",
-  },
-];
 
 export const MOCK_COPILOT_ACTIONS: CopilotAction[] = [
   {
@@ -123,76 +81,29 @@ export const MOCK_COPILOT_ACTIONS: CopilotAction[] = [
   },
 ];
 
-const MOCK_MEDICATIONS = ["Metformina 850 mg", "Losartán 50 mg"];
-const MOCK_TIMELINE = [
-  "Consulta de control — hace 3 semanas",
-  "Diabetes mellitus tipo 2 — activa",
-  "HbA1c solicitada — pendiente",
-];
-const MOCK_LABS = ["Hemoglobina glicosilada", "Perfil lipídico"];
-
-function truncatePreview(text: string, max = 120): string {
-  const trimmed = text.trim();
-  if (trimmed.length <= max) return trimmed;
-  return `${trimmed.slice(0, max).trim()}…`;
-}
-
 export type BuildCopilotContextInput = {
+  consultationId?: string | null;
   diagnosis?: string | null;
+  diagnosisCode?: string | null;
   diagnosisDescription?: string | null;
+  chiefComplaint?: string | null;
   treatment?: string | null;
   notes?: string | null;
   patientName?: string | null;
   clinicalMemory?: ClinicalMemoryView | null;
 };
 
+/** @deprecated Use buildCopilotContextV2 via buildClinicalCopilotIntelligence */
 export function buildCopilotContextFromEncounter(
   input: BuildCopilotContextInput,
 ): CopilotContextView {
-  const diagnosis =
-    input.diagnosisDescription?.trim() ||
-    input.diagnosis?.trim() ||
-    null;
-
-  const plan = input.treatment?.trim() ?? "";
-  const notesPreview = truncatePreview(input.notes ?? "");
-
-  const hasSoap = Boolean(diagnosis || plan || notesPreview);
-
-  return {
-    activeDiagnosis: diagnosis,
-    activeMedications: hasSoap ? MOCK_MEDICATIONS : [],
-    recentTimeline: MOCK_TIMELINE,
-    pendingLabs: MOCK_LABS,
-    soapSummary: {
-      diagnosis: diagnosis ?? "Sin diagnóstico estructurado",
-      plan: plan || "Sin plan registrado",
-      notesPreview: notesPreview || "Sin notas en esta sesión",
-    },
-    clinicalMemory: input.clinicalMemory?.highlights ?? [],
-    clinicalMemoryConfidence: input.clinicalMemory
-      ? clinicalMemoryConfidenceLabel(input.clinicalMemory.confidence)
-      : null,
-    sources: [
-      "patient-snapshot",
-      "clinical-memory",
-      "soap",
-      "timeline",
-      "doctor-dna",
-      "orders",
-    ],
-  };
+  return buildCopilotContextV2({
+    ...input,
+    clinicalMemoryRaw: null,
+  });
 }
 
-export function getCopilotInsightIcon(kind: CopilotInsightKind): string {
-  switch (kind) {
-    case "diagnosis":
-      return "🩺";
-    case "follow-up":
-      return "📆";
-    case "lab":
-      return "🧪";
-    case "medication":
-      return "💊";
-  }
-}
+export { getCopilotInsightIcon } from "./clinical-copilot-intelligence";
+
+/** Removed Phase 4.6 — use buildClinicalInsightCards */
+export const MOCK_COPILOT_INSIGHTS: CopilotInsight[] = [];
