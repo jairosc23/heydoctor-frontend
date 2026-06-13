@@ -16,8 +16,7 @@ import type { ActionResult } from "@/lib/services/consultation-actions";
 import { cn } from "@/lib/utils";
 import { DocumentsTab } from "../DocumentsTab";
 import { InvoicesSubTab } from "../InvoicesSubTab";
-import { OrdersOverview } from "../orders/OrdersOverview";
-import { OrdersQuickActions } from "../orders/OrdersQuickActions";
+import { OrdersTab, type OrdersSubTab } from "../OrdersTab";
 import { useClinicalActionWorkspace } from "./ClinicalActionWorkspaceProvider";
 
 export interface ClinicalModuleSheetContentProps {
@@ -26,6 +25,8 @@ export interface ClinicalModuleSheetContentProps {
   diagnosisCode?: string;
   refreshKey?: number;
   ordersHighlight?: boolean;
+  ordersSubTab: OrdersSubTab;
+  onOrdersSubTabChange: (tab: OrdersSubTab) => void;
   documentHandlers: ActionBarHandlers;
   documentLoading: ActionBarLoading;
   documentDisabled: Partial<Record<string, boolean>>;
@@ -38,12 +39,14 @@ export function ClinicalModuleSheetContent({
   diagnosisCode,
   refreshKey = 0,
   ordersHighlight = false,
+  ordersSubTab,
+  onOrdersSubTabChange,
   documentHandlers,
   documentLoading,
   documentDisabled,
   onLegacyInvoiceResult,
 }: ClinicalModuleSheetContentProps) {
-  const { activeModule, openModule } = useClinicalActionWorkspace();
+  const { activeModule } = useClinicalActionWorkspace();
 
   if (!activeModule) return null;
 
@@ -72,21 +75,16 @@ export function ClinicalModuleSheetContent({
       </p>
 
       {activeModule === "orders" && patientId ? (
-        <div className="space-y-hd-3">
-          <OrdersOverview
-            patientId={patientId}
-            consultationId={consultationId}
-            refreshKey={refreshKey}
-          />
-          <OrdersQuickActions
-            activeSubTab="prescriptions"
-            onSelect={(tab) => openModule(tab)}
-          />
-          <p className="text-xs text-slate-500">
-            Selecciona un tipo de orden arriba o usa la Clinical Action Bar™
-            para abrir el módulo directamente.
-          </p>
-        </div>
+        <OrdersTab
+          patientId={patientId}
+          consultationId={consultationId}
+          diagnosisCode={diagnosisCode}
+          activeSubTab={ordersSubTab}
+          onSubTabChange={onOrdersSubTabChange}
+          onLegacyInvoiceResult={onLegacyInvoiceResult}
+          highlight={ordersHighlight}
+          refreshKey={refreshKey}
+        />
       ) : null}
 
       {activeModule === "prescriptions" && patientId ? (

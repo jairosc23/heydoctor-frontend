@@ -126,22 +126,23 @@ export function ConsultationWorkspace({
           />
         }
         right={
-          <EncounterRightPane
-            patientId={consultation.patientId}
-            consultationId={consultationId}
-            activeTab={rightPaneTab}
-            onTabChange={onRightPaneTabChange}
-            ordersSubTab={ordersSubTab}
-            onOrdersSubTabChange={onOrdersSubTabChange}
-            diagnosisCode={diagnosisCode}
-            documentHandlers={documentHandlers}
-            documentLoading={documentLoading}
-            documentDisabled={documentDisabled}
-            onLegacyInvoiceResult={onLegacyInvoiceResult}
-            ordersHighlight={ordersHighlight}
-            ordersRefreshKey={ordersRefreshKey}
-            actionWorkspaceEnabled={actionWorkspaceEnabled}
-          />
+          actionWorkspaceEnabled ? undefined : (
+            <EncounterRightPane
+              patientId={consultation.patientId}
+              consultationId={consultationId}
+              activeTab={rightPaneTab}
+              onTabChange={onRightPaneTabChange}
+              ordersSubTab={ordersSubTab}
+              onOrdersSubTabChange={onOrdersSubTabChange}
+              diagnosisCode={diagnosisCode}
+              documentHandlers={documentHandlers}
+              documentLoading={documentLoading}
+              documentDisabled={documentDisabled}
+              onLegacyInvoiceResult={onLegacyInvoiceResult}
+              ordersHighlight={ordersHighlight}
+              ordersRefreshKey={ordersRefreshKey}
+            />
+          )
         }
       />
     </div>

@@ -1,13 +1,27 @@
 "use client";
 
+import type { ReactNode } from "react";
 import {
   CLINICAL_ACTION_MODULES,
   type ClinicalActionModuleId,
 } from "@/lib/clinical-action-workspace";
 import { cn } from "@/lib/utils";
 import { useClinicalActionWorkspace } from "./ClinicalActionWorkspaceProvider";
+import { OrdersCompactSummary } from "../orders/OrdersCompactSummary";
 
-export function ClinicalActionBar({ className }: { className?: string }) {
+export interface ClinicalActionBarProps {
+  className?: string;
+  patientId?: string | null;
+  consultationId?: string;
+  ordersRefreshKey?: number;
+}
+
+export function ClinicalActionBar({
+  className,
+  patientId,
+  consultationId,
+  ordersRefreshKey = 0,
+}: ClinicalActionBarProps) {
   const { enabled, activeModule, sheetOpen, openModule } =
     useClinicalActionWorkspace();
 
@@ -33,6 +47,15 @@ export function ClinicalActionBar({ className }: { className?: string }) {
               label={module.label}
               active={isActive}
               onSelect={openModule}
+              suffix={
+                module.id === "orders" && patientId && consultationId ? (
+                  <OrdersCompactSummary
+                    patientId={patientId}
+                    consultationId={consultationId}
+                    refreshKey={ordersRefreshKey}
+                  />
+                ) : null
+              }
             />
           );
         })}
@@ -47,12 +70,14 @@ function ActionBarChip({
   label,
   active,
   onSelect,
+  suffix,
 }: {
   moduleId: ClinicalActionModuleId;
   icon: string;
   label: string;
   active: boolean;
   onSelect: (moduleId: ClinicalActionModuleId) => void;
+  suffix?: ReactNode;
 }) {
   return (
     <button
@@ -69,6 +94,7 @@ function ActionBarChip({
     >
       <span aria-hidden>{icon}</span>
       {label}
+      {suffix}
     </button>
   );
 }

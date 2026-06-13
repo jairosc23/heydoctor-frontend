@@ -852,7 +852,11 @@ export default function ConsultationDetailPage() {
               />
             ) : null}
             {clinicalActionWorkspaceEnabled && consultation.patientId ? (
-              <ClinicalActionBar />
+              <ClinicalActionBar
+                patientId={consultation.patientId}
+                consultationId={id}
+                ordersRefreshKey={ordersRefreshKey}
+              />
             ) : null}
           </div>
         </div>
@@ -867,6 +871,8 @@ export default function ConsultationDetailPage() {
           }
           refreshKey={ordersRefreshKey}
           ordersHighlight={ordersHighlight}
+          ordersSubTab={ordersSubTab}
+          onOrdersSubTabChange={setOrdersSubTab}
           documentHandlers={{
             onStartTeleconsultation: () => void handleStartCall(),
             onOpenPrescription: handleOpenPrescription,
