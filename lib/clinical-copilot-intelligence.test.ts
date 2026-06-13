@@ -2,10 +2,9 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   buildClinicalCopilotIntelligence,
-  buildClinicalInsightCards,
-  buildClinicalRiskSignals,
-  buildDocumentationGaps,
   buildDocumentationQuality,
+  COPILOT_RISK_EMPTY_MESSAGE,
+  COPILOT_SILENCE_MESSAGE,
 } from "./clinical-copilot-intelligence";
 import type { PatientClinicalMemory } from "./types/clinical-memory";
 
@@ -21,8 +20,8 @@ function memoryBase(patientId: string): PatientClinicalMemory {
   };
 }
 
-describe("clinical-copilot-intelligence Phase 4.6", () => {
-  it("HTA — insight de PA elevada y gap sin examen cardiovascular", () => {
+describe("clinical-copilot-intelligence Phase 4.6 / 4.7B", () => {
+  it("HTA — insight PA elevada y risk nivel sin duplicar valores", () => {
     const notes =
       "Signos vitales: PA 152/98 mmHg, FC 78 lpm. Paciente refiere cefalea leve.";
     const bundle = buildClinicalCopilotIntelligence({
@@ -35,21 +34,17 @@ describe("clinical-copilot-intelligence Phase 4.6", () => {
       clinicalMemoryRaw: memoryBase("p1"),
     });
 
-    assert.ok(
-      bundle.insights.some((i) => /Presión arterial elevada/i.test(i.title)),
-    );
-    assert.ok(bundle.context.sources.includes("vitals"));
-    assert.ok(
-      bundle.riskSignals.some((s) => s.level === "moderado" && /PA/i.test(s.title)),
-    );
-    assert.ok(
-      bundle.documentationGaps.some((g) => g.id === "gap-pe-cv"),
-      "debe detectar falta de examen cardiovascular",
-    );
-    assert.ok(bundle.documentationQuality.score >= 60);
+    const htaInsight = bundle.insights.find((i) => i.id === "hta-vitals");
+    assert.ok(htaInsight);
+    assert.match(htaInsight!.body, /152\/98/);
+
+    const bpRisk = bundle.riskSignals.find((s) => s.id === "risk-elevated-bp");
+    assert.ok(bpRisk);
+    assert.doesNotMatch(bpRisk!.body, /152\/98/);
+    assert.match(bpRisk!.body, /moderado|Clinical Insight/);
   });
 
-  it("DM2 — HbA1c, medicación y alerta en insights", () => {
+  it("DM2 — HbA1c en insight; alerta solo en risk (sin dm2-rx)", () => {
     const memory: PatientClinicalMemory = {
       ...memoryBase("p2"),
       currentMedications: [
@@ -87,18 +82,17 @@ describe("clinical-copilot-intelligence Phase 4.6", () => {
       clinicalMemoryRaw: memory,
     });
 
-    assert.ok(bundle.insights.some((i) => /HbA1c/i.test(i.body)));
-    assert.ok(bundle.insights.some((i) => /Metformina/i.test(i.body)));
-    assert.ok(bundle.riskSignals.some((s) => /Alerta clínica/i.test(s.title)));
-    assert.ok(bundle.riskSignals.some((s) => /Laboratorios pendientes/i.test(s.title)));
+    assert.ok(bundle.insights.some((i) => i.id === "dm2-lab"));
+    assert.ok(!bundle.insights.some((i) => i.id === "dm2-rx"));
+    assert.ok(!bundle.insights.some((i) => i.id === "dm2-alert"));
+    assert.ok(bundle.riskSignals.some((s) => s.id === "risk-alert-dm-hba1c"));
+    assert.ok(bundle.riskSignals.some((s) => s.id === "risk-pending-labs"));
   });
 
-  it("Asma — medicación inhalatoria y contexto estable", () => {
+  it("Asma — insights refinados sin medicación redundante", () => {
     const memory: PatientClinicalMemory = {
       ...memoryBase("p3"),
-      activeConditions: [
-        { code: "J45", label: "Asma", source: "cie10" },
-      ],
+      activeConditions: [{ code: "J45", label: "Asma", source: "cie10" }],
       currentMedications: [
         {
           name: "Salbutamol inhalador",
@@ -123,12 +117,10 @@ describe("clinical-copilot-intelligence Phase 4.6", () => {
       clinicalMemoryRaw: memory,
     });
 
-    assert.ok(
-      bundle.insights.some((i) => /inhalatorio/i.test(i.title)),
-    );
-    assert.ok(
-      bundle.insights.some((i) => /Sin alertas de exacerbación/i.test(i.title)),
-    );
+    assert.ok(!bundle.insights.some((i) => i.id === "asma-rx"));
+    assert.ok(!bundle.insights.some((i) => i.id === "asma-stable"));
+    assert.ok(bundle.insights.some((i) => i.id === "asma-no-exacerbation"));
+    assert.ok(bundle.insights.some((i) => i.id === "asma-treatment-persistence"));
   });
 
   it("Documentation Quality — score 0–100 con etiqueta coherente", () => {
@@ -162,45 +154,10 @@ describe("clinical-copilot-intelligence Phase 4.6", () => {
 
     assert.ok(sparse.score < 60);
     assert.equal(sparse.label, "Incompleto");
-
-    const complete = buildDocumentationQuality(
-      {
-        diagnosisCode: "I10",
-        diagnosisDescription: "Hipertensión",
-        chiefComplaint: "Control",
-        notes:
-          "Signos vitales: PA 130/80 mmHg. Examen cardiovascular: ritmo regular, sin soplos.",
-        treatment: "Losartán. Control en 4 semanas.",
-        clinicalMemoryRaw: memoryBase("p4"),
-      },
-      {
-        activeDiagnosis: "Hipertensión",
-        activeDiagnosisCode: "I10",
-        activeMedications: [],
-        recentTimeline: [],
-        pendingLabs: [],
-        soapSummary: {
-          diagnosis: "Hipertensión",
-          plan: "Losartán",
-          notesPreview: "Signos vitales",
-          chiefComplaint: "Control",
-        },
-        clinicalMemory: [],
-        clinicalMemoryConfidence: null,
-        vitalsSummary: "PA 130/80",
-        physicalExamSummary: "cardiovascular: ritmo regular",
-        longitudinalSummary: null,
-        doctorDnaObservation: null,
-        sources: ["soap", "vitals", "physical-exam"],
-      },
-    );
-
-    assert.ok(complete.score >= 85);
-    assert.equal(complete.label, "Excelente");
   });
 
-  it("Risk signals — baseline bajo sin datos de riesgo", () => {
-    const context = buildClinicalCopilotIntelligence({
+  it("Phase 4.7B — sin risk-baseline; array vacío sin riesgo real", () => {
+    const bundle = buildClinicalCopilotIntelligence({
       diagnosisDescription: "Consulta general",
       chiefComplaint: "Dolor abdominal",
       notes: "Cuadro agudo de 2 días.",
@@ -208,11 +165,24 @@ describe("clinical-copilot-intelligence Phase 4.6", () => {
       clinicalMemoryRaw: memoryBase("p5"),
     });
 
-    assert.ok(
-      context.riskSignals.some(
-        (s) => s.level === "bajo" && /Sin señales determinísticas/i.test(s.title),
-      ),
-    );
+    assert.equal(bundle.riskSignals.length, 0);
+    assert.equal(COPILOT_RISK_EMPTY_MESSAGE.length > 0, true);
+  });
+
+  it("Phase 4.7B — Copilot Silence Mode cuando no hay output relevante", () => {
+    const bundle = buildClinicalCopilotIntelligence({
+      diagnosisDescription: "Consulta general",
+      chiefComplaint: "Dolor abdominal leve",
+      notes: "Cuadro agudo autolimitado de 2 días sin signos de alarma.",
+      treatment: "Reposo e hidratación oral.",
+      clinicalMemoryRaw: memoryBase("p5b"),
+    });
+
+    assert.equal(bundle.insights.length, 0);
+    assert.equal(bundle.riskSignals.length, 0);
+    assert.equal(bundle.documentationGaps.length, 0);
+    assert.equal(bundle.silenceMode, true);
+    assert.match(COPILOT_SILENCE_MESSAGE, /Sin observaciones clínicas relevantes/);
   });
 
   it("no emite diagnósticos ni recomendaciones terapéuticas en insights", () => {

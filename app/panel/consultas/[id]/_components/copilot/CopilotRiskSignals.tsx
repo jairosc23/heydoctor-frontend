@@ -2,6 +2,8 @@
 
 import { CLINICAL_SECTION_TITLE } from "@/lib/clinical-design-tokens";
 import {
+  COPILOT_RISK_EMPTY_MESSAGE,
+  COPILOT_SILENCE_MESSAGE,
   getRiskLevelStyles,
   type ClinicalRiskSignal,
 } from "@/lib/clinical-copilot-intelligence";
@@ -15,8 +17,11 @@ export function CopilotRiskSignals({ signals }: { signals: ClinicalRiskSignal[] 
           Reglas determinísticas — no IA
         </p>
       </div>
-      <ul className="space-y-hd-2">
-        {signals.map((signal) => {
+      {signals.length === 0 ? (
+        <p className="text-[11px] text-slate-500">{COPILOT_RISK_EMPTY_MESSAGE}</p>
+      ) : (
+        <ul className="space-y-hd-2">
+          {signals.map((signal) => {
           const styles = getRiskLevelStyles(signal.level);
           return (
             <li
@@ -39,7 +44,8 @@ export function CopilotRiskSignals({ signals }: { signals: ClinicalRiskSignal[] 
             </li>
           );
         })}
-      </ul>
+        </ul>
+      )}
     </section>
   );
 }

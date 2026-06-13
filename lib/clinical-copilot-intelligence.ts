@@ -1,7 +1,6 @@
 /**
  * Phase 4.6 — Clinical Copilot Intelligence™
- * Motor determinístico: insights contextuales, señales de riesgo,
- * gaps documentales y calidad — sin IA, sin diagnósticos, sin prescripciones.
+ * Phase 4.7B — Noise Reduction: menos output, más valor clínico.
  */
 
 import { buildClinicalDataFoundation } from "./clinical-data-foundation";
@@ -12,9 +11,7 @@ import {
   hasPhysicalExamData,
   resolvePhysicalExamFromNotes,
 } from "./physical-exam-framework";
-import { buildLongitudinalSummary } from "./longitudinal-summary";
 import {
-  hasClinicalVitalSignsData,
   parseClinicalVitalSignsFromNotes,
 } from "./clinical-vital-signs-context";
 import type { PatientClinicalMemory } from "./types/clinical-memory";
@@ -94,7 +91,15 @@ export type ClinicalCopilotIntelligenceBundle = {
   riskSignals: ClinicalRiskSignal[];
   documentationGaps: DocumentationGap[];
   documentationQuality: DocumentationQuality;
+  /** Phase 4.7B — sin insight, riesgo, gap ni alerta relevante */
+  silenceMode: boolean;
 };
+
+export const COPILOT_SILENCE_MESSAGE =
+  "Sin observaciones clínicas relevantes para esta consulta.";
+
+export const COPILOT_RISK_EMPTY_MESSAGE =
+  "No se detectan señales clínicas relevantes.";
 
 export type BuildClinicalCopilotInput = {
   consultationId?: string | null;
@@ -273,14 +278,15 @@ export function buildClinicalInsightCards(
   const vitals = foundation.vitalSigns.vitals;
 
   if (isHypertension(code)) {
-    if (vitals.systolic != null && vitals.diastolic != null) {
-      const elevated = isElevatedBp(vitals.systolic, vitals.diastolic);
+    if (
+      vitals.systolic != null &&
+      vitals.diastolic != null &&
+      isElevatedBp(vitals.systolic, vitals.diastolic)
+    ) {
       insights.push({
         id: "hta-vitals",
         kind: "vitals",
-        title: elevated
-          ? "Presión arterial elevada documentada"
-          : "Presión arterial registrada en consulta",
+        title: "Presión arterial elevada documentada",
         body: `En la documentación actual consta PA ${vitals.systolic}/${vitals.diastolic} mmHg. Observación contextual — verificar en punto de atención.`,
       });
     }
@@ -312,74 +318,55 @@ export function buildClinicalInsightCards(
         body: `${hba1cLab.exam} — dato documentado en memoria clínica. No constituye interpretación clínica automática.`,
       });
     }
-    const metformin = memory?.currentMedications.find((m) =>
-      /metformina/i.test(m.name),
-    );
-    if (metformin) {
-      insights.push({
-        id: "dm2-rx",
-        kind: "medication",
-        title: "Tratamiento antidiabético en memoria activa",
-        body: `${metformin.name} aparece como medicación actual documentada.`,
-      });
-    }
-    const alert = memory?.alerts.find((a) =>
-      /hba1c|gluc|dm/i.test(a.message),
-    );
-    if (alert) {
-      insights.push({
-        id: "dm2-alert",
-        kind: "context",
-        title: "Alerta clínica registrada",
-        body: alert.message,
-      });
-    }
   }
 
   if (isAsthma(code)) {
-    const inhalers = memory?.currentMedications.filter((m) =>
-      /salbutamol|budesonida|formoterol|inhal/i.test(m.name),
-    );
-    if (inhalers?.length) {
-      insights.push({
-        id: "asma-rx",
-        kind: "medication",
-        title: "Tratamiento inhalatorio documentado",
-        body: `Medicación activa: ${inhalers.map((m) => m.name).join(", ")}.`,
-      });
-    }
     const exacerbationAlert = memory?.alerts.find((a) =>
       /exacerb|asma|crisis/i.test(a.message),
     );
-    if (!exacerbationAlert && memory?.activeConditions.some((c) => /asma/i.test(c.label))) {
+    if (
+      !exacerbationAlert &&
+      memory?.activeConditions.some((c) => /asma/i.test(c.label))
+    ) {
       insights.push({
-        id: "asma-stable",
+        id: "asma-no-exacerbation",
         kind: "context",
-        title: "Sin alertas de exacerbación recientes",
-        body: "No hay alertas activas de exacerbación asmática en memoria clínica. Contexto de control ambulatorio documentado.",
+        title: "Sin exacerbaciones documentadas recientemente",
+        body: "No constan alertas activas de exacerbación asmática en memoria clínica.",
       });
     }
-  }
 
-  if (foundation.longitudinal.hasData && insights.length < 5) {
-    const latest = foundation.longitudinal.entries[0];
-    if (latest?.primaryDiagnosis) {
-      insights.push({
-        id: "longitudinal-context",
-        kind: "continuity",
-        title: "Continuidad asistencial reciente",
-        body: `Consulta previa (${latest.dateLabel}): ${latest.primaryDiagnosis}.`,
-      });
-    }
-  }
-
-  if (input.doctorDna?.observations[0] && insights.length < 6) {
-    insights.push({
-      id: "dna-context",
-      kind: "context",
-      title: "Contexto de práctica (Doctor DNA™)",
-      body: input.doctorDna.observations[0],
+    const inhalers =
+      memory?.currentMedications.filter((m) =>
+        /salbutamol|budesonida|formoterol|inhal/i.test(m.name),
+      ) ?? [];
+    const persistent = inhalers.filter((m) => {
+      const months = monthsSince(m.since);
+      return months != null && months >= 6;
     });
+    if (persistent.length) {
+      insights.push({
+        id: "asma-treatment-persistence",
+        kind: "medication",
+        title: "Tratamiento inhalatorio persistente",
+        body: `${persistent.map((m) => m.name).join(", ")} documentado ≥6 meses en memoria clínica.`,
+      });
+    }
+
+    const lastConsult = memory?.recentConsultations.find(
+      (c) => c.id !== input.consultationId,
+    );
+    if (lastConsult) {
+      const months = monthsSince(lastConsult.createdAt);
+      if (months != null && months >= 3) {
+        insights.push({
+          id: "asma-followup-gap",
+          kind: "continuity",
+          title: "Intervalo desde último control asmático",
+          body: `Última consulta previa en memoria: hace ~${months} mes(es). Contexto de continuidad asistencial.`,
+        });
+      }
+    }
   }
 
   return insights.slice(0, 6);
@@ -388,6 +375,7 @@ export function buildClinicalInsightCards(
 export function buildClinicalRiskSignals(
   input: BuildClinicalCopilotInput,
   context: CopilotContextView,
+  insights: CopilotInsight[] = [],
 ): ClinicalRiskSignal[] {
   const signals: ClinicalRiskSignal[] = [];
   const code = context.activeDiagnosisCode;
@@ -397,12 +385,18 @@ export function buildClinicalRiskSignals(
     input.treatment,
   ).vitals;
 
+  const hasHtaVitalsInsight = insights.some((i) => i.id === "hta-vitals");
+
   if (isElevatedBp(vitals.systolic, vitals.diastolic)) {
+    const level =
+      vitals.systolic != null && vitals.systolic >= 160 ? "alto" : "moderado";
     signals.push({
       id: "risk-elevated-bp",
-      level: vitals.systolic != null && vitals.systolic >= 160 ? "alto" : "moderado",
-      title: "Signos vitales — PA elevada documentada",
-      body: `PA ${vitals.systolic}/${vitals.diastolic} mmHg registrada en notas actuales.`,
+      level,
+      title: "Nivel de riesgo — presión arterial elevada",
+      body: hasHtaVitalsInsight
+        ? `Clasificación determinística: ${level}. Valores documentados en Clinical Insight™.`
+        : `PA ${vitals.systolic}/${vitals.diastolic} mmHg — clasificación: ${level}.`,
     });
   }
 
@@ -442,15 +436,6 @@ export function buildClinicalRiskSignals(
         body: `Última consulta en memoria: hace ~${months} mes(es).`,
       });
     }
-  }
-
-  if (signals.length === 0) {
-    signals.push({
-      id: "risk-baseline",
-      level: "bajo",
-      title: "Sin señales determinísticas elevadas",
-      body: "No se detectaron reglas de riesgo activas con los datos documentados actuales.",
-    });
   }
 
   return signals.slice(0, 6);
@@ -602,12 +587,23 @@ export function buildClinicalCopilotIntelligence(
   input: BuildClinicalCopilotInput,
 ): ClinicalCopilotIntelligenceBundle {
   const context = buildCopilotContextV2(input);
+  const insights = buildClinicalInsightCards(input, context);
+  const riskSignals = buildClinicalRiskSignals(input, context, insights);
+  const documentationGaps = buildDocumentationGaps(input, context);
+  const documentationQuality = buildDocumentationQuality(input, context);
+
+  const silenceMode =
+    insights.length === 0 &&
+    riskSignals.length === 0 &&
+    documentationGaps.length === 0;
+
   return {
     context,
-    insights: buildClinicalInsightCards(input, context),
-    riskSignals: buildClinicalRiskSignals(input, context),
-    documentationGaps: buildDocumentationGaps(input, context),
-    documentationQuality: buildDocumentationQuality(input, context),
+    insights,
+    riskSignals,
+    documentationGaps,
+    documentationQuality,
+    silenceMode,
   };
 }
 

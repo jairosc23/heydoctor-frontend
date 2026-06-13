@@ -39,7 +39,7 @@ export function CopilotInsightCards({ insights }: { insights: CopilotInsight[] }
       </div>
       {insights.length === 0 ? (
         <p className="text-[11px] text-slate-500">
-          Sin observaciones contextuales con los datos documentados actuales.
+          Sin observaciones contextuales adicionales.
         </p>
       ) : (
         <div className="space-y-hd-2">

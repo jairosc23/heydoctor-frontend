@@ -4,6 +4,7 @@ import {
   COPILOT_AUDIT_SCENARIOS,
   formatCopilotAuditScenarioRow,
   runCopilotClinicalAudit,
+  runCopilotNoiseReductionComparison,
 } from "./clinical-copilot-audit";
 
 describe("clinical-copilot-audit Phase 4.7", () => {
@@ -59,12 +60,29 @@ describe("clinical-copilot-audit Phase 4.7", () => {
     assert.ok(dm2.bundle.riskSignals.some((s) => s.id === "risk-pending-labs"));
   });
 
-  it("identifica ruido risk-baseline en escenarios sin riesgo real", () => {
+  it("Phase 4.7B — risk-baseline eliminado", () => {
+    const report = runCopilotClinicalAudit();
+    const baselinePresent = report.cases.some((c) =>
+      c.bundle.riskSignals.some((s) => s.id === "risk-baseline"),
+    );
+    assert.equal(baselinePresent, false);
+  });
+
+  it("Phase 4.7B — comparativa ruido reducido vs baseline 4.7", () => {
+    const cmp = runCopilotNoiseReductionComparison();
+    assert.ok(cmp.goalMet.baselineEliminated);
+    assert.ok(cmp.goalMet.noiseReduced);
+    assert.ok(cmp.goalMet.volumeNotIncreased);
+    assert.ok(cmp.delta.ruido < 0);
+    assert.ok(cmp.delta.riskSignals < 0);
+  });
+
+  it("identifica ruido residual (no risk-baseline)", () => {
     const report = runCopilotClinicalAudit();
     const baselineNoise = report.falsePositives.filter((f) =>
       f.detail.includes("risk-baseline"),
     );
-    assert.ok(baselineNoise.length >= 10);
+    assert.equal(baselineNoise.length, 0);
   });
 
   it("documenta falsos negativos por cobertura limitada I10/E11/J45", () => {
@@ -80,7 +98,7 @@ describe("clinical-copilot-audit Phase 4.7", () => {
     assert.ok(report.noiseProposals.length >= 8);
     assert.ok(report.rankingDesign.riskSignals.length >= 5);
     assert.ok(report.qualityScoreAudit.calibrationProposal.length >= 4);
-    assert.ok(report.recommendations.length >= 6);
+    assert.ok(report.recommendations.length >= 4);
   });
 
   it("formatCopilotAuditScenarioRow genera fila de tabla", () => {

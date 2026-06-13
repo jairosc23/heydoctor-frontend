@@ -4,7 +4,7 @@ import { useEffect, useMemo } from "react";
 import { useDoctorDna } from "@/hooks/useDoctorDna";
 import { usePatientClinicalMemory } from "@/hooks/usePatientClinicalMemory";
 import { buildClinicalMemoryView } from "@/lib/clinical-memory";
-import { buildClinicalCopilotIntelligence } from "@/lib/clinical-copilot-intelligence";
+import { buildClinicalCopilotIntelligence, COPILOT_SILENCE_MESSAGE } from "@/lib/clinical-copilot-intelligence";
 import { buildDoctorDnaIntelligenceView } from "@/lib/doctor-dna-intelligence";
 import { cn } from "@/lib/utils";
 import {
@@ -147,13 +147,13 @@ export function ClinicalCopilotDrawer({
         <header className="shrink-0 border-b border-hd-border-subtle px-hd-4 py-hd-3">
           <div className="heydoctor-presence">
             <p className="text-[10px] font-semibold uppercase tracking-wide text-primary/80">
-              Phase 4.6 Intelligence
+              Phase 4.7B Noise Reduction
             </p>
             <h2 className="text-sm font-semibold text-slate-900">
               Clinical Copilot™
             </h2>
             <p className="text-[10px] text-slate-500">
-              Asistente de contexto clínico — reglas determinísticas
+              Menos ruido — observaciones con valor clínico
             </p>
           </div>
           <button
@@ -168,6 +168,14 @@ export function ClinicalCopilotDrawer({
 
         <div className="flex-1 space-y-hd-5 overflow-y-auto px-hd-4 py-hd-4">
           <CopilotGovernanceBoundary />
+          {intelligence.silenceMode ? (
+            <p
+              role="status"
+              className="rounded-hd-md border border-slate-200/80 bg-slate-50/80 px-hd-3 py-hd-2 text-[11px] text-slate-600"
+            >
+              {COPILOT_SILENCE_MESSAGE}
+            </p>
+          ) : null}
           <CopilotDocumentationQuality quality={intelligence.documentationQuality} />
           <CopilotContextEngine context={intelligence.context} />
           <CopilotInsightCards insights={intelligence.insights} />

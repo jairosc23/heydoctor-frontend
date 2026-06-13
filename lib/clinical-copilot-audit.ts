@@ -833,30 +833,21 @@ function classifyInsight(insight: CopilotInsight): ClassifiedItem {
       classification = "útil";
       rationale = "HbA1c pendiente es dato accionable para seguimiento DM2.";
       break;
-    case "dm2-rx":
-      classification = "ruido";
-      rationale = "Redundante con medicación activa ya visible en Memory UI.";
-      break;
     case "dm2-alert":
       classification = "útil";
       rationale = "Alerta clínica registrada — prioridad contextual.";
       break;
-    case "asma-rx":
-      classification = "ruido";
-      rationale = "Lista medicación ya presente en Clinical Memory™.";
+    case "asma-no-exacerbation":
+      classification = "útil";
+      rationale = "Ausencia de exacerbaciones documentada — contexto asmático relevante.";
       break;
-    case "asma-stable":
-      classification = "neutro";
-      rationale =
-        "Inferencia por ausencia de alertas — valor limitado, no confirma estabilidad clínica.";
+    case "asma-treatment-persistence":
+      classification = "útil";
+      rationale = "Persistencia terapéutica aporta continuidad no obvia en SOAP.";
       break;
-    case "longitudinal-context":
-      classification = "ruido";
-      rationale = "Redundante con Clinical Timeline™ y bloque longitudinal del Context Engine.";
-      break;
-    case "dna-context":
-      classification = "ruido";
-      rationale = "Redundante con Doctor DNA™ drawer y Context Engine.";
+    case "asma-followup-gap":
+      classification = "útil";
+      rationale = "Intervalo de control asmático — continuidad asistencial.";
       break;
     default:
       classification = "neutro";
@@ -881,19 +872,12 @@ function classifyRiskSignal(
   let rationale = "Señal determinística estándar.";
 
   switch (signal.id) {
-    case "risk-baseline":
-      classification = "ruido";
-      rationale =
-        "Placeholder de bajo valor — ocupa espacio visual sin información clínica accionable.";
-      break;
     case "risk-elevated-bp":
-      if (insights.some((i) => i.id === "hta-vitals" && /elevada/i.test(i.title))) {
-        classification = "ruido";
-        rationale = "Duplica insight de PA elevada en la misma sesión.";
-      } else {
-        classification = "útil";
-        rationale = "PA elevada es señal clínica prioritaria.";
-      }
+      classification = "útil";
+      rationale =
+        insights.some((i) => i.id === "hta-vitals")
+          ? "Nivel de riesgo complementario — sin duplicar valores de PA (Phase 4.7B)."
+          : "PA elevada es señal clínica prioritaria.";
       break;
     case "risk-pending-labs":
       classification = "útil";
@@ -989,18 +973,15 @@ function detectFalsePositives(
     }
   }
 
-  if (
-    bundle.riskSignals.some((s) => s.id === "risk-baseline") &&
-    bundle.riskSignals.length > 1
-  ) {
-    fps.push("risk:risk-baseline — coexistencia con señales reales diluye prioridad");
+  if (bundle.riskSignals.some((s) => s.id === "risk-baseline")) {
+    fps.push("risk:risk-baseline — eliminado en 4.7B pero aún presente");
   }
 
-  const asmaStable = bundle.insights.find((i) => i.id === "asma-stable");
-  if (asmaStable) {
-    fps.push(
-      "insight:asma-stable — inferencia por ausencia de alertas no confirma control clínico",
-    );
+  const removedNoise = ["dm2-rx", "asma-rx", "longitudinal-context", "dna-context", "asma-stable"];
+  for (const id of removedNoise) {
+    if (bundle.insights.some((i) => i.id === id)) {
+      fps.push(`insight:${id} — redundancia no eliminada (Phase 4.7B)`);
+    }
   }
 
   return fps;
@@ -1389,10 +1370,9 @@ export function runCopilotClinicalAudit(
 
   return {
     methodology:
-      "Batería determinística Phase 4.7 sobre buildClinicalCopilotIntelligence (Phase 4.6). " +
+      "Batería determinística Phase 4.7/4.7B sobre buildClinicalCopilotIntelligence. " +
       "20 escenarios clínicos con SOAP + Clinical Memory + Data Foundation. " +
-      "Clasificación manual-heurística: útil / neutro / ruido / potencialmente_incorrecto. " +
-      "Sin modificar motor. Sin IA.",
+      "Clasificación: útil / neutro / ruido / potencialmente_incorrecto.",
     scenarioCount: cases.length,
     cases,
     aggregate: {
@@ -1410,30 +1390,92 @@ export function runCopilotClinicalAudit(
     rankingDesign: buildClinicalRankingDesign(),
     qualityScoreAudit: buildQualityScoreAudit(cases),
     recommendations: [
-      "Eliminar risk-baseline antes de Phase 5 — mayor fuente de ruido visual.",
-      "Fusionar PA elevada en un solo artefacto (insight O risk, no ambos).",
-      "Suprimir insights de medicación que dupliquen Clinical Memory™.",
-      "No mostrar asma-stable — inferencia por ausencia es clínicamente débil.",
-      "Ampliar cobertura determinística más allá de I10/E11/J45 en fase futura (post-4.7).",
+      "Phase 4.7B aplicado: risk-baseline eliminado, duplicados HTA fusionados, redundancias suprimidas.",
+      "Ampliar cobertura determinística más allá de I10/E11/J45 en fase futura.",
       "Implementar ranking CRÍTICO→INFORMATIVO antes de Clinical Agents™.",
-      "Calibrar Documentation Quality: menos peso a longitud, más a completitud clínica estructurada.",
-      "Ordenar drawer: Quality compacto → Risk priorizado → Gaps ALTO → Insights filtrados → Context Engine colapsable.",
+      "Calibrar Documentation Quality (Phase 4.7D pendiente).",
     ],
     risks: [
-      "85% escenarios sin insights especializados — utilidad percebida baja fuera de HTA/DM2/Asma.",
-      "Código diagnóstico principal único — comorbilidades (HTA+DM2) ignoran reglas secundarias.",
-      "risk-baseline en verde puede inducir falsa sensación de 'todo bien'.",
+      "70% escenarios sin insights especializados — silencio clínico fuera de HTA/DM2/Asma.",
+      "Comorbilidades ignoradas — solo código diagnóstico principal.",
       "Quality 'Excelente' alcanzable sin examen físico en consultas agudas.",
-      "Doctor DNA y Timeline duplicados en insights reducen confianza del médico en Copilot.",
-      "Sin ranking visual — todo el bloque tiene igual peso jerárquico en UI actual.",
+      "Silence Mode puede ocultar gaps si todos los bloques están vacíos simultáneamente.",
     ],
   };
 }
 
 export function formatCopilotAuditScenarioRow(c: CopilotScenarioAuditResult): string {
   const ins = c.bundle.insights.map((i) => i.title).join("; ") || "(ninguno)";
-  const risks = c.bundle.riskSignals.map((s) => `[${s.level}] ${s.title}`).join("; ");
+  const risks = c.bundle.riskSignals.map((s) => `[${s.level}] ${s.title}`).join("; ") || "(ninguno)";
   const gaps = c.bundle.documentationGaps.map((g) => g.field).join("; ") || "(ninguno)";
   const cls = `útil=${c.summary.útil} neutro=${c.summary.neutro} ruido=${c.summary.ruido}`;
   return `| ${c.category} | ${c.code} | ${ins} | ${risks} | ${gaps} | ${c.qualityAssessment.score} (${c.qualityAssessment.label}) | ${cls} |`;
+}
+
+/** Métricas congeladas de Phase 4.7 pre-refinamiento (commit 71fc268e) */
+export const COPILOT_AUDIT_BASELINE_47: CopilotClinicalAuditReport["aggregate"] & {
+  falsePositives: number;
+  falseNegatives: number;
+} = {
+  totalInsights: 13,
+  totalRiskSignals: 25,
+  totalGaps: 5,
+  utilityBreakdown: { útil: 20, neutro: 2, ruido: 21, potencialmente_incorrecto: 0 },
+  avgQualityScore: 75,
+  specializedCoverage: 30,
+  falsePositives: 22,
+  falseNegatives: 8,
+};
+
+export type CopilotNoiseReductionComparison = {
+  before: typeof COPILOT_AUDIT_BASELINE_47;
+  after: CopilotClinicalAuditReport["aggregate"] & {
+    falsePositives: number;
+    falseNegatives: number;
+    silenceModeCount: number;
+  };
+  delta: {
+    insights: number;
+    riskSignals: number;
+    útil: number;
+    ruido: number;
+    falsePositives: number;
+    falseNegatives: number;
+  };
+  goalMet: {
+    noiseReduced: boolean;
+    volumeNotIncreased: boolean;
+    baselineEliminated: boolean;
+  };
+};
+
+export function runCopilotNoiseReductionComparison(): CopilotNoiseReductionComparison {
+  const report = runCopilotClinicalAudit();
+  const after = {
+    ...report.aggregate,
+    falsePositives: report.falsePositives.length,
+    falseNegatives: report.falseNegatives.length,
+    silenceModeCount: report.cases.filter((c) => c.bundle.silenceMode).length,
+  };
+  const before = COPILOT_AUDIT_BASELINE_47;
+
+  return {
+    before,
+    after,
+    delta: {
+      insights: after.totalInsights - before.totalInsights,
+      riskSignals: after.totalRiskSignals - before.totalRiskSignals,
+      útil: after.utilityBreakdown.útil - before.utilityBreakdown.útil,
+      ruido: after.utilityBreakdown.ruido - before.utilityBreakdown.ruido,
+      falsePositives: after.falsePositives - before.falsePositives,
+      falseNegatives: after.falseNegatives - before.falseNegatives,
+    },
+    goalMet: {
+      noiseReduced: after.utilityBreakdown.ruido < before.utilityBreakdown.ruido,
+      volumeNotIncreased: after.totalInsights <= before.totalInsights,
+      baselineEliminated: !report.cases.some((c) =>
+        c.bundle.riskSignals.some((s) => s.id === "risk-baseline"),
+      ),
+    },
+  };
 }
