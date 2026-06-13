@@ -4,8 +4,10 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
+  type MutableRefObject,
   type ReactNode,
 } from "react";
 import type { ClinicalActionModuleId } from "@/lib/clinical-action-workspace";
@@ -18,14 +20,19 @@ export interface ClinicalActionWorkspaceContextValue {
   closeSheet: () => void;
 }
 
+export type ClinicalActionWorkspaceNavigationRef =
+  MutableRefObject<ClinicalActionWorkspaceContextValue | null>;
+
 const ClinicalActionWorkspaceContext =
   createContext<ClinicalActionWorkspaceContextValue | null>(null);
 
 export function ClinicalActionWorkspaceProvider({
   enabled,
+  navigationRef,
   children,
 }: {
   enabled: boolean;
+  navigationRef?: MutableRefObject<ClinicalActionWorkspaceContextValue | null>;
   children: ReactNode;
 }) {
   const [activeModule, setActiveModule] =
@@ -51,6 +58,14 @@ export function ClinicalActionWorkspaceProvider({
     }),
     [enabled, activeModule, sheetOpen, openModule, closeSheet],
   );
+
+  useEffect(() => {
+    if (!navigationRef) return;
+    navigationRef.current = value;
+    return () => {
+      navigationRef.current = null;
+    };
+  }, [navigationRef, value]);
 
   return (
     <ClinicalActionWorkspaceContext.Provider value={value}>

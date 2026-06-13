@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
 import { clinicalActionModuleLabel } from "@/lib/clinical-action-workspace";
 import {
   CLINICAL_OVERLAY_BACKDROP_CLASS,
@@ -9,7 +9,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useClinicalActionWorkspace } from "./ClinicalActionWorkspaceProvider";
 
-export function ClinicalModuleSheet() {
+export function ClinicalModuleSheet({ children }: { children?: ReactNode }) {
   const { enabled, activeModule, sheetOpen, closeSheet } =
     useClinicalActionWorkspace();
 
@@ -52,7 +52,7 @@ export function ClinicalModuleSheet() {
         <header className="relative shrink-0 border-b border-hd-border-subtle px-hd-4 py-hd-3">
           <div className="heydoctor-presence pr-8">
             <p className="text-[10px] font-semibold uppercase tracking-wide text-primary/80">
-              Phase 4.2.0 Shell
+              Clinical Action Workspace™
             </p>
             <h2 className="text-sm font-semibold text-slate-900">
               Clinical Module Sheet™
@@ -69,17 +69,7 @@ export function ClinicalModuleSheet() {
           </button>
         </header>
 
-        <div className="flex-1 overflow-y-auto px-hd-4 py-hd-4">
-          <div className="rounded-hd-md border border-dashed border-hd-border-subtle bg-hd-surface-muted/50 px-hd-4 py-hd-5 text-sm text-slate-600">
-            <p className="font-medium text-slate-800">
-              Contenedor shell — {moduleLabel}
-            </p>
-            <p className="mt-2 text-xs leading-relaxed text-slate-500">
-              Phase 4.2.0 no migra contenido clínico. Las órdenes, recetas y
-              documentos permanecen en el rail derecho legacy hasta Phase 4.2.1+.
-            </p>
-          </div>
-        </div>
+        <div className="flex-1 overflow-y-auto px-hd-4 py-hd-4">{children}</div>
       </aside>
     </>
   );

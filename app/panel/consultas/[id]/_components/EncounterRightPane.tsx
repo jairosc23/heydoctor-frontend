@@ -4,6 +4,7 @@ import { ClinicalPanel, ClinicalSection } from "@/components/clinical/design";
 import { clinicalTabClass } from "@/lib/clinical-design-tokens";
 import { OrdersTab, type OrdersSubTab } from "./OrdersTab";
 import { DocumentsTab } from "./DocumentsTab";
+import { LegacyCompatibilityRail } from "./action-workspace/LegacyCompatibilityRail";
 import type {
   ActionBarHandlers,
   ActionBarLoading,
@@ -31,6 +32,7 @@ export interface EncounterRightPaneProps {
   onLegacyInvoiceResult: (label: string, result: ActionResult) => void;
   ordersHighlight?: boolean;
   ordersRefreshKey?: number;
+  actionWorkspaceEnabled?: boolean;
 }
 
 export function EncounterRightPane({
@@ -47,7 +49,25 @@ export function EncounterRightPane({
   onLegacyInvoiceResult,
   ordersHighlight = false,
   ordersRefreshKey = 0,
+  actionWorkspaceEnabled = false,
 }: EncounterRightPaneProps) {
+  if (actionWorkspaceEnabled) {
+    if (!patientId) {
+      return (
+        <p className="rounded-hd-md border border-amber-200 bg-amber-50 px-hd-3 py-hd-2 text-[11px] text-amber-900">
+          Sin paciente — resumen de órdenes no disponible.
+        </p>
+      );
+    }
+    return (
+      <LegacyCompatibilityRail
+        patientId={patientId}
+        consultationId={consultationId}
+        refreshKey={ordersRefreshKey}
+      />
+    );
+  }
+
   return (
     <section
       aria-label="Órdenes y documentos"

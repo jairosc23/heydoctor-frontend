@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   fetchConsultation,
@@ -80,9 +80,14 @@ import type { OrdersSubTab } from "./_components/OrdersTab";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import { isClinicalActionWorkspaceEnabled } from "@/lib/clinical-action-workspace";
+import type { ClinicalActionModuleId } from "@/lib/clinical-action-workspace";
 import { ClinicalActionBar } from "./_components/action-workspace/ClinicalActionBar";
-import { ClinicalActionWorkspaceProvider } from "./_components/action-workspace/ClinicalActionWorkspaceProvider";
+import {
+  ClinicalActionWorkspaceProvider,
+  type ClinicalActionWorkspaceContextValue,
+} from "./_components/action-workspace/ClinicalActionWorkspaceProvider";
 import { ClinicalModuleSheet } from "./_components/action-workspace/ClinicalModuleSheet";
+import { ClinicalModuleSheetContent } from "./_components/action-workspace/ClinicalModuleSheetContent";
 
 const clinicalActionWorkspaceEnabled = isClinicalActionWorkspaceEnabled();
 
@@ -140,6 +145,12 @@ export default function ConsultationDetailPage() {
   const [ordersSubTab, setOrdersSubTab] = useState<OrdersSubTab>("prescriptions");
   const [ordersHighlight, setOrdersHighlight] = useState(false);
   const [ordersRefreshKey, setOrdersRefreshKey] = useState(0);
+  const clinicalActionWorkspaceNavRef =
+    useRef<ClinicalActionWorkspaceContextValue | null>(null);
+
+  function openClinicalModule(moduleId: ClinicalActionModuleId) {
+    clinicalActionWorkspaceNavRef.current?.openModule(moduleId);
+  }
 
   const [actionLoading, setActionLoading] = useState({
     invoice: false,
@@ -417,14 +428,24 @@ export default function ConsultationDetailPage() {
   }
 
   const handlePlanApplied = useCallback((result: UnifiedPlanApplyResult) => {
-    setRightPaneTab("orders");
-    setWorkspaceTab("orders");
-    if (result.labOrderCreated && !result.prescriptionCreated) {
-      setOrdersSubTab("lab");
-    } else if (result.prescriptionCreated) {
-      setOrdersSubTab("prescriptions");
-    } else if (result.labOrderCreated) {
-      setOrdersSubTab("lab");
+    if (clinicalActionWorkspaceEnabled) {
+      if (result.prescriptionCreated) {
+        openClinicalModule("prescriptions");
+      } else if (result.labOrderCreated) {
+        openClinicalModule("lab");
+      } else {
+        openClinicalModule("orders");
+      }
+    } else {
+      setRightPaneTab("orders");
+      setWorkspaceTab("orders");
+      if (result.labOrderCreated && !result.prescriptionCreated) {
+        setOrdersSubTab("lab");
+      } else if (result.prescriptionCreated) {
+        setOrdersSubTab("prescriptions");
+      } else if (result.labOrderCreated) {
+        setOrdersSubTab("lab");
+      }
     }
     setOrdersRefreshKey((k) => k + 1);
     setOrdersHighlight(true);
@@ -538,18 +559,30 @@ export default function ConsultationDetailPage() {
   }
 
   function handleOpenPrescription() {
+    if (clinicalActionWorkspaceEnabled) {
+      openClinicalModule("prescriptions");
+      return;
+    }
     setWorkspaceTab("orders");
     setRightPaneTab("orders");
     setOrdersSubTab("prescriptions");
   }
 
   function handleOpenLabOrders() {
+    if (clinicalActionWorkspaceEnabled) {
+      openClinicalModule("lab");
+      return;
+    }
     setWorkspaceTab("orders");
     setRightPaneTab("orders");
     setOrdersSubTab("lab");
   }
 
   function handleOpenDocuments() {
+    if (clinicalActionWorkspaceEnabled) {
+      openClinicalModule("documents");
+      return;
+    }
     setWorkspaceTab("documents");
     setRightPaneTab("documents");
   }
@@ -705,7 +738,10 @@ export default function ConsultationDetailPage() {
           : "border-blue-200 bg-blue-50 text-blue-900";
 
   return (
-    <ClinicalActionWorkspaceProvider enabled={clinicalActionWorkspaceEnabled}>
+    <ClinicalActionWorkspaceProvider
+      enabled={clinicalActionWorkspaceEnabled}
+      navigationRef={clinicalActionWorkspaceNavRef}
+    >
     <div className="clinical-workspace mx-auto max-w-5xl space-y-hd-2 p-hd-3 md:p-hd-4 lg:p-hd-5 xl:max-w-none 2xl:mx-auto 2xl:max-w-[1600px]">
       <div
         className="clinical-encounter-chrome clinical-depth-1 sticky top-0 z-30 -mx-3 border-b border-hd-border-subtle bg-hd-surface-chrome/95 shadow-hd-2 backdrop-blur md:-mx-4 lg:-mx-5"
@@ -822,7 +858,37 @@ export default function ConsultationDetailPage() {
         </div>
       </div>
 
-      <ClinicalModuleSheet />
+      <ClinicalModuleSheet>
+        <ClinicalModuleSheetContent
+          patientId={consultation.patientId}
+          consultationId={id}
+          diagnosisCode={
+            diagnosisState.diagnosisCode || diagnosisState.diagnosis || undefined
+          }
+          refreshKey={ordersRefreshKey}
+          ordersHighlight={ordersHighlight}
+          documentHandlers={{
+            onStartTeleconsultation: () => void handleStartCall(),
+            onOpenPrescription: handleOpenPrescription,
+            onGenerateInvoice: () => void handleGenerateInvoice(),
+            onDownloadPdf: () => void handleDownloadPdf(),
+            onToggleEdit: handleToggleEdit,
+            onAnalyzeWithAi: handleAnalyzeWithAi,
+            onDelete: () => void handleDeleteConsultation(),
+            onGenerateSignedPrescription: () => void handleSignedPrescription(),
+            onGenerateSignedCertificate: () => void handleSignedCertificate(),
+            onGenerateSignedReferral: () => void handleSignedReferral(),
+            onGeneratePremiumDocument: () => void handlePremiumDocument(),
+          }}
+          documentLoading={actionLoading}
+          documentDisabled={{
+            pdf: isLocked,
+            invoice: isLocked,
+            signedPrescription: !isSigned && !isLocked && !canSign,
+          }}
+          onLegacyInvoiceResult={handleActionResult}
+        />
+      </ClinicalModuleSheet>
 
       <ClinicalCopilotDrawer
         open={copilotDrawerOpen}

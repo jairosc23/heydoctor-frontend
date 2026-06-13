@@ -16,7 +16,7 @@ const LEGACY_GRID =
   "xl:grid-cols-[minmax(220px,255px)_minmax(0,3fr)_minmax(300px,1.4fr)]";
 
 const ACTION_WORKSPACE_GRID =
-  "xl:grid-cols-[minmax(240px,280px)_minmax(0,1fr)_minmax(280px,1.2fr)]";
+  "xl:grid-cols-[minmax(240px,280px)_minmax(0,1fr)_minmax(160px,200px)]";
 
 /** Layout desktop del encounter (viewport ≥1280px / Tailwind `xl`). */
 export function EncounterSplitLayout({

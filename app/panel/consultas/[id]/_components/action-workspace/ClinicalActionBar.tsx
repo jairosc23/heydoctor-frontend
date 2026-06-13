@@ -37,10 +37,6 @@ export function ClinicalActionBar({ className }: { className?: string }) {
           );
         })}
       </div>
-      <p className="mt-1.5 text-[10px] text-slate-500">
-        Clinical Action Workspace™ — shell Phase 4.2.0 (sin contenido clínico
-        migrado)
-      </p>
     </nav>
   );
 }

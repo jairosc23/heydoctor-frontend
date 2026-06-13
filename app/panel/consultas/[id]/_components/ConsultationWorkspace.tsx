@@ -140,6 +140,7 @@ export function ConsultationWorkspace({
             onLegacyInvoiceResult={onLegacyInvoiceResult}
             ordersHighlight={ordersHighlight}
             ordersRefreshKey={ordersRefreshKey}
+            actionWorkspaceEnabled={actionWorkspaceEnabled}
           />
         }
       />
