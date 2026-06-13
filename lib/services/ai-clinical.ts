@@ -29,13 +29,54 @@ export type ConsultationSummaryResponse = {
 
 const SUMMARY_PATH = "/ai/consultation-summary";
 
+export type ConsultationSummaryClientSnapshot = {
+  clinicalContextPrompt?: string;
+  chiefComplaint?: string;
+  draftNotes?: string;
+  treatment?: string;
+  patientAge?: string;
+  patientSex?: string;
+};
+
+export type ConsultationSummaryRequest = {
+  consultationId: string;
+  clientSnapshot?: ConsultationSummaryClientSnapshot;
+};
+
+/** Phase 4.5.3 — payload alineado con Clinical Summary v2 backend. */
+export function buildConsultationSummaryRequest(
+  input: EnrichedClinicalDocumentationInput,
+): ConsultationSummaryRequest {
+  const contextPrompt = buildClinicalAiContextPrompt({
+    ...input,
+    encounterNotes: input.encounterNotes ?? input.draftNotes,
+    currentConsultationId:
+      input.currentConsultationId ?? input.consultationId,
+  });
+
+  return {
+    consultationId: input.consultationId,
+    clientSnapshot: {
+      clinicalContextPrompt: contextPrompt,
+      chiefComplaint: input.chiefComplaint?.trim() || undefined,
+      draftNotes: input.draftNotes?.trim() || undefined,
+      treatment: input.treatment?.trim() || undefined,
+      patientAge:
+        input.patientAge != null ? String(input.patientAge) : undefined,
+      patientSex: input.patientSex?.trim() || undefined,
+    },
+  };
+}
+
 export async function postConsultationSummary(
-  consultationId: string,
+  input: ConsultationSummaryRequest | string,
   signal?: AbortSignal,
 ): Promise<ConsultationSummaryResponse> {
+  const body =
+    typeof input === "string" ? { consultationId: input } : input;
   return heydoctorApi.post<ConsultationSummaryResponse>(
     SUMMARY_PATH,
-    { consultationId },
+    body,
     signal,
   );
 }
@@ -44,6 +85,8 @@ export type EnrichedClinicalDocumentationInput = ClinicalAiContextInput & {
   consultationId: string;
   cie10CodeId?: string | null;
   signal?: AbortSignal;
+  patientAge?: string | number;
+  patientSex?: string;
 };
 
 async function syncConsultationForAi(
@@ -143,7 +186,7 @@ export async function requestEnrichedClinicalDocumentation(
 
   try {
     const summary = await postConsultationSummary(
-      input.consultationId,
+      buildConsultationSummaryRequest(input),
       input.signal,
     );
     const enhanced = enhanceConsultationSummary(summary, {
