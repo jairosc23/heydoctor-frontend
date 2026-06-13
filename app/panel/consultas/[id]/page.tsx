@@ -79,6 +79,7 @@ import type { OrdersSubTab } from "./_components/OrdersTab";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import { isClinicalActionWorkspaceEnabled } from "@/lib/clinical-action-workspace";
+import { isSmartClinicalWorkspaceEnabled } from "@/lib/smart-clinical-workspace";
 import type { ClinicalActionModuleId } from "@/lib/clinical-action-workspace";
 import { ClinicalActionBar } from "./_components/action-workspace/ClinicalActionBar";
 import {
@@ -90,6 +91,7 @@ import { ClinicalModuleSheetContent } from "./_components/action-workspace/Clini
 import { EncounterChromeShell } from "./_components/EncounterChromeShell";
 
 const clinicalActionWorkspaceEnabled = isClinicalActionWorkspaceEnabled();
+const smartClinicalWorkspaceEnabled = isSmartClinicalWorkspaceEnabled();
 
 function paymentFailureUserMessage(err: unknown): string {
   if (err instanceof ApiError) {
@@ -969,6 +971,7 @@ export default function ConsultationDetailPage() {
 
           <ConsultationWorkspace
         actionWorkspaceEnabled={clinicalActionWorkspaceEnabled}
+        smartWorkspaceEnabled={smartClinicalWorkspaceEnabled}
         consultation={consultation}
         consultationId={id}
         clinicId={consultation.clinicId ?? ctxClinicId ?? null}
@@ -1047,6 +1050,7 @@ export default function ConsultationDetailPage() {
       ) : (
         <ConsultationWorkspace
           actionWorkspaceEnabled={clinicalActionWorkspaceEnabled}
+        smartWorkspaceEnabled={smartClinicalWorkspaceEnabled}
           consultation={consultation}
           consultationId={id}
           clinicId={consultation.clinicId ?? ctxClinicId ?? null}

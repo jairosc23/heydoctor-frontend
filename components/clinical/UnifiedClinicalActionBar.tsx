@@ -7,9 +7,12 @@ import type {
   UnifiedClinicalPlan,
   UnifiedClinicalPlanItem,
 } from "@/lib/types/unified-clinical-plan";
+import { cn } from "@/lib/utils";
 
 export interface UnifiedClinicalActionBarProps {
   className?: string;
+  /** Phase 4.3 — botones y copy más densos. */
+  compact?: boolean;
 }
 
 function PlanSection({
@@ -78,7 +81,10 @@ function PlanSummaryCounts({ plan }: { plan: UnifiedClinicalPlan }) {
   );
 }
 
-export function UnifiedClinicalActionBar({ className = "" }: UnifiedClinicalActionBarProps) {
+export function UnifiedClinicalActionBar({
+  className = "",
+  compact = false,
+}: UnifiedClinicalActionBarProps) {
   const clinicalIntelligence = useOptionalClinicalIntelligence();
   const consultationPlan = useOptionalConsultationPlan();
 
@@ -151,22 +157,37 @@ export function UnifiedClinicalActionBar({ className = "" }: UnifiedClinicalActi
   const editable = viewMode === "edit";
   const showDetails = viewMode === "review" || viewMode === "edit";
 
+  const actionBtnClass = compact
+    ? "px-2.5 py-1.5 text-xs rounded-md min-h-[36px]"
+    : "px-3 py-2 text-sm rounded-md min-h-[44px]";
+
   return (
     <section
-      className={`rounded-lg border border-violet-200 bg-white p-3 space-y-3 shadow-sm ${className}`}
+      className={cn(
+        "rounded-lg border border-violet-200 bg-white shadow-sm",
+        compact ? "space-y-2 p-2" : "space-y-3 p-3",
+        className,
+      )}
       aria-label="Unified Clinical Action Bar"
+      data-variant={compact ? "compact" : "default"}
     >
-      <header className="space-y-1">
+      <header className={compact ? "space-y-0.5" : "space-y-1"}>
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h3 className="text-sm font-semibold text-violet-900">
+          <h3 className={cn("font-semibold text-violet-900", compact ? "text-xs" : "text-sm")}>
             Plan clínico unificado
           </h3>
-          <span className="text-xs font-medium text-violet-700 bg-violet-50 px-2 py-0.5 rounded">
+          <span className="text-[10px] font-medium text-violet-700 bg-violet-50 px-2 py-0.5 rounded">
             {plan.sourceLabel}
           </span>
         </div>
-        <p className="text-sm font-medium text-slate-900">{plan.title}</p>
-        <p className="text-xs text-slate-600">{plan.explanation}</p>
+        <p className={cn("font-medium text-slate-900", compact ? "text-xs line-clamp-2" : "text-sm")}>
+          {plan.title}
+        </p>
+        {!compact || showDetails ? (
+          <p className={cn("text-slate-600", compact ? "text-[11px] line-clamp-2" : "text-xs")}>
+            {plan.explanation}
+          </p>
+        ) : null}
       </header>
 
       {!showDetails ? <PlanSummaryCounts plan={plan} /> : null}
@@ -216,21 +237,21 @@ export function UnifiedClinicalActionBar({ className = "" }: UnifiedClinicalActi
                 type="button"
                 disabled={!canApply || applying}
                 onClick={() => void applyPlan()}
-                className="px-3 py-2 text-sm rounded-md bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-50 min-h-[44px]"
+                className={cn(actionBtnClass, "bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-50")}
               >
                 {applying ? "Aplicando..." : "Aplicar plan"}
               </button>
               <button
                 type="button"
                 onClick={reviewPlan}
-                className="px-3 py-2 text-sm rounded-md border border-violet-300 text-violet-800 hover:bg-violet-50 min-h-[44px]"
+                className={cn(actionBtnClass, "border border-violet-300 text-violet-800 hover:bg-violet-50")}
               >
                 Revisar plan
               </button>
               <button
                 type="button"
                 onClick={editPlan}
-                className="px-3 py-2 text-sm rounded-md border border-slate-300 text-slate-700 hover:bg-slate-50 min-h-[44px]"
+                className={cn(actionBtnClass, "border border-slate-300 text-slate-700 hover:bg-slate-50")}
               >
                 Editar plan
               </button>
@@ -241,14 +262,14 @@ export function UnifiedClinicalActionBar({ className = "" }: UnifiedClinicalActi
                 type="button"
                 disabled={!canApply || applying}
                 onClick={() => void applyPlan()}
-                className="px-3 py-2 text-sm rounded-md bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-50 min-h-[44px]"
+                className={cn(actionBtnClass, "bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-50")}
               >
                 {applying ? "Aplicando..." : viewMode === "edit" ? "Aplicar selección" : "Aplicar plan"}
               </button>
               <button
                 type="button"
                 onClick={closeDetail}
-                className="px-3 py-2 text-sm rounded-md border border-slate-300 text-slate-700 hover:bg-slate-50 min-h-[44px]"
+                className={cn(actionBtnClass, "border border-slate-300 text-slate-700 hover:bg-slate-50")}
               >
                 Volver
               </button>
@@ -257,7 +278,7 @@ export function UnifiedClinicalActionBar({ className = "" }: UnifiedClinicalActi
         </div>
       ) : null}
 
-      <p className="text-xs text-slate-500">
+      <p className={cn("text-slate-500", compact ? "text-[10px]" : "text-xs")}>
         El médico confirma cada acción. Sin ejecución automática.
       </p>
     </section>

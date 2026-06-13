@@ -57,6 +57,7 @@ export interface ConsultationWorkspaceProps {
   ordersHighlight?: boolean;
   ordersRefreshKey?: number;
   actionWorkspaceEnabled?: boolean;
+  smartWorkspaceEnabled?: boolean;
 }
 
 export type MobileConsultationWorkspaceProps = Omit<
@@ -77,6 +78,7 @@ export function ConsultationWorkspace({
   ordersHighlight,
   ordersRefreshKey,
   actionWorkspaceEnabled = false,
+  smartWorkspaceEnabled = false,
   ...props
 }: ConsultationWorkspaceProps) {
   const {
@@ -109,7 +111,7 @@ export function ConsultationWorkspace({
       </div>
       <EncounterSplitLayout
         actionWorkspaceEnabled={actionWorkspaceEnabled}
-        rail={<PatientContextRail {...patientContext} />}
+        rail={<PatientContextRail {...patientContext} smartWorkspaceEnabled={smartWorkspaceEnabled} />}
         left={
           <EncounterLeftPane
             consultation={consultation}
@@ -123,6 +125,7 @@ export function ConsultationWorkspace({
             isEditable={isEditable}
             aiTrigger={aiTrigger}
             onSaveClinicalRecord={onSaveClinicalRecord}
+            smartWorkspaceEnabled={smartWorkspaceEnabled}
           />
         }
         right={

@@ -28,6 +28,7 @@ export interface PatientContextRailProps {
   currentConsultationId?: string;
   encounterDiagnosis?: string | null;
   snapshotConditionLabels?: string[];
+  smartWorkspaceEnabled?: boolean;
 }
 
 function RailSkeleton() {
@@ -58,6 +59,7 @@ export function PatientContextRail({
   currentConsultationId,
   encounterDiagnosis,
   snapshotConditionLabels,
+  smartWorkspaceEnabled = false,
 }: PatientContextRailProps) {
   if (!patientId) return null;
 
@@ -109,12 +111,14 @@ export function PatientContextRail({
         patientId={patientId}
         encounterDiagnosis={encounterDiagnosis}
         snapshotConditionLabels={snapshotConditionLabels}
+        compact={smartWorkspaceEnabled}
       />
 
       <div className="clinical-timeline-item rounded-hd-md border-t border-hd-border-subtle pt-hd-3">
         <PatientMemoryCard
           patientId={patientId}
           currentConsultationId={currentConsultationId}
+          progressiveDisclosure={smartWorkspaceEnabled}
           className="border-0 p-0 shadow-none"
         />
       </div>

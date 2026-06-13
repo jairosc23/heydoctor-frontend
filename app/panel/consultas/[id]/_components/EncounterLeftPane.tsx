@@ -10,6 +10,7 @@ import { clinicalTabClass } from "@/lib/clinical-design-tokens";
 import { ChatPanel } from "@/components/telemedicine/ChatPanel";
 import type { NestConsultation } from "@/lib/services/consultations";
 import { SoapSection, type SoapSectionProps } from "./SoapSection";
+import { SoapStickyNav } from "./SoapStickyNav";
 
 export type EncounterLeftPaneTab = "soap" | "record" | "assist";
 
@@ -34,6 +35,7 @@ export interface EncounterLeftPaneProps {
     notes: string;
     chiefComplaint: string;
   }) => Promise<void>;
+  smartWorkspaceEnabled?: boolean;
 }
 
 export function EncounterLeftPane({
@@ -48,6 +50,7 @@ export function EncounterLeftPane({
   isEditable,
   aiTrigger,
   onSaveClinicalRecord,
+  smartWorkspaceEnabled = false,
 }: EncounterLeftPaneProps) {
   const patientId = consultation.patientId;
 
@@ -85,7 +88,12 @@ export function EncounterLeftPane({
             </p>
           ) : null}
 
-          {activeTab === "soap" ? <SoapSection {...soap} /> : null}
+          {activeTab === "soap" ? (
+            <>
+              <SoapStickyNav enabled={smartWorkspaceEnabled} />
+              <SoapSection {...soap} smartWorkspaceEnabled={smartWorkspaceEnabled} />
+            </>
+          ) : null}
 
           {activeTab === "record" ? (
             <div id="clinical-record-section-desktop">

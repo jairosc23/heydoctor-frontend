@@ -8,12 +8,14 @@ import { cn } from "@/lib/utils";
 export interface PatientMemoryCardProps {
   patientId: string;
   currentConsultationId?: string;
+  progressiveDisclosure?: boolean;
   className?: string;
 }
 
 export function PatientMemoryCard({
   patientId,
   currentConsultationId,
+  progressiveDisclosure = false,
   className = "",
 }: PatientMemoryCardProps) {
   const { data, loading, error } = usePatientClinicalMemory(patientId);
@@ -55,6 +57,7 @@ export function PatientMemoryCard({
     <ClinicalTimeline
       data={data}
       currentConsultationId={currentConsultationId}
+      progressiveDisclosure={progressiveDisclosure}
       className={className}
     />
   );

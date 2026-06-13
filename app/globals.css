@@ -193,6 +193,31 @@ body {
   box-shadow: var(--hd-shadow-focus);
 }
 
+/* Phase 4.3 — SOAP Focus Layout: colapsa bloques inactivos al escribir */
+.soap-focus-layout:focus-within .soap-command-block:not(:focus-within) {
+  padding-top: 0.625rem;
+  padding-bottom: 0.625rem;
+}
+
+.soap-focus-layout:focus-within .soap-command-block:not(:focus-within) > :not(:first-child) {
+  display: none;
+}
+
+.soap-focus-layout:focus-within .soap-command-block:not(:focus-within):hover > :not(:first-child),
+.soap-focus-layout:focus-within .soap-command-block:not(:focus-within):focus-within > :not(:first-child) {
+  display: block;
+}
+
+.soap-sticky-nav {
+  top: 0;
+}
+
+@media (min-width: 1280px) {
+  .soap-sticky-nav {
+    top: 0;
+  }
+}
+
 .clinical-timeline-elevated .clinical-timeline-item:hover > div {
   box-shadow: var(--hd-shadow-1);
 }

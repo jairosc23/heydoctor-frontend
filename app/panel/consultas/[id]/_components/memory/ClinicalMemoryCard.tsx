@@ -10,10 +10,14 @@ import {
 import { usePatientClinicalMemory } from "@/hooks/usePatientClinicalMemory";
 import { cn } from "@/lib/utils";
 
+const COMPACT_VISIBLE_HIGHLIGHTS = 3;
+
 export interface ClinicalMemoryCardProps {
   patientId: string;
   encounterDiagnosis?: string | null;
   snapshotConditionLabels?: string[];
+  /** Phase 4.3 — densidad reducida en Context Rail. */
+  compact?: boolean;
   className?: string;
 }
 
@@ -21,6 +25,7 @@ export function ClinicalMemoryCard({
   patientId,
   encounterDiagnosis,
   snapshotConditionLabels,
+  compact = false,
   className,
 }: ClinicalMemoryCardProps) {
   const { data, loading, error } = usePatientClinicalMemory(patientId);
@@ -41,13 +46,14 @@ export function ClinicalMemoryCard({
         aria-label="Clinical Memory"
         aria-busy="true"
         className={cn(
-          "rounded-hd-lg border border-hd-border-subtle bg-hd-surface-muted/60 p-hd-3",
+          "rounded-hd-lg border border-hd-border-subtle bg-hd-surface-muted/60",
+          compact ? "p-hd-2" : "p-hd-3",
           className,
         )}
       >
         <div className="animate-pulse space-y-2">
           <div className="h-3 w-1/2 rounded bg-slate-200" />
-          <div className="h-12 w-full rounded bg-slate-100" />
+          <div className={cn("w-full rounded bg-slate-100", compact ? "h-8" : "h-12")} />
         </div>
         <p className="mt-2 text-[11px] text-slate-500">Construyendo memoria clínica…</p>
       </section>
@@ -59,7 +65,7 @@ export function ClinicalMemoryCard({
       <section
         aria-label="Clinical Memory"
         className={cn(
-          "rounded-hd-lg border border-amber-200 bg-amber-50 p-hd-3 text-[11px] text-amber-900",
+          "rounded-hd-lg border border-amber-200 bg-amber-50 p-hd-2 text-[11px] text-amber-900",
           className,
         )}
       >
@@ -75,34 +81,55 @@ export function ClinicalMemoryCard({
         ? "pending"
         : "draft";
 
+  const primaryHighlights = compact
+    ? memoryView.highlights.slice(0, COMPACT_VISIBLE_HIGHLIGHTS)
+    : memoryView.highlights;
+  const extraHighlights = compact
+    ? memoryView.highlights.slice(COMPACT_VISIBLE_HIGHLIGHTS)
+    : [];
+
   return (
     <ClinicalCard
       className={cn(
         "border-l-[3px] border-l-primary/45 bg-gradient-to-br from-hd-surface-raised to-primaryLight/20",
+        compact && "p-hd-2",
         className,
       )}
+      data-variant={compact ? "compact" : "default"}
     >
-      <div className="mb-hd-3 space-y-hd-2">
+      <div
+        className={cn(
+          "flex flex-wrap items-center gap-x-2 gap-y-1",
+          compact ? "mb-hd-2" : "mb-hd-3 space-y-hd-2",
+        )}
+      >
         <h3
           className={cn(
             CLINICAL_SECTION_TITLE,
-            "heydoctor-presence text-primary/90",
+            "heydoctor-presence mb-0 text-primary/90",
+            compact && "text-[10px]",
           )}
         >
           Clinical Memory™
         </h3>
         <ClinicalStatusBadge
           status={confidenceStatus}
-          label={`Confidence: ${clinicalMemoryConfidenceLabel(memoryView.confidence)}`}
+          label={
+            compact
+              ? clinicalMemoryConfidenceLabel(memoryView.confidence)
+              : `Confidence: ${clinicalMemoryConfidenceLabel(memoryView.confidence)}`
+          }
           className="w-fit"
         />
-        <p className="text-xs font-medium text-slate-800">
-          Lo importante de este paciente
-        </p>
+        {!compact ? (
+          <p className="w-full text-xs font-medium text-slate-800">
+            Lo importante de este paciente
+          </p>
+        ) : null}
       </div>
 
-      <ul className="space-y-2">
-        {memoryView.highlights.map((line) => (
+      <ul className={cn(compact ? "space-y-1" : "space-y-2")}>
+        {primaryHighlights.map((line) => (
           <li
             key={line}
             className="flex items-start gap-1.5 text-[11px] leading-snug text-slate-700"
@@ -114,6 +141,27 @@ export function ClinicalMemoryCard({
           </li>
         ))}
       </ul>
+
+      {compact && extraHighlights.length > 0 ? (
+        <details className="mt-hd-1">
+          <summary className="clinical-interactive cursor-pointer list-none text-[10px] font-medium text-primary hover:underline [&::-webkit-details-marker]:hidden">
+            +{extraHighlights.length} más
+          </summary>
+          <ul className="mt-hd-1 space-y-1 border-t border-hd-border-subtle pt-hd-1">
+            {extraHighlights.map((line) => (
+              <li
+                key={line}
+                className="flex items-start gap-1.5 text-[11px] leading-snug text-slate-600"
+              >
+                <span className="mt-0.5 shrink-0 text-slate-400" aria-hidden>
+                  •
+                </span>
+                <span>{line}</span>
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
     </ClinicalCard>
   );
 }

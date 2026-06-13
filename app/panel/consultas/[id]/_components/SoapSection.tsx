@@ -14,6 +14,7 @@ import { AutosaveIndicator } from "./AutosaveIndicator";
 import type { AutosaveStatus } from "@/lib/hooks/useConsultationAutosave";
 import { UnifiedClinicalActionBar } from "@/components/clinical/UnifiedClinicalActionBar";
 import { SoapCommandBlock } from "./SoapCommandBlock";
+import { cn } from "@/lib/utils";
 
 export interface SoapSectionProps {
   consultationId: string;
@@ -36,6 +37,7 @@ export interface SoapSectionProps {
   autosaveStatus: AutosaveStatus;
   lastSavedAt: Date | null;
   autosaveError: string | null;
+  smartWorkspaceEnabled?: boolean;
 }
 
 export function SoapSection({
@@ -55,22 +57,41 @@ export function SoapSection({
   autosaveStatus,
   lastSavedAt,
   autosaveError,
+  smartWorkspaceEnabled = false,
 }: SoapSectionProps) {
   const badgeVariant = getDiagnosisBadgeVariant(diagnosisSource);
 
   return (
-    <div className="soap-command-center space-y-hd-4">
-      <header className="flex flex-wrap items-center justify-between gap-hd-2 border-b border-hd-border-subtle pb-hd-3">
+    <div
+      className={cn(
+        "soap-command-center space-y-hd-4",
+        smartWorkspaceEnabled && "soap-focus-layout",
+      )}
+      data-smart-workspace={smartWorkspaceEnabled ? "true" : undefined}
+    >
+      <header
+        className={cn(
+          "flex flex-wrap items-center justify-between gap-hd-2 border-b border-hd-border-subtle",
+          smartWorkspaceEnabled ? "pb-hd-2" : "pb-hd-3",
+        )}
+      >
         <div className="heydoctor-presence">
           <p className="text-[10px] font-semibold uppercase tracking-wide text-primary/80">
             SOAP Command Center™
           </p>
-          <h2 className="text-lg font-semibold tracking-tight text-slate-900">
+          <h2
+            className={cn(
+              "font-semibold tracking-tight text-slate-900",
+              smartWorkspaceEnabled ? "text-base" : "text-lg",
+            )}
+          >
             Nota clínica
           </h2>
-          <p className="text-[11px] text-slate-500">
-            Centro de gravedad del encuentro
-          </p>
+          {!smartWorkspaceEnabled ? (
+            <p className="text-[11px] text-slate-500">
+              Centro de gravedad del encuentro
+            </p>
+          ) : null}
         </div>
         {editable ? (
           <AutosaveIndicator
@@ -111,7 +132,7 @@ export function SoapSection({
       </SoapCommandBlock>
 
       <SoapCommandBlock step={2} title="Plan clínico">
-        <UnifiedClinicalActionBar />
+        <UnifiedClinicalActionBar compact={smartWorkspaceEnabled} />
       </SoapCommandBlock>
 
       <SoapCommandBlock step={3} title="Notas de consulta">
@@ -134,7 +155,7 @@ export function SoapSection({
           value={treatment}
           onChange={(e) => onTreatmentChange(e.target.value)}
           disabled={!editable}
-          rows={5}
+          rows={smartWorkspaceEnabled ? 6 : 5}
           placeholder="Indicaciones, medicación, seguimiento…"
           className="clinical-interactive w-full resize-y rounded-hd-md border border-hd-border-subtle bg-hd-surface-raised px-hd-3 py-hd-2 text-sm shadow-hd-1 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/15 disabled:bg-slate-50"
         />

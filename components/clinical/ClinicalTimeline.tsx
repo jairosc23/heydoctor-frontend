@@ -175,6 +175,26 @@ export interface ClinicalTimelineProps {
   currentConsultationId?: string;
   className?: string;
   defaultExpanded?: boolean;
+  /** Phase 4.3 — colapsado por defecto + histórico anidado. */
+  progressiveDisclosure?: boolean;
+}
+
+function countTimelineEvents(model: ReturnType<typeof buildClinicalTimeline>): number {
+  return (
+    model.groups.reduce((total, group) => total + group.events.length, 0) +
+    model.undated.length
+  );
+}
+
+function latestTimelineEvent(
+  model: ReturnType<typeof buildClinicalTimeline>,
+): ClinicalTimelineEvent | null {
+  const all = [
+    ...model.undated,
+    ...model.groups.flatMap((group) => group.events),
+  ];
+  if (all.length === 0) return null;
+  return [...all].sort((a, b) => b.sortAt - a.sortAt)[0] ?? null;
 }
 
 export function ClinicalTimeline({
@@ -182,24 +202,43 @@ export function ClinicalTimeline({
   currentConsultationId,
   className,
   defaultExpanded = true,
+  progressiveDisclosure = false,
 }: ClinicalTimelineProps) {
   const model = buildClinicalTimeline(data, { currentConsultationId });
   const currentYear = new Date().getFullYear();
+  const isOpenByDefault = progressiveDisclosure ? false : defaultExpanded;
+  const totalEvents = countTimelineEvents(model);
+  const latestEvent = latestTimelineEvent(model);
+  const recentGroups = model.groups.filter((group) => group.year >= currentYear - 1);
+  const historicalGroups = model.groups.filter((group) => group.year < currentYear - 1);
 
   return (
     <section
       className={cn("clinical-timeline-elevated", className)}
       aria-label="Clinical Timeline"
+      data-progressive={progressiveDisclosure ? "true" : undefined}
     >
-      <details open={defaultExpanded} className="group">
+      <details open={isOpenByDefault} className="group">
         <summary className="clinical-interactive flex cursor-pointer list-none items-center justify-between gap-hd-2 rounded-hd-md py-hd-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 [&::-webkit-details-marker]:hidden">
-          <div className="heydoctor-presence">
+          <div className="heydoctor-presence min-w-0">
             <h3 className="text-sm font-semibold text-slate-900">
               Clinical Timeline™
             </h3>
-            <p className="text-[10px] text-slate-500">Historia clínica visual</p>
+            {progressiveDisclosure ? (
+              <>
+                <p className="truncate text-[10px] text-slate-500 group-open:hidden">
+                  {totalEvents} eventos
+                  {latestEvent ? ` · ${latestEvent.title}` : ""}
+                </p>
+                <p className="hidden text-[10px] text-slate-500 group-open:block">
+                  Historia clínica visual
+                </p>
+              </>
+            ) : (
+              <p className="text-[10px] text-slate-500">Historia clínica visual</p>
+            )}
           </div>
-          <span className="flex items-center gap-1 text-[10px] text-slate-400">
+          <span className="flex shrink-0 items-center gap-1 text-[10px] text-slate-400">
             {model.isEmpty
               ? "vacío"
               : `${model.groups.length + (model.undated.length ? 1 : 0)} períodos`}
@@ -243,7 +282,7 @@ export function ClinicalTimeline({
               ) : null}
 
               <div className="space-y-hd-4">
-                {model.groups.map((group) => (
+                {(progressiveDisclosure ? recentGroups : model.groups).map((group) => (
                   <YearGroup
                     key={group.year}
                     group={group}
@@ -251,6 +290,26 @@ export function ClinicalTimeline({
                   />
                 ))}
               </div>
+
+              {progressiveDisclosure && historicalGroups.length > 0 ? (
+                <details className="mt-hd-3">
+                  <summary className="clinical-interactive cursor-pointer list-none rounded-hd-md py-hd-1 text-[11px] font-semibold text-slate-600 hover:text-primary [&::-webkit-details-marker]:hidden">
+                    Histórico ({historicalGroups[0]?.year}–
+                    {historicalGroups[historicalGroups.length - 1]?.year}) ·{" "}
+                    {historicalGroups.reduce((n, g) => n + g.events.length, 0)}{" "}
+                    eventos
+                  </summary>
+                  <div className="mt-hd-2 space-y-hd-4">
+                    {historicalGroups.map((group) => (
+                      <YearGroup
+                        key={group.year}
+                        group={group}
+                        currentYear={currentYear}
+                      />
+                    ))}
+                  </div>
+                </details>
+              ) : null}
 
               <div className="relative mt-hd-4 rounded-hd-md border border-primary/20 bg-primaryLight/30 px-hd-3 py-hd-3">
                 <div className="mb-hd-3 space-y-1.5">

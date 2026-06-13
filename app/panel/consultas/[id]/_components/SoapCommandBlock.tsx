@@ -19,8 +19,9 @@ export function SoapCommandBlock({
 }) {
   return (
     <section
+      id={`soap-block-${step}`}
       className={cn(
-        "soap-command-block clinical-interactive rounded-hd-lg border border-hd-border-subtle bg-hd-surface-raised p-hd-4 transition-all duration-hd-base",
+        "soap-command-block clinical-interactive scroll-mt-16 rounded-hd-lg border border-hd-border-subtle bg-hd-surface-raised p-hd-4 transition-all duration-hd-base",
         priority === "primary"
           ? "border-l-[3px] border-l-primary/50 shadow-hd-2 ring-1 ring-primary/5"
           : "shadow-hd-1",
