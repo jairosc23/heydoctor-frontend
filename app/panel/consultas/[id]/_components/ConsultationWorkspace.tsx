@@ -56,6 +56,7 @@ export interface ConsultationWorkspaceProps {
   patientContext: PatientContextRailProps;
   ordersHighlight?: boolean;
   ordersRefreshKey?: number;
+  actionWorkspaceEnabled?: boolean;
 }
 
 export type MobileConsultationWorkspaceProps = Omit<
@@ -75,6 +76,7 @@ export function ConsultationWorkspace({
   onRightPaneTabChange,
   ordersHighlight,
   ordersRefreshKey,
+  actionWorkspaceEnabled = false,
   ...props
 }: ConsultationWorkspaceProps) {
   const {
@@ -106,6 +108,7 @@ export function ConsultationWorkspace({
         />
       </div>
       <EncounterSplitLayout
+        actionWorkspaceEnabled={actionWorkspaceEnabled}
         rail={<PatientContextRail {...patientContext} />}
         left={
           <EncounterLeftPane

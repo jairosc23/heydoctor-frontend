@@ -5,6 +5,10 @@ import { usePatientClinicalMemory } from "@/hooks/usePatientClinicalMemory";
 import { buildClinicalMemoryView } from "@/lib/clinical-memory";
 import { buildCopilotContextFromEncounter } from "@/lib/clinical-copilot-mock";
 import { cn } from "@/lib/utils";
+import {
+  CLINICAL_OVERLAY_BACKDROP_CLASS,
+  CLINICAL_OVERLAY_PANEL_CLASS,
+} from "@/lib/clinical-overlay-contract";
 import { CopilotActionSystem } from "./CopilotActionSystem";
 import { CopilotContextEngine } from "./CopilotContextEngine";
 import { CopilotGovernanceBoundary } from "./CopilotGovernanceBoundary";
@@ -83,7 +87,10 @@ export function ClinicalCopilotDrawer({
       <button
         type="button"
         aria-label="Cerrar Clinical Copilot"
-        className="fixed inset-0 z-40 bg-slate-900/10 clinical-drawer-enter"
+        className={cn(
+          "clinical-drawer-enter fixed inset-0 bg-slate-900/10",
+          CLINICAL_OVERLAY_BACKDROP_CLASS.intelligence,
+        )}
         onClick={onClose}
       />
       <aside
@@ -91,8 +98,9 @@ export function ClinicalCopilotDrawer({
         aria-modal="false"
         aria-label="Clinical Copilot"
         className={cn(
-          "clinical-drawer-enter fixed inset-y-0 left-0 z-50 flex w-full max-w-md flex-col",
+          "clinical-drawer-enter fixed inset-y-0 left-0 flex w-full max-w-md flex-col",
           "border-r border-hd-border-subtle bg-hd-surface-chrome shadow-hd-3",
+          CLINICAL_OVERLAY_PANEL_CLASS.intelligence,
         )}
       >
         <header className="shrink-0 border-b border-hd-border-subtle px-hd-4 py-hd-3">

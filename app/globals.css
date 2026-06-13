@@ -27,6 +27,13 @@
   --hd-shadow-focus: 0 12px 32px rgba(7, 138, 146, 0.12);
   --hd-depth-secondary-opacity: 1;
   --hd-depth-secondary-scale: 1;
+  /* Phase 4.2 — Clinical overlay stacking contract */
+  --hd-overlay-chrome: 30;
+  --hd-overlay-module-backdrop: 45;
+  --hd-overlay-module-panel: 46;
+  --hd-overlay-intelligence-backdrop: 40;
+  --hd-overlay-intelligence-panel: 50;
+  --hd-overlay-system: 60;
 }
 
 body {
@@ -37,6 +44,30 @@ body {
 /* HeyDoctor Visual System — Clinical workspace */
 .clinical-workspace {
   background: var(--hd-surface-base);
+}
+
+/* Phase 4.2 — Overlay layers (Module Sheet < Intelligence < System) */
+.clinical-overlay-backdrop-module {
+  z-index: var(--hd-overlay-module-backdrop);
+}
+
+.clinical-overlay-panel-module {
+  z-index: var(--hd-overlay-module-panel);
+}
+
+.clinical-overlay-backdrop-intelligence {
+  z-index: var(--hd-overlay-intelligence-backdrop);
+}
+
+.clinical-overlay-panel-intelligence {
+  z-index: var(--hd-overlay-intelligence-panel);
+}
+
+.clinical-module-sheet {
+  top: var(--encounter-chrome-h, 5.5rem);
+  height: calc(100vh - var(--encounter-chrome-h, 5.5rem));
+  width: clamp(720px, 75vw, 1200px);
+  max-width: 100%;
 }
 
 .clinical-interactive {

@@ -79,6 +79,12 @@ import {
 import type { OrdersSubTab } from "./_components/OrdersTab";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
+import { isClinicalActionWorkspaceEnabled } from "@/lib/clinical-action-workspace";
+import { ClinicalActionBar } from "./_components/action-workspace/ClinicalActionBar";
+import { ClinicalActionWorkspaceProvider } from "./_components/action-workspace/ClinicalActionWorkspaceProvider";
+import { ClinicalModuleSheet } from "./_components/action-workspace/ClinicalModuleSheet";
+
+const clinicalActionWorkspaceEnabled = isClinicalActionWorkspaceEnabled();
 
 function paymentFailureUserMessage(err: unknown): string {
   if (err instanceof ApiError) {
@@ -699,10 +705,16 @@ export default function ConsultationDetailPage() {
           : "border-blue-200 bg-blue-50 text-blue-900";
 
   return (
+    <ClinicalActionWorkspaceProvider enabled={clinicalActionWorkspaceEnabled}>
     <div className="clinical-workspace mx-auto max-w-5xl space-y-hd-2 p-hd-3 md:p-hd-4 lg:p-hd-5 xl:max-w-none 2xl:mx-auto 2xl:max-w-[1600px]">
       <div
         className="clinical-encounter-chrome clinical-depth-1 sticky top-0 z-30 -mx-3 border-b border-hd-border-subtle bg-hd-surface-chrome/95 shadow-hd-2 backdrop-blur md:-mx-4 lg:-mx-5"
-        style={{ ["--encounter-chrome-h" as string]: "5.5rem" }}
+        style={{
+          ["--encounter-chrome-h" as string]:
+            clinicalActionWorkspaceEnabled && consultation.patientId
+              ? "8.25rem"
+              : "5.5rem",
+        }}
       >
         <div className="clinical-depth-2 px-3 md:px-4 lg:px-5">
           <EncounterHeader
@@ -803,9 +815,14 @@ export default function ConsultationDetailPage() {
                 embedded
               />
             ) : null}
+            {clinicalActionWorkspaceEnabled && consultation.patientId ? (
+              <ClinicalActionBar />
+            ) : null}
           </div>
         </div>
       </div>
+
+      <ClinicalModuleSheet />
 
       <ClinicalCopilotDrawer
         open={copilotDrawerOpen}
@@ -877,6 +894,7 @@ export default function ConsultationDetailPage() {
           </div>
 
           <ConsultationWorkspace
+        actionWorkspaceEnabled={clinicalActionWorkspaceEnabled}
         consultation={consultation}
         consultationId={id}
         clinicId={consultation.clinicId ?? ctxClinicId ?? null}
@@ -954,6 +972,7 @@ export default function ConsultationDetailPage() {
         </ConsultationClinicalProviders>
       ) : (
         <ConsultationWorkspace
+          actionWorkspaceEnabled={clinicalActionWorkspaceEnabled}
           consultation={consultation}
           consultationId={id}
           clinicId={consultation.clinicId ?? ctxClinicId ?? null}
@@ -1052,5 +1071,6 @@ export default function ConsultationDetailPage() {
         </p>
       ) : null}
     </div>
+    </ClinicalActionWorkspaceProvider>
   );
 }

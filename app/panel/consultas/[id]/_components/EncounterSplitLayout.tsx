@@ -2,23 +2,37 @@
 
 import type { ReactNode } from "react";
 import { ClinicalSurface } from "@/components/clinical/design";
+import { cn } from "@/lib/utils";
 
 export interface EncounterSplitLayoutProps {
   rail: ReactNode;
   left: ReactNode;
   right: ReactNode;
+  /** Phase 4.2 — prepara grid workstation (rail legacy sigue activo). */
+  actionWorkspaceEnabled?: boolean;
 }
+
+const LEGACY_GRID =
+  "xl:grid-cols-[minmax(220px,255px)_minmax(0,3fr)_minmax(300px,1.4fr)]";
+
+const ACTION_WORKSPACE_GRID =
+  "xl:grid-cols-[minmax(240px,280px)_minmax(0,1fr)_minmax(280px,1.2fr)]";
 
 /** Layout desktop del encounter (viewport ≥1280px / Tailwind `xl`). */
 export function EncounterSplitLayout({
   rail,
   left,
   right,
+  actionWorkspaceEnabled = false,
 }: EncounterSplitLayoutProps) {
   return (
     <div
-      className="clinical-encounter-grid hidden xl:grid xl:grid-cols-[minmax(220px,255px)_minmax(0,3fr)_minmax(300px,1.4fr)] xl:items-start xl:gap-hd-2"
+      className={cn(
+        "clinical-encounter-grid hidden xl:grid xl:items-start xl:gap-hd-2",
+        actionWorkspaceEnabled ? ACTION_WORKSPACE_GRID : LEGACY_GRID,
+      )}
       data-testid="encounter-split-layout"
+      data-clinical-action-workspace={actionWorkspaceEnabled ? "true" : undefined}
     >
       <ClinicalSurface depth={5} secondary className="min-w-0 shrink-0 p-hd-3">
         {rail}
