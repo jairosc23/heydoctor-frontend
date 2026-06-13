@@ -260,8 +260,8 @@ export const COPILOT_AUDIT_SCENARIOS: CopilotAuditScenario[] = [
       expectInsightIds: ["hta-vitals", "hta-gap-control"],
       expectElevatedBpRisk: true,
       expectGapIds: ["gap-pe-cv"],
-      qualityRange: [75, 95],
-      qualityLabel: "Excelente",
+      qualityRange: [75, 84],
+      qualityLabel: "Adecuado",
     },
   },
   {
@@ -1118,23 +1118,38 @@ function assessQualityCalibration(
   quality: DocumentationQuality,
 ): string {
   const notesLen = scenario.input.notes?.trim().length ?? 0;
-  const hasFollowup = /seguim|control|revis|semana|mes/i.test(
-    scenario.input.treatment ?? "",
-  );
+  const vitalsPts = quality.factors.find((f) => f.id === "vitals")?.points ?? 0;
+  const pePts = quality.factors.find((f) => f.id === "pe")?.points ?? 0;
+  const anamnesisPts = quality.factors.find((f) => f.id === "anamnesis")?.points ?? 0;
+  const code = scenario.code?.toUpperCase() ?? "";
 
-  if (notesLen >= 20 && notesLen < 30 && quality.factors.find((f) => f.id === "anamnesis")?.points === 0) {
-    return "Subestima: anamnesis clínicamente adecuada penalizada por umbral ≥30 caracteres.";
+  if (quality.label === "Excelente" && vitalsPts === 0 && pePts === 0) {
+    return "Sobreestima: Excelente sin vitals ni examen físico documentado.";
   }
-  if (notesLen >= 30 && !hasFollowup && quality.score >= 85) {
-    return "Sobreestima: score Excelente sin seguimiento documentado.";
+
+  if (quality.label === "Excelente" && /^I10/.test(code) && pePts < 18) {
+    return "Sobreestima: Excelente en HTA sin examen cardiovascular documentado.";
   }
-  if (quality.score >= 60 && !scenario.input.chiefComplaint?.trim()) {
-    return "Sobreestima: label Adecuado/Excelente sin motivo de consulta.";
+
+  if (
+    notesLen >= 20 &&
+    notesLen < 50 &&
+    anamnesisPts === 0 &&
+    vitalsPts === 0 &&
+    pePts === 0
+  ) {
+    return "Subestima: anamnesis clínicamente adecuada sin contenido objetivo parseable.";
   }
+
   if (scenario.category === "nino_sano" && quality.label === "Incompleto") {
     return "Subestima: consulta pediátrica breve válida marcada Incompleto.";
   }
-  return "Calibración coherente con reglas actuales.";
+
+  if (quality.label === "Incompleto" && quality.score >= 55) {
+    return "Subestima: score cercano a Adecuado con documentación clínica mínima válida.";
+  }
+
+  return "Calibración coherente con reglas Phase 4.7D.";
 }
 
 export function auditCopilotScenario(
@@ -1356,12 +1371,12 @@ export function buildQualityScoreAudit(
     quantityOverQuality: qty,
     briefConsultPenalty: brief,
     calibrationProposal: [
-      "Reducir peso de anamnesis de 15 a 10 pts; añadir criterio de contenido clínico (vitals OR PE OR diagnóstico estructurado).",
-      "Umbral anamnesis: ≥30 chars → ≥50 chars O presencia de hallazgo clínico parseable.",
-      "Excelente (≥85): requerir vitals OR examen físico además de diagnóstico + plan.",
-      "Excluir gap-notes para códigos Z00* (preventivo/niño sano) y consultas agudas J/R con plan sintomático.",
-      "Seguimiento: ampliar regex a 'reevaluar|volver|retorno|próxima|cita'.",
-      "Mostrar score como orientativo; no usar label 'Excelente' si falta vitals en crónicos I10/E11.",
+      "Phase 4.7D implementado: anamnesis 10 pts por contenido clínico (no longitud ≥30).",
+      "Vitales 18 pts; examen físico 18 pts (10 pts parcial por hallazgo libre).",
+      "Excelente (≥85): gates clínicos — objetivos documentados; HTA requiere examen CV.",
+      "Consultas agudas breves (R51/M54/J06): Excelente solo con examen estructurado o explícito.",
+      "Seguimiento: regex ampliada (reevaluar|volver|retorno|próxima|cita|si empeora).",
+      "Crónicos I10/E11: Excelente requiere vitals documentados.",
     ],
   };
 }
@@ -1464,7 +1479,7 @@ export function runCopilotClinicalAudit(
       "Phase 4.7C: cobertura ampliada a EPOC, hipotiroidismo, obesidad, ERGE, Parkinson, artrosis, FA, polifarmacia y multimorbilidad.",
       "Mantener Zero Noise™ — solo insights con evidencia documentada.",
       "Implementar ranking CRÍTICO→INFORMATIVO (Phase 4.7 pendiente).",
-      "Calibrar Documentation Quality (Phase 4.7D pendiente).",
+      "Calibrar Documentation Quality (Phase 4.7D — implementado).",
     ],
     risks: [
       "Consultas agudas sin memoria permanecen en Silence Mode — comportamiento esperado.",

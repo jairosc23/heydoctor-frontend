@@ -2,6 +2,7 @@
  * Phase 4.6 — Clinical Copilot Intelligence™
  * Phase 4.7B — Noise Reduction
  * Phase 4.7C — Clinical Coverage (evidencia documentada únicamente)
+ * Phase 4.7D — Documentation Quality Calibration (completitud clínica > longitud)
  */
 
 import { buildClinicalDataFoundation } from "./clinical-data-foundation";
@@ -772,6 +773,190 @@ export function buildDocumentationGaps(
   return gaps.slice(0, 6);
 }
 
+/** Phase 4.7D — completitud clínica > longitud textual (total 100). */
+const DOC_QUALITY_WEIGHTS = {
+  dx: 20,
+  motivo: 10,
+  anamnesis: 10,
+  vitals: 18,
+  peFull: 18,
+  pePartial: 10,
+  plan: 14,
+  followup: 10,
+} as const;
+
+const DOC_QUALITY_EXCELLENT = 85;
+const DOC_QUALITY_ADEQUATE = 60;
+
+const FREE_TEXT_PE_PATTERNS: RegExp[] = [
+  /\bexamen\s+f[ií]sico\b/i,
+  /\bauscultaci[oó]n\b/i,
+  /\b(?:MV|murmullo\s+vesicular)\b/i,
+  /\bsibilanc|\bestertor/i,
+  /\bfaringe\b|\borofaringe\b/i,
+  /\bneurol[oó]gico\b|\bfocalidad\b/i,
+  /\bLas[eè]gue\b|\bmovilidad\b/i,
+  /\babdomen\b|\bedema\b/i,
+  /\britmo\s+card[ií]aco\b|\bsoplo\b/i,
+  /\btemblor\b|\bmarcha\b/i,
+];
+
+const CLINICAL_ANAMNESIS_PATTERNS: RegExp[] = [
+  ...FREE_TEXT_PE_PATTERNS,
+  /\b(?:PA|TA|FC|FR|Sat\s*O2|SpO2|temperatura|peso|talla|IMC)\b/i,
+  /\brefiere\b|\bniega\b|\bdesde\s+hace\b/i,
+  /\b\d+\s*(?:d[ií]as?|semanas?|meses?|horas?)\b/i,
+  /\bvacunas?\b|\bdesarrollo\b|\badherencia\b/i,
+];
+
+function countPatternHits(text: string, patterns: RegExp[]): number {
+  return patterns.filter((p) => p.test(text)).length;
+}
+
+function hasDocumentedFollowup(treatment: string | null | undefined): boolean {
+  return /seguim|control|revis|semana|mes|reevaluar|volver|retorno|pr[oó]xima|cita|si\s+(?:empeora|persiste)/i.test(
+    treatment ?? "",
+  );
+}
+
+function hasClinicalAnamnesisContent(
+  notes: string | null | undefined,
+  hasVitals: boolean,
+  hasPhysicalExam: boolean,
+): boolean {
+  const n = notes?.trim() ?? "";
+  if (!n) return false;
+  if (hasVitals || hasPhysicalExam) return true;
+  if (n.length >= 50) return true;
+  if (countPatternHits(n, CLINICAL_ANAMNESIS_PATTERNS) >= 1) return true;
+  return n.length >= 25 && /\b(s[ií]ntoma|cuadro|evoluci[oó]n|paciente)\b/i.test(n);
+}
+
+function scorePhysicalExamFromNotes(notes: string | null | undefined): {
+  points: number;
+  max: number;
+  hasStructured: boolean;
+  hasAny: boolean;
+} {
+  const structured = hasPhysicalExamData(resolvePhysicalExamFromNotes(notes ?? ""));
+  if (structured) {
+    return {
+      points: DOC_QUALITY_WEIGHTS.peFull,
+      max: DOC_QUALITY_WEIGHTS.peFull,
+      hasStructured: true,
+      hasAny: true,
+    };
+  }
+
+  const n = notes?.trim() ?? "";
+  if (!n) {
+    return { points: 0, max: DOC_QUALITY_WEIGHTS.peFull, hasStructured: false, hasAny: false };
+  }
+
+  const hits = countPatternHits(n, FREE_TEXT_PE_PATTERNS);
+  if (hits >= 2 || /\bexamen\s+f[ií]sico\b/i.test(n)) {
+    return {
+      points: DOC_QUALITY_WEIGHTS.peFull,
+      max: DOC_QUALITY_WEIGHTS.peFull,
+      hasStructured: false,
+      hasAny: true,
+    };
+  }
+  if (hits >= 1) {
+    return {
+      points: DOC_QUALITY_WEIGHTS.pePartial,
+      max: DOC_QUALITY_WEIGHTS.peFull,
+      hasStructured: false,
+      hasAny: true,
+    };
+  }
+
+  return { points: 0, max: DOC_QUALITY_WEIGHTS.peFull, hasStructured: false, hasAny: false };
+}
+
+function hasCardiovascularExamDocumented(
+  notes: string | null | undefined,
+  peStructured: boolean,
+): boolean {
+  if (peStructured) {
+    const exam = resolvePhysicalExamFromNotes(notes ?? "");
+    if (exam.cardiovascular?.trim()) return true;
+  }
+  const n = notes?.trim() ?? "";
+  return /\britmo\s+card[ií]aco\b|\bsoplo\b|\bedema\b|\bingurgitaci[oó]n\b|\bpulsos\b|\bexamen\s+cardiovascular\b/i.test(
+    n,
+  );
+}
+
+function isPreventiveConsult(code: string | null): boolean {
+  return code != null && /^Z00/i.test(code);
+}
+
+function isAcuteRespiratory(code: string | null): boolean {
+  return code != null && /^J0[0-9]/i.test(code);
+}
+
+function isBriefAcuteConsult(code: string | null): boolean {
+  return code != null && /^(R51|M54|J06|J00|J02|J03)/i.test(code);
+}
+
+function resolveDocumentationQualityLabel(
+  score: number,
+  input: BuildClinicalCopilotInput,
+  context: CopilotContextView,
+  hasVitals: boolean,
+  physicalExam: ReturnType<typeof scorePhysicalExamFromNotes>,
+): DocumentationQualityLabel {
+  let label: DocumentationQualityLabel = "Incompleto";
+  if (score >= DOC_QUALITY_EXCELLENT) label = "Excelente";
+  else if (score >= DOC_QUALITY_ADEQUATE) label = "Adecuado";
+
+  if (label !== "Excelente") return label;
+
+  const code = context.activeDiagnosisCode;
+  const hasDx = Boolean(context.activeDiagnosis);
+  const hasPlan = Boolean(input.treatment?.trim());
+  const hasObjectiveData = hasVitals || physicalExam.hasAny;
+
+  if (!hasDx || !hasPlan || !hasObjectiveData) {
+    return "Adecuado";
+  }
+
+  if ((isHypertension(code) || isDiabetes(code)) && !hasVitals) {
+    return "Adecuado";
+  }
+
+  if (isHypertension(code) && !hasCardiovascularExamDocumented(input.notes, physicalExam.hasStructured)) {
+    return "Adecuado";
+  }
+
+  if (
+    (isCopd(code) || isAcuteRespiratory(code)) &&
+    !physicalExam.hasStructured &&
+    physicalExam.points < DOC_QUALITY_WEIGHTS.peFull
+  ) {
+    return "Adecuado";
+  }
+
+  if (
+    isBriefAcuteConsult(code) &&
+    !physicalExam.hasStructured &&
+    !/\bexamen\s+f[ií]sico\b/i.test(input.notes ?? "")
+  ) {
+    return "Adecuado";
+  }
+
+  if (
+    isPreventiveConsult(code) &&
+    !hasVitals &&
+    !physicalExam.hasAny
+  ) {
+    return "Adecuado";
+  }
+
+  return label;
+}
+
 export function buildDocumentationQuality(
   input: BuildClinicalCopilotInput,
   context: CopilotContextView,
@@ -779,65 +964,62 @@ export function buildDocumentationQuality(
   const factors: DocumentationQuality["factors"] = [];
   let score = 0;
 
-  const add = (id: string, label: string, points: number, max: number, ok: boolean) => {
-    const earned = ok ? points : 0;
-    score += earned;
-    factors.push({ id, label, points: earned, max });
+  const add = (id: string, label: string, points: number, max: number) => {
+    score += points;
+    factors.push({ id, label, points, max });
   };
+
+  const vitalsCtx = parseClinicalVitalSignsFromNotes(input.notes, input.treatment);
+  const hasVitals = vitalsCtx.hasData;
+  const physicalExam = scorePhysicalExamFromNotes(input.notes);
 
   add(
     "dx",
     "Diagnóstico documentado",
-    20,
-    20,
-    Boolean(context.activeDiagnosis),
+    context.activeDiagnosis ? DOC_QUALITY_WEIGHTS.dx : 0,
+    DOC_QUALITY_WEIGHTS.dx,
   );
   add(
     "motivo",
     "Motivo de consulta",
-    10,
-    10,
-    Boolean(input.chiefComplaint?.trim()),
+    input.chiefComplaint?.trim() ? DOC_QUALITY_WEIGHTS.motivo : 0,
+    DOC_QUALITY_WEIGHTS.motivo,
   );
   add(
     "anamnesis",
-    "Anamnesis / notas",
-    15,
-    15,
-    (input.notes?.trim().length ?? 0) >= 30,
+    "Anamnesis clínica",
+    hasClinicalAnamnesisContent(input.notes, hasVitals, physicalExam.hasAny)
+      ? DOC_QUALITY_WEIGHTS.anamnesis
+      : 0,
+    DOC_QUALITY_WEIGHTS.anamnesis,
   );
   add(
     "vitals",
     "Signos vitales",
-    15,
-    15,
-    parseClinicalVitalSignsFromNotes(input.notes, input.treatment).hasData,
+    hasVitals ? DOC_QUALITY_WEIGHTS.vitals : 0,
+    DOC_QUALITY_WEIGHTS.vitals,
   );
-  add(
-    "pe",
-    "Examen físico",
-    15,
-    15,
-    hasPhysicalExamData(resolvePhysicalExamFromNotes(input.notes ?? "")),
-  );
+  add("pe", "Examen físico", physicalExam.points, physicalExam.max);
   add(
     "plan",
     "Conducta / tratamiento",
-    15,
-    15,
-    Boolean(input.treatment?.trim()),
+    input.treatment?.trim() ? DOC_QUALITY_WEIGHTS.plan : 0,
+    DOC_QUALITY_WEIGHTS.plan,
   );
   add(
     "followup",
     "Seguimiento documentado",
-    10,
-    10,
-    /seguim|control|revis|semana|mes/i.test(input.treatment ?? ""),
+    hasDocumentedFollowup(input.treatment) ? DOC_QUALITY_WEIGHTS.followup : 0,
+    DOC_QUALITY_WEIGHTS.followup,
   );
 
-  let label: DocumentationQualityLabel = "Incompleto";
-  if (score >= 85) label = "Excelente";
-  else if (score >= 60) label = "Adecuado";
+  const label = resolveDocumentationQualityLabel(
+    score,
+    input,
+    context,
+    hasVitals,
+    physicalExam,
+  );
 
   return { score, label, factors };
 }

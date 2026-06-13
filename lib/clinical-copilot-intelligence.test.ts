@@ -123,6 +123,21 @@ describe("clinical-copilot-intelligence Phase 4.6 / 4.7B", () => {
     assert.ok(bundle.insights.some((i) => i.id === "asma-treatment-persistence"));
   });
 
+  it("Phase 4.7D — anamnesis por contenido clínico, no longitud", () => {
+    const bundle = buildClinicalCopilotIntelligence({
+      diagnosisCode: "R51",
+      diagnosisDescription: "Cefalea",
+      chiefComplaint: "Cefalea 2 días",
+      notes: "Cefalea opresiva. Neurológico sin focalidad.",
+      treatment: "Analgésico PRN.",
+      clinicalMemoryRaw: memoryBase("p-47d"),
+    });
+
+    const anamnesis = bundle.documentationQuality.factors.find((f) => f.id === "anamnesis");
+    assert.ok(anamnesis && anamnesis.points > 0);
+    assert.equal(bundle.documentationQuality.label, "Adecuado");
+  });
+
   it("Documentation Quality — score 0–100 con etiqueta coherente", () => {
     const sparse = buildDocumentationQuality(
       {
