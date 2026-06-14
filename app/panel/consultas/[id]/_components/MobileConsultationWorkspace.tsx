@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  AiInsightsPanel,
-  ClinicalRecordPanel,
-  ConsultationAssistPanel,
-} from "@/components/clinical";
+import { ClinicalRecordPanel } from "@/components/clinical";
 import { ChatPanel } from "@/components/telemedicine/ChatPanel";
 import { ClinicalPanel } from "@/components/clinical/design";
 import { clinicalTabClass } from "@/lib/clinical-design-tokens";
@@ -24,7 +20,7 @@ const MAIN_TABS: { id: WorkspaceTab; label: string }[] = [
   { id: "record", label: "Ficha" },
   { id: "orders", label: "Órdenes" },
   { id: "documents", label: "Documentos" },
-  { id: "assist", label: "Asistencia" },
+  { id: "chat", label: "Chat" },
 ];
 
 export function MobileConsultationWorkspace({
@@ -79,7 +75,7 @@ export function MobileConsultationWorkspace({
 
       {!patientId ? (
         <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          Esta consulta no tiene paciente asociado. Las órdenes y asistencia no
+          Esta consulta no tiene paciente asociado. Las órdenes y el chat no
           están disponibles.
         </p>
       ) : null}
@@ -140,20 +136,13 @@ export function MobileConsultationWorkspace({
         />
       ) : null}
 
-      {activeTab === "assist" && patientId ? (
-        <div className="grid gap-5 lg:grid-cols-2">
-          <ConsultationAssistPanel
-            initialChiefComplaint={chiefComplaintDraft}
-            initialSymptoms=""
-            initialNotes={soap.notes}
-          />
-          <div className="space-y-5">
-            <AiInsightsPanel
-              patientId={patientId}
-              consultationId={consultationId}
-            />
-            <ChatPanel consultationId={consultationId} sender="doctor" />
-          </div>
+      {activeTab === "chat" && patientId ? (
+        <div aria-label="Mensajería de consulta">
+          <p className="mb-3 text-[11px] text-slate-500">
+            Mensajería clínica. Para análisis con IA use{" "}
+            <span className="font-semibold text-primary">Clinical Copilot™</span>.
+          </p>
+          <ChatPanel consultationId={consultationId} sender="doctor" />
         </div>
       ) : null}
     </ClinicalPanel>

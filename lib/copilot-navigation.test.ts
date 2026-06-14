@@ -22,10 +22,15 @@ describe("copilot-navigation Phase 4.8.3C", () => {
       unchanged.some((e) => e.id === "live-ai-notes"),
       "LiveAiNoteSuggestions sin cambios",
     );
-    assert.ok(
-      unchanged.some((e) => e.id === "tab-asistencia-assist"),
-      "Tab Asistencia intacto",
+  });
+
+  it("tab Asistencia retirado en 4.8.3D; Chat reemplaza mensajería", () => {
+    const assist = COPILOT_REDIRECT_ENTRY_POINTS.find(
+      (e) => e.id === "tab-asistencia-assist",
     );
+    const chat = COPILOT_REDIRECT_ENTRY_POINTS.find((e) => e.id === "tab-chat");
+    assert.equal(assist?.phase483dStatus, "retired_unmounted");
+    assert.equal(chat?.phase483dStatus, "active_replacement");
   });
 
   it("menú Análisis clínico redirige a Copilot generativo", () => {

@@ -22,7 +22,7 @@ export type WorkspaceTab =
   | "record"
   | "orders"
   | "documents"
-  | "assist";
+  | "chat";
 
 export type { EncounterLeftPaneTab, EncounterRightPaneTab };
 

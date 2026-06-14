@@ -5,7 +5,6 @@ import {
   getConsultationAssist,
   type ConsultationAssistResponse,
 } from "@/lib/clinical-ai-facade";
-import { CopilotHubCta } from "@/components/clinical/CopilotHubCta";
 import { getApiErrorMessage } from "@/lib/heydoctor-api";
 
 export type ConsultationAssistPanelProps = {
@@ -16,6 +15,8 @@ export type ConsultationAssistPanelProps = {
 };
 
 /**
+ * @deprecated Phase 4.8.3D — desmontado de producción. Usar Clinical Copilot™
+ * → Clinical AI Assistant™ (`getConsultationAssist` vía ClinicalAiFacade).
  * Panel opcional: sugerencias asistivas (no sustituye juicio clínico).
  */
 export function ConsultationAssistPanel({
@@ -84,7 +85,6 @@ export function ConsultationAssistPanel({
         Solo apoyo informativo. No decisiones automáticas ni diagnósticos
         definitivos. Verificar siempre en consulta.
       </p>
-      <CopilotHubCta className="mb-3" />
       {loading && (
         <div className="ia-live-strip" role="status" aria-live="polite">
           <span className="ia-live-strip__dot" aria-hidden />

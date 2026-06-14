@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  AiInsightsPanel,
-  ClinicalRecordPanel,
-  ConsultationAssistPanel,
-} from "@/components/clinical";
+import { ClinicalRecordPanel } from "@/components/clinical";
 import { ClinicalPanel, ClinicalSection } from "@/components/clinical/design";
 import { clinicalTabClass } from "@/lib/clinical-design-tokens";
 import { ChatPanel } from "@/components/telemedicine/ChatPanel";
@@ -13,12 +9,12 @@ import { SoapSection, type SoapSectionProps } from "./SoapSection";
 import { SoapStickyNav } from "./SoapStickyNav";
 import { useSoapScrollSpy } from "@/hooks/useSoapScrollSpy";
 
-export type EncounterLeftPaneTab = "soap" | "record" | "assist";
+export type EncounterLeftPaneTab = "soap" | "record" | "chat";
 
 const LEFT_TABS: { id: EncounterLeftPaneTab; label: string }[] = [
   { id: "soap", label: "Nota (SOAP)" },
   { id: "record", label: "Ficha" },
-  { id: "assist", label: "Asistencia" },
+  { id: "chat", label: "Chat" },
 ];
 
 export interface EncounterLeftPaneProps {
@@ -83,10 +79,10 @@ export function EncounterLeftPane({
             ))}
           </div>
 
-          {!patientId && (activeTab === "assist" || activeTab === "record") ? (
+          {!patientId && (activeTab === "chat" || activeTab === "record") ? (
             <p className="rounded-hd-md border border-amber-200 bg-amber-50 px-hd-4 py-hd-3 text-sm text-amber-900">
-              Esta consulta no tiene paciente asociado. La asistencia no está
-              disponible.
+              Esta consulta no tiene paciente asociado. El chat y la ficha no
+              están disponibles.
             </p>
           ) : null}
 
@@ -125,20 +121,14 @@ export function EncounterLeftPane({
             </div>
           ) : null}
 
-          {activeTab === "assist" && patientId ? (
-            <div className="grid gap-hd-5 xl:grid-cols-1 2xl:grid-cols-2">
-              <ConsultationAssistPanel
-                initialChiefComplaint={chiefComplaintDraft}
-                initialSymptoms=""
-                initialNotes={soap.notes}
-              />
-              <div className="space-y-hd-5">
-                <AiInsightsPanel
-                  patientId={patientId}
-                  consultationId={consultationId}
-                />
-                <ChatPanel consultationId={consultationId} sender="doctor" />
-              </div>
+          {activeTab === "chat" && patientId ? (
+            <div aria-label="Mensajería de consulta">
+              <p className="mb-hd-3 text-[11px] text-slate-500">
+                Mensajería clínica. Para análisis con IA use{" "}
+                <span className="font-semibold text-primary">Clinical Copilot™</span>{" "}
+                (✨ en la cabecera).
+              </p>
+              <ChatPanel consultationId={consultationId} sender="doctor" />
             </div>
           ) : null}
         </ClinicalSection>

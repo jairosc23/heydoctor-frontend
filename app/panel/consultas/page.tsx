@@ -16,10 +16,8 @@ import {
   SmartDiagnosisPicker,
   PrescriptionPanel,
   LabOrdersPanel,
-  AiInsightsPanel,
   LiveAiNoteSuggestions,
   ConsultationConsentCard,
-  ConsultationAssistPanel,
   ShareConsultationDialog,
 } from "@/components/clinical";
 import { ChatPanel } from "@/components/telemedicine/ChatPanel";
@@ -506,11 +504,21 @@ function ConsultasContent() {
             />
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-            <ConsultationAssistPanel initialNotes={clinicalNotes} />
-            <AiInsightsPanel
-              patientId={patientId}
-              consultationId={consultationId}
-            />
+            <div
+              style={{
+                padding: 14,
+                borderRadius: 10,
+                border: "1px solid #c7d7f7",
+                background: "#f0f9ff",
+                fontSize: 13,
+                color: "#0f172a",
+                lineHeight: 1.45,
+              }}
+            >
+              El análisis clínico con IA está disponible en el workspace de
+              detalle de consulta mediante{" "}
+              <strong>Clinical Copilot™</strong> (✨).
+            </div>
             {consultationId && (
               <ChatPanel consultationId={consultationId} sender="doctor" />
             )}

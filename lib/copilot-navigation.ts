@@ -11,6 +11,7 @@ export type CopilotRedirectEntryPoint = {
   id: string;
   label: string;
   phase483cBehavior: "redirect_to_copilot_generative" | "unchanged";
+  phase483dStatus?: "retired_unmounted" | "active_replacement";
 };
 
 /** Entry points migrados en 4.8.3C hacia Clinical Copilot™ generativo. */
@@ -34,11 +35,19 @@ export const COPILOT_REDIRECT_ENTRY_POINTS: CopilotRedirectEntryPoint[] = [
     id: "tab-asistencia-assist",
     label: "Tab Asistencia → ConsultationAssistPanel",
     phase483cBehavior: "unchanged",
+    phase483dStatus: "retired_unmounted",
   },
   {
     id: "tab-asistencia-insights",
     label: "Tab Asistencia → AiInsightsPanel",
     phase483cBehavior: "unchanged",
+    phase483dStatus: "retired_unmounted",
+  },
+  {
+    id: "tab-chat",
+    label: "Tab Chat → ChatPanel",
+    phase483cBehavior: "unchanged",
+    phase483dStatus: "active_replacement",
   },
   {
     id: "ficha-autollenar",
