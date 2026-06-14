@@ -15,6 +15,7 @@ import { CopilotActionSystem } from "./CopilotActionSystem";
 import { CopilotContextEngine } from "./CopilotContextEngine";
 import { CopilotDocumentationGaps } from "./CopilotDocumentationGaps";
 import { CopilotDocumentationQuality } from "./CopilotDocumentationQuality";
+import { CopilotGenerativeSection } from "./CopilotGenerativeSection";
 import { CopilotGovernanceBoundary } from "./CopilotGovernanceBoundary";
 import { CopilotInsightCards } from "./CopilotInsightCards";
 import { CopilotRiskSignals } from "./CopilotRiskSignals";
@@ -112,6 +113,13 @@ export function ClinicalCopilotDrawer({
     ],
   );
 
+  const diagnosisLabel = useMemo(() => {
+    if (diagnosisCode && diagnosisDescription) {
+      return `${diagnosisCode} — ${diagnosisDescription}`;
+    }
+    return diagnosisDescription?.trim() || diagnosis?.trim() || null;
+  }, [diagnosis, diagnosisCode, diagnosisDescription]);
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -181,6 +189,12 @@ export function ClinicalCopilotDrawer({
           <CopilotInsightCards insights={intelligence.insights} />
           <CopilotRiskSignals signals={intelligence.riskSignals} />
           <CopilotDocumentationGaps gaps={intelligence.documentationGaps} />
+          <CopilotGenerativeSection
+            chiefComplaint={chiefComplaint}
+            notes={notes}
+            diagnosis={diagnosisLabel}
+            treatment={treatment}
+          />
           <CopilotActionSystem />
         </div>
       </aside>
