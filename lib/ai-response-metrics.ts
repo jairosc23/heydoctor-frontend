@@ -1,10 +1,14 @@
 export type AiMetricKind =
   | "consultation_summary"
   | "consultation_assist"
-  | "enriched_documentation";
+  | "enriched_documentation"
+  | "consultation_insights"
+  | "autofill_record";
 
 export type AiMetricEvent = {
   at: number;
+  /** Phase 4.8.3A — trazabilidad por solicitud vía ClinicalAiFacade™ */
+  requestId?: string;
   kind: AiMetricKind;
   durationMs: number;
   status: "success" | "error" | "empty" | "rate_limited";

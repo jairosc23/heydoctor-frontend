@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { fetchConsultationAi } from "@/lib/services/consultations";
-import type { ConsultationAiPayload } from "@/lib/services/consultations";
+import {
+  getConsultationInsights,
+  type ConsultationAiPayload,
+} from "@/lib/clinical-ai-facade";
 import { useConsultation } from "@/context/ConsultationContext";
 
 interface AiInsightsPanelProps {
@@ -141,8 +143,8 @@ export function AiInsightsPanel({
       if (process.env.NODE_ENV === "development") {
         console.debug("[heydoctor][ai] cargar", { consultationId, mode });
       }
-      fetchConsultationAi(consultationId)
-        .then((payload) => {
+      getConsultationInsights(consultationId)
+        .then(({ data: payload }) => {
           if (process.env.NODE_ENV === "development") {
             console.debug("[heydoctor][ai] ok", {
               hasSummary: !!payload?.summary,

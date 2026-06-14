@@ -2,9 +2,9 @@
 
 import React, { useEffect, useState } from "react";
 import {
-  requestConsultationAssist,
+  getConsultationAssist,
   type ConsultationAssistResponse,
-} from "@/lib/services/consultation-assist";
+} from "@/lib/clinical-ai-facade";
 import { getApiErrorMessage } from "@/lib/heydoctor-api";
 
 export type ConsultationAssistPanelProps = {
@@ -41,7 +41,7 @@ export function ConsultationAssistPanel({
     setError(null);
     setResult(null);
     try {
-      const data = await requestConsultationAssist({
+      const { data } = await getConsultationAssist({
         chiefComplaint: chief.trim() || undefined,
         symptoms: symptoms.trim() || undefined,
         notes: notes.trim() || undefined,

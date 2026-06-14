@@ -10,6 +10,20 @@ export * from "./invoices";
 export * from "./clinical-analytics";
 export * from "./ai-insights";
 export * from "./ai-clinical";
+export {
+  autofillStructuredRecord,
+  buildAiSyncPatch,
+  buildConsultationSummaryRequest,
+  createClinicalAiRequestId,
+  getConsultationAssist,
+  getConsultationInsights,
+  getInlineNoteSuggestions,
+  registerClinicalAiBeforeRequestHook,
+  requestEnrichedClinicalDocumentation,
+  type ClinicalAiFacadeResult,
+  type ClinicalAiOperation,
+  type EnrichedClinicalDocumentationInput,
+} from "../clinical-ai-facade";
 export * from "./clinic";
 export * from "./appointments";
 export * from "./search";

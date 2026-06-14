@@ -12,7 +12,7 @@ import { humanizeAiClinicalError } from "@/lib/ai-clinical-errors";
 import {
   requestEnrichedClinicalDocumentation,
   type ConsultationSummaryResponse,
-} from "@/lib/services/ai-clinical";
+} from "@/lib/clinical-ai-facade";
 
 const DEBOUNCE_MS = 2500;
 const MIN_COOLDOWN_MS = 8000;

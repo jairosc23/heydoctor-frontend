@@ -20,10 +20,10 @@ import { usePatientClinicalMemory } from "@/hooks/usePatientClinicalMemory";
 import {
   ClinicalRecord,
   SystemsReview,
-  autofillClinicalRecord,
   parseClinicalRecord,
   serializeClinicalRecord,
 } from "@/lib/services/clinical-record";
+import { autofillStructuredRecord } from "@/lib/clinical-ai-facade";
 import Card from "@/components/ui/Card";
 import { cn } from "@/lib/utils";
 
@@ -148,7 +148,7 @@ export function ClinicalRecordPanel({
     setAiLoading(true);
     setStatusMsg("");
     try {
-      const result = await autofillClinicalRecord(consultationId, {
+      const { data: result } = await autofillStructuredRecord(consultationId, {
         chiefComplaint,
         patientName: patient?.name ?? null,
         patientAge: patient?.age ?? null,
