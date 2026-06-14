@@ -94,6 +94,7 @@ import {
 import { ClinicalModuleSheet } from "./_components/action-workspace/ClinicalModuleSheet";
 import { ClinicalModuleSheetContent } from "./_components/action-workspace/ClinicalModuleSheetContent";
 import { EncounterChromeShell } from "./_components/EncounterChromeShell";
+import { ClinicalCloseFlow } from "./_components/ClinicalCloseFlow";
 
 const clinicalActionWorkspaceEnabled = isClinicalActionWorkspaceEnabled();
 const smartClinicalWorkspaceEnabled = isSmartClinicalWorkspaceEnabled();
@@ -871,6 +872,25 @@ export default function ConsultationDetailPage() {
                 embedded
               />
             ) : null}
+            <ClinicalCloseFlow
+              consultationId={id}
+              patientId={consultation.patientId}
+              consultationStatus={status}
+              chiefComplaint={chiefComplaintDraft}
+              notes={notes}
+              diagnosis={diagnosisState.diagnosis}
+              diagnosisCode={diagnosisState.diagnosisCode}
+              diagnosisDescription={diagnosisState.diagnosisDescription}
+              treatment={treatment}
+              autosaveStatus={autosaveStatus}
+              isSigned={isSigned}
+              isLocked={isLocked}
+              canPay={canPay}
+              onOpenCopilot={() => {
+                setDnaDrawerOpen(false);
+                setCopilotDrawerOpen(true);
+              }}
+            />
             {clinicalActionWorkspaceEnabled && consultation.patientId ? (
               <ClinicalActionBar
                 patientId={consultation.patientId}
