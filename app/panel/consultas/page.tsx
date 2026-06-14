@@ -27,6 +27,12 @@ import {
 } from "@/lib/consultation-pricing";
 import { useConsultationPrice } from "@/lib/hooks/useConsultationPrice";
 
+/**
+ * Phase 4.9.0 — Guard-rail: workspace inline legacy no se renderiza.
+ * Flujo canónico: /panel/consultas/[id]. Código legacy conservado bajo flag.
+ */
+const LEGACY_INLINE_CONSULTATION_WORKSPACE = false;
+
 function ConsultasContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -408,8 +414,8 @@ function ConsultasContent() {
         />
       )}
 
-      {/* Consultation workspace */}
-      {consultationId && patientId && (
+      {/* Consultation workspace — legacy inline deshabilitado Phase 4.9.0 */}
+      {LEGACY_INLINE_CONSULTATION_WORKSPACE && consultationId && patientId && (
         <div
           style={{
             display: "grid",
@@ -525,6 +531,46 @@ function ConsultasContent() {
           </div>
         </div>
       )}
+
+      {!LEGACY_INLINE_CONSULTATION_WORKSPACE && consultationId ? (
+        <div
+          style={{
+            marginTop: 24,
+            padding: "20px 24px",
+            borderRadius: 12,
+            border: "1px solid #c7d7f7",
+            background: "#f0f9ff",
+            fontSize: 14,
+            color: "#0f172a",
+            lineHeight: 1.5,
+          }}
+        >
+          <p style={{ margin: "0 0 12px", fontWeight: 600 }}>
+            Workspace clínico oficial
+          </p>
+          <p style={{ margin: "0 0 16px" }}>
+            La consulta activa se gestiona en el detalle canónico{" "}
+            <code>/panel/consultas/[id]</code> (firma, pago, Clinical Copilot™,
+            Close Flow). Redirigiendo automáticamente…
+          </p>
+          <button
+            type="button"
+            onClick={() => router.push(`/panel/consultas/${consultationId}`)}
+            style={{
+              padding: "8px 16px",
+              background: "#078a92",
+              color: "white",
+              border: "none",
+              borderRadius: 8,
+              cursor: "pointer",
+              fontSize: 13,
+              fontWeight: 600,
+            }}
+          >
+            Abrir consulta →
+          </button>
+        </div>
+      ) : null}
 
       {/* Recent consultations list */}
       {!consultationId && (

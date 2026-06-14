@@ -85,6 +85,10 @@ import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import { isClinicalActionWorkspaceEnabled } from "@/lib/clinical-action-workspace";
 import { isSmartClinicalWorkspaceEnabled } from "@/lib/smart-clinical-workspace";
+import {
+  buildConsultationDocumentDisabled,
+  resolveCanPay,
+} from "@/lib/consultation-production-gates";
 import type { ClinicalActionModuleId } from "@/lib/clinical-action-workspace";
 import { ClinicalActionBar } from "./_components/action-workspace/ClinicalActionBar";
 import {
@@ -340,7 +344,11 @@ export default function ConsultationDetailPage() {
   const isSigned = status === "signed" || status === "locked";
   const isLocked = status === "locked";
   const canStartCall = status === "draft" || status === "in_progress";
-  const canPay = status === "signed" || status === "completed";
+  const canPay = resolveCanPay(status);
+  const documentDisabled = buildConsultationDocumentDisabled({
+    isSigned,
+    isLocked,
+  });
 
   const persistSoapDraft = useCallback(
     async (diagnosisOverride?: ConsultationDiagnosisState) => {
@@ -389,7 +397,7 @@ export default function ConsultationDetailPage() {
     diagnosis: diagnosisState,
   });
 
-  const { lastSavedAt, status: autosaveStatus, errorMessage: autosaveError } =
+  const { lastSavedAt, status: autosaveStatus, errorMessage: autosaveError, flushNow } =
     useConsultationAutosave({
       enabled: isEditable && Boolean(consultation),
       draftKey: soapDraftKey,
@@ -424,6 +432,9 @@ export default function ConsultationDetailPage() {
     if (!consultation) return;
     setSigning(true);
     try {
+      if (isEditable) {
+        await flushNow();
+      }
       const prev = consultation.status ?? prevStatusRef.current;
       const updated = await signConsultation(id, base64);
       const st = updated.status ?? "";
@@ -840,8 +851,8 @@ export default function ConsultationDetailPage() {
               edit: isLocked,
               ai: isLocked,
               delete: isLocked,
-              invoice: isLocked,
-              pdf: isLocked,
+              invoice: documentDisabled.invoice,
+              pdf: documentDisabled.pdf,
             }}
             dnaDrawerOpen={dnaDrawerOpen}
             onOpenDoctorDna={() => {
@@ -927,11 +938,7 @@ export default function ConsultationDetailPage() {
             onGeneratePremiumDocument: () => void handlePremiumDocument(),
           }}
           documentLoading={actionLoading}
-          documentDisabled={{
-            pdf: isLocked,
-            invoice: isLocked,
-            signedPrescription: !isSigned && !isLocked && !canSign,
-          }}
+          documentDisabled={documentDisabled}
           onLegacyInvoiceResult={handleActionResult}
         />
       </ClinicalModuleSheet>
@@ -1058,11 +1065,7 @@ export default function ConsultationDetailPage() {
           onGeneratePremiumDocument: () => void handlePremiumDocument(),
         }}
         documentLoading={actionLoading}
-        documentDisabled={{
-          pdf: isLocked,
-          invoice: isLocked,
-          signedPrescription: !isSigned && !isLocked && !canSign,
-        }}
+        documentDisabled={documentDisabled}
         onLegacyInvoiceResult={handleActionResult}
         ordersHighlight={ordersHighlight}
         ordersRefreshKey={ordersRefreshKey}
@@ -1142,11 +1145,7 @@ export default function ConsultationDetailPage() {
             onGeneratePremiumDocument: () => void handlePremiumDocument(),
           }}
           documentLoading={actionLoading}
-          documentDisabled={{
-            pdf: isLocked,
-            invoice: isLocked,
-            signedPrescription: !isSigned && !isLocked && !canSign,
-          }}
+          documentDisabled={documentDisabled}
           onLegacyInvoiceResult={handleActionResult}
           ordersHighlight={ordersHighlight}
           ordersRefreshKey={ordersRefreshKey}
