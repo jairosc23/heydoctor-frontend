@@ -38,14 +38,21 @@ NEXT_PUBLIC_CLINICAL_ACTION_WORKSPACE=1
 NEXT_PUBLIC_SMART_CLINICAL_WORKSPACE=1
 ```
 
-## Ejecución
+## Ejecución (Phase 4.9.2)
 
 ```bash
-export $(grep -v '^#' .env.e2e | xargs)
-npx playwright test --config e2e/playwright.config.ts
+cp e2e/.env.e2e.example .env.e2e
+# Editar .env.e2e (7 variables)
+chmod +x e2e/run-e2e.sh
+./e2e/run-e2e.sh
 ```
 
-Sin variables → tests se omiten (`test.skip`).
+Alternativa:
+
+```bash
+set -a && source .env.e2e && set +a
+npm run test:e2e
+```
 
 ## Casos P0
 
@@ -68,7 +75,7 @@ Sin variables → tests se omiten (`test.skip`).
 - `lib/clinical-e2e-production-readiness-audit.ts`
 - `lib/staging-activation-runtime-e2e-audit.ts`
 - `docs/PHASE_4.8.6_CLINICAL_E2E_PRODUCTION_READINESS.md`
-- `docs/PHASE_4.9.1_STAGING_ACTIVATION_RUNTIME_E2E.md`
+- `docs/PHASE_4.9.2_GO_LIVE_PREPARATION.md`
 
 ## Activación Vercel Preview (Phase 4.9.1)
 
