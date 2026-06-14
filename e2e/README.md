@@ -11,7 +11,13 @@ npx playwright install chromium
 
 ## Variables de entorno
 
-Crear `.env.e2e` (no commitear credenciales):
+Copiar plantilla:
+
+```bash
+cp e2e/.env.e2e.example .env.e2e
+```
+
+Editar `.env.e2e` (no commitear credenciales):
 
 ```env
 E2E_BASE_URL=https://staging.heydoctor.health
@@ -60,4 +66,13 @@ Sin variables → tests se omiten (`test.skip`).
 ## Referencia
 
 - `lib/clinical-e2e-production-readiness-audit.ts`
+- `lib/staging-activation-runtime-e2e-audit.ts`
 - `docs/PHASE_4.8.6_CLINICAL_E2E_PRODUCTION_READINESS.md`
+- `docs/PHASE_4.9.1_STAGING_ACTIVATION_RUNTIME_E2E.md`
+
+## Activación Vercel Preview (Phase 4.9.1)
+
+1. Settings → Environment Variables → ambos flags `=1` scope **Preview**
+2. NO modificar Production hasta GO E2E
+3. Redeploy preview → validar layout 2-col
+4. Ejecutar `npm run test:e2e` con `.env.e2e`
