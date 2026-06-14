@@ -34,6 +34,7 @@ export interface ClinicalCopilotDrawerProps {
   patientName?: string | null;
   patientAge?: string | number | null;
   patientSex?: string | null;
+  generativeExpandToken?: number;
 }
 
 export function ClinicalCopilotDrawer({
@@ -50,6 +51,7 @@ export function ClinicalCopilotDrawer({
   patientName,
   patientAge,
   patientSex,
+  generativeExpandToken = 0,
 }: ClinicalCopilotDrawerProps) {
   const { data: clinicalMemoryData } = usePatientClinicalMemory(
     open ? patientId : null,
@@ -194,6 +196,7 @@ export function ClinicalCopilotDrawer({
             notes={notes}
             diagnosis={diagnosisLabel}
             treatment={treatment}
+            expandRequestToken={generativeExpandToken}
           />
           <CopilotActionSystem />
         </div>

@@ -5,6 +5,7 @@ import {
   getConsultationInsights,
   type ConsultationAiPayload,
 } from "@/lib/clinical-ai-facade";
+import { CopilotHubCta } from "@/components/clinical/CopilotHubCta";
 import { useConsultation } from "@/context/ConsultationContext";
 
 interface AiInsightsPanelProps {
@@ -276,6 +277,8 @@ export function AiInsightsPanel({
           </button>
         ) : null}
       </div>
+
+      <CopilotHubCta className="mb-3" />
 
       {!consultationId ? (
         <p style={{ fontSize: 13, color: "#64748b", margin: 0 }}>

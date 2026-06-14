@@ -72,6 +72,7 @@ import {
 } from "./_components/DoctorDnaDrawer";
 import type { UnifiedPlanApplyResult } from "@/lib/types/unified-clinical-plan";
 import { ConsultationClinicalProviders } from "./_components/ConsultationClinicalProviders";
+import { CopilotNavigationProvider } from "@/context/CopilotNavigationContext";
 import { ClinicalIntelligenceSync } from "./_components/ClinicalIntelligenceSync";
 import type { EncounterLeftPaneTab } from "./_components/EncounterLeftPane";
 import type { EncounterRightPaneTab } from "./_components/EncounterRightPane";
@@ -178,6 +179,7 @@ export default function ConsultationDetailPage() {
   const [shareOpen, setShareOpen] = useState(false);
   const [dnaDrawerOpen, setDnaDrawerOpen] = useState(false);
   const [copilotDrawerOpen, setCopilotDrawerOpen] = useState(false);
+  const [generativeExpandToken, setGenerativeExpandToken] = useState(0);
 
   const [patientRow, setPatientRow] = useState<PatientRow | null>(null);
   const [patientProfile, setPatientProfile] = useState<PatientProfile | null>(
@@ -615,14 +617,14 @@ export default function ConsultationDetailPage() {
   }
 
   function handleAnalyzeWithAi() {
-    setAiTrigger((n) => n + 1);
-    setWorkspaceTab("record");
-    setLeftPaneTab("record");
+    setDnaDrawerOpen(false);
+    setCopilotDrawerOpen(true);
+    setGenerativeExpandToken((token) => token + 1);
     flashAction(
       "info",
-      "Generando propuesta con IA en la ficha clínica…",
+      "Abriendo Clinical Copilot™ — asistente generativo listo para analizar.",
       undefined,
-      3500,
+      4000,
     );
   }
 
@@ -750,6 +752,14 @@ export default function ConsultationDetailPage() {
     <ClinicalActionWorkspaceProvider
       enabled={clinicalActionWorkspaceEnabled}
       navigationRef={clinicalActionWorkspaceNavRef}
+    >
+    <CopilotNavigationProvider
+      open={copilotDrawerOpen}
+      onOpenChange={setCopilotDrawerOpen}
+      generativeExpandToken={generativeExpandToken}
+      onRequestGenerativeExpand={() =>
+        setGenerativeExpandToken((token) => token + 1)
+      }
     >
     <div
       ref={workspaceRef}
@@ -909,6 +919,7 @@ export default function ConsultationDetailPage() {
       <ClinicalCopilotDrawer
         open={copilotDrawerOpen}
         onClose={() => setCopilotDrawerOpen(false)}
+        generativeExpandToken={generativeExpandToken}
         consultationId={id}
         patientId={consultation.patientId}
         diagnosis={diagnosisState.diagnosis}
@@ -1170,6 +1181,7 @@ export default function ConsultationDetailPage() {
         </p>
       ) : null}
     </div>
+    </CopilotNavigationProvider>
     </ClinicalActionWorkspaceProvider>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { CLINICAL_SECTION_TITLE } from "@/lib/clinical-design-tokens";
 import { humanizeAiClinicalError } from "@/lib/ai-clinical-errors";
 import {
@@ -15,7 +15,10 @@ import {
 import { getApiErrorMessage } from "@/lib/heydoctor-api";
 import { cn } from "@/lib/utils";
 
-export type CopilotGenerativeSectionProps = CopilotGenerativeContext;
+export type CopilotGenerativeSectionProps = CopilotGenerativeContext & {
+  /** Token incrementado por CopilotNavigationContext™ para auto-expandir. */
+  expandRequestToken?: number;
+};
 
 type GenerativeUiState =
   | { status: "idle" }
@@ -36,9 +39,16 @@ export function CopilotGenerativeSection({
   notes,
   diagnosis,
   treatment,
+  expandRequestToken = 0,
 }: CopilotGenerativeSectionProps) {
   const [expanded, setExpanded] = useState(false);
   const [ui, setUi] = useState<GenerativeUiState>({ status: "idle" });
+
+  useEffect(() => {
+    if (expandRequestToken > 0) {
+      setExpanded(true);
+    }
+  }, [expandRequestToken]);
 
   const runAnalysis = useCallback(async () => {
     setUi({ status: "loading" });

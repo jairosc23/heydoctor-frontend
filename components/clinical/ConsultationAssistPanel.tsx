@@ -5,6 +5,7 @@ import {
   getConsultationAssist,
   type ConsultationAssistResponse,
 } from "@/lib/clinical-ai-facade";
+import { CopilotHubCta } from "@/components/clinical/CopilotHubCta";
 import { getApiErrorMessage } from "@/lib/heydoctor-api";
 
 export type ConsultationAssistPanelProps = {
@@ -83,6 +84,7 @@ export function ConsultationAssistPanel({
         Solo apoyo informativo. No decisiones automáticas ni diagnósticos
         definitivos. Verificar siempre en consulta.
       </p>
+      <CopilotHubCta className="mb-3" />
       {loading && (
         <div className="ia-live-strip" role="status" aria-live="polite">
           <span className="ia-live-strip__dot" aria-hidden />
