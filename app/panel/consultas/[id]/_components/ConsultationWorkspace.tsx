@@ -1,7 +1,6 @@
 "use client";
 
 import type { NestConsultation } from "@/lib/services/consultations";
-import type { SoapSectionProps } from "./SoapSection";
 import type { OrdersSubTab } from "./OrdersTab";
 import type {
   ActionBarHandlers,
@@ -16,10 +15,10 @@ import {
   PatientContextRail,
   type PatientContextRailProps,
 } from "./PatientContextRail";
+import type { ClinicalEncounterChartProps } from "./chart/ClinicalEncounterChart";
 
 export type WorkspaceTab =
   | "soap"
-  | "record"
   | "orders"
   | "documents"
   | "chat";
@@ -38,16 +37,6 @@ export interface ConsultationWorkspaceProps {
   onRightPaneTabChange: (tab: EncounterRightPaneTab) => void;
   ordersSubTab: OrdersSubTab;
   onOrdersSubTabChange: (tab: OrdersSubTab) => void;
-  soap: SoapSectionProps;
-  chiefComplaintDraft: string;
-  onChiefComplaintChange: (value: string) => void;
-  editMode: boolean;
-  isEditable: boolean;
-  aiTrigger: number;
-  onSaveClinicalRecord: (payload: {
-    notes: string;
-    chiefComplaint: string;
-  }) => Promise<void>;
   documentHandlers: ActionBarHandlers;
   documentLoading: ActionBarLoading;
   documentDisabled: Partial<Record<string, boolean>>;
@@ -58,6 +47,7 @@ export interface ConsultationWorkspaceProps {
   ordersRefreshKey?: number;
   actionWorkspaceEnabled?: boolean;
   smartWorkspaceEnabled?: boolean;
+  encounterChart?: ClinicalEncounterChartProps | null;
 }
 
 export type MobileConsultationWorkspaceProps = Omit<
@@ -79,18 +69,12 @@ export function ConsultationWorkspace({
   ordersRefreshKey,
   actionWorkspaceEnabled = false,
   smartWorkspaceEnabled = false,
+  encounterChart,
   ...props
 }: ConsultationWorkspaceProps) {
   const {
     consultation,
     consultationId,
-    soap,
-    chiefComplaintDraft,
-    onChiefComplaintChange,
-    editMode,
-    isEditable,
-    aiTrigger,
-    onSaveClinicalRecord,
     ordersSubTab,
     onOrdersSubTabChange,
     documentHandlers,
@@ -105,6 +89,7 @@ export function ConsultationWorkspace({
       <div className="xl:hidden">
         <MobileConsultationWorkspace
           {...props}
+          encounterChart={encounterChart}
           ordersHighlight={ordersHighlight}
           ordersRefreshKey={ordersRefreshKey}
           smartWorkspaceEnabled={smartWorkspaceEnabled}
@@ -119,14 +104,7 @@ export function ConsultationWorkspace({
             consultationId={consultationId}
             activeTab={leftPaneTab}
             onTabChange={onLeftPaneTabChange}
-            soap={soap}
-            chiefComplaintDraft={chiefComplaintDraft}
-            onChiefComplaintChange={onChiefComplaintChange}
-            editMode={editMode}
-            isEditable={isEditable}
-            aiTrigger={aiTrigger}
-            onSaveClinicalRecord={onSaveClinicalRecord}
-            smartWorkspaceEnabled={smartWorkspaceEnabled}
+            encounterChart={encounterChart}
           />
         }
         right={

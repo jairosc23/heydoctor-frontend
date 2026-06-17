@@ -40,6 +40,7 @@ import {
 } from "@/lib/services/patients";
 import {
   formatPatientSex,
+  jsonLinesToList,
   resolvePatientAge,
 } from "@/lib/patient-profile-display";
 import { getConsultationAccessErrorMessage } from "@/lib/consultation-access-errors";
@@ -59,9 +60,10 @@ import {
   type ActionResult,
 } from "@/lib/services/consultation-actions";
 import {
-  parseClinicalRecord,
-  serializeClinicalRecord,
-} from "@/lib/services/clinical-record";
+  composeEncounterNotes,
+  parseEncounterNotes,
+} from "@/lib/compose-encounter-notes";
+import { useEncounterNotesDraft } from "@/hooks/useEncounterNotesDraft";
 import { PatientContextRail } from "./_components/PatientContextRail";
 import { SafetyStrip } from "./_components/SafetyStrip";
 import { EncounterHeader } from "./_components/EncounterHeader";
@@ -98,7 +100,6 @@ import {
 import { ClinicalModuleSheet } from "./_components/action-workspace/ClinicalModuleSheet";
 import { ClinicalModuleSheetContent } from "./_components/action-workspace/ClinicalModuleSheetContent";
 import { EncounterChromeShell } from "./_components/EncounterChromeShell";
-import { ClinicalCloseFlow } from "./_components/ClinicalCloseFlow";
 
 const clinicalActionWorkspaceEnabled = isClinicalActionWorkspaceEnabled();
 const smartClinicalWorkspaceEnabled = isSmartClinicalWorkspaceEnabled();
@@ -180,7 +181,6 @@ export default function ConsultationDetailPage() {
     href?: string;
   } | null>(null);
 
-  const [aiTrigger, setAiTrigger] = useState(0);
   const [shareOpen, setShareOpen] = useState(false);
   const [dnaDrawerOpen, setDnaDrawerOpen] = useState(false);
   const [copilotDrawerOpen, setCopilotDrawerOpen] = useState(false);
@@ -200,11 +200,23 @@ export default function ConsultationDetailPage() {
   const consultationRef = React.useRef<NestConsultation | null>(null);
   const lastPersistedPatchRef = React.useRef<string | null>(null);
 
+  const {
+    vitals,
+    setVitals,
+    physicalExam,
+    setPhysicalExam,
+    presentIllnessHistory,
+    setPresentIllnessHistory,
+    composeNotes,
+  } = useEncounterNotesDraft(consultation?.notes ?? null, notes);
+
   useEffect(() => {
     prevStatusRef.current = undefined;
   }, [id]);
 
   const load = useCallback(async () => {
+    setLoading(true);
+    setError("");
     try {
       const c = await fetchConsultation(id);
       const st = c.status ?? "draft";
@@ -212,18 +224,21 @@ export default function ConsultationDetailPage() {
       prevStatusRef.current = st;
       void trackConsultationStartedDeduped(id, { status: st, source: "detail" });
       setConsultation(c);
-      setNotes(parseClinicalRecord(c.notes).freeNotes);
+      const parsedNotes = parseEncounterNotes(c.notes);
+      setNotes(parsedNotes.clinicalRecord.freeNotes);
       setDiagnosisState(hydrateDiagnosisFromConsultation(c));
       setTreatment(c.treatmentPlan ?? c.treatment ?? "");
       setChiefComplaintDraft(c.chiefComplaint ?? c.reason ?? "");
-      const loadedRecord = parseClinicalRecord(c.notes);
-      const loadedMerged = serializeClinicalRecord({
-        ...loadedRecord,
-        freeNotes: loadedRecord.freeNotes.trim(),
+      const loadedComposed = composeEncounterNotes({
+        ...parsedNotes,
+        clinicalRecord: {
+          ...parsedNotes.clinicalRecord,
+          freeNotes: parsedNotes.clinicalRecord.freeNotes.trim(),
+        },
       });
       lastPersistedPatchRef.current = soapPatchFingerprint(
         buildSoapPatch({
-          notes: loadedMerged.length > 0 ? loadedMerged : undefined,
+          notes: loadedComposed.length > 0 ? loadedComposed : undefined,
           treatment: (c.treatmentPlan ?? c.treatment ?? "").trim() || undefined,
           diagnosis: hydrateDiagnosisFromConsultation(c),
         }),
@@ -355,11 +370,7 @@ export default function ConsultationDetailPage() {
       const currentConsultation = consultationRef.current;
       if (!currentConsultation || !isEditable) return;
       const diagnosis = diagnosisOverride ?? diagnosisState;
-      const currentRecord = parseClinicalRecord(currentConsultation.notes);
-      const merged = serializeClinicalRecord({
-        ...currentRecord,
-        freeNotes: notes.trim(),
-      });
+      const merged = composeNotes();
       const patch = buildSoapPatch({
         notes: merged.length > 0 ? merged : undefined,
         treatment: treatment.trim() || undefined,
@@ -388,13 +399,16 @@ export default function ConsultationDetailPage() {
         return prevKey === nextKey ? prev : nextDiagnosis;
       });
     },
-    [notes, treatment, diagnosisState, id, isEditable],
+    [notes, treatment, diagnosisState, id, isEditable, composeNotes],
   );
 
   const soapDraftKey = buildSoapDraftKey({
     notes,
     treatment,
     diagnosis: diagnosisState,
+    vitals,
+    physicalExam,
+    presentIllnessHistory,
   });
 
   const { lastSavedAt, status: autosaveStatus, errorMessage: autosaveError, flushNow } =
@@ -563,22 +577,6 @@ export default function ConsultationDetailPage() {
     );
   }
 
-  async function handleSaveClinicalRecord({
-    notes: serializedNotes,
-    chiefComplaint,
-  }: {
-    notes: string;
-    chiefComplaint: string;
-  }) {
-    if (!consultation) return;
-    const updated = await updateConsultation(id, {
-      notes: serializedNotes,
-      chiefComplaint: chiefComplaint || undefined,
-    });
-    setConsultation(updated);
-    setNotes(parseClinicalRecord(updated.notes).freeNotes);
-  }
-
   function handleOpenPrescription() {
     if (clinicalActionWorkspaceEnabled) {
       openClinicalModule("prescriptions");
@@ -599,15 +597,6 @@ export default function ConsultationDetailPage() {
     setOrdersSubTab("lab");
   }
 
-  function handleOpenDocuments() {
-    if (clinicalActionWorkspaceEnabled) {
-      openClinicalModule("documents");
-      return;
-    }
-    setWorkspaceTab("documents");
-    setRightPaneTab("documents");
-  }
-
   async function handleGenerateInvoice() {
     setActionLoading((s) => ({ ...s, invoice: true }));
     const r = await generateConsultationInvoice(id);
@@ -624,8 +613,8 @@ export default function ConsultationDetailPage() {
 
   function handleToggleEdit() {
     setEditMode((v) => !v);
-    setWorkspaceTab("record");
-    setLeftPaneTab("record");
+    setWorkspaceTab("soap");
+    setLeftPaneTab("soap");
   }
 
   function handleAnalyzeWithAi() {
@@ -783,6 +772,7 @@ export default function ConsultationDetailPage() {
       >
         <div className="clinical-depth-2 px-3 md:px-4 lg:px-5">
           <EncounterHeader
+            key={id}
             status={status}
             transitioning={transitioning}
             onBack={() => router.push("/panel/consultas")}
@@ -796,16 +786,9 @@ export default function ConsultationDetailPage() {
             onStartTeleconsultation={() => void handleStartCall()}
             onOpenPrescription={handleOpenPrescription}
             onOpenLabOrders={handleOpenLabOrders}
-            onOpenDocuments={handleOpenDocuments}
             hideModuleShortcuts={
               clinicalActionWorkspaceEnabled && !!consultation.patientId
             }
-            isSigned={isSigned}
-            canSign={canSign}
-            signing={signing}
-            onSign={handleSign}
-            signedAt={consultation.signedAt}
-            doctorSignature={consultation.doctorSignature}
             canPay={canPay}
             isLocked={isLocked}
             paymentStep={paymentStep}
@@ -822,7 +805,7 @@ export default function ConsultationDetailPage() {
             paymentCurrency={consultationPrice.currency}
             paymentLoading={consultationPrice.loading}
             saveMsg={
-              saveMsg && (canPay || isSigned || signing) ? saveMsg : undefined
+              saveMsg && paymentStep === "confirm" ? saveMsg : undefined
             }
             isEditing={editMode}
             actionHandlers={{
@@ -851,8 +834,6 @@ export default function ConsultationDetailPage() {
               edit: isLocked,
               ai: isLocked,
               delete: isLocked,
-              invoice: documentDisabled.invoice,
-              pdf: documentDisabled.pdf,
             }}
             dnaDrawerOpen={dnaDrawerOpen}
             onOpenDoctorDna={() => {
@@ -883,25 +864,6 @@ export default function ConsultationDetailPage() {
                 embedded
               />
             ) : null}
-            <ClinicalCloseFlow
-              consultationId={id}
-              patientId={consultation.patientId}
-              consultationStatus={status}
-              chiefComplaint={chiefComplaintDraft}
-              notes={notes}
-              diagnosis={diagnosisState.diagnosis}
-              diagnosisCode={diagnosisState.diagnosisCode}
-              diagnosisDescription={diagnosisState.diagnosisDescription}
-              treatment={treatment}
-              autosaveStatus={autosaveStatus}
-              isSigned={isSigned}
-              isLocked={isLocked}
-              canPay={canPay}
-              onOpenCopilot={() => {
-                setDnaDrawerOpen(false);
-                setCopilotDrawerOpen(true);
-              }}
-            />
             {clinicalActionWorkspaceEnabled && consultation.patientId ? (
               <ClinicalActionBar
                 patientId={consultation.patientId}
@@ -1045,12 +1007,6 @@ export default function ConsultationDetailPage() {
         }}
         ordersSubTab={ordersSubTab}
         onOrdersSubTabChange={setOrdersSubTab}
-        chiefComplaintDraft={chiefComplaintDraft}
-        onChiefComplaintChange={setChiefComplaintDraft}
-        editMode={editMode}
-        isEditable={isEditable}
-        aiTrigger={aiTrigger}
-        onSaveClinicalRecord={handleSaveClinicalRecord}
         documentHandlers={{
           onStartTeleconsultation: () => void handleStartCall(),
           onOpenPrescription: handleOpenPrescription,
@@ -1069,32 +1025,71 @@ export default function ConsultationDetailPage() {
         onLegacyInvoiceResult={handleActionResult}
         ordersHighlight={ordersHighlight}
         ordersRefreshKey={ordersRefreshKey}
-        diagnosisCode={
-          diagnosisState.diagnosisCode || diagnosisState.diagnosis || undefined
-        }
-        soap={{
-          consultationId: id,
+        encounterChart={{
+          vitals,
+          onVitalsChange: setVitals,
+          physicalExam,
+          onPhysicalExamChange: setPhysicalExam,
+          presentIllnessHistory,
+          onPresentIllnessHistoryChange: setPresentIllnessHistory,
+          treatment,
+          onTreatmentChange: setTreatment,
           clinicId: consultation.clinicId ?? ctxClinicId ?? null,
-          editable: isEditable,
           diagnosis: diagnosisState.diagnosis,
           diagnosisCode: diagnosisState.diagnosisCode || null,
           diagnosisDescription: diagnosisState.diagnosisDescription || null,
           diagnosisSource: diagnosisState.source,
-          onDiagnosisConfirm: handleDiagnosisConfirm,
           diagnosisError,
-          notes,
-          setNotes,
-          treatment,
-          onTreatmentChange: setTreatment,
+          onDiagnosisConfirm: handleDiagnosisConfirm,
+          patientId: consultation.patientId,
+          encounterDiagnosis:
+            diagnosisState.diagnosisDescription ||
+            diagnosisState.diagnosis ||
+            null,
+          allergyLines: jsonLinesToList(patientProfile?.allergies),
+          editable: isEditable && editMode,
           autosaveStatus,
           lastSavedAt,
           autosaveError,
-          smartWorkspaceEnabled: smartClinicalWorkspaceEnabled,
-          chiefComplaint: chiefComplaintDraft,
-          patientId: consultation.patientId,
-          patientAge: soapPatientAge,
-          patientSex: soapPatientSex,
+          closure: {
+            status,
+            isSigned,
+            isLocked,
+            canSign,
+            signing,
+            onSign: handleSign,
+            signedAt: consultation.signedAt,
+            doctorSignature: consultation.doctorSignature,
+            documentHandlers: {
+              onStartTeleconsultation: () => void handleStartCall(),
+              onOpenPrescription: handleOpenPrescription,
+              onGenerateInvoice: () => void handleGenerateInvoice(),
+              onDownloadPdf: () => void handleDownloadPdf(),
+              onToggleEdit: handleToggleEdit,
+              onAnalyzeWithAi: handleAnalyzeWithAi,
+              onDelete: () => void handleDeleteConsultation(),
+              onGenerateSignedPrescription: () =>
+                void handleSignedPrescription(),
+              onGenerateSignedCertificate: () =>
+                void handleSignedCertificate(),
+              onGenerateSignedReferral: () => void handleSignedReferral(),
+              onGeneratePremiumDocument: () => void handlePremiumDocument(),
+            },
+            documentLoading: actionLoading,
+            documentDisabled,
+            signMessage:
+              saveMsg && paymentStep !== "confirm" ? saveMsg : undefined,
+          },
+          longitudinal: {
+            patient: patientRow,
+            profile: patientProfile,
+            loading: patientContextLoading,
+            patientId: consultation.patientId,
+          },
         }}
+        diagnosisCode={
+          diagnosisState.diagnosisCode || diagnosisState.diagnosis || undefined
+        }
           />
         </ConsultationClinicalProviders>
       ) : (
@@ -1125,12 +1120,6 @@ export default function ConsultationDetailPage() {
           }}
           ordersSubTab={ordersSubTab}
           onOrdersSubTabChange={setOrdersSubTab}
-          chiefComplaintDraft={chiefComplaintDraft}
-          onChiefComplaintChange={setChiefComplaintDraft}
-          editMode={editMode}
-          isEditable={isEditable}
-          aiTrigger={aiTrigger}
-          onSaveClinicalRecord={handleSaveClinicalRecord}
           documentHandlers={{
             onStartTeleconsultation: () => void handleStartCall(),
             onOpenPrescription: handleOpenPrescription,
@@ -1152,29 +1141,6 @@ export default function ConsultationDetailPage() {
           diagnosisCode={
             diagnosisState.diagnosisCode || diagnosisState.diagnosis || undefined
           }
-          soap={{
-            consultationId: id,
-            clinicId: consultation.clinicId ?? ctxClinicId ?? null,
-            editable: isEditable,
-            diagnosis: diagnosisState.diagnosis,
-            diagnosisCode: diagnosisState.diagnosisCode || null,
-            diagnosisDescription: diagnosisState.diagnosisDescription || null,
-            diagnosisSource: diagnosisState.source,
-            onDiagnosisConfirm: handleDiagnosisConfirm,
-            diagnosisError,
-            notes,
-            setNotes,
-            treatment,
-            onTreatmentChange: setTreatment,
-            autosaveStatus,
-            lastSavedAt,
-            autosaveError,
-            smartWorkspaceEnabled: smartClinicalWorkspaceEnabled,
-            chiefComplaint: chiefComplaintDraft,
-            patientId: consultation.patientId,
-            patientAge: soapPatientAge,
-            patientSex: soapPatientSex,
-          }}
         />
       )}
 

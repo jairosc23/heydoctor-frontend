@@ -165,16 +165,25 @@ export function soapPatchFingerprint(patch: UpdateConsultationDto): string {
   });
 }
 
+import type { ClinicalVitalSigns } from "../clinical-vital-signs-context";
+import type { PhysicalExam } from "../physical-exam-framework";
+
 /** Clave de debounce del autosave — incluye FK para evitar carreras con el picker. */
 export function buildSoapDraftKey(parts: {
   notes: string;
   treatment: string;
   diagnosis: ConsultationDiagnosisState;
+  vitals?: ClinicalVitalSigns;
+  physicalExam?: PhysicalExam;
+  presentIllnessHistory?: string;
 }): string {
   return JSON.stringify({
     notes: parts.notes,
     treatment: parts.treatment,
     diagnosis: parts.diagnosis.diagnosis,
     cie10CodeId: parts.diagnosis.cie10CodeId,
+    vitals: parts.vitals ?? {},
+    physicalExam: parts.physicalExam ?? {},
+    presentIllnessHistory: parts.presentIllnessHistory ?? "",
   });
 }

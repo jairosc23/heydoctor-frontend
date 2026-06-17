@@ -1,23 +1,22 @@
 "use client";
 
-import { ClinicalRecordPanel } from "@/components/clinical";
 import { ChatPanel } from "@/components/telemedicine/ChatPanel";
 import { ClinicalPanel } from "@/components/clinical/design";
 import { clinicalTabClass } from "@/lib/clinical-design-tokens";
 import { cn } from "@/lib/utils";
-import { SoapSection } from "./SoapSection";
-import { SoapStickyNav } from "./SoapStickyNav";
-import { useSoapScrollSpy } from "@/hooks/useSoapScrollSpy";
 import { OrdersTab } from "./OrdersTab";
 import { DocumentsTab } from "./DocumentsTab";
+import {
+  ClinicalEncounterChart,
+  type ClinicalEncounterChartProps,
+} from "./chart/ClinicalEncounterChart";
 import type {
   MobileConsultationWorkspaceProps,
   WorkspaceTab,
 } from "./ConsultationWorkspace";
 
 const MAIN_TABS: { id: WorkspaceTab; label: string }[] = [
-  { id: "soap", label: "Nota (SOAP)" },
-  { id: "record", label: "Ficha" },
+  { id: "soap", label: "Ficha Clínica" },
   { id: "orders", label: "Órdenes" },
   { id: "documents", label: "Documentos" },
   { id: "chat", label: "Chat" },
@@ -30,13 +29,6 @@ export function MobileConsultationWorkspace({
   onTabChange,
   ordersSubTab,
   onOrdersSubTabChange,
-  soap,
-  chiefComplaintDraft,
-  onChiefComplaintChange,
-  editMode,
-  isEditable,
-  aiTrigger,
-  onSaveClinicalRecord,
   documentHandlers,
   documentLoading,
   documentDisabled,
@@ -45,9 +37,11 @@ export function MobileConsultationWorkspace({
   ordersHighlight,
   ordersRefreshKey,
   smartWorkspaceEnabled = false,
-}: MobileConsultationWorkspaceProps) {
+  encounterChart,
+}: MobileConsultationWorkspaceProps & {
+  encounterChart?: ClinicalEncounterChartProps | null;
+}) {
   const patientId = consultation.patientId;
-  const activeSoapStep = useSoapScrollSpy(smartWorkspaceEnabled);
 
   return (
     <ClinicalPanel depth={3} density="comfortable" focusPrimary className="clinical-focus-primary space-y-hd-4">
@@ -81,38 +75,9 @@ export function MobileConsultationWorkspace({
       ) : null}
 
       {activeTab === "soap" ? (
-        <>
-          <SoapStickyNav
-            enabled={smartWorkspaceEnabled}
-            activeStep={activeSoapStep}
-          />
-          <SoapSection {...soap} smartWorkspaceEnabled={smartWorkspaceEnabled} />
-        </>
-      ) : null}
-
-      {activeTab === "record" ? (
-        <div id="clinical-record-section">
-          <ClinicalRecordPanel
-            consultationId={consultationId}
-            patientId={patientId}
-            rawNotes={consultation.notes ?? ""}
-            chiefComplaint={chiefComplaintDraft}
-            onChiefComplaintChange={onChiefComplaintChange}
-            createdAt={consultation.createdAt ?? null}
-            editable={isEditable && editMode}
-            patient={
-              consultation.patient
-                ? { name: consultation.patient.name ?? null }
-                : null
-            }
-            activeDiagnosis={
-              soap.diagnosisDescription || soap.diagnosisCode || soap.diagnosis
-            }
-            treatment={soap.treatment}
-            onSave={onSaveClinicalRecord}
-            autofillRequest={aiTrigger}
-          />
-        </div>
+        encounterChart ? (
+          <ClinicalEncounterChart {...encounterChart} />
+        ) : null
       ) : null}
 
       {activeTab === "orders" && patientId ? (

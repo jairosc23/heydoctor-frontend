@@ -1,8 +1,5 @@
 "use client";
 
-import Image from "next/image";
-import { useState } from "react";
-import { SignatureCanvas } from "@/components/clinical";
 import type {
   ActionBarDisabled,
   ActionBarHandlers,
@@ -25,6 +22,7 @@ function HeaderIconButton({
   disabled,
   active,
   href,
+  testId,
 }: {
   icon: string;
   label: string;
@@ -32,6 +30,7 @@ function HeaderIconButton({
   disabled?: boolean;
   active?: boolean;
   href?: string;
+  testId?: string;
 }) {
   const className = cn(
     "inline-flex h-8 w-8 items-center justify-center rounded-md border text-sm transition-colors",
@@ -47,6 +46,7 @@ function HeaderIconButton({
         href={href}
         aria-label={label}
         title={label}
+        data-testid={testId}
         className={className}
         onClick={(e) => {
           if (onClick) {
@@ -67,6 +67,7 @@ function HeaderIconButton({
       disabled={disabled}
       aria-label={label}
       title={label}
+      data-testid={testId}
       className={className}
     >
       <span aria-hidden>{icon}</span>
@@ -84,13 +85,6 @@ export interface EncounterHeaderProps {
   onStartTeleconsultation: () => void;
   onOpenPrescription: () => void;
   onOpenLabOrders: () => void;
-  onOpenDocuments?: () => void;
-  isSigned: boolean;
-  canSign: boolean;
-  signing: boolean;
-  onSign: (base64: string) => void | Promise<void>;
-  signedAt?: string | null;
-  doctorSignature?: string | null;
   canPay: boolean;
   isLocked: boolean;
   paymentStep: "idle" | "confirm";
@@ -110,7 +104,6 @@ export interface EncounterHeaderProps {
   onOpenDoctorDna?: () => void;
   copilotDrawerOpen?: boolean;
   onOpenCopilot?: () => void;
-  /** Phase 4.2.3a — oculta atajos duplicados en Clinical Action Bar™. */
   hideModuleShortcuts?: boolean;
   className?: string;
 }
@@ -125,13 +118,6 @@ export function EncounterHeader({
   onStartTeleconsultation,
   onOpenPrescription,
   onOpenLabOrders,
-  onOpenDocuments,
-  isSigned,
-  canSign,
-  signing,
-  onSign,
-  signedAt,
-  doctorSignature,
   canPay,
   isLocked,
   paymentStep,
@@ -154,11 +140,8 @@ export function EncounterHeader({
   hideModuleShortcuts = false,
   className,
 }: EncounterHeaderProps) {
-  const [signPanelOpen, setSignPanelOpen] = useState(false);
-
   const transitionLabel = NEXT_STATUS_LABELS[status];
   const showPay = canPay && !isLocked;
-  const showSign = canSign && !isSigned;
 
   return (
     <header className={cn("py-1.5", className)} aria-label="Acciones del encuentro">
@@ -207,26 +190,12 @@ export function EncounterHeader({
                 onClick={onOpenLabOrders}
                 disabled={isLocked}
               />
-              <HeaderIconButton
-                icon="📄"
-                label="Documentos"
-                onClick={onOpenDocuments}
-                disabled={!onOpenDocuments}
-              />
             </>
           ) : null}
           <HeaderIconButton
-            icon="✍"
-            label={isSigned ? "Consulta firmada" : "Firmar consulta"}
-            onClick={() => {
-              if (showSign) setSignPanelOpen((v) => !v);
-            }}
-            disabled={!isSigned && !showSign}
-            active={isSigned || signPanelOpen}
-          />
-          <HeaderIconButton
             icon="💳"
             label="Pagar consulta"
+            testId="encounter-pay-trigger"
             onClick={onPayClick}
             disabled={!showPay || creatingPayment}
             active={paymentStep === "confirm"}
@@ -240,46 +209,16 @@ export function EncounterHeader({
             onTransition={onTransition}
             transitionLabel={transitionLabel}
             transitioning={transitioning}
-            onOpenDocuments={onOpenDocuments}
+            hideDocumentActions
           />
         </div>
       </div>
 
-      {isSigned && doctorSignature ? (
-        <div className="mt-2 flex items-center gap-2 border-t border-slate-100 pt-2">
-          <Image
-            unoptimized
-            src={`data:image/png;base64,${doctorSignature}`}
-            alt="Firma del doctor"
-            width={120}
-            height={48}
-            className="h-auto max-h-[40px] w-auto max-w-[120px]"
-          />
-          {signedAt ? (
-            <span className="text-[11px] text-green-700">
-              Firmada {new Date(signedAt).toLocaleDateString("es-CL")}
-            </span>
-          ) : null}
-        </div>
-      ) : null}
-
-      {showSign && signPanelOpen ? (
-        <div
-          id="encounter-sign-panel"
-          className="mt-2 border-t border-slate-100 pt-2"
-        >
-          <p className="mb-1.5 text-[11px] text-slate-600">
-            Firme para cerrar la consulta. La firma es inmutable.
-          </p>
-          <SignatureCanvas onSign={onSign} disabled={signing} />
-          {signing ? (
-            <p className="mt-1 text-[11px] text-slate-500">Firmando…</p>
-          ) : null}
-        </div>
-      ) : null}
-
       {showPay && paymentStep === "confirm" ? (
-        <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-2">
+        <div
+          data-testid="encounter-payment-panel"
+          className="mt-2 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-2"
+        >
           <span className="text-xs font-semibold text-slate-800">
             {paymentLoading
               ? "…"
@@ -321,7 +260,6 @@ export function EncounterHeader({
           {saveMsg}
         </p>
       ) : null}
-
     </header>
   );
 }

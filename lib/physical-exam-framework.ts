@@ -11,7 +11,8 @@ import { parseClinicalRecord, type SystemsReview } from "./services/clinical-rec
 
 export const PHYSICAL_EXAM_SECTIONS = [
   "general",
-  "heent",
+  "head",
+  "neck",
   "cardiovascular",
   "respiratory",
   "abdomen",
@@ -28,7 +29,8 @@ export type PhysicalExam = Record<PhysicalExamSection, string>;
 export const PHYSICAL_EXAM_SECTION_LABELS: Record<PhysicalExamSection, string> =
   {
     general: "General",
-    heent: "HEENT",
+    head: "Cabeza",
+    neck: "Cuello",
     cardiovascular: "Cardiovascular",
     respiratory: "Respiratorio",
     abdomen: "Abdomen",
@@ -40,7 +42,8 @@ export const PHYSICAL_EXAM_SECTION_LABELS: Record<PhysicalExamSection, string> =
 
 export const EMPTY_PHYSICAL_EXAM: PhysicalExam = {
   general: "",
-  heent: "",
+  head: "",
+  neck: "",
   cardiovascular: "",
   respiratory: "",
   abdomen: "",
@@ -55,6 +58,7 @@ export const PHYSICAL_EXAM_END = "[[/HD_PE_V1]]";
 
 type PersistedPhysicalExam = {
   v: 1;
+  heent?: string;
 } & Partial<PhysicalExam>;
 
 function safeParseJson(s: string): PersistedPhysicalExam | null {
@@ -67,10 +71,13 @@ function safeParseJson(s: string): PersistedPhysicalExam | null {
   }
 }
 
-function trimSections(raw: Partial<PhysicalExam>): PhysicalExam {
+function trimSections(raw: Partial<PhysicalExam> & { heent?: string }): PhysicalExam {
   const out = { ...EMPTY_PHYSICAL_EXAM };
   for (const key of PHYSICAL_EXAM_SECTIONS) {
     out[key] = raw[key]?.trim() ?? "";
+  }
+  if (!out.head && !out.neck && raw.heent?.trim()) {
+    out.head = raw.heent.trim();
   }
   return out;
 }
@@ -101,6 +108,14 @@ function parsePhysicalExamMarker(notes: string): PhysicalExam | null {
   const parsed = safeParseJson(jsonPart);
   if (!parsed) return null;
   return trimSections(parsed);
+}
+
+/** Solo el bloque HD_PE_V1 — sin merge con legacy (para edición en encounter). */
+export function parsePhysicalExamMarkerOnly(
+  notes: string | null | undefined,
+): PhysicalExam {
+  if (!notes?.trim()) return { ...EMPTY_PHYSICAL_EXAM };
+  return parsePhysicalExamMarker(notes) ?? { ...EMPTY_PHYSICAL_EXAM };
 }
 
 export function mergePhysicalExam(

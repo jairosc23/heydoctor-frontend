@@ -5,6 +5,8 @@ import {
   formatPhysicalExamForSoap,
   hasPhysicalExamData,
   physicalExamFromLegacySystemsReview,
+  PHYSICAL_EXAM_END,
+  PHYSICAL_EXAM_MARKER,
   resolvePhysicalExamFromNotes,
   serializePhysicalExam,
 } from "./physical-exam-framework";
@@ -22,7 +24,7 @@ describe("physical-exam-framework", () => {
     });
     assert.equal(exam.skin, "Sin lesiones");
     assert.equal(exam.cardiovascular, "Ritmo regular");
-    assert.equal(exam.heent, "");
+    assert.equal(exam.head, "");
     assert.ok(hasPhysicalExamData(exam));
   });
 
@@ -49,10 +51,17 @@ describe("physical-exam-framework", () => {
     assert.equal(formatPhysicalExamForContext(resolvePhysicalExamFromNotes("")), null);
   });
 
+  it("migra heent legacy a cabeza al parsear", () => {
+    const notes = `${PHYSICAL_EXAM_MARKER}\n{"v":1,"heent":"Pupilas isocóricas"}\n${PHYSICAL_EXAM_END}`;
+    const exam = resolvePhysicalExamFromNotes(notes);
+    assert.equal(exam.head, "Pupilas isocóricas");
+  });
+
   it("serializa y parsea marcador HD_PE_V1", () => {
     const block = serializePhysicalExam({
       general: "Buen estado general",
-      heent: "",
+      head: "",
+      neck: "",
       cardiovascular: "",
       respiratory: "",
       abdomen: "",

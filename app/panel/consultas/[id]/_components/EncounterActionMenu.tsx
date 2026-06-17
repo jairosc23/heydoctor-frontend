@@ -17,7 +17,7 @@ export interface EncounterActionMenuProps {
   onTransition?: () => void;
   transitionLabel?: string;
   transitioning?: boolean;
-  onOpenDocuments?: () => void;
+  hideDocumentActions?: boolean;
   className?: string;
 }
 
@@ -66,7 +66,7 @@ export function EncounterActionMenu({
   onTransition,
   transitionLabel,
   transitioning,
-  onOpenDocuments,
+  hideDocumentActions = false,
   className,
 }: EncounterActionMenuProps) {
   const [open, setOpen] = useState(false);
@@ -144,36 +144,30 @@ export function EncounterActionMenu({
               }}
             />
           ) : null}
-          <div className="my-1 border-t border-slate-100" />
-          <MenuItem
-            label="Generar factura"
-            icon="🧾"
-            loading={loading.invoice}
-            disabled={disabled.invoice}
-            onClick={() => {
-              setOpen(false);
-              handlers.onGenerateInvoice();
-            }}
-          />
-          <MenuItem
-            label="Descargar PDF"
-            icon="📄"
-            loading={loading.pdf}
-            disabled={disabled.pdf}
-            onClick={() => {
-              setOpen(false);
-              handlers.onDownloadPdf();
-            }}
-          />
-          {onOpenDocuments ? (
-            <MenuItem
-              label="Ver documentos"
-              icon="📁"
-              onClick={() => {
-                setOpen(false);
-                onOpenDocuments();
-              }}
-            />
+          {!hideDocumentActions ? (
+            <>
+              <div className="my-1 border-t border-slate-100" />
+              <MenuItem
+                label="Generar factura"
+                icon="🧾"
+                loading={loading.invoice}
+                disabled={disabled.invoice}
+                onClick={() => {
+                  setOpen(false);
+                  handlers.onGenerateInvoice();
+                }}
+              />
+              <MenuItem
+                label="Descargar PDF"
+                icon="📄"
+                loading={loading.pdf}
+                disabled={disabled.pdf}
+                onClick={() => {
+                  setOpen(false);
+                  handlers.onDownloadPdf();
+                }}
+              />
+            </>
           ) : null}
           <div className="my-1 border-t border-slate-100" />
           <MenuItem

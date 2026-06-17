@@ -1,19 +1,18 @@
 "use client";
 
-import { ClinicalRecordPanel } from "@/components/clinical";
 import { ClinicalPanel, ClinicalSection } from "@/components/clinical/design";
 import { clinicalTabClass } from "@/lib/clinical-design-tokens";
 import { ChatPanel } from "@/components/telemedicine/ChatPanel";
 import type { NestConsultation } from "@/lib/services/consultations";
-import { SoapSection, type SoapSectionProps } from "./SoapSection";
-import { SoapStickyNav } from "./SoapStickyNav";
-import { useSoapScrollSpy } from "@/hooks/useSoapScrollSpy";
+import {
+  ClinicalEncounterChart,
+  type ClinicalEncounterChartProps,
+} from "./chart/ClinicalEncounterChart";
 
-export type EncounterLeftPaneTab = "soap" | "record" | "chat";
+export type EncounterLeftPaneTab = "soap" | "chat";
 
 const LEFT_TABS: { id: EncounterLeftPaneTab; label: string }[] = [
-  { id: "soap", label: "Nota (SOAP)" },
-  { id: "record", label: "Ficha" },
+  { id: "soap", label: "Ficha Clínica" },
   { id: "chat", label: "Chat" },
 ];
 
@@ -22,17 +21,7 @@ export interface EncounterLeftPaneProps {
   consultationId: string;
   activeTab: EncounterLeftPaneTab;
   onTabChange: (tab: EncounterLeftPaneTab) => void;
-  soap: SoapSectionProps;
-  chiefComplaintDraft: string;
-  onChiefComplaintChange: (value: string) => void;
-  editMode: boolean;
-  isEditable: boolean;
-  aiTrigger: number;
-  onSaveClinicalRecord: (payload: {
-    notes: string;
-    chiefComplaint: string;
-  }) => Promise<void>;
-  smartWorkspaceEnabled?: boolean;
+  encounterChart?: ClinicalEncounterChartProps | null;
 }
 
 export function EncounterLeftPane({
@@ -40,17 +29,9 @@ export function EncounterLeftPane({
   consultationId,
   activeTab,
   onTabChange,
-  soap,
-  chiefComplaintDraft,
-  onChiefComplaintChange,
-  editMode,
-  isEditable,
-  aiTrigger,
-  onSaveClinicalRecord,
-  smartWorkspaceEnabled = false,
+  encounterChart,
 }: EncounterLeftPaneProps) {
   const patientId = consultation.patientId;
-  const activeSoapStep = useSoapScrollSpy(smartWorkspaceEnabled);
 
   return (
     <section
@@ -79,46 +60,17 @@ export function EncounterLeftPane({
             ))}
           </div>
 
-          {!patientId && (activeTab === "chat" || activeTab === "record") ? (
+          {!patientId && activeTab === "chat" ? (
             <p className="rounded-hd-md border border-amber-200 bg-amber-50 px-hd-4 py-hd-3 text-sm text-amber-900">
-              Esta consulta no tiene paciente asociado. El chat y la ficha no
-              están disponibles.
+              Esta consulta no tiene paciente asociado. El chat no está
+              disponible.
             </p>
           ) : null}
 
           {activeTab === "soap" ? (
-            <>
-              <SoapStickyNav
-                enabled={smartWorkspaceEnabled}
-                activeStep={activeSoapStep}
-              />
-              <SoapSection {...soap} smartWorkspaceEnabled={smartWorkspaceEnabled} />
-            </>
-          ) : null}
-
-          {activeTab === "record" ? (
-            <div id="clinical-record-section-desktop">
-              <ClinicalRecordPanel
-                consultationId={consultationId}
-                patientId={patientId}
-                rawNotes={consultation.notes ?? ""}
-                chiefComplaint={chiefComplaintDraft}
-                onChiefComplaintChange={onChiefComplaintChange}
-                createdAt={consultation.createdAt ?? null}
-                editable={isEditable && editMode}
-                patient={
-                  consultation.patient
-                    ? { name: consultation.patient.name ?? null }
-                    : null
-                }
-                activeDiagnosis={
-                  soap.diagnosisDescription || soap.diagnosisCode || soap.diagnosis
-                }
-                treatment={soap.treatment}
-                onSave={onSaveClinicalRecord}
-                autofillRequest={aiTrigger}
-              />
-            </div>
+            encounterChart ? (
+              <ClinicalEncounterChart {...encounterChart} />
+            ) : null
           ) : null}
 
           {activeTab === "chat" && patientId ? (
