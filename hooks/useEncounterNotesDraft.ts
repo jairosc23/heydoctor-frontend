@@ -17,6 +17,7 @@ export function useEncounterNotesDraft(
   const [physicalExam, setPhysicalExam] = useState<PhysicalExam>({
     ...EMPTY_PHYSICAL_EXAM,
   });
+  const [presentIllnessHistory, setPresentIllnessHistory] = useState("");
   const hydrationKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -26,6 +27,7 @@ export function useEncounterNotesDraft(
     const parsed = parseEncounterNotes(rawNotes);
     setVitals(parsed.vitals);
     setPhysicalExam(parsed.physicalExam);
+    setPresentIllnessHistory(parsed.clinicalRecord.presentIllnessHistory);
   }, [rawNotes]);
 
   const composeNotes = useCallback(() => {
@@ -33,23 +35,27 @@ export function useEncounterNotesDraft(
     return composeEncounterNotes({
       clinicalRecord: {
         ...base.clinicalRecord,
+        presentIllnessHistory,
         freeNotes: freeNotes.trim(),
       },
       vitals,
       physicalExam,
     });
-  }, [rawNotes, freeNotes, vitals, physicalExam]);
+  }, [rawNotes, freeNotes, presentIllnessHistory, vitals, physicalExam]);
 
   const composeWithClinicalRecord = useCallback(
     (serializedClinicalRecord: string) => {
       const record = parseEncounterNotes(serializedClinicalRecord).clinicalRecord;
       return composeEncounterNotes({
-        clinicalRecord: record,
+        clinicalRecord: {
+          ...record,
+          presentIllnessHistory,
+        },
         vitals,
         physicalExam,
       });
     },
-    [vitals, physicalExam],
+    [presentIllnessHistory, vitals, physicalExam],
   );
 
   return {
@@ -57,6 +63,8 @@ export function useEncounterNotesDraft(
     setVitals,
     physicalExam,
     setPhysicalExam,
+    presentIllnessHistory,
+    setPresentIllnessHistory,
     composeNotes,
     composeWithClinicalRecord,
   };

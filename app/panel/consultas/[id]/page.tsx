@@ -40,6 +40,7 @@ import {
 } from "@/lib/services/patients";
 import {
   formatPatientSex,
+  jsonLinesToList,
   resolvePatientAge,
 } from "@/lib/patient-profile-display";
 import { getConsultationAccessErrorMessage } from "@/lib/consultation-access-errors";
@@ -206,6 +207,8 @@ export default function ConsultationDetailPage() {
     setVitals,
     physicalExam,
     setPhysicalExam,
+    presentIllnessHistory,
+    setPresentIllnessHistory,
     composeNotes,
     composeWithClinicalRecord,
   } = useEncounterNotesDraft(consultation?.notes ?? null, notes);
@@ -408,6 +411,7 @@ export default function ConsultationDetailPage() {
     diagnosis: diagnosisState,
     vitals,
     physicalExam,
+    presentIllnessHistory,
   });
 
   const { lastSavedAt, status: autosaveStatus, errorMessage: autosaveError, flushNow } =
@@ -1089,8 +1093,34 @@ export default function ConsultationDetailPage() {
           onVitalsChange: setVitals,
           physicalExam,
           onPhysicalExamChange: setPhysicalExam,
+          presentIllnessHistory,
+          onPresentIllnessHistoryChange: setPresentIllnessHistory,
+          treatment,
+          onTreatmentChange: setTreatment,
+          clinicId: consultation.clinicId ?? ctxClinicId ?? null,
+          diagnosis: diagnosisState.diagnosis,
+          diagnosisCode: diagnosisState.diagnosisCode || null,
+          diagnosisDescription: diagnosisState.diagnosisDescription || null,
+          diagnosisSource: diagnosisState.source,
+          diagnosisError,
+          onDiagnosisConfirm: handleDiagnosisConfirm,
+          patientId: consultation.patientId,
+          encounterDiagnosis:
+            diagnosisState.diagnosisDescription ||
+            diagnosisState.diagnosis ||
+            null,
+          allergyLines: jsonLinesToList(patientProfile?.allergies),
           editable: isEditable && editMode,
+          autosaveStatus,
+          lastSavedAt,
+          autosaveError,
         }}
+        encounterDiagnosis={
+          diagnosisState.diagnosisDescription ||
+          diagnosisState.diagnosis ||
+          null
+        }
+        encounterTreatment={treatment}
         diagnosisCode={
           diagnosisState.diagnosisCode || diagnosisState.diagnosis || undefined
         }

@@ -5,9 +5,6 @@ import { ClinicalPanel, ClinicalSection } from "@/components/clinical/design";
 import { clinicalTabClass } from "@/lib/clinical-design-tokens";
 import { ChatPanel } from "@/components/telemedicine/ChatPanel";
 import type { NestConsultation } from "@/lib/services/consultations";
-import { SoapSection, type SoapSectionProps } from "./SoapSection";
-import { SoapStickyNav } from "./SoapStickyNav";
-import { useSoapScrollSpy } from "@/hooks/useSoapScrollSpy";
 import {
   ClinicalEncounterChart,
   type ClinicalEncounterChartProps,
@@ -26,7 +23,6 @@ export interface EncounterLeftPaneProps {
   consultationId: string;
   activeTab: EncounterLeftPaneTab;
   onTabChange: (tab: EncounterLeftPaneTab) => void;
-  soap: SoapSectionProps;
   chiefComplaintDraft: string;
   onChiefComplaintChange: (value: string) => void;
   editMode: boolean;
@@ -38,6 +34,8 @@ export interface EncounterLeftPaneProps {
   }) => Promise<void>;
   smartWorkspaceEnabled?: boolean;
   encounterChart?: ClinicalEncounterChartProps | null;
+  encounterDiagnosis?: string | null;
+  encounterTreatment?: string;
 }
 
 export function EncounterLeftPane({
@@ -45,7 +43,6 @@ export function EncounterLeftPane({
   consultationId,
   activeTab,
   onTabChange,
-  soap,
   chiefComplaintDraft,
   onChiefComplaintChange,
   editMode,
@@ -54,9 +51,10 @@ export function EncounterLeftPane({
   onSaveClinicalRecord,
   smartWorkspaceEnabled = false,
   encounterChart,
+  encounterDiagnosis,
+  encounterTreatment = "",
 }: EncounterLeftPaneProps) {
   const patientId = consultation.patientId;
-  const activeSoapStep = useSoapScrollSpy(smartWorkspaceEnabled);
 
   return (
     <section
@@ -93,19 +91,9 @@ export function EncounterLeftPane({
           ) : null}
 
           {activeTab === "soap" ? (
-            <>
-              {encounterChart ? (
-                <ClinicalEncounterChart
-                  {...encounterChart}
-                  className="mb-hd-4"
-                />
-              ) : null}
-              <SoapStickyNav
-                enabled={smartWorkspaceEnabled}
-                activeStep={activeSoapStep}
-              />
-              <SoapSection {...soap} smartWorkspaceEnabled={smartWorkspaceEnabled} />
-            </>
+            encounterChart ? (
+              <ClinicalEncounterChart {...encounterChart} />
+            ) : null
           ) : null}
 
           {activeTab === "record" ? (
@@ -123,10 +111,8 @@ export function EncounterLeftPane({
                     ? { name: consultation.patient.name ?? null }
                     : null
                 }
-                activeDiagnosis={
-                  soap.diagnosisDescription || soap.diagnosisCode || soap.diagnosis
-                }
-                treatment={soap.treatment}
+                activeDiagnosis={encounterDiagnosis}
+                treatment={encounterTreatment}
                 onSave={onSaveClinicalRecord}
                 autofillRequest={aiTrigger}
               />

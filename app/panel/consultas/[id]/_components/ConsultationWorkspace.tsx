@@ -60,6 +60,8 @@ export interface ConsultationWorkspaceProps {
   actionWorkspaceEnabled?: boolean;
   smartWorkspaceEnabled?: boolean;
   encounterChart?: ClinicalEncounterChartProps | null;
+  encounterDiagnosis?: string | null;
+  encounterTreatment?: string;
 }
 
 export type MobileConsultationWorkspaceProps = Omit<
@@ -82,6 +84,8 @@ export function ConsultationWorkspace({
   actionWorkspaceEnabled = false,
   smartWorkspaceEnabled = false,
   encounterChart,
+  encounterDiagnosis,
+  encounterTreatment,
   ...props
 }: ConsultationWorkspaceProps) {
   const {
@@ -132,6 +136,8 @@ export function ConsultationWorkspace({
             onSaveClinicalRecord={onSaveClinicalRecord}
             smartWorkspaceEnabled={smartWorkspaceEnabled}
             encounterChart={encounterChart}
+            encounterDiagnosis={encounterDiagnosis}
+            encounterTreatment={encounterTreatment}
           />
         }
         right={
