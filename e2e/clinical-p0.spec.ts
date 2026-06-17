@@ -45,9 +45,9 @@ test.describe("Clinical P0 — workspace oficial (Action WS + Smart WS ON)", () 
       page.getByRole("complementary", { name: /contexto del paciente/i }),
     ).toBeVisible();
 
-    // SOAP + autosave
-    await expect(page.getByText(/SOAP Command Center/i)).toBeVisible();
-    const notesArea = page.locator("#soap-treatment, textarea").first();
+    // Ficha clínica integral + autosave
+    await expect(page.getByTestId("clinical-encounter-chart")).toBeVisible();
+    const notesArea = page.getByTestId("encounter-treatment");
     if (await notesArea.isVisible()) {
       await notesArea.fill("Control HTA — PA 145/92 mmHg. Continuar losartán 50mg.");
     }
@@ -61,8 +61,9 @@ test.describe("Clinical P0 — workspace oficial (Action WS + Smart WS ON)", () 
     }).click();
     await expect(page.getByTestId("clinical-module-sheet")).toBeVisible();
 
-    // Firma
-    const signButton = page.getByRole("button", { name: /firmar/i });
+    // Firma en bloque de cierre (§20)
+    await page.getByTestId("encounter-section-20").scrollIntoViewIfNeeded();
+    const signButton = page.getByRole("button", { name: /firmar consulta/i });
     if (await signButton.isVisible()) {
       await signButton.click();
       // SignatureCanvas — trazo mínimo si canvas presente
@@ -83,8 +84,9 @@ test.describe("Clinical P0 — workspace oficial (Action WS + Smart WS ON)", () 
       timeout: 30_000,
     });
 
-    // Close Flow Wizard visible
-    await expect(page.getByText(/documentar|revisar|firmar|entregar/i)).toBeVisible();
+    // Bloque de cierre médico legal visible
+    await expect(page.getByTestId("encounter-closure-section")).toBeVisible();
+    await expect(page.getByTestId("encounter-section-22")).toBeVisible();
   });
 
   test("P0-2 DM2 — Lab order → plan → firma", async ({ page }) => {
@@ -108,7 +110,8 @@ test.describe("Clinical P0 — workspace oficial (Action WS + Smart WS ON)", () 
       await createLab.click();
     }
 
-    await page.getByRole("button", { name: /firmar/i }).click();
+    await page.getByTestId("encounter-section-20").scrollIntoViewIfNeeded();
+    await page.getByRole("button", { name: /firmar consulta/i }).click();
     await expect(page.getByText(/firmada|signed/i)).toBeVisible({
       timeout: 30_000,
     });
@@ -134,7 +137,8 @@ test.describe("Clinical P0 — workspace oficial (Action WS + Smart WS ON)", () 
 
     await page.keyboard.press("Escape");
 
-    await page.getByRole("button", { name: /firmar/i }).click();
+    await page.getByTestId("encounter-section-20").scrollIntoViewIfNeeded();
+    await page.getByRole("button", { name: /firmar consulta/i }).click();
     await expect(page.getByText(/firmada|signed/i)).toBeVisible({
       timeout: 30_000,
     });

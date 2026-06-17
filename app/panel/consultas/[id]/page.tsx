@@ -100,7 +100,6 @@ import {
 import { ClinicalModuleSheet } from "./_components/action-workspace/ClinicalModuleSheet";
 import { ClinicalModuleSheetContent } from "./_components/action-workspace/ClinicalModuleSheetContent";
 import { EncounterChromeShell } from "./_components/EncounterChromeShell";
-import { ClinicalCloseFlow } from "./_components/ClinicalCloseFlow";
 
 const clinicalActionWorkspaceEnabled = isClinicalActionWorkspaceEnabled();
 const smartClinicalWorkspaceEnabled = isSmartClinicalWorkspaceEnabled();
@@ -815,16 +814,9 @@ export default function ConsultationDetailPage() {
             onStartTeleconsultation={() => void handleStartCall()}
             onOpenPrescription={handleOpenPrescription}
             onOpenLabOrders={handleOpenLabOrders}
-            onOpenDocuments={handleOpenDocuments}
             hideModuleShortcuts={
               clinicalActionWorkspaceEnabled && !!consultation.patientId
             }
-            isSigned={isSigned}
-            canSign={canSign}
-            signing={signing}
-            onSign={handleSign}
-            signedAt={consultation.signedAt}
-            doctorSignature={consultation.doctorSignature}
             canPay={canPay}
             isLocked={isLocked}
             paymentStep={paymentStep}
@@ -841,7 +833,7 @@ export default function ConsultationDetailPage() {
             paymentCurrency={consultationPrice.currency}
             paymentLoading={consultationPrice.loading}
             saveMsg={
-              saveMsg && (canPay || isSigned || signing) ? saveMsg : undefined
+              saveMsg && paymentStep === "confirm" ? saveMsg : undefined
             }
             isEditing={editMode}
             actionHandlers={{
@@ -870,8 +862,6 @@ export default function ConsultationDetailPage() {
               edit: isLocked,
               ai: isLocked,
               delete: isLocked,
-              invoice: documentDisabled.invoice,
-              pdf: documentDisabled.pdf,
             }}
             dnaDrawerOpen={dnaDrawerOpen}
             onOpenDoctorDna={() => {
@@ -902,25 +892,6 @@ export default function ConsultationDetailPage() {
                 embedded
               />
             ) : null}
-            <ClinicalCloseFlow
-              consultationId={id}
-              patientId={consultation.patientId}
-              consultationStatus={status}
-              chiefComplaint={chiefComplaintDraft}
-              notes={notes}
-              diagnosis={diagnosisState.diagnosis}
-              diagnosisCode={diagnosisState.diagnosisCode}
-              diagnosisDescription={diagnosisState.diagnosisDescription}
-              treatment={treatment}
-              autosaveStatus={autosaveStatus}
-              isSigned={isSigned}
-              isLocked={isLocked}
-              canPay={canPay}
-              onOpenCopilot={() => {
-                setDnaDrawerOpen(false);
-                setCopilotDrawerOpen(true);
-              }}
-            />
             {clinicalActionWorkspaceEnabled && consultation.patientId ? (
               <ClinicalActionBar
                 patientId={consultation.patientId}
@@ -1114,6 +1085,35 @@ export default function ConsultationDetailPage() {
           autosaveStatus,
           lastSavedAt,
           autosaveError,
+          closure: {
+            status,
+            isSigned,
+            isLocked,
+            canSign,
+            signing,
+            onSign: handleSign,
+            signedAt: consultation.signedAt,
+            doctorSignature: consultation.doctorSignature,
+            documentHandlers: {
+              onStartTeleconsultation: () => void handleStartCall(),
+              onOpenPrescription: handleOpenPrescription,
+              onGenerateInvoice: () => void handleGenerateInvoice(),
+              onDownloadPdf: () => void handleDownloadPdf(),
+              onToggleEdit: handleToggleEdit,
+              onAnalyzeWithAi: handleAnalyzeWithAi,
+              onDelete: () => void handleDeleteConsultation(),
+              onGenerateSignedPrescription: () =>
+                void handleSignedPrescription(),
+              onGenerateSignedCertificate: () =>
+                void handleSignedCertificate(),
+              onGenerateSignedReferral: () => void handleSignedReferral(),
+              onGeneratePremiumDocument: () => void handlePremiumDocument(),
+            },
+            documentLoading: actionLoading,
+            documentDisabled,
+            signMessage:
+              saveMsg && paymentStep !== "confirm" ? saveMsg : undefined,
+          },
         }}
         encounterDiagnosis={
           diagnosisState.diagnosisDescription ||

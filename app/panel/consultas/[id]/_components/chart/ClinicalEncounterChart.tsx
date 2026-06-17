@@ -12,6 +12,10 @@ import { DiagnosisSection } from "./DiagnosisSection";
 import { PhysicalExamSection } from "./PhysicalExamSection";
 import { TreatmentSection } from "./TreatmentSection";
 import { VitalSignsSection } from "./VitalSignsSection";
+import {
+  EncounterClosureSection,
+  type EncounterClosureSectionProps,
+} from "./EncounterClosureSection";
 
 export interface ClinicalEncounterChartProps {
   vitals: ClinicalVitalSigns;
@@ -41,6 +45,7 @@ export interface ClinicalEncounterChartProps {
   lastSavedAt?: Date | null;
   autosaveError?: string | null;
   headerExtra?: ReactNode;
+  closure?: EncounterClosureSectionProps;
   className?: string;
 }
 
@@ -68,6 +73,7 @@ export function ClinicalEncounterChart({
   lastSavedAt,
   autosaveError,
   headerExtra,
+  closure,
   className,
 }: ClinicalEncounterChartProps) {
   return (
@@ -131,6 +137,7 @@ export function ClinicalEncounterChart({
           onChange={onTreatmentChange}
           editable={editable}
         />
+        {closure ? <EncounterClosureSection {...closure} /> : null}
       </div>
     </div>
   );
