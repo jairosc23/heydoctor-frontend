@@ -5,6 +5,7 @@ import type { ClinicalVitalSigns } from "@/lib/clinical-vital-signs-context";
 import type { PhysicalExam } from "@/lib/physical-exam-framework";
 import type { DiagnosisSource } from "@/lib/services/consultation-diagnosis";
 import type { AutosaveStatus } from "@/lib/hooks/useConsultationAutosave";
+import type { PatientProfile, PatientRow } from "@/lib/services/patients";
 import { AutosaveIndicator } from "../AutosaveIndicator";
 import { ActiveProblemsSection } from "./ActiveProblemsSection";
 import { AnamnesisSection } from "./AnamnesisSection";
@@ -16,6 +17,21 @@ import {
   EncounterClosureSection,
   type EncounterClosureSectionProps,
 } from "./EncounterClosureSection";
+import { PatientIdentificationSection } from "./PatientIdentificationSection";
+import {
+  AllergiesSection,
+  FamilyHistorySection,
+  HabitsSection,
+  HabitualMedicationsSection,
+  PersonalAntecedentsSection,
+} from "./PatientLongitudinalSections";
+
+export interface PatientLongitudinalProps {
+  patient: PatientRow | null;
+  profile: PatientProfile | null;
+  loading?: boolean;
+  patientId?: string | null;
+}
 
 export interface ClinicalEncounterChartProps {
   vitals: ClinicalVitalSigns;
@@ -46,6 +62,7 @@ export interface ClinicalEncounterChartProps {
   autosaveError?: string | null;
   headerExtra?: ReactNode;
   closure?: EncounterClosureSectionProps;
+  longitudinal?: PatientLongitudinalProps;
   className?: string;
 }
 
@@ -74,8 +91,14 @@ export function ClinicalEncounterChart({
   autosaveError,
   headerExtra,
   closure,
+  longitudinal,
   className,
 }: ClinicalEncounterChartProps) {
+  const profileProps = {
+    profile: longitudinal?.profile ?? null,
+    loading: longitudinal?.loading,
+  };
+
   return (
     <div
       className={className}
@@ -102,6 +125,16 @@ export function ClinicalEncounterChart({
       </header>
 
       <div className="space-y-hd-4">
+        <PatientIdentificationSection
+          patient={longitudinal?.patient ?? null}
+          loading={longitudinal?.loading}
+          patientId={longitudinal?.patientId ?? patientId}
+        />
+        <PersonalAntecedentsSection {...profileProps} />
+        <HabitualMedicationsSection {...profileProps} />
+        <AllergiesSection {...profileProps} />
+        <HabitsSection {...profileProps} />
+        <FamilyHistorySection {...profileProps} />
         <AnamnesisSection
           value={presentIllnessHistory}
           onChange={onPresentIllnessHistoryChange}

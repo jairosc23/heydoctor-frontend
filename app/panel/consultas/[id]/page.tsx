@@ -1114,6 +1114,12 @@ export default function ConsultationDetailPage() {
             signMessage:
               saveMsg && paymentStep !== "confirm" ? saveMsg : undefined,
           },
+          longitudinal: {
+            patient: patientRow,
+            profile: patientProfile,
+            loading: patientContextLoading,
+            patientId: consultation.patientId,
+          },
         }}
         encounterDiagnosis={
           diagnosisState.diagnosisDescription ||
