@@ -43,21 +43,6 @@ export function useEncounterNotesDraft(
     });
   }, [rawNotes, freeNotes, presentIllnessHistory, vitals, physicalExam]);
 
-  const composeWithClinicalRecord = useCallback(
-    (serializedClinicalRecord: string) => {
-      const record = parseEncounterNotes(serializedClinicalRecord).clinicalRecord;
-      return composeEncounterNotes({
-        clinicalRecord: {
-          ...record,
-          presentIllnessHistory,
-        },
-        vitals,
-        physicalExam,
-      });
-    },
-    [presentIllnessHistory, vitals, physicalExam],
-  );
-
   return {
     vitals,
     setVitals,
@@ -66,6 +51,5 @@ export function useEncounterNotesDraft(
     presentIllnessHistory,
     setPresentIllnessHistory,
     composeNotes,
-    composeWithClinicalRecord,
   };
 }

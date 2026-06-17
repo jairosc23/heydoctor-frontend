@@ -1,6 +1,5 @@
 "use client";
 
-import { ClinicalRecordPanel } from "@/components/clinical";
 import { ClinicalPanel, ClinicalSection } from "@/components/clinical/design";
 import { clinicalTabClass } from "@/lib/clinical-design-tokens";
 import { ChatPanel } from "@/components/telemedicine/ChatPanel";
@@ -10,49 +9,25 @@ import {
   type ClinicalEncounterChartProps,
 } from "./chart/ClinicalEncounterChart";
 
-export type EncounterLeftPaneTab = "soap" | "record" | "chat";
+export type EncounterLeftPaneTab = "soap" | "chat";
 
 const LEFT_TABS: { id: EncounterLeftPaneTab; label: string }[] = [
-  { id: "soap", label: "Nota (SOAP)" },
-  { id: "record", label: "Ficha" },
+  { id: "soap", label: "Ficha Clínica" },
   { id: "chat", label: "Chat" },
 ];
 
 export interface EncounterLeftPaneProps {
   consultation: NestConsultation;
-  consultationId: string;
   activeTab: EncounterLeftPaneTab;
   onTabChange: (tab: EncounterLeftPaneTab) => void;
-  chiefComplaintDraft: string;
-  onChiefComplaintChange: (value: string) => void;
-  editMode: boolean;
-  isEditable: boolean;
-  aiTrigger: number;
-  onSaveClinicalRecord: (payload: {
-    notes: string;
-    chiefComplaint: string;
-  }) => Promise<void>;
-  smartWorkspaceEnabled?: boolean;
   encounterChart?: ClinicalEncounterChartProps | null;
-  encounterDiagnosis?: string | null;
-  encounterTreatment?: string;
 }
 
 export function EncounterLeftPane({
   consultation,
-  consultationId,
   activeTab,
   onTabChange,
-  chiefComplaintDraft,
-  onChiefComplaintChange,
-  editMode,
-  isEditable,
-  aiTrigger,
-  onSaveClinicalRecord,
-  smartWorkspaceEnabled = false,
   encounterChart,
-  encounterDiagnosis,
-  encounterTreatment = "",
 }: EncounterLeftPaneProps) {
   const patientId = consultation.patientId;
 
@@ -83,10 +58,10 @@ export function EncounterLeftPane({
             ))}
           </div>
 
-          {!patientId && (activeTab === "chat" || activeTab === "record") ? (
+          {!patientId && activeTab === "chat" ? (
             <p className="rounded-hd-md border border-amber-200 bg-amber-50 px-hd-4 py-hd-3 text-sm text-amber-900">
-              Esta consulta no tiene paciente asociado. El chat y la ficha no
-              están disponibles.
+              Esta consulta no tiene paciente asociado. El chat no está
+              disponible.
             </p>
           ) : null}
 
@@ -94,29 +69,6 @@ export function EncounterLeftPane({
             encounterChart ? (
               <ClinicalEncounterChart {...encounterChart} />
             ) : null
-          ) : null}
-
-          {activeTab === "record" ? (
-            <div id="clinical-record-section-desktop">
-              <ClinicalRecordPanel
-                consultationId={consultationId}
-                patientId={patientId}
-                rawNotes={consultation.notes ?? ""}
-                chiefComplaint={chiefComplaintDraft}
-                onChiefComplaintChange={onChiefComplaintChange}
-                createdAt={consultation.createdAt ?? null}
-                editable={isEditable && editMode}
-                patient={
-                  consultation.patient
-                    ? { name: consultation.patient.name ?? null }
-                    : null
-                }
-                activeDiagnosis={encounterDiagnosis}
-                treatment={encounterTreatment}
-                onSave={onSaveClinicalRecord}
-                autofillRequest={aiTrigger}
-              />
-            </div>
           ) : null}
 
           {activeTab === "chat" && patientId ? (

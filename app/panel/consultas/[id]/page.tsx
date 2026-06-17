@@ -181,7 +181,6 @@ export default function ConsultationDetailPage() {
     href?: string;
   } | null>(null);
 
-  const [aiTrigger, setAiTrigger] = useState(0);
   const [shareOpen, setShareOpen] = useState(false);
   const [dnaDrawerOpen, setDnaDrawerOpen] = useState(false);
   const [copilotDrawerOpen, setCopilotDrawerOpen] = useState(false);
@@ -209,7 +208,6 @@ export default function ConsultationDetailPage() {
     presentIllnessHistory,
     setPresentIllnessHistory,
     composeNotes,
-    composeWithClinicalRecord,
   } = useEncounterNotesDraft(consultation?.notes ?? null, notes);
 
   useEffect(() => {
@@ -579,23 +577,6 @@ export default function ConsultationDetailPage() {
     );
   }
 
-  async function handleSaveClinicalRecord({
-    notes: serializedNotes,
-    chiefComplaint,
-  }: {
-    notes: string;
-    chiefComplaint: string;
-  }) {
-    if (!consultation) return;
-    const composed = composeWithClinicalRecord(serializedNotes);
-    const updated = await updateConsultation(id, {
-      notes: composed,
-      chiefComplaint: chiefComplaint || undefined,
-    });
-    setConsultation(updated);
-    setNotes(parseEncounterNotes(updated.notes).clinicalRecord.freeNotes);
-  }
-
   function handleOpenPrescription() {
     if (clinicalActionWorkspaceEnabled) {
       openClinicalModule("prescriptions");
@@ -616,15 +597,6 @@ export default function ConsultationDetailPage() {
     setOrdersSubTab("lab");
   }
 
-  function handleOpenDocuments() {
-    if (clinicalActionWorkspaceEnabled) {
-      openClinicalModule("documents");
-      return;
-    }
-    setWorkspaceTab("documents");
-    setRightPaneTab("documents");
-  }
-
   async function handleGenerateInvoice() {
     setActionLoading((s) => ({ ...s, invoice: true }));
     const r = await generateConsultationInvoice(id);
@@ -641,8 +613,8 @@ export default function ConsultationDetailPage() {
 
   function handleToggleEdit() {
     setEditMode((v) => !v);
-    setWorkspaceTab("record");
-    setLeftPaneTab("record");
+    setWorkspaceTab("soap");
+    setLeftPaneTab("soap");
   }
 
   function handleAnalyzeWithAi() {
@@ -1035,12 +1007,6 @@ export default function ConsultationDetailPage() {
         }}
         ordersSubTab={ordersSubTab}
         onOrdersSubTabChange={setOrdersSubTab}
-        chiefComplaintDraft={chiefComplaintDraft}
-        onChiefComplaintChange={setChiefComplaintDraft}
-        editMode={editMode}
-        isEditable={isEditable}
-        aiTrigger={aiTrigger}
-        onSaveClinicalRecord={handleSaveClinicalRecord}
         documentHandlers={{
           onStartTeleconsultation: () => void handleStartCall(),
           onOpenPrescription: handleOpenPrescription,
@@ -1121,38 +1087,9 @@ export default function ConsultationDetailPage() {
             patientId: consultation.patientId,
           },
         }}
-        encounterDiagnosis={
-          diagnosisState.diagnosisDescription ||
-          diagnosisState.diagnosis ||
-          null
-        }
-        encounterTreatment={treatment}
         diagnosisCode={
           diagnosisState.diagnosisCode || diagnosisState.diagnosis || undefined
         }
-        soap={{
-          consultationId: id,
-          clinicId: consultation.clinicId ?? ctxClinicId ?? null,
-          editable: isEditable,
-          diagnosis: diagnosisState.diagnosis,
-          diagnosisCode: diagnosisState.diagnosisCode || null,
-          diagnosisDescription: diagnosisState.diagnosisDescription || null,
-          diagnosisSource: diagnosisState.source,
-          onDiagnosisConfirm: handleDiagnosisConfirm,
-          diagnosisError,
-          notes,
-          setNotes,
-          treatment,
-          onTreatmentChange: setTreatment,
-          autosaveStatus,
-          lastSavedAt,
-          autosaveError,
-          smartWorkspaceEnabled: smartClinicalWorkspaceEnabled,
-          chiefComplaint: chiefComplaintDraft,
-          patientId: consultation.patientId,
-          patientAge: soapPatientAge,
-          patientSex: soapPatientSex,
-        }}
           />
         </ConsultationClinicalProviders>
       ) : (
@@ -1183,12 +1120,6 @@ export default function ConsultationDetailPage() {
           }}
           ordersSubTab={ordersSubTab}
           onOrdersSubTabChange={setOrdersSubTab}
-          chiefComplaintDraft={chiefComplaintDraft}
-          onChiefComplaintChange={setChiefComplaintDraft}
-          editMode={editMode}
-          isEditable={isEditable}
-          aiTrigger={aiTrigger}
-          onSaveClinicalRecord={handleSaveClinicalRecord}
           documentHandlers={{
             onStartTeleconsultation: () => void handleStartCall(),
             onOpenPrescription: handleOpenPrescription,
@@ -1210,29 +1141,6 @@ export default function ConsultationDetailPage() {
           diagnosisCode={
             diagnosisState.diagnosisCode || diagnosisState.diagnosis || undefined
           }
-          soap={{
-            consultationId: id,
-            clinicId: consultation.clinicId ?? ctxClinicId ?? null,
-            editable: isEditable,
-            diagnosis: diagnosisState.diagnosis,
-            diagnosisCode: diagnosisState.diagnosisCode || null,
-            diagnosisDescription: diagnosisState.diagnosisDescription || null,
-            diagnosisSource: diagnosisState.source,
-            onDiagnosisConfirm: handleDiagnosisConfirm,
-            diagnosisError,
-            notes,
-            setNotes,
-            treatment,
-            onTreatmentChange: setTreatment,
-            autosaveStatus,
-            lastSavedAt,
-            autosaveError,
-            smartWorkspaceEnabled: smartClinicalWorkspaceEnabled,
-            chiefComplaint: chiefComplaintDraft,
-            patientId: consultation.patientId,
-            patientAge: soapPatientAge,
-            patientSex: soapPatientSex,
-          }}
         />
       )}
 

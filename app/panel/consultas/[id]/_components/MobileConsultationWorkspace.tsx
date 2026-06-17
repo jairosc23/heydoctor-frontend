@@ -1,6 +1,5 @@
 "use client";
 
-import { ClinicalRecordPanel } from "@/components/clinical";
 import { ChatPanel } from "@/components/telemedicine/ChatPanel";
 import { ClinicalPanel } from "@/components/clinical/design";
 import { clinicalTabClass } from "@/lib/clinical-design-tokens";
@@ -17,8 +16,7 @@ import type {
 } from "./ConsultationWorkspace";
 
 const MAIN_TABS: { id: WorkspaceTab; label: string }[] = [
-  { id: "soap", label: "Nota (SOAP)" },
-  { id: "record", label: "Ficha" },
+  { id: "soap", label: "Ficha Clínica" },
   { id: "orders", label: "Órdenes" },
   { id: "documents", label: "Documentos" },
   { id: "chat", label: "Chat" },
@@ -31,13 +29,6 @@ export function MobileConsultationWorkspace({
   onTabChange,
   ordersSubTab,
   onOrdersSubTabChange,
-  soap,
-  chiefComplaintDraft,
-  onChiefComplaintChange,
-  editMode,
-  isEditable,
-  aiTrigger,
-  onSaveClinicalRecord,
   documentHandlers,
   documentLoading,
   documentDisabled,
@@ -87,31 +78,6 @@ export function MobileConsultationWorkspace({
         encounterChart ? (
           <ClinicalEncounterChart {...encounterChart} />
         ) : null
-      ) : null}
-
-      {activeTab === "record" ? (
-        <div id="clinical-record-section">
-          <ClinicalRecordPanel
-            consultationId={consultationId}
-            patientId={patientId}
-            rawNotes={consultation.notes ?? ""}
-            chiefComplaint={chiefComplaintDraft}
-            onChiefComplaintChange={onChiefComplaintChange}
-            createdAt={consultation.createdAt ?? null}
-            editable={isEditable && editMode}
-            patient={
-              consultation.patient
-                ? { name: consultation.patient.name ?? null }
-                : null
-            }
-            activeDiagnosis={
-              soap.diagnosisDescription || soap.diagnosisCode || soap.diagnosis
-            }
-            treatment={soap.treatment}
-            onSave={onSaveClinicalRecord}
-            autofillRequest={aiTrigger}
-          />
-        </div>
       ) : null}
 
       {activeTab === "orders" && patientId ? (

@@ -55,7 +55,7 @@ export function EncounterClosureSection({
     >
       <ClinicalEncounterSection
         sectionNumber={20}
-        title="Firma médica"
+        title="Firma médica y bloqueo legal"
         id="encounter-section-20"
       >
         <div className="mb-hd-3 flex flex-wrap items-center gap-2">
@@ -131,28 +131,27 @@ export function EncounterClosureSection({
             {signMessage}
           </p>
         ) : null}
-      </ClinicalEncounterSection>
 
-      <ClinicalEncounterSection
-        sectionNumber={21}
-        title="Bloqueo legal"
-        id="encounter-section-21"
-      >
-        {isLocked ? (
-          <p className="text-sm text-slate-700">
-            Esta consulta está <strong>bloqueada</strong>. No se puede editar
-            la documentación clínica ni modificar órdenes asociadas.
+        <div className="mt-hd-3 rounded-hd-md border border-hd-border-subtle bg-hd-surface-muted px-hd-3 py-hd-2">
+          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-600">
+            Bloqueo legal
           </p>
-        ) : isSigned ? (
-          <p className="text-sm text-slate-700">
-            La consulta está firmada. La edición clínica está deshabilitada. El
-            bloqueo definitivo puede aplicarse tras el proceso de pago.
-          </p>
-        ) : (
-          <p className="text-sm text-slate-600">
-            Tras firmar, la ficha clínica dejará de ser editable.
-          </p>
-        )}
+          {isLocked ? (
+            <p className="text-sm text-slate-700">
+              Esta consulta está <strong>bloqueada</strong>. No se puede editar
+              la documentación clínica ni modificar órdenes asociadas.
+            </p>
+          ) : isSigned ? (
+            <p className="text-sm text-slate-700">
+              La consulta está firmada. La edición clínica está deshabilitada. El
+              bloqueo definitivo puede aplicarse tras el proceso de pago.
+            </p>
+          ) : (
+            <p className="text-sm text-slate-600">
+              Tras firmar, la ficha clínica dejará de ser editable.
+            </p>
+          )}
+        </div>
       </ClinicalEncounterSection>
 
       <ClinicalEncounterSection

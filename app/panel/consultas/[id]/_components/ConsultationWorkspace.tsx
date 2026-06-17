@@ -1,7 +1,6 @@
 "use client";
 
 import type { NestConsultation } from "@/lib/services/consultations";
-import type { SoapSectionProps } from "./SoapSection";
 import type { OrdersSubTab } from "./OrdersTab";
 import type {
   ActionBarHandlers,
@@ -20,7 +19,6 @@ import type { ClinicalEncounterChartProps } from "./chart/ClinicalEncounterChart
 
 export type WorkspaceTab =
   | "soap"
-  | "record"
   | "orders"
   | "documents"
   | "chat";
@@ -39,16 +37,6 @@ export interface ConsultationWorkspaceProps {
   onRightPaneTabChange: (tab: EncounterRightPaneTab) => void;
   ordersSubTab: OrdersSubTab;
   onOrdersSubTabChange: (tab: OrdersSubTab) => void;
-  soap: SoapSectionProps;
-  chiefComplaintDraft: string;
-  onChiefComplaintChange: (value: string) => void;
-  editMode: boolean;
-  isEditable: boolean;
-  aiTrigger: number;
-  onSaveClinicalRecord: (payload: {
-    notes: string;
-    chiefComplaint: string;
-  }) => Promise<void>;
   documentHandlers: ActionBarHandlers;
   documentLoading: ActionBarLoading;
   documentDisabled: Partial<Record<string, boolean>>;
@@ -60,8 +48,6 @@ export interface ConsultationWorkspaceProps {
   actionWorkspaceEnabled?: boolean;
   smartWorkspaceEnabled?: boolean;
   encounterChart?: ClinicalEncounterChartProps | null;
-  encounterDiagnosis?: string | null;
-  encounterTreatment?: string;
 }
 
 export type MobileConsultationWorkspaceProps = Omit<
@@ -84,20 +70,11 @@ export function ConsultationWorkspace({
   actionWorkspaceEnabled = false,
   smartWorkspaceEnabled = false,
   encounterChart,
-  encounterDiagnosis,
-  encounterTreatment,
   ...props
 }: ConsultationWorkspaceProps) {
   const {
     consultation,
     consultationId,
-    soap,
-    chiefComplaintDraft,
-    onChiefComplaintChange,
-    editMode,
-    isEditable,
-    aiTrigger,
-    onSaveClinicalRecord,
     ordersSubTab,
     onOrdersSubTabChange,
     documentHandlers,
@@ -124,20 +101,9 @@ export function ConsultationWorkspace({
         left={
           <EncounterLeftPane
             consultation={consultation}
-            consultationId={consultationId}
             activeTab={leftPaneTab}
             onTabChange={onLeftPaneTabChange}
-            soap={soap}
-            chiefComplaintDraft={chiefComplaintDraft}
-            onChiefComplaintChange={onChiefComplaintChange}
-            editMode={editMode}
-            isEditable={isEditable}
-            aiTrigger={aiTrigger}
-            onSaveClinicalRecord={onSaveClinicalRecord}
-            smartWorkspaceEnabled={smartWorkspaceEnabled}
             encounterChart={encounterChart}
-            encounterDiagnosis={encounterDiagnosis}
-            encounterTreatment={encounterTreatment}
           />
         }
         right={

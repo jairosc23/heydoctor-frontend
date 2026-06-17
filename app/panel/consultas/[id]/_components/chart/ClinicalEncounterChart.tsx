@@ -18,13 +18,7 @@ import {
   type EncounterClosureSectionProps,
 } from "./EncounterClosureSection";
 import { PatientIdentificationSection } from "./PatientIdentificationSection";
-import {
-  AllergiesSection,
-  FamilyHistorySection,
-  HabitsSection,
-  HabitualMedicationsSection,
-  PersonalAntecedentsSection,
-} from "./PatientLongitudinalSections";
+import { PatientAntecedentsSection } from "./PatientLongitudinalSections";
 
 export interface PatientLongitudinalProps {
   patient: PatientRow | null;
@@ -130,11 +124,7 @@ export function ClinicalEncounterChart({
           loading={longitudinal?.loading}
           patientId={longitudinal?.patientId ?? patientId}
         />
-        <PersonalAntecedentsSection {...profileProps} />
-        <HabitualMedicationsSection {...profileProps} />
-        <AllergiesSection {...profileProps} />
-        <HabitsSection {...profileProps} />
-        <FamilyHistorySection {...profileProps} />
+        <PatientAntecedentsSection {...profileProps} />
         <AnamnesisSection
           value={presentIllnessHistory}
           onChange={onPresentIllnessHistoryChange}
