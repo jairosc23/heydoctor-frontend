@@ -10,6 +10,10 @@ import { SoapStickyNav } from "./SoapStickyNav";
 import { useSoapScrollSpy } from "@/hooks/useSoapScrollSpy";
 import { OrdersTab } from "./OrdersTab";
 import { DocumentsTab } from "./DocumentsTab";
+import {
+  ClinicalEncounterChart,
+  type ClinicalEncounterChartProps,
+} from "./chart/ClinicalEncounterChart";
 import type {
   MobileConsultationWorkspaceProps,
   WorkspaceTab,
@@ -45,7 +49,10 @@ export function MobileConsultationWorkspace({
   ordersHighlight,
   ordersRefreshKey,
   smartWorkspaceEnabled = false,
-}: MobileConsultationWorkspaceProps) {
+  encounterChart,
+}: MobileConsultationWorkspaceProps & {
+  encounterChart?: ClinicalEncounterChartProps | null;
+}) {
   const patientId = consultation.patientId;
   const activeSoapStep = useSoapScrollSpy(smartWorkspaceEnabled);
 
@@ -82,6 +89,9 @@ export function MobileConsultationWorkspace({
 
       {activeTab === "soap" ? (
         <>
+          {encounterChart ? (
+            <ClinicalEncounterChart {...encounterChart} className="mb-hd-4" />
+          ) : null}
           <SoapStickyNav
             enabled={smartWorkspaceEnabled}
             activeStep={activeSoapStep}

@@ -8,6 +8,10 @@ import type { NestConsultation } from "@/lib/services/consultations";
 import { SoapSection, type SoapSectionProps } from "./SoapSection";
 import { SoapStickyNav } from "./SoapStickyNav";
 import { useSoapScrollSpy } from "@/hooks/useSoapScrollSpy";
+import {
+  ClinicalEncounterChart,
+  type ClinicalEncounterChartProps,
+} from "./chart/ClinicalEncounterChart";
 
 export type EncounterLeftPaneTab = "soap" | "record" | "chat";
 
@@ -33,6 +37,7 @@ export interface EncounterLeftPaneProps {
     chiefComplaint: string;
   }) => Promise<void>;
   smartWorkspaceEnabled?: boolean;
+  encounterChart?: ClinicalEncounterChartProps | null;
 }
 
 export function EncounterLeftPane({
@@ -48,6 +53,7 @@ export function EncounterLeftPane({
   aiTrigger,
   onSaveClinicalRecord,
   smartWorkspaceEnabled = false,
+  encounterChart,
 }: EncounterLeftPaneProps) {
   const patientId = consultation.patientId;
   const activeSoapStep = useSoapScrollSpy(smartWorkspaceEnabled);
@@ -88,6 +94,12 @@ export function EncounterLeftPane({
 
           {activeTab === "soap" ? (
             <>
+              {encounterChart ? (
+                <ClinicalEncounterChart
+                  {...encounterChart}
+                  className="mb-hd-4"
+                />
+              ) : null}
               <SoapStickyNav
                 enabled={smartWorkspaceEnabled}
                 activeStep={activeSoapStep}

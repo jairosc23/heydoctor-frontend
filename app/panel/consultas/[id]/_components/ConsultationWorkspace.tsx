@@ -16,6 +16,7 @@ import {
   PatientContextRail,
   type PatientContextRailProps,
 } from "./PatientContextRail";
+import type { ClinicalEncounterChartProps } from "./chart/ClinicalEncounterChart";
 
 export type WorkspaceTab =
   | "soap"
@@ -58,6 +59,7 @@ export interface ConsultationWorkspaceProps {
   ordersRefreshKey?: number;
   actionWorkspaceEnabled?: boolean;
   smartWorkspaceEnabled?: boolean;
+  encounterChart?: ClinicalEncounterChartProps | null;
 }
 
 export type MobileConsultationWorkspaceProps = Omit<
@@ -79,6 +81,7 @@ export function ConsultationWorkspace({
   ordersRefreshKey,
   actionWorkspaceEnabled = false,
   smartWorkspaceEnabled = false,
+  encounterChart,
   ...props
 }: ConsultationWorkspaceProps) {
   const {
@@ -105,6 +108,7 @@ export function ConsultationWorkspace({
       <div className="xl:hidden">
         <MobileConsultationWorkspace
           {...props}
+          encounterChart={encounterChart}
           ordersHighlight={ordersHighlight}
           ordersRefreshKey={ordersRefreshKey}
           smartWorkspaceEnabled={smartWorkspaceEnabled}
@@ -127,6 +131,7 @@ export function ConsultationWorkspace({
             aiTrigger={aiTrigger}
             onSaveClinicalRecord={onSaveClinicalRecord}
             smartWorkspaceEnabled={smartWorkspaceEnabled}
+            encounterChart={encounterChart}
           />
         }
         right={
