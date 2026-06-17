@@ -309,7 +309,8 @@ export const REAL_CLINICAL_CASES: RealCaseFixture[] = [
       draftNotes: [
         serializePhysicalExam({
           general: "Buen estado general, hidratado, afebril",
-          heent: "",
+          head: "",
+          neck: "",
           cardiovascular: "Ritmo regular, no soplos",
           respiratory: "MV conservado, sin estertores",
           abdomen: "",
