@@ -101,6 +101,7 @@ export function ConsultationWorkspace({
         left={
           <EncounterLeftPane
             consultation={consultation}
+            consultationId={consultationId}
             activeTab={leftPaneTab}
             onTabChange={onLeftPaneTabChange}
             encounterChart={encounterChart}

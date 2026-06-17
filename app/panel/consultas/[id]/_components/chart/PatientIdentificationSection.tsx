@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import {
-  formatPatientDisplayName,
   formatPatientDocument,
   formatPatientSex,
   resolvePatientAge,
 } from "@/lib/patient-profile-display";
-import type { PatientRow } from "@/lib/services/patients";
+import {
+  formatPatientDisplayName,
+  type PatientRow,
+} from "@/lib/services/patients";
 import { ClinicalEncounterSection } from "./ClinicalEncounterSection";
 import { ProfileField, ProfileFieldGrid } from "./PatientProfileFields";
 

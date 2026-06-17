@@ -18,6 +18,7 @@ const LEFT_TABS: { id: EncounterLeftPaneTab; label: string }[] = [
 
 export interface EncounterLeftPaneProps {
   consultation: NestConsultation;
+  consultationId: string;
   activeTab: EncounterLeftPaneTab;
   onTabChange: (tab: EncounterLeftPaneTab) => void;
   encounterChart?: ClinicalEncounterChartProps | null;
@@ -25,6 +26,7 @@ export interface EncounterLeftPaneProps {
 
 export function EncounterLeftPane({
   consultation,
+  consultationId,
   activeTab,
   onTabChange,
   encounterChart,
