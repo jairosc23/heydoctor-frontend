@@ -9,6 +9,7 @@ export interface PatientMemoryCardProps {
   patientId: string;
   currentConsultationId?: string;
   progressiveDisclosure?: boolean;
+  initialEventLimit?: number;
   className?: string;
 }
 
@@ -16,6 +17,7 @@ export function PatientMemoryCard({
   patientId,
   currentConsultationId,
   progressiveDisclosure = false,
+  initialEventLimit,
   className = "",
 }: PatientMemoryCardProps) {
   const { data, loading, error } = usePatientClinicalMemory(patientId);
@@ -58,6 +60,7 @@ export function PatientMemoryCard({
       data={data}
       currentConsultationId={currentConsultationId}
       progressiveDisclosure={progressiveDisclosure}
+      initialEventLimit={initialEventLimit}
       dense={progressiveDisclosure}
       className={className}
     />

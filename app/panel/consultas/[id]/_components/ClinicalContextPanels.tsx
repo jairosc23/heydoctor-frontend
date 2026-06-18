@@ -89,7 +89,7 @@ export function ClinicalContextPanels({
           title="Clinical Timeline™"
           eyebrow="Continuidad clínica"
           storageKey="clinical-encounter-panel-timeline"
-          defaultExpanded={false}
+          defaultExpanded
           contentClassName="min-h-[14rem]"
         >
           {loading ? (
@@ -98,7 +98,8 @@ export function ClinicalContextPanels({
             <PatientMemoryCard
               patientId={patientId}
               currentConsultationId={currentConsultationId}
-              progressiveDisclosure={smartWorkspaceEnabled}
+              progressiveDisclosure={false}
+              initialEventLimit={5}
               className="border-0 bg-transparent p-0 shadow-none"
             />
           )}

@@ -214,6 +214,8 @@ export interface ClinicalTimelineProps {
   currentConsultationId?: string;
   className?: string;
   defaultExpanded?: boolean;
+  /** Muestra inicialmente los N eventos más recientes; el usuario puede expandir todo. */
+  initialEventLimit?: number;
   /** Phase 4.3 — colapsado por defecto + histórico anidado. */
   progressiveDisclosure?: boolean;
   /** Phase 4.4A — nodos compactos al expandir. */
@@ -238,21 +240,65 @@ function latestTimelineEvent(
   return [...all].sort((a, b) => b.sortAt - a.sortAt)[0] ?? null;
 }
 
+function limitTimelineModel(
+  model: ReturnType<typeof buildClinicalTimeline>,
+  limit: number,
+): ReturnType<typeof buildClinicalTimeline> {
+  if (limit <= 0) return { ...model, groups: [], undated: [] };
+  const selected = [
+    ...model.undated,
+    ...model.groups.flatMap((group) => group.events),
+  ]
+    .sort((a, b) => b.sortAt - a.sortAt)
+    .slice(0, limit);
+
+  const undated = selected.filter((event) => event.sortAt <= 0);
+  const byYear = new Map<number, ClinicalTimelineEvent[]>();
+  for (const event of selected.filter((item) => item.sortAt > 0)) {
+    const bucket = byYear.get(event.year) ?? [];
+    bucket.push(event);
+    byYear.set(event.year, bucket);
+  }
+
+  return {
+    ...model,
+    groups: Array.from(byYear.entries())
+      .sort(([a], [b]) => a - b)
+      .map(([year, events]) => ({
+        year,
+        events: events.sort((a, b) => a.sortAt - b.sortAt),
+      })),
+    undated,
+    isEmpty: selected.length === 0 && model.alertCount === 0,
+  };
+}
+
 export function ClinicalTimeline({
   data,
   currentConsultationId,
   className,
   defaultExpanded = true,
+  initialEventLimit,
   progressiveDisclosure = false,
   dense = false,
 }: ClinicalTimelineProps) {
   const model = buildClinicalTimeline(data, { currentConsultationId });
+  const [showFullTimeline, setShowFullTimeline] = React.useState(false);
   const currentYear = new Date().getFullYear();
   const isOpenByDefault = progressiveDisclosure ? false : defaultExpanded;
   const totalEvents = countTimelineEvents(model);
+  const shouldLimit =
+    initialEventLimit != null &&
+    initialEventLimit > 0 &&
+    totalEvents > initialEventLimit &&
+    !showFullTimeline;
+  const visibleModel = shouldLimit
+    ? limitTimelineModel(model, initialEventLimit)
+    : model;
+  const visibleEvents = countTimelineEvents(visibleModel);
   const latestEvent = latestTimelineEvent(model);
-  const recentGroups = model.groups.filter((group) => group.year >= currentYear - 1);
-  const historicalGroups = model.groups.filter((group) => group.year < currentYear - 1);
+  const recentGroups = visibleModel.groups.filter((group) => group.year >= currentYear - 1);
+  const historicalGroups = visibleModel.groups.filter((group) => group.year < currentYear - 1);
 
   return (
     <section
@@ -282,9 +328,9 @@ export function ClinicalTimeline({
             )}
           </div>
           <span className="flex shrink-0 items-center gap-1 text-[10px] text-slate-400">
-            {model.isEmpty
+            {visibleModel.isEmpty
               ? "vacío"
-              : `${model.groups.length + (model.undated.length ? 1 : 0)} períodos`}
+              : `${visibleModel.groups.length + (visibleModel.undated.length ? 1 : 0)} períodos`}
             <span
               className="transition-transform duration-hd-base group-open:rotate-180"
               aria-hidden
@@ -297,13 +343,13 @@ export function ClinicalTimeline({
         <div className={cn(dense ? "pt-hd-2" : "pt-hd-3")}>
           <AlertsStrip alerts={data.alerts} dense={dense} />
 
-          {model.isEmpty ? (
+          {visibleModel.isEmpty ? (
             <p className="text-xs text-slate-400">
               Sin eventos clínicos registrados en la memoria del paciente.
             </p>
           ) : (
             <div className="relative ml-2 border-l-2 border-gradient-to-b border-slate-200 pl-5">
-              {model.undated.length > 0 ? (
+              {visibleModel.undated.length > 0 ? (
                 <div className="relative mb-hd-4">
                   <div className="mb-hd-2 flex items-center gap-hd-2">
                     <span className="text-xs font-bold text-slate-500">
@@ -312,13 +358,13 @@ export function ClinicalTimeline({
                     <span className="h-px flex-1 bg-slate-200" aria-hidden />
                   </div>
                   <ol className="relative m-0 list-none pl-5">
-                    {model.undated.map((event, index) => (
+                    {visibleModel.undated.map((event, index) => (
                       <TimelineNode
                         key={event.id}
                         event={event}
                         currentYear={currentYear}
                         dense={dense}
-                        isLastInSection={index === model.undated.length - 1}
+                        isLastInSection={index === visibleModel.undated.length - 1}
                       />
                     ))}
                   </ol>
@@ -326,7 +372,7 @@ export function ClinicalTimeline({
               ) : null}
 
               <div className={cn(dense ? "space-y-hd-2" : "space-y-hd-4")}>
-                {(progressiveDisclosure ? recentGroups : model.groups).map((group) => (
+                {(progressiveDisclosure ? recentGroups : visibleModel.groups).map((group) => (
                   <YearGroup
                     key={group.year}
                     group={group}
@@ -355,6 +401,21 @@ export function ClinicalTimeline({
                     ))}
                   </div>
                 </details>
+              ) : null}
+
+              {initialEventLimit != null && totalEvents > initialEventLimit ? (
+                <button
+                  type="button"
+                  onClick={() => setShowFullTimeline((value) => !value)}
+                  className={cn(
+                    "clinical-interactive mt-hd-3 rounded-hd-md border border-hd-border-subtle px-hd-3 py-hd-2 text-[11px] font-semibold text-primary hover:bg-primaryLight",
+                    dense && "mt-hd-2 py-hd-1.5",
+                  )}
+                >
+                  {showFullTimeline
+                    ? `Mostrar últimos ${initialEventLimit} eventos`
+                    : `Ver historial completo (${visibleEvents}/${totalEvents})`}
+                </button>
               ) : null}
 
               <div

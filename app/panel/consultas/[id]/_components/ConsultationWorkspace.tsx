@@ -16,6 +16,8 @@ import { ClinicalCollapsiblePanel } from "./ClinicalCollapsiblePanel";
 import { ClinicalContextPanels } from "./ClinicalContextPanels";
 import type { ClinicalEncounterChartProps } from "./chart/ClinicalEncounterChart";
 
+const DESKTOP_MODULE_WIDTH = "mx-auto w-full xl:max-w-[1280px]";
+
 export type WorkspaceTab =
   | "soap"
   | "orders"
@@ -100,15 +102,17 @@ export function ConsultationWorkspace({
         data-clinical-action-workspace={actionWorkspaceEnabled ? "true" : undefined}
         data-columns="1"
       >
-        <ClinicalContextPanels
-          {...patientContext}
-          smartWorkspaceEnabled={smartWorkspaceEnabled}
-        />
+        <div className={DESKTOP_MODULE_WIDTH}>
+          <ClinicalContextPanels
+            {...patientContext}
+            smartWorkspaceEnabled={smartWorkspaceEnabled}
+          />
+        </div>
 
         <ClinicalSurface
           depth={3}
           focusPrimary
-          className="soap-command-center-shell clinical-focus-primary mx-auto min-w-0 p-hd-3 shadow-hd-3 ring-1 ring-primary/10 xl:w-[78%] xl:max-w-[1280px]"
+          className={`soap-command-center-shell clinical-focus-primary min-w-0 p-hd-3 shadow-hd-3 ring-1 ring-primary/10 ${DESKTOP_MODULE_WIDTH}`}
         >
           <EncounterLeftPane
             consultation={consultation}
@@ -124,7 +128,7 @@ export function ConsultationWorkspace({
           eyebrow="Órdenes y documentos"
           storageKey="clinical-encounter-panel-orders"
           defaultExpanded={false}
-          className="mx-auto xl:w-[78%] xl:max-w-[1280px]"
+          className={DESKTOP_MODULE_WIDTH}
         >
           <div data-testid="orders-command-center-collapsible">
             <EncounterRightPane
