@@ -177,10 +177,6 @@ body {
   pointer-events: none;
 }
 
-.clinical-encounter-chrome {
-  position: relative;
-}
-
 /* Clinical Status Language™ */
 .clinical-status {
   transition:

@@ -40,6 +40,10 @@ test.describe("Clinical P0 — workspace oficial (Action WS + Smart WS ON)", () 
     await expect(chrome).toBeVisible();
     await expect(header).toBeVisible();
 
+    await expect(chrome).toHaveCSS("position", "sticky");
+    await expect(chrome).toHaveCSS("top", "0px");
+    await expect(chrome).toHaveCSS("z-index", "30");
+
     await scrollContainer.evaluate((element) => {
       element.scrollTop = 0;
       element.dispatchEvent(new Event("scroll", { bubbles: true }));
