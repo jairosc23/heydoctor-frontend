@@ -6,15 +6,14 @@ import type {
   ActionBarHandlers,
   ActionBarLoading,
 } from "@/components/clinical/ConsultationActionBar";
+import { ClinicalSurface } from "@/components/clinical/design";
 import type { ActionResult } from "@/lib/services/consultation-actions";
 import { EncounterLeftPane, type EncounterLeftPaneTab } from "./EncounterLeftPane";
 import { EncounterRightPane, type EncounterRightPaneTab } from "./EncounterRightPane";
-import { EncounterSplitLayout } from "./EncounterSplitLayout";
 import { MobileConsultationWorkspace } from "./MobileConsultationWorkspace";
-import {
-  PatientContextRail,
-  type PatientContextRailProps,
-} from "./PatientContextRail";
+import type { PatientContextRailProps } from "./PatientContextRail";
+import { ClinicalCollapsiblePanel } from "./ClinicalCollapsiblePanel";
+import { ClinicalContextPanels } from "./ClinicalContextPanels";
 import type { ClinicalEncounterChartProps } from "./chart/ClinicalEncounterChart";
 
 export type WorkspaceTab =
@@ -95,10 +94,22 @@ export function ConsultationWorkspace({
           smartWorkspaceEnabled={smartWorkspaceEnabled}
         />
       </div>
-      <EncounterSplitLayout
-        actionWorkspaceEnabled={actionWorkspaceEnabled}
-        rail={<PatientContextRail {...patientContext} smartWorkspaceEnabled={smartWorkspaceEnabled} />}
-        left={
+      <div
+        className="hidden space-y-hd-4 xl:block"
+        data-testid="encounter-split-layout"
+        data-clinical-action-workspace={actionWorkspaceEnabled ? "true" : undefined}
+        data-columns="1"
+      >
+        <ClinicalContextPanels
+          {...patientContext}
+          smartWorkspaceEnabled={smartWorkspaceEnabled}
+        />
+
+        <ClinicalSurface
+          depth={3}
+          focusPrimary
+          className="soap-command-center-shell clinical-focus-primary mx-auto min-w-0 p-hd-3 shadow-hd-3 ring-1 ring-primary/10 xl:w-[78%] xl:max-w-[1280px]"
+        >
           <EncounterLeftPane
             consultation={consultation}
             consultationId={consultationId}
@@ -106,9 +117,16 @@ export function ConsultationWorkspace({
             onTabChange={onLeftPaneTabChange}
             encounterChart={encounterChart}
           />
-        }
-        right={
-          actionWorkspaceEnabled ? undefined : (
+        </ClinicalSurface>
+
+        <ClinicalCollapsiblePanel
+          title="Orders Command Center™"
+          eyebrow="Órdenes y documentos"
+          storageKey="clinical-encounter-panel-orders"
+          defaultExpanded={false}
+          className="mx-auto xl:w-[78%] xl:max-w-[1280px]"
+        >
+          <div data-testid="orders-command-center-collapsible">
             <EncounterRightPane
               patientId={consultation.patientId}
               consultationId={consultationId}
@@ -124,9 +142,9 @@ export function ConsultationWorkspace({
               ordersHighlight={ordersHighlight}
               ordersRefreshKey={ordersRefreshKey}
             />
-          )
-        }
-      />
+          </div>
+        </ClinicalCollapsiblePanel>
+      </div>
     </div>
   );
 }

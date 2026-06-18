@@ -142,6 +142,9 @@ export default function ConsultationDetailPage() {
     useState<ConsultationDiagnosisState>(emptyDiagnosisState());
   const [treatment, setTreatment] = useState("");
   const [saveMsg, setSaveMsg] = useState("");
+  const [manualSaveStatus, setManualSaveStatus] = useState<
+    "idle" | "saving" | "saved" | "error"
+  >("idle");
 
   const [transitioning, setTransitioning] = useState(false);
   const [signing, setSigning] = useState(false);
@@ -418,6 +421,25 @@ export default function ConsultationDetailPage() {
       debounceMs: 900,
       save: persistSoapDraft,
     });
+
+  useEffect(() => {
+    setManualSaveStatus((status) =>
+      status === "saving" ? status : "idle",
+    );
+  }, [soapDraftKey]);
+
+  async function handleManualSave() {
+    if (!isEditable || !consultation) return;
+    setManualSaveStatus("saving");
+    try {
+      await flushNow();
+      setManualSaveStatus("saved");
+      setSaveMsg("Guardado correctamente.");
+    } catch (err) {
+      setManualSaveStatus("error");
+      setSaveMsg(err instanceof Error ? err.message : "Error al guardar");
+    }
+  }
 
   async function handleTransition() {
     if (!consultation) return;
@@ -1051,6 +1073,8 @@ export default function ConsultationDetailPage() {
           autosaveStatus,
           lastSavedAt,
           autosaveError,
+          manualSaveStatus,
+          onManualSave: handleManualSave,
           closure: {
             status,
             isSigned,

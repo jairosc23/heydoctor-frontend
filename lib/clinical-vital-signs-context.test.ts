@@ -26,6 +26,18 @@ describe("clinical-vital-signs-context", () => {
     assert.equal(vitals.bmi, computeBmi(70, 170));
   });
 
+  it("calcula IMC con talla en centímetros o metros", () => {
+    assert.equal(computeBmi(72, 160), 28.1);
+    assert.equal(computeBmi(72, 1.6), 28.1);
+  });
+
+  it("no calcula IMC con valores inválidos", () => {
+    assert.equal(computeBmi(72, 0), null);
+    assert.equal(computeBmi(0, 160), null);
+    assert.equal(computeBmi(Number.NaN, 160), null);
+    assert.equal(computeBmi(72, Number.POSITIVE_INFINITY), null);
+  });
+
   it("no inventa vitales si el texto no los contiene", () => {
     const ctx = parseClinicalVitalSignsFromNotes("Cefalea holocraneana sin otros datos.");
     assert.equal(ctx.hasData, false);

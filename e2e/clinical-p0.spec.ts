@@ -32,18 +32,16 @@ test.describe("Clinical P0 — workspace oficial (Action WS + Smart WS ON)", () 
 
     await page.goto(`/panel/consultas/${consultationId}`);
 
-    // Layout oficial 2-col
+    // Layout oficial: contexto horizontal + ficha clínica prioritaria
     await expect(
       page.locator('[data-testid="encounter-split-layout"]'),
     ).toHaveAttribute("data-clinical-action-workspace", "true");
     await expect(
       page.locator('[data-testid="encounter-split-layout"]'),
-    ).toHaveAttribute("data-columns", "2");
+    ).toHaveAttribute("data-columns", "1");
 
-    // Clinical Memory en rail
-    await expect(
-      page.getByRole("complementary", { name: /contexto del paciente/i }),
-    ).toBeVisible();
+    // Clinical Memory/Timeline fuera de columna lateral fija
+    await expect(page.getByTestId("clinical-context-panels")).toBeVisible();
 
     // Ficha clínica integral + autosave
     await expect(page.getByTestId("clinical-encounter-chart")).toBeVisible();
@@ -210,6 +208,6 @@ test.describe("Clinical P0 — smoke layout flags", () => {
     // Documentar combinación real del entorno
     console.log(`[E2E] Action WS=${actionWs} columns=${columns}`);
     expect(["true", null]).toContain(actionWs);
-    expect(["2", "3"]).toContain(columns);
+    expect(["1"]).toContain(columns);
   });
 });
