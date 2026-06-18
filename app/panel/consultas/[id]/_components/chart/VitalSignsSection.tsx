@@ -31,7 +31,7 @@ const FIELDS: { key: VitalField; label: string; step?: string }[] = [
   { key: "oxygenSaturation", label: "SatO₂ (%)" },
   { key: "temperatureC", label: "Temp (°C)", step: "0.1" },
   { key: "weightKg", label: "Peso (kg)", step: "0.1" },
-  { key: "heightCm", label: "Talla (cm)", step: "0.1" },
+  { key: "heightCm", label: "Talla (cm o m)", step: "0.1" },
 ];
 
 function parseNumberInput(value: string): number | null {
