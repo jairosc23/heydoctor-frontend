@@ -167,7 +167,7 @@ export function ClinicalContextPanels({
           title="Clinical Timeline™"
           eyebrow="Continuidad clínica"
           storageKey="clinical-encounter-panel-timeline"
-          defaultExpanded={false}
+          defaultExpanded
           contentClassName="min-h-[14rem]"
         >
           {loading ? (
