@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   collectProfileAlerts,
   formatPatientSex,
@@ -21,6 +21,8 @@ export interface StickyPatientHeaderProps {
   className?: string;
 }
 
+const COMPACT_SCROLL_THRESHOLD = 96;
+
 function compactAge(ageLabel: string): string {
   const match = ageLabel.match(/(\d+)/);
   return match ? `${match[1]}a` : ageLabel;
@@ -36,6 +38,29 @@ function summarizeLines(
   return `${lines.length} ${pluralLabel}`;
 }
 
+function isScrollableElement(element: HTMLElement): boolean {
+  const style = window.getComputedStyle(element);
+  const overflowY = style.overflowY;
+  return (
+    /(auto|scroll|overlay)/.test(overflowY) &&
+    element.scrollHeight > element.clientHeight
+  );
+}
+
+function findScrollContainer(element: HTMLElement | null): HTMLElement | Window {
+  let current = element?.parentElement ?? null;
+  while (current) {
+    if (isScrollableElement(current)) return current;
+    current = current.parentElement;
+  }
+  return window;
+}
+
+function getScrollTop(container: HTMLElement | Window): number {
+  if ("scrollY" in container) return container.scrollY;
+  return container.scrollTop;
+}
+
 export function StickyPatientHeader({
   patientName,
   patient,
@@ -45,13 +70,23 @@ export function StickyPatientHeader({
   loading = false,
   className,
 }: StickyPatientHeaderProps) {
+  const headerRef = useRef<HTMLElement>(null);
   const [compact, setCompact] = useState(false);
 
   useEffect(() => {
-    const update = () => setCompact(window.scrollY > 96);
+    const container = findScrollContainer(headerRef.current);
+    const update = () => {
+      setCompact(getScrollTop(container) > COMPACT_SCROLL_THRESHOLD);
+    };
+
     update();
-    window.addEventListener("scroll", update, { passive: true });
-    return () => window.removeEventListener("scroll", update);
+    container.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+
+    return () => {
+      container.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
   }, []);
 
   const ageLabel = patient ? resolvePatientAge(patient) : "—";
@@ -69,11 +104,12 @@ export function StickyPatientHeader({
 
   return (
     <section
+      ref={headerRef}
       aria-label="Encabezado clínico persistente del paciente"
       data-testid="sticky-patient-header"
       data-compact={compact ? "true" : "false"}
       className={cn(
-        "sticky top-0 z-30 overflow-hidden border-t border-slate-100 bg-white shadow-md ring-1 ring-slate-900/5 transition-all duration-200",
+        "overflow-hidden border-t border-slate-100 bg-white shadow-md ring-1 ring-slate-900/5 transition-all duration-200",
         compact ? "py-1.5" : "py-2.5",
         className,
       )}

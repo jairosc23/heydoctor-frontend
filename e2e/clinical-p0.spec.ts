@@ -24,6 +24,65 @@ test.describe("Clinical P0 — workspace oficial (Action WS + Smart WS ON)", () 
     await expect(page).not.toHaveURL(/\/login/);
   });
 
+  test("P0-0 Patient Context Bar — sticky persistente en scroll profundo", async ({
+    page,
+  }) => {
+    const consultationId = process.env.E2E_CONSULTATION_HTA;
+    test.skip(!consultationId, "Requiere E2E_CONSULTATION_HTA");
+
+    await page.goto(`/panel/consultas/${consultationId}`);
+
+    const scrollContainer = page.locator("main").first();
+    const chrome = page.getByTestId("encounter-chrome-shell");
+    const header = page.getByTestId("sticky-patient-header");
+
+    await expect(scrollContainer).toBeVisible();
+    await expect(chrome).toBeVisible();
+    await expect(header).toBeVisible();
+
+    await scrollContainer.evaluate((element) => {
+      element.scrollTop = 0;
+      element.dispatchEvent(new Event("scroll", { bubbles: true }));
+    });
+    await expect(header).toHaveAttribute("data-compact", "false");
+
+    await page.getByTestId("encounter-section-13").scrollIntoViewIfNeeded();
+    await scrollContainer.evaluate((element) => {
+      element.scrollTop = Math.min(
+        element.scrollHeight - element.clientHeight,
+        element.scrollTop + 900,
+      );
+      element.dispatchEvent(new Event("scroll", { bubbles: true }));
+    });
+
+    await expect(header).toBeVisible();
+    await expect(header).toHaveAttribute("data-compact", "true");
+
+    const headerOwnsTopLayer = await page.evaluate(() => {
+      const stickyHeader = document.querySelector(
+        '[data-testid="sticky-patient-header"]',
+      );
+      const chromeShell = document.querySelector(
+        '[data-testid="encounter-chrome-shell"]',
+      );
+      if (!(stickyHeader instanceof HTMLElement)) return false;
+      if (!(chromeShell instanceof HTMLElement)) return false;
+
+      const rect = stickyHeader.getBoundingClientRect();
+      const probe = document.elementFromPoint(
+        rect.left + rect.width / 2,
+        rect.top + Math.min(rect.height / 2, 12),
+      );
+
+      return Boolean(
+        probe &&
+          (stickyHeader.contains(probe) || chromeShell.contains(probe)),
+      );
+    });
+
+    expect(headerOwnsTopLayer).toBe(true);
+  });
+
   test("P0-1 HTA seguimiento — Memory → SOAP → Receta → Firma → PDF", async ({
     page,
   }) => {
