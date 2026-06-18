@@ -8,10 +8,35 @@ import {
   resolvePatientAge,
 } from "@/lib/patient-profile-display";
 import { formatPatientDisplayName } from "@/lib/services/patients";
+import { usePatientClinicalMemory } from "@/hooks/usePatientClinicalMemory";
 import { ClinicalMemoryCard } from "./memory/ClinicalMemoryCard";
 import { PatientMemoryCard } from "@/components/clinical/PatientMemoryCard";
 import { ClinicalCollapsiblePanel } from "./ClinicalCollapsiblePanel";
 import type { PatientContextRailProps } from "./PatientContextRail";
+
+function SummaryCell({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0 rounded-hd-md border border-slate-100 bg-slate-50/70 px-hd-3 py-hd-2">
+      <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+        {label}
+      </p>
+      <p className="line-clamp-2 text-xs font-medium leading-snug text-slate-900">
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function formatLastConsultation(value?: string): string {
+  if (!value) return "Consulta previa";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Consulta previa";
+  return date.toLocaleDateString("es-CL", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
 
 export function ClinicalContextPanels({
   patientId,
@@ -25,6 +50,9 @@ export function ClinicalContextPanels({
   snapshotConditionLabels,
   smartWorkspaceEnabled = false,
 }: PatientContextRailProps) {
+  const { data: memory, loading: memoryLoading } =
+    usePatientClinicalMemory(patientId);
+
   if (!patientId) return null;
 
   const displayName = patient ? formatPatientDisplayName(patient) : fallbackName;
@@ -32,6 +60,9 @@ export function ClinicalContextPanels({
   const sexLabel = patient ? formatPatientSex(patient.sex) : "—";
   const documentLabel = patient ? formatPatientDocument(patient) : "—";
   const allergyLines = profile ? jsonLinesToList(profile.allergies) : [];
+  const activeProblems = memory.activeConditions.slice(0, 3);
+  const activeMedications = memory.currentMedications.slice(0, 3);
+  const lastConsultation = memory.recentConsultations[0];
 
   return (
     <section
@@ -62,6 +93,53 @@ export function ClinicalContextPanels({
           {error}
         </p>
       ) : null}
+
+      <section className="rounded-hd-lg border border-hd-border-subtle bg-white px-hd-4 py-hd-3 shadow-hd-1">
+        <p className="mb-hd-2 text-[10px] font-semibold uppercase tracking-wide text-primary/80">
+          Resumen clínico
+        </p>
+        <div className="grid gap-hd-2 text-xs md:grid-cols-2 xl:grid-cols-5">
+          <SummaryCell label="Diagnóstico principal" value={encounterDiagnosis || "Sin diagnóstico"} />
+          <SummaryCell
+            label="Problemas activos"
+            value={
+              memoryLoading
+                ? "Cargando..."
+                : activeProblems.length > 0
+                  ? activeProblems.map((item) => item.label).join(" · ")
+                  : "Sin problemas activos"
+            }
+          />
+          <SummaryCell
+            label="Medicamentos activos"
+            value={
+              memoryLoading
+                ? "Cargando..."
+                : activeMedications.length > 0
+                  ? activeMedications.map((item) => item.name).join(" · ")
+                  : "Sin medicamentos activos"
+            }
+          />
+          <SummaryCell
+            label="Alergias"
+            value={allergyLines.length > 0 ? allergyLines.join(" · ") : "Sin alergias"}
+          />
+          <SummaryCell
+            label="Última consulta"
+            value={
+              memoryLoading
+                ? "Cargando..."
+                : lastConsultation
+                  ? `${formatLastConsultation(lastConsultation.createdAt)} · ${
+                      lastConsultation.diagnosisLabel ||
+                      lastConsultation.diagnosisCode ||
+                      "Consulta médica"
+                    }`
+                  : "Sin consultas previas"
+            }
+          />
+        </div>
+      </section>
 
       <div className="grid gap-hd-3">
         <ClinicalCollapsiblePanel

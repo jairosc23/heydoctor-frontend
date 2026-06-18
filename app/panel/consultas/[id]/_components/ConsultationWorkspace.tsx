@@ -46,6 +46,7 @@ export interface ConsultationWorkspaceProps {
   patientContext: PatientContextRailProps;
   ordersHighlight?: boolean;
   ordersRefreshKey?: number;
+  ordersPanelExpandSignal?: number;
   actionWorkspaceEnabled?: boolean;
   smartWorkspaceEnabled?: boolean;
   encounterChart?: ClinicalEncounterChartProps | null;
@@ -68,6 +69,7 @@ export function ConsultationWorkspace({
   onRightPaneTabChange,
   ordersHighlight,
   ordersRefreshKey,
+  ordersPanelExpandSignal,
   actionWorkspaceEnabled = false,
   smartWorkspaceEnabled = false,
   encounterChart,
@@ -128,6 +130,7 @@ export function ConsultationWorkspace({
           eyebrow="Órdenes y documentos"
           storageKey="clinical-encounter-panel-orders"
           defaultExpanded={false}
+          expandSignal={ordersPanelExpandSignal}
           className={DESKTOP_MODULE_WIDTH}
         >
           <div data-testid="orders-command-center-collapsible">

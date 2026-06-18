@@ -73,49 +73,51 @@ export function StickyPatientHeader({
       data-testid="sticky-patient-header"
       data-compact={compact ? "true" : "false"}
       className={cn(
-        "sticky top-0 z-30 overflow-hidden border-t border-slate-100 bg-white shadow-sm transition-all duration-200",
+        "sticky top-0 z-30 overflow-hidden border-t border-slate-100 bg-white shadow-md ring-1 ring-slate-900/5 transition-all duration-200",
         compact ? "py-1.5" : "py-2.5",
         className,
       )}
     >
-      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-600">
-        <p className="min-w-0 truncate font-[Montserrat] font-bold uppercase tracking-wide text-slate-900">
-          {patientName}
-        </p>
-        <span className="text-slate-300" aria-hidden>
-          |
-        </span>
-        <p className="shrink-0">
-          {compact ? compactAge(ageLabel) : ageLabel}
-          {!compact && sexLabel !== "—" ? ` | ${sexLabel}` : ""}
-        </p>
-        <span className="text-slate-300" aria-hidden>
-          |
-        </span>
-        <p className="min-w-0 truncate font-semibold text-slate-800">
-          {diagnosisLabel}
-        </p>
-        <span className="text-slate-300" aria-hidden>
-          |
-        </span>
-        <p className="shrink-0 text-slate-700">{allergyLabel}</p>
-        {!compact ? (
-          <>
-            <span className="text-slate-300" aria-hidden>
-              |
+      <div className="flex min-w-0 flex-wrap items-center gap-2 text-xs text-slate-600">
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-[Montserrat] text-sm font-bold uppercase tracking-wide text-slate-950">
+            {patientName}
+          </p>
+          {!compact ? (
+            <p className="mt-0.5 text-[11px] text-slate-500">
+              {ageLabel} · {sexLabel}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="min-w-0 flex flex-1 flex-wrap items-center gap-1.5">
+          <span className="inline-flex max-w-[16rem] items-center rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-800">
+            <span className="mr-1 text-slate-400">Dx</span>
+            <span className="truncate">{diagnosisLabel}</span>
+          </span>
+          <span className="inline-flex items-center rounded-full bg-red-50 px-2.5 py-1 text-[11px] font-semibold text-red-800">
+            {allergyLabel}
+          </span>
+          {!compact ? (
+            <span className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-900">
+              {alertLabel}
             </span>
-            <p className="shrink-0 text-slate-700">{alertLabel}</p>
-          </>
+          ) : null}
+          <span className="inline-flex items-center rounded-full bg-primaryLight px-2.5 py-1 text-[11px] font-semibold text-primary">
+            {statusLabel}
+          </span>
+        </div>
+
+        {compact ? (
+          <p className="shrink-0 text-[11px] font-medium text-slate-500">
+            {compactAge(ageLabel)}
+          </p>
         ) : null}
-        <span className="text-slate-300" aria-hidden>
-          |
-        </span>
-        <p className="shrink-0 font-semibold text-primary">{statusLabel}</p>
       </div>
 
       {!compact ? (
-        <p className="mt-1 text-[11px] text-slate-500">
-          Riesgo: {allergyLabel} | {alertLabel}
+        <p className="mt-1.5 text-[11px] text-slate-500">
+          Patient Context Bar · Riesgo: {allergyLabel} · {alertLabel}
         </p>
       ) : null}
     </section>

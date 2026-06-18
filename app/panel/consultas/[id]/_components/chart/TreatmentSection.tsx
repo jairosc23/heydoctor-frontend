@@ -24,7 +24,7 @@ export function TreatmentSection({
         </span>
         <textarea
           id="soap-treatment"
-          rows={4}
+          rows={3}
           className={INPUT_CLASS}
           value={value}
           disabled={!editable}

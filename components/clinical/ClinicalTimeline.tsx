@@ -124,6 +124,103 @@ function TimelineNode({
   );
 }
 
+function formatEventDate(event: ClinicalTimelineEvent): string {
+  if (event.sortAt <= 0) return "Sin fecha";
+  return new Date(event.sortAt).toLocaleDateString("es-CL", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function displayEventTitle(event: ClinicalTimelineEvent): string {
+  if (event.kind === "consultation") return "Consulta médica";
+  return event.title;
+}
+
+function groupEventsByDate(events: ClinicalTimelineEvent[]): {
+  label: string;
+  events: ClinicalTimelineEvent[];
+}[] {
+  const groups = new Map<string, ClinicalTimelineEvent[]>();
+  for (const event of events) {
+    const label = formatEventDate(event);
+    const bucket = groups.get(label) ?? [];
+    bucket.push(event);
+    groups.set(label, bucket);
+  }
+  return Array.from(groups.entries()).map(([label, items]) => ({
+    label,
+    events: items,
+  }));
+}
+
+function TimelineDateGroup({
+  label,
+  events,
+  currentYear,
+  dense = false,
+}: {
+  label: string;
+  events: ClinicalTimelineEvent[];
+  currentYear: number;
+  dense?: boolean;
+}) {
+  return (
+    <li className={cn("relative", dense ? "pb-hd-2" : "pb-hd-3")}>
+      <span
+        className="absolute -left-[1.625rem] top-3 flex h-2.5 w-2.5 -translate-x-1/2 rounded-full border-2 border-white bg-primary shadow-sm"
+        aria-hidden
+      />
+      <div className="rounded-hd-md border border-hd-border-subtle bg-white/80 px-hd-3 py-hd-2 shadow-sm">
+        <p className="mb-hd-1.5 text-[11px] font-bold uppercase tracking-wide text-slate-500">
+          {label}
+        </p>
+        <ul className="space-y-1.5">
+          {events.map((event) => {
+            const recent = isRecentEvent(event, currentYear);
+            return (
+              <li
+                key={event.id}
+                className="flex min-w-0 items-start gap-2 text-xs text-slate-700"
+              >
+                <span
+                  className={cn(
+                    "mt-1 h-1.5 w-1.5 shrink-0 rounded-full",
+                    event.kind === "diagnosis" && "bg-indigo-500",
+                    event.kind === "consultation" && "bg-slate-400",
+                    event.kind === "medication" && "bg-teal-500",
+                    event.kind === "lab" && "bg-amber-500",
+                  )}
+                  aria-hidden
+                />
+                <span className="min-w-0">
+                  <span className="font-semibold text-slate-900">
+                    {displayEventTitle(event)}
+                  </span>
+                  {event.code ? (
+                    <span className="ml-1 font-mono text-[10px] text-indigo-700">
+                      {event.code}
+                    </span>
+                  ) : null}
+                  {event.kind !== "consultation" && event.subtitle ? (
+                    <span className="ml-1 text-slate-500">· {event.subtitle}</span>
+                  ) : null}
+                  {recent ? (
+                    <span className="ml-1 text-[10px] font-semibold text-primary">
+                      Reciente
+                    </span>
+                  ) : null}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </li>
+  );
+}
+
 function YearGroup({
   group,
   currentYear,
@@ -155,13 +252,13 @@ function YearGroup({
         />
       </div>
       <ol className="relative m-0 list-none pl-5">
-        {group.events.map((event, index) => (
-          <TimelineNode
-            key={event.id}
-            event={event}
+        {groupEventsByDate(group.events).map((dateGroup) => (
+          <TimelineDateGroup
+            key={`${group.year}-${dateGroup.label}`}
+            label={dateGroup.label}
+            events={dateGroup.events}
             currentYear={currentYear}
             dense={dense}
-            isLastInSection={index === group.events.length - 1}
           />
         ))}
       </ol>

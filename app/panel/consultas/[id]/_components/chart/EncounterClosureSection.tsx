@@ -50,7 +50,7 @@ export function EncounterClosureSection({
   return (
     <div
       data-testid="encounter-closure-section"
-      className="mt-hd-4 space-y-hd-4 border-t-2 border-primary/15 pt-hd-4"
+      className="mt-hd-3 space-y-hd-3 border-t-2 border-primary/15 pt-hd-3"
       aria-label="Cierre médico legal"
     >
       <ClinicalEncounterSection
@@ -58,7 +58,7 @@ export function EncounterClosureSection({
         title="Firma médica y bloqueo legal"
         id="encounter-section-20"
       >
-        <div className="mb-hd-3 flex flex-wrap items-center gap-2">
+        <div className="mb-hd-2 flex flex-wrap items-center gap-2">
           <span
             className={cn(
               "rounded-full px-2.5 py-0.5 text-xs font-semibold",
@@ -83,7 +83,7 @@ export function EncounterClosureSection({
         </div>
 
         {isSigned && doctorSignature ? (
-          <div className="flex flex-wrap items-center gap-3 rounded-hd-md border border-emerald-200 bg-emerald-50/80 p-hd-3">
+          <div className="flex flex-wrap items-center gap-3 rounded-hd-md border border-emerald-200 bg-emerald-50/80 p-hd-2">
             <Image
               unoptimized
               src={`data:image/png;base64,${doctorSignature}`}
@@ -106,7 +106,7 @@ export function EncounterClosureSection({
 
         {showSign ? (
           <div id="encounter-sign-panel" data-testid="encounter-sign-panel">
-            <p className="mb-hd-2 text-sm text-slate-600">
+            <p className="mb-hd-1.5 text-sm text-slate-600">
               La firma cierra la consulta de forma legal e inmutable. Revise la
               ficha antes de firmar.
             </p>
@@ -132,7 +132,7 @@ export function EncounterClosureSection({
           </p>
         ) : null}
 
-        <div className="mt-hd-3 rounded-hd-md border border-hd-border-subtle bg-hd-surface-muted px-hd-3 py-hd-2">
+        <div className="mt-hd-2 rounded-hd-md border border-hd-border-subtle bg-hd-surface-muted px-hd-3 py-hd-2">
           <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-600">
             Bloqueo legal
           </p>

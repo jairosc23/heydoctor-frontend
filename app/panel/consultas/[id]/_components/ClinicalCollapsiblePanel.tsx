@@ -8,6 +8,7 @@ export interface ClinicalCollapsiblePanelProps {
   eyebrow?: string;
   storageKey: string;
   defaultExpanded?: boolean;
+  expandSignal?: number;
   children: ReactNode;
   className?: string;
   contentClassName?: string;
@@ -18,6 +19,7 @@ export function ClinicalCollapsiblePanel({
   eyebrow,
   storageKey,
   defaultExpanded = true,
+  expandSignal,
   children,
   className,
   contentClassName,
@@ -34,6 +36,16 @@ export function ClinicalCollapsiblePanel({
       /* Session persistence is progressive enhancement. */
     }
   }, [storageKey]);
+
+  useEffect(() => {
+    if (!expandSignal) return;
+    setExpanded(true);
+    try {
+      window.sessionStorage.setItem(storageKey, "expanded");
+    } catch {
+      /* noop */
+    }
+  }, [expandSignal, storageKey]);
 
   const toggle = () => {
     setExpanded((current) => {
