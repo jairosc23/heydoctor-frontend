@@ -26,12 +26,12 @@ export function ClinicalEncounterSection({
       id={sectionId}
       data-encounter-section={sectionNumber}
       className={cn(
-        "rounded-hd-lg border border-hd-border-subtle bg-hd-surface-raised p-hd-4 shadow-hd-1",
+        "rounded-hd-lg border border-hd-border-subtle bg-hd-surface-raised p-hd-3 shadow-hd-1",
         className,
       )}
       aria-labelledby={`${sectionId}-title`}
     >
-      <header className="mb-hd-3 border-b border-hd-border-subtle pb-hd-2">
+      <header className="mb-hd-2 border-b border-hd-border-subtle pb-hd-1.5">
         <p className="text-[10px] font-semibold uppercase tracking-wide text-primary/80">
           §{sectionNumber}
         </p>

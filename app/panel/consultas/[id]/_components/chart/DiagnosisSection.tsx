@@ -42,7 +42,7 @@ export function DiagnosisSection({
             code={diagnosisCode}
             description={diagnosisDescription}
             variant={badgeVariant}
-            className="mb-hd-3"
+            className="mb-hd-2"
           />
         ) : null}
         <SmartDiagnosisPicker

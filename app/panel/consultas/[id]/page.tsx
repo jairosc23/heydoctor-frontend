@@ -160,6 +160,7 @@ export default function ConsultationDetailPage() {
   const [ordersSubTab, setOrdersSubTab] = useState<OrdersSubTab>("prescriptions");
   const [ordersHighlight, setOrdersHighlight] = useState(false);
   const [ordersRefreshKey, setOrdersRefreshKey] = useState(0);
+  const [ordersPanelExpandSignal, setOrdersPanelExpandSignal] = useState(0);
   const clinicalActionWorkspaceNavRef =
     useRef<ClinicalActionWorkspaceContextValue | null>(null);
   const workspaceRef = useRef<HTMLDivElement>(null);
@@ -599,6 +600,7 @@ export default function ConsultationDetailPage() {
   }
 
   function handleOpenPrescription() {
+    setOrdersPanelExpandSignal((value) => value + 1);
     if (clinicalActionWorkspaceEnabled) {
       openClinicalModule("prescriptions");
       return;
@@ -609,6 +611,7 @@ export default function ConsultationDetailPage() {
   }
 
   function handleOpenLabOrders() {
+    setOrdersPanelExpandSignal((value) => value + 1);
     if (clinicalActionWorkspaceEnabled) {
       openClinicalModule("lab");
       return;
@@ -619,6 +622,7 @@ export default function ConsultationDetailPage() {
   }
 
   async function handleGenerateInvoice() {
+    setOrdersPanelExpandSignal((value) => value + 1);
     setActionLoading((s) => ({ ...s, invoice: true }));
     const r = await generateConsultationInvoice(id);
     setActionLoading((s) => ({ ...s, invoice: false }));
@@ -626,6 +630,7 @@ export default function ConsultationDetailPage() {
   }
 
   async function handleDownloadPdf() {
+    setOrdersPanelExpandSignal((value) => value + 1);
     setActionLoading((s) => ({ ...s, pdf: true }));
     const r = await downloadConsultationPdf(id);
     setActionLoading((s) => ({ ...s, pdf: false }));
@@ -669,6 +674,7 @@ export default function ConsultationDetailPage() {
   }
 
   async function handleSignedPrescription() {
+    setOrdersPanelExpandSignal((value) => value + 1);
     setActionLoading((s) => ({ ...s, signedPrescription: true }));
     const r = await generateSignedPrescription(id);
     setActionLoading((s) => ({ ...s, signedPrescription: false }));
@@ -676,6 +682,7 @@ export default function ConsultationDetailPage() {
   }
 
   async function handleSignedCertificate() {
+    setOrdersPanelExpandSignal((value) => value + 1);
     setActionLoading((s) => ({ ...s, signedCertificate: true }));
     const r = await generateSignedMedicalCertificate(id);
     setActionLoading((s) => ({ ...s, signedCertificate: false }));
@@ -683,6 +690,7 @@ export default function ConsultationDetailPage() {
   }
 
   async function handleSignedReferral() {
+    setOrdersPanelExpandSignal((value) => value + 1);
     setActionLoading((s) => ({ ...s, signedReferral: true }));
     const r = await generateSignedReferral(id);
     setActionLoading((s) => ({ ...s, signedReferral: false }));
@@ -690,6 +698,7 @@ export default function ConsultationDetailPage() {
   }
 
   async function handlePremiumDocument() {
+    setOrdersPanelExpandSignal((value) => value + 1);
     setActionLoading((s) => ({ ...s, premium: true }));
     const r = await generatePremiumDocument(id);
     setActionLoading((s) => ({ ...s, premium: false }));
@@ -1041,6 +1050,7 @@ export default function ConsultationDetailPage() {
         onLegacyInvoiceResult={handleActionResult}
         ordersHighlight={ordersHighlight}
         ordersRefreshKey={ordersRefreshKey}
+        ordersPanelExpandSignal={ordersPanelExpandSignal}
         encounterChart={{
           vitals,
           onVitalsChange: setVitals,
@@ -1156,6 +1166,7 @@ export default function ConsultationDetailPage() {
           onLegacyInvoiceResult={handleActionResult}
           ordersHighlight={ordersHighlight}
           ordersRefreshKey={ordersRefreshKey}
+          ordersPanelExpandSignal={ordersPanelExpandSignal}
           diagnosisCode={
             diagnosisState.diagnosisCode || diagnosisState.diagnosis || undefined
           }
