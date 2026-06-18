@@ -66,8 +66,8 @@ export function useConsultationAutosave({
   }, [enabled]);
 
   const flushNow = useCallback(async () => {
-    await runSave(debouncedKey);
-  }, [debouncedKey, runSave]);
+    await runSave(draftKey);
+  }, [draftKey, runSave]);
 
   useEffect(() => {
     if (!enabled) {

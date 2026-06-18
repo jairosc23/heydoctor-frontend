@@ -20,6 +20,8 @@ import {
 import { PatientIdentificationSection } from "./PatientIdentificationSection";
 import { PatientAntecedentsSection } from "./PatientLongitudinalSections";
 
+export type ManualSaveStatus = "idle" | "saving" | "saved" | "error";
+
 export interface PatientLongitudinalProps {
   patient: PatientRow | null;
   profile: PatientProfile | null;
@@ -54,6 +56,8 @@ export interface ClinicalEncounterChartProps {
   autosaveStatus?: AutosaveStatus;
   lastSavedAt?: Date | null;
   autosaveError?: string | null;
+  manualSaveStatus?: ManualSaveStatus;
+  onManualSave?: () => void | Promise<void>;
   headerExtra?: ReactNode;
   closure?: EncounterClosureSectionProps;
   longitudinal?: PatientLongitudinalProps;
@@ -83,6 +87,8 @@ export function ClinicalEncounterChart({
   autosaveStatus,
   lastSavedAt,
   autosaveError,
+  manualSaveStatus = "idle",
+  onManualSave,
   headerExtra,
   closure,
   longitudinal,
@@ -92,6 +98,16 @@ export function ClinicalEncounterChart({
     profile: longitudinal?.profile ?? null,
     loading: longitudinal?.loading,
   };
+  const manualSaveLabel =
+    manualSaveStatus === "saving"
+      ? "Guardando..."
+      : manualSaveStatus === "saved"
+        ? "Guardado ✓"
+        : manualSaveStatus === "error"
+          ? "Error"
+          : "Guardar";
+  const manualSaveDisabled =
+    !editable || !onManualSave || manualSaveStatus === "saving";
 
   return (
     <div
@@ -108,6 +124,15 @@ export function ClinicalEncounterChart({
         </div>
         <div className="flex items-center gap-2">
           {headerExtra}
+          <button
+            type="button"
+            onClick={() => void onManualSave?.()}
+            disabled={manualSaveDisabled}
+            className="inline-flex h-8 items-center rounded-hd-md border border-primary/20 bg-white px-3 text-xs font-semibold text-primary shadow-sm transition-colors hover:bg-primaryLight disabled:cursor-not-allowed disabled:opacity-60"
+            data-testid="encounter-manual-save"
+          >
+            {manualSaveLabel}
+          </button>
           {editable && autosaveStatus ? (
             <AutosaveIndicator
               status={autosaveStatus}
