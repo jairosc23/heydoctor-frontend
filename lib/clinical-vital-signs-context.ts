@@ -95,9 +95,8 @@ function normalizeHeightToCm(value: number): number | null {
 /** IMC con peso en kg y talla aceptando centímetros (160) o metros (1.60). */
 export function computeBmi(weightKg: number, heightCmOrM: number): number | null {
   if (!Number.isFinite(weightKg) || weightKg <= 0) return null;
-  const heightCm = normalizeHeightToCm(heightCmOrM);
-  if (heightCm == null) return null;
-  const heightM = heightCm / 100;
+  if (!Number.isFinite(heightCmOrM) || heightCmOrM <= 0) return null;
+  const heightM = heightCmOrM > 10 ? heightCmOrM / 100 : heightCmOrM;
   if (!Number.isFinite(heightM) || heightM <= 0) return null;
   const bmi = weightKg / (heightM * heightM);
   return Number.isFinite(bmi) ? round1(bmi) : null;
@@ -118,15 +117,13 @@ export function normalizeClinicalVitalSigns(
       raw.heightCm != null && finiteNumber(raw.heightCm) != null
         ? normalizeHeightToCm(raw.heightCm)
         : null,
-    bmi: finiteNumber(raw.bmi),
+    bmi: null,
   };
 
-  if (
-    vitals.bmi == null &&
-    vitals.weightKg != null &&
-    vitals.heightCm != null
-  ) {
+  if (vitals.weightKg != null && vitals.heightCm != null) {
     vitals.bmi = computeBmi(vitals.weightKg, vitals.heightCm);
+  } else {
+    vitals.bmi = finiteNumber(raw.bmi);
   }
 
   return vitals;

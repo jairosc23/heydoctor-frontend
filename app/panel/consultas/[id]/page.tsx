@@ -65,9 +65,8 @@ import {
 } from "@/lib/compose-encounter-notes";
 import { useEncounterNotesDraft } from "@/hooks/useEncounterNotesDraft";
 import { PatientContextRail } from "./_components/PatientContextRail";
-import { SafetyStrip } from "./_components/SafetyStrip";
 import { EncounterHeader } from "./_components/EncounterHeader";
-import { PatientSnapshot } from "./_components/PatientSnapshot";
+import { StickyPatientHeader } from "./_components/StickyPatientHeader";
 import { ClinicalCopilotDrawer } from "./_components/copilot/ClinicalCopilotDrawer";
 import {
   DoctorDnaDrawer,
@@ -869,23 +868,18 @@ export default function ConsultationDetailPage() {
             }}
           />
           <div className="clinical-depth-2 space-y-hd-2 pb-hd-2">
-            <PatientSnapshot
-              patientId={consultation.patientId}
+            <StickyPatientHeader
               patientName={patientName}
               patient={patientRow}
               profile={patientProfile}
               status={status}
-              compact={
-                clinicalActionWorkspaceEnabled && !!consultation.patientId
+              diagnosis={
+                diagnosisState.diagnosisDescription ||
+                diagnosisState.diagnosis ||
+                null
               }
+              loading={patientContextLoading}
             />
-            {consultation.patientId ? (
-              <SafetyStrip
-                profile={patientProfile}
-                loading={patientContextLoading}
-                embedded
-              />
-            ) : null}
             {clinicalActionWorkspaceEnabled && consultation.patientId ? (
               <ClinicalActionBar
                 patientId={consultation.patientId}

@@ -4,6 +4,7 @@ import {
   computeBmi,
   extractVitalSignsFromText,
   formatClinicalVitalSignsForContext,
+  normalizeClinicalVitalSigns,
   parseClinicalVitalSignsFromNotes,
   serializeClinicalVitalSigns,
   VITAL_SIGNS_MARKER,
@@ -27,8 +28,18 @@ describe("clinical-vital-signs-context", () => {
   });
 
   it("calcula IMC con talla en centímetros o metros", () => {
+    assert.equal(computeBmi(72, 170), 24.9);
     assert.equal(computeBmi(72, 160), 28.1);
     assert.equal(computeBmi(72, 1.6), 28.1);
+  });
+
+  it("recalcula IMC desde peso y talla aunque exista un IMC stale", () => {
+    const vitals = normalizeClinicalVitalSigns({
+      weightKg: 72,
+      heightCm: 170,
+      bmi: 72,
+    });
+    assert.equal(vitals.bmi, 24.9);
   });
 
   it("no calcula IMC con valores inválidos", () => {
