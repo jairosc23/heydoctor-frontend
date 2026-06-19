@@ -8,7 +8,7 @@ import {
   clinicalMemoryConfidenceLabel,
 } from "@/lib/clinical-memory";
 import { partitionMemoryHighlights } from "@/lib/clinical-memory-prioritization";
-import { usePatientClinicalMemory } from "@/hooks/usePatientClinicalMemory";
+import { EMPTY_PATIENT_CLINICAL_MEMORY } from "@/hooks/usePatientClinicalMemory";
 import type { PatientClinicalMemory } from "@/lib/types/clinical-memory";
 import { cn } from "@/lib/utils";
 
@@ -38,15 +38,9 @@ export function ClinicalMemoryCard({
   memoryError,
   className,
 }: ClinicalMemoryCardProps) {
-  const memoryProvided = memory !== undefined;
-  const {
-    data: fetchedMemory,
-    loading: fetchedLoading,
-    error: fetchedError,
-  } = usePatientClinicalMemory(patientId, { enabled: !memoryProvided });
-  const data = memory ?? fetchedMemory;
-  const loading = memoryProvided ? Boolean(memoryLoading) : fetchedLoading;
-  const error = memoryProvided ? (memoryError ?? null) : fetchedError;
+  const data = memory ?? EMPTY_PATIENT_CLINICAL_MEMORY;
+  const loading = Boolean(memoryLoading);
+  const error = memoryError ?? null;
 
   const memoryView = useMemo(
     () =>

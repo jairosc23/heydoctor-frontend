@@ -963,6 +963,7 @@ export default function ConsultationDetailPage() {
         patientName={patientName}
         patientAge={soapPatientAge}
         patientSex={soapPatientSex}
+        clinicalMemory={patientClinicalMemoryState.data}
       />
 
       <DoctorDnaDrawer
@@ -1092,6 +1093,9 @@ export default function ConsultationDetailPage() {
           patientId: consultation.patientId,
           encounterDiagnosis,
           allergyLines: jsonLinesToList(patientProfile?.allergies),
+          clinicalMemory: patientClinicalMemoryState.data,
+          clinicalMemoryLoading: patientClinicalMemoryState.loading,
+          clinicalMemoryError: patientClinicalMemoryState.error,
           editable: isEditable && editMode,
           autosaveStatus,
           lastSavedAt,

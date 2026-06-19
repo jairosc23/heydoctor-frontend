@@ -8,7 +8,7 @@ import {
   resolvePatientAge,
 } from "@/lib/patient-profile-display";
 import { formatPatientDisplayName } from "@/lib/services/patients";
-import { usePatientClinicalMemory } from "@/hooks/usePatientClinicalMemory";
+import { EMPTY_PATIENT_CLINICAL_MEMORY } from "@/hooks/usePatientClinicalMemory";
 import { ClinicalMemoryCard } from "./memory/ClinicalMemoryCard";
 import { PatientMemoryCard } from "@/components/clinical/PatientMemoryCard";
 import { ClinicalCollapsiblePanel } from "./ClinicalCollapsiblePanel";
@@ -53,22 +53,11 @@ export function ClinicalContextPanels({
   clinicalMemoryLoading,
   clinicalMemoryError,
 }: PatientContextRailProps) {
-  const memoryProvided = clinicalMemory !== undefined;
-  const {
-    data: fetchedMemory,
-    loading: fetchedMemoryLoading,
-    error: fetchedMemoryError,
-  } = usePatientClinicalMemory(patientId, { enabled: !memoryProvided });
-
   if (!patientId) return null;
 
-  const memory = clinicalMemory ?? fetchedMemory;
-  const memoryLoading = memoryProvided
-    ? Boolean(clinicalMemoryLoading)
-    : fetchedMemoryLoading;
-  const memoryError = memoryProvided
-    ? (clinicalMemoryError ?? null)
-    : fetchedMemoryError;
+  const memory = clinicalMemory ?? EMPTY_PATIENT_CLINICAL_MEMORY;
+  const memoryLoading = Boolean(clinicalMemoryLoading);
+  const memoryError = clinicalMemoryError ?? null;
   const displayName = patient ? formatPatientDisplayName(patient) : fallbackName;
   const ageLabel = patient ? resolvePatientAge(patient) : "—";
   const sexLabel = patient ? formatPatientSex(patient.sex) : "—";

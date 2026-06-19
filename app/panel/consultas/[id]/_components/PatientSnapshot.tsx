@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { usePatientClinicalMemory } from "@/hooks/usePatientClinicalMemory";
+import { EMPTY_PATIENT_CLINICAL_MEMORY } from "@/hooks/usePatientClinicalMemory";
 import {
   formatPatientDocument,
   formatPatientSex,
@@ -9,6 +9,7 @@ import {
   resolvePatientAge,
 } from "@/lib/patient-profile-display";
 import type { PatientProfile, PatientRow } from "@/lib/services/patients";
+import type { PatientClinicalMemory } from "@/lib/types/clinical-memory";
 import { cn } from "@/lib/utils";
 import { STATUS_LABELS } from "./consultation-status";
 
@@ -48,22 +49,25 @@ export interface PatientSnapshotProps {
   patient: PatientRow | null;
   profile: PatientProfile | null;
   status: string;
+  clinicalMemory?: PatientClinicalMemory;
+  clinicalMemoryLoading?: boolean;
   /** Phase 4.2.3a — fila única en desktop xl+ (Context Rail cubre detalle). */
   compact?: boolean;
   className?: string;
 }
 
 export function PatientSnapshot({
-  patientId,
   patientName,
   patient,
   profile,
   status,
+  clinicalMemory,
+  clinicalMemoryLoading = false,
   compact = false,
   className,
 }: PatientSnapshotProps) {
-  const { data: memory, loading: memoryLoading } =
-    usePatientClinicalMemory(patientId);
+  const memory = clinicalMemory ?? EMPTY_PATIENT_CLINICAL_MEMORY;
+  const memoryLoading = clinicalMemoryLoading;
 
   const ageLabel = patient ? resolvePatientAge(patient) : "—";
   const sexLabel = patient ? formatPatientSex(patient.sex) : "—";

@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo } from "react";
 import { useDoctorDna } from "@/hooks/useDoctorDna";
-import { usePatientClinicalMemory } from "@/hooks/usePatientClinicalMemory";
+import { EMPTY_PATIENT_CLINICAL_MEMORY } from "@/hooks/usePatientClinicalMemory";
 import { buildClinicalMemoryView } from "@/lib/clinical-memory";
 import { buildClinicalCopilotIntelligence, COPILOT_SILENCE_MESSAGE } from "@/lib/clinical-copilot-intelligence";
 import { buildDoctorDnaIntelligenceView } from "@/lib/doctor-dna-intelligence";
+import type { PatientClinicalMemory } from "@/lib/types/clinical-memory";
 import { cn } from "@/lib/utils";
 import {
   CLINICAL_OVERLAY_BACKDROP_CLASS,
@@ -34,6 +35,7 @@ export interface ClinicalCopilotDrawerProps {
   patientName?: string | null;
   patientAge?: string | number | null;
   patientSex?: string | null;
+  clinicalMemory?: PatientClinicalMemory;
   generativeExpandToken?: number;
 }
 
@@ -51,11 +53,11 @@ export function ClinicalCopilotDrawer({
   patientName,
   patientAge,
   patientSex,
+  clinicalMemory: providedClinicalMemory,
   generativeExpandToken = 0,
 }: ClinicalCopilotDrawerProps) {
-  const { data: clinicalMemoryData } = usePatientClinicalMemory(
-    open ? patientId : null,
-  );
+  const clinicalMemoryData =
+    providedClinicalMemory ?? EMPTY_PATIENT_CLINICAL_MEMORY;
   const { data: doctorDnaData, loading: dnaLoading, error: dnaError } =
     useDoctorDna();
 
