@@ -49,12 +49,26 @@ export function ClinicalContextPanels({
   encounterDiagnosis,
   snapshotConditionLabels,
   smartWorkspaceEnabled = false,
+  clinicalMemory,
+  clinicalMemoryLoading,
+  clinicalMemoryError,
 }: PatientContextRailProps) {
-  const { data: memory, loading: memoryLoading } =
-    usePatientClinicalMemory(patientId);
+  const memoryProvided = clinicalMemory !== undefined;
+  const {
+    data: fetchedMemory,
+    loading: fetchedMemoryLoading,
+    error: fetchedMemoryError,
+  } = usePatientClinicalMemory(patientId, { enabled: !memoryProvided });
 
   if (!patientId) return null;
 
+  const memory = clinicalMemory ?? fetchedMemory;
+  const memoryLoading = memoryProvided
+    ? Boolean(clinicalMemoryLoading)
+    : fetchedMemoryLoading;
+  const memoryError = memoryProvided
+    ? (clinicalMemoryError ?? null)
+    : fetchedMemoryError;
   const displayName = patient ? formatPatientDisplayName(patient) : fallbackName;
   const ageLabel = patient ? resolvePatientAge(patient) : "—";
   const sexLabel = patient ? formatPatientSex(patient.sex) : "—";
@@ -91,6 +105,14 @@ export function ClinicalContextPanels({
           role="alert"
         >
           {error}
+        </p>
+      ) : null}
+      {memoryError ? (
+        <p
+          className="rounded-hd-md border border-amber-200 bg-amber-50 px-hd-3 py-hd-2 text-xs text-amber-900"
+          role="alert"
+        >
+          Memoria clínica no disponible en este momento.
         </p>
       ) : null}
 
@@ -158,6 +180,9 @@ export function ClinicalContextPanels({
               snapshotConditionLabels={snapshotConditionLabels}
               allergyLines={allergyLines}
               compact={smartWorkspaceEnabled}
+              memory={memory}
+              memoryLoading={memoryLoading}
+              memoryError={memoryError}
               className="border-0 bg-transparent p-0 shadow-none"
             />
           )}
@@ -178,6 +203,9 @@ export function ClinicalContextPanels({
               currentConsultationId={currentConsultationId}
               progressiveDisclosure={false}
               initialEventLimit={5}
+              memory={memory}
+              memoryLoading={memoryLoading}
+              memoryError={memoryError}
               className="border-0 bg-transparent p-0 shadow-none"
             />
           )}

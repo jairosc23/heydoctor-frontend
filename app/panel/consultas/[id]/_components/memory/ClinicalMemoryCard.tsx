@@ -9,6 +9,7 @@ import {
 } from "@/lib/clinical-memory";
 import { partitionMemoryHighlights } from "@/lib/clinical-memory-prioritization";
 import { usePatientClinicalMemory } from "@/hooks/usePatientClinicalMemory";
+import type { PatientClinicalMemory } from "@/lib/types/clinical-memory";
 import { cn } from "@/lib/utils";
 
 const COMPACT_VISIBLE_HIGHLIGHTS = 3;
@@ -20,6 +21,9 @@ export interface ClinicalMemoryCardProps {
   allergyLines?: string[];
   /** Phase 4.3 — densidad reducida en Context Rail. */
   compact?: boolean;
+  memory?: PatientClinicalMemory;
+  memoryLoading?: boolean;
+  memoryError?: string | null;
   className?: string;
 }
 
@@ -29,9 +33,20 @@ export function ClinicalMemoryCard({
   snapshotConditionLabels,
   allergyLines = [],
   compact = false,
+  memory,
+  memoryLoading,
+  memoryError,
   className,
 }: ClinicalMemoryCardProps) {
-  const { data, loading, error } = usePatientClinicalMemory(patientId);
+  const memoryProvided = memory !== undefined;
+  const {
+    data: fetchedMemory,
+    loading: fetchedLoading,
+    error: fetchedError,
+  } = usePatientClinicalMemory(patientId, { enabled: !memoryProvided });
+  const data = memory ?? fetchedMemory;
+  const loading = memoryProvided ? Boolean(memoryLoading) : fetchedLoading;
+  const error = memoryProvided ? (memoryError ?? null) : fetchedError;
 
   const memoryView = useMemo(
     () =>
