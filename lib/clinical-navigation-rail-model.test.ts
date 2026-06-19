@@ -117,6 +117,41 @@ test("buildClinicalNavigationIntelligence marks signature ready before signing",
   assert.ok(model.progress.completionPercentage > 50);
 });
 
+test("buildClinicalNavigationIntelligence follows closure canSign for signature readiness", () => {
+  const model = buildClinicalNavigationIntelligence(
+    chartFixture({
+      presentIllnessHistory: "",
+      diagnosis: "",
+      treatment: "",
+      closure: {
+        status: "in_progress",
+        isSigned: false,
+        isLocked: false,
+        canSign: true,
+        signing: false,
+        onSign: () => undefined,
+        documentHandlers,
+        documentLoading: {},
+        documentDisabled: {},
+      },
+    }),
+  );
+  const signature = model.sections.find((section) => section.sectionNumber === 20);
+  const documents = model.sections.find((section) => section.sectionNumber === 22);
+
+  assert.equal(model.progress.signatureReady, true);
+  assert.equal(signature?.completion, "in_progress");
+  assert.equal(signature?.risk, undefined);
+  assert.equal(
+    model.validationIssues.some(
+      (issue) => issue.code === "missing_signature_prerequisites",
+    ),
+    false,
+  );
+  assert.equal(documents?.completion, "blocked");
+  assert.equal(documents?.risk, "info");
+});
+
 test("buildClinicalNavigationIntelligence completes signed encounters", () => {
   const model = buildClinicalNavigationIntelligence(
     chartFixture({

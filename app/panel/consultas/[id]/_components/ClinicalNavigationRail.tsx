@@ -51,12 +51,13 @@ function completionDotClass(
   completion: ClinicalNavigationCompletion,
   risk?: ClinicalNavigationRisk,
 ) {
-  if (risk === "critical" || completion === "blocked") {
-    return "border-red-200 bg-red-500";
+  if (risk) {
+    if (risk === "critical") return "border-red-200 bg-red-500";
+    if (risk === "warning") return "border-amber-200 bg-amber-500";
+    return "border-blue-200 bg-blue-500";
   }
-  if (risk === "warning" || completion === "warning") {
-    return "border-amber-200 bg-amber-500";
-  }
+  if (completion === "blocked") return "border-red-200 bg-red-500";
+  if (completion === "warning") return "border-amber-200 bg-amber-500";
   if (completion === "completed") return "border-emerald-200 bg-emerald-500";
   if (completion === "in_progress") return "border-blue-200 bg-blue-500";
   return "border-slate-200 bg-slate-300";

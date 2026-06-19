@@ -138,10 +138,8 @@ export function buildClinicalNavigationIntelligence(
     chart.closure?.status === "signed" || chart.closure?.status === "locked";
   const profileLoading = Boolean(chart.longitudinal?.loading);
   const profileHasContent = hasProfileContent(chart.longitudinal?.profile);
-  const signaturePrerequisitesReady =
-    hasPatient && hasAnamnesis && hasDiagnosis && hasTreatment;
-  const signatureReady =
-    signedOrLocked || (signaturePrerequisitesReady && Boolean(chart.closure?.canSign));
+  const canSign = Boolean(chart.closure?.canSign);
+  const signatureReady = signedOrLocked || canSign;
   const validationIssues: ClinicalNavigationValidationIssue[] = [];
 
   if (!hasPatient) {
@@ -179,12 +177,12 @@ export function buildClinicalNavigationIntelligence(
       ),
     );
   }
-  if (!signedOrLocked && !signaturePrerequisitesReady) {
+  if (!signedOrLocked && !canSign) {
     validationIssues.push(
       issue(
         "missing_signature_prerequisites",
         "encounter-section-20",
-        "Firma bloqueada por documentación incompleta",
+        "Firma no habilitada para el estado actual",
         "critical",
       ),
     );
@@ -328,7 +326,7 @@ export function buildClinicalNavigationIntelligence(
         ? "Consulta firmada o bloqueada"
         : signatureReady
           ? "Lista para firma médica"
-          : "Complete diagnóstico, tratamiento y documentación clínica",
+          : "Firma no habilitada para el estado actual",
       required: true,
     },
     {
