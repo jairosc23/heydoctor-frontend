@@ -6,6 +6,7 @@ import type { PhysicalExam } from "@/lib/physical-exam-framework";
 import type { DiagnosisSource } from "@/lib/services/consultation-diagnosis";
 import type { AutosaveStatus } from "@/lib/hooks/useConsultationAutosave";
 import type { PatientProfile, PatientRow } from "@/lib/services/patients";
+import type { PatientClinicalMemory } from "@/lib/types/clinical-memory";
 import { AutosaveIndicator } from "../AutosaveIndicator";
 import { ActiveProblemsSection } from "./ActiveProblemsSection";
 import { AnamnesisSection } from "./AnamnesisSection";
@@ -52,6 +53,9 @@ export interface ClinicalEncounterChartProps {
   patientId?: string | null;
   encounterDiagnosis?: string | null;
   allergyLines?: string[];
+  clinicalMemory?: PatientClinicalMemory;
+  clinicalMemoryLoading?: boolean;
+  clinicalMemoryError?: string | null;
   editable: boolean;
   autosaveStatus?: AutosaveStatus;
   lastSavedAt?: Date | null;
@@ -83,6 +87,9 @@ export function ClinicalEncounterChart({
   patientId,
   encounterDiagnosis,
   allergyLines,
+  clinicalMemory,
+  clinicalMemoryLoading,
+  clinicalMemoryError,
   editable,
   autosaveStatus,
   lastSavedAt,
@@ -179,6 +186,9 @@ export function ClinicalEncounterChart({
           patientId={patientId}
           encounterDiagnosis={encounterDiagnosis}
           allergyLines={allergyLines}
+          clinicalMemory={clinicalMemory}
+          clinicalMemoryLoading={clinicalMemoryLoading}
+          clinicalMemoryError={clinicalMemoryError}
         />
         <TreatmentSection
           value={treatment}

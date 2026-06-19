@@ -1,42 +1,21 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import {
-  collectProfileAlerts,
-  formatPatientSex,
-  jsonLinesToList,
-  resolvePatientAge,
-} from "@/lib/patient-profile-display";
-import type { PatientProfile, PatientRow } from "@/lib/services/patients";
 import { cn } from "@/lib/utils";
-import { STATUS_LABELS } from "./consultation-status";
+import type {
+  EncounterContextBarModel,
+  EncounterContextChip,
+  EncounterContextChipGroup,
+  EncounterContextSeverity,
+} from "./encounter-context-bar-model";
 
 export interface StickyPatientHeaderProps {
-  patientName: string;
-  patient: PatientRow | null;
-  profile: PatientProfile | null;
-  status: string;
-  diagnosis?: string | null;
+  model: EncounterContextBarModel;
   loading?: boolean;
   className?: string;
 }
 
 const COMPACT_SCROLL_THRESHOLD = 96;
-
-function compactAge(ageLabel: string): string {
-  const match = ageLabel.match(/(\d+)/);
-  return match ? `${match[1]}a` : ageLabel;
-}
-
-function summarizeLines(
-  lines: string[],
-  emptyLabel: string,
-  pluralLabel: string,
-): string {
-  if (lines.length === 0) return emptyLabel;
-  if (lines.length === 1) return lines[0] ?? emptyLabel;
-  return `${lines.length} ${pluralLabel}`;
-}
 
 function isScrollableElement(element: HTMLElement): boolean {
   const style = window.getComputedStyle(element);
@@ -61,12 +40,69 @@ function getScrollTop(container: HTMLElement | Window): number {
   return container.scrollTop;
 }
 
+function severityClass(severity?: EncounterContextSeverity): string {
+  if (severity === "critical") return "bg-red-50 text-red-800 ring-red-200";
+  if (severity === "warning") return "bg-amber-50 text-amber-900 ring-amber-200";
+  return "bg-slate-100 text-slate-700 ring-slate-200";
+}
+
+function ContextChip({
+  chip,
+  className,
+}: {
+  chip: EncounterContextChip;
+  className?: string;
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex max-w-[12rem] items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1",
+        severityClass(chip.severity),
+        className,
+      )}
+    >
+      <span className="truncate">{chip.label}</span>
+    </span>
+  );
+}
+
+function OverflowChip({ count }: { count: number }) {
+  if (count <= 0) return null;
+  return (
+    <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-600 ring-1 ring-slate-200">
+      +{count}
+    </span>
+  );
+}
+
+function ContinuityGroup({
+  label,
+  group,
+}: {
+  label: string;
+  group: EncounterContextChipGroup;
+}) {
+  return (
+    <div className="min-w-0">
+      <span className="mr-1 text-[10px] font-bold uppercase tracking-wide text-slate-400">
+        {label}
+      </span>
+      {group.visible.length > 0 ? (
+        <span className="inline-flex min-w-0 flex-wrap items-center gap-1">
+          {group.visible.map((chip) => (
+            <ContextChip key={chip.id} chip={chip} className="max-w-[10rem]" />
+          ))}
+          <OverflowChip count={group.hiddenCount} />
+        </span>
+      ) : (
+        <span className="text-[11px] font-medium text-slate-500">Sin registros activos</span>
+      )}
+    </div>
+  );
+}
+
 export function StickyPatientHeader({
-  patientName,
-  patient,
-  profile,
-  status,
-  diagnosis,
+  model,
   loading = false,
   className,
 }: StickyPatientHeaderProps) {
@@ -89,18 +125,15 @@ export function StickyPatientHeader({
     };
   }, []);
 
-  const ageLabel = patient ? resolvePatientAge(patient) : "—";
-  const sexLabel = patient ? formatPatientSex(patient.sex) : "—";
-  const diagnosisLabel = diagnosis?.trim() || "Sin diagnóstico";
-  const allergyLines = jsonLinesToList(profile?.allergies);
-  const alertLines = collectProfileAlerts(profile);
-  const allergyLabel = loading
-    ? "Evaluando alergias"
-    : summarizeLines(allergyLines, "Sin alergias", "alergias");
-  const alertLabel = loading
-    ? "Evaluando alertas"
-    : summarizeLines(alertLines, "Sin alertas", "alertas");
-  const statusLabel = STATUS_LABELS[status] ?? status;
+  const riskChips = [
+    ...model.risk.allergies,
+    ...model.risk.criticalAlerts,
+    ...model.risk.warningAlerts,
+    ...model.risk.infoAlerts,
+  ];
+  const visibleRiskChips = riskChips.slice(0, compact ? 2 : 4);
+  const riskOverflow = Math.max(0, riskChips.length - visibleRiskChips.length);
+  const hasAllergies = model.risk.allergies.length > 0;
 
   return (
     <section
@@ -110,52 +143,72 @@ export function StickyPatientHeader({
       data-compact={compact ? "true" : "false"}
       className={cn(
         "overflow-hidden border-t border-slate-100 bg-white shadow-md ring-1 ring-slate-900/5 transition-all duration-200",
-        compact ? "py-1.5" : "py-2.5",
+        compact ? "py-1.5" : "py-2",
         className,
       )}
     >
-      <div className="flex min-w-0 flex-wrap items-center gap-2 text-xs text-slate-600">
-        <div className="min-w-0 flex-1">
-          <p className="truncate font-[Montserrat] text-sm font-bold uppercase tracking-wide text-slate-950">
-            {patientName}
+      <div className="space-y-1.5 text-xs text-slate-600">
+        <div
+          className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1"
+          data-testid="context-bar-identity-row"
+        >
+          <p className="min-w-0 flex-1 truncate font-[Montserrat] text-sm font-bold uppercase tracking-wide text-slate-950">
+            {model.identity.name}
           </p>
-          {!compact ? (
-            <p className="mt-0.5 text-[11px] text-slate-500">
-              {ageLabel} · {sexLabel}
-            </p>
-          ) : null}
+          <p className="shrink-0 text-[11px] font-medium text-slate-500">
+            <span>{compact ? model.identity.compactAge : model.identity.age}</span>
+            <span className="hidden sm:inline"> · {model.identity.sex}</span>
+            <span className="hidden md:inline">
+              {model.identity.documentLabel !== "—"
+                ? ` · ${model.identity.documentLabel}`
+                : ""}
+            </span>
+          </p>
+          <span className="inline-flex shrink-0 items-center rounded-full bg-primaryLight px-2.5 py-1 text-[11px] font-semibold text-primary ring-1 ring-primary/10">
+            {model.identity.statusLabel}
+          </span>
         </div>
 
-        <div className="min-w-0 flex flex-1 flex-wrap items-center gap-1.5">
-          <span className="inline-flex max-w-[16rem] items-center rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-800">
-            <span className="mr-1 text-slate-400">Dx</span>
-            <span className="truncate">{diagnosisLabel}</span>
-          </span>
-          <span className="inline-flex items-center rounded-full bg-red-50 px-2.5 py-1 text-[11px] font-semibold text-red-800">
-            {allergyLabel}
-          </span>
-          {!compact ? (
-            <span className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-900">
-              {alertLabel}
+        <div
+          className="flex min-w-0 flex-wrap items-center gap-1.5"
+          data-testid="context-bar-risk-row"
+        >
+          {loading ? (
+            <span className="text-[11px] font-medium text-slate-500">
+              Evaluando contexto clínico…
             </span>
           ) : null}
-          <span className="inline-flex items-center rounded-full bg-primaryLight px-2.5 py-1 text-[11px] font-semibold text-primary">
-            {statusLabel}
+          {!loading && !hasAllergies ? (
+            <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-800 ring-1 ring-emerald-200">
+              Sin alergias
+            </span>
+          ) : null}
+          {visibleRiskChips.map((chip) => (
+            <ContextChip key={chip.id} chip={chip} />
+          ))}
+          <OverflowChip count={riskOverflow} />
+          <span className="inline-flex max-w-[16rem] items-center rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-800 ring-1 ring-slate-200">
+            <span className="mr-1 text-slate-400">Dx</span>
+            <span className="truncate">{model.risk.diagnosis}</span>
           </span>
         </div>
 
-        {compact ? (
-          <p className="shrink-0 text-[11px] font-medium text-slate-500">
-            {compactAge(ageLabel)}
-          </p>
+        {!compact ? (
+          <div
+            className="hidden min-w-0 flex-wrap items-center gap-x-4 gap-y-1 lg:flex"
+            data-testid="context-bar-continuity-row"
+          >
+            <ContinuityGroup
+              label="Problemas"
+              group={model.continuity.activeProblems}
+            />
+            <ContinuityGroup
+              label="Medicamentos"
+              group={model.continuity.activeMedications}
+            />
+          </div>
         ) : null}
       </div>
-
-      {!compact ? (
-        <p className="mt-1.5 text-[11px] text-slate-500">
-          Patient Context Bar · Riesgo: {allergyLabel} · {alertLabel}
-        </p>
-      ) : null}
     </section>
   );
 }

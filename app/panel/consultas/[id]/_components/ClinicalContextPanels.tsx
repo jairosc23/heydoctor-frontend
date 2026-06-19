@@ -8,7 +8,7 @@ import {
   resolvePatientAge,
 } from "@/lib/patient-profile-display";
 import { formatPatientDisplayName } from "@/lib/services/patients";
-import { usePatientClinicalMemory } from "@/hooks/usePatientClinicalMemory";
+import { EMPTY_PATIENT_CLINICAL_MEMORY } from "@/hooks/usePatientClinicalMemory";
 import { ClinicalMemoryCard } from "./memory/ClinicalMemoryCard";
 import { PatientMemoryCard } from "@/components/clinical/PatientMemoryCard";
 import { ClinicalCollapsiblePanel } from "./ClinicalCollapsiblePanel";
@@ -49,12 +49,15 @@ export function ClinicalContextPanels({
   encounterDiagnosis,
   snapshotConditionLabels,
   smartWorkspaceEnabled = false,
+  clinicalMemory,
+  clinicalMemoryLoading,
+  clinicalMemoryError,
 }: PatientContextRailProps) {
-  const { data: memory, loading: memoryLoading } =
-    usePatientClinicalMemory(patientId);
-
   if (!patientId) return null;
 
+  const memory = clinicalMemory ?? EMPTY_PATIENT_CLINICAL_MEMORY;
+  const memoryLoading = Boolean(clinicalMemoryLoading);
+  const memoryError = clinicalMemoryError ?? null;
   const displayName = patient ? formatPatientDisplayName(patient) : fallbackName;
   const ageLabel = patient ? resolvePatientAge(patient) : "—";
   const sexLabel = patient ? formatPatientSex(patient.sex) : "—";
@@ -91,6 +94,14 @@ export function ClinicalContextPanels({
           role="alert"
         >
           {error}
+        </p>
+      ) : null}
+      {memoryError ? (
+        <p
+          className="rounded-hd-md border border-amber-200 bg-amber-50 px-hd-3 py-hd-2 text-xs text-amber-900"
+          role="alert"
+        >
+          Memoria clínica no disponible en este momento.
         </p>
       ) : null}
 
@@ -158,6 +169,9 @@ export function ClinicalContextPanels({
               snapshotConditionLabels={snapshotConditionLabels}
               allergyLines={allergyLines}
               compact={smartWorkspaceEnabled}
+              memory={memory}
+              memoryLoading={memoryLoading}
+              memoryError={memoryError}
               className="border-0 bg-transparent p-0 shadow-none"
             />
           )}
@@ -178,6 +192,9 @@ export function ClinicalContextPanels({
               currentConsultationId={currentConsultationId}
               progressiveDisclosure={false}
               initialEventLimit={5}
+              memory={memory}
+              memoryLoading={memoryLoading}
+              memoryError={memoryError}
               className="border-0 bg-transparent p-0 shadow-none"
             />
           )}

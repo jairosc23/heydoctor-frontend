@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { fetchPatientClinicalMemory } from "@/lib/services/clinical-memory";
 import type { PatientClinicalMemory } from "@/lib/types/clinical-memory";
 
-const EMPTY: PatientClinicalMemory = {
+export const EMPTY_PATIENT_CLINICAL_MEMORY: PatientClinicalMemory = {
   patientId: "",
   activeConditions: [],
   recentDiagnoses: [],
@@ -14,14 +14,31 @@ const EMPTY: PatientClinicalMemory = {
   recentConsultations: [],
 };
 
-export function usePatientClinicalMemory(patientId?: string | null) {
-  const [data, setData] = useState<PatientClinicalMemory>(EMPTY);
+export interface UsePatientClinicalMemoryOptions {
+  enabled?: boolean;
+  initialData?: PatientClinicalMemory;
+}
+
+export function usePatientClinicalMemory(
+  patientId?: string | null,
+  options: UsePatientClinicalMemoryOptions = {},
+) {
+  const { enabled = true, initialData } = options;
+  const [data, setData] = useState<PatientClinicalMemory>(
+    initialData ?? EMPTY_PATIENT_CLINICAL_MEMORY,
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
+    if (!enabled) {
+      if (initialData) setData(initialData);
+      setError(null);
+      setLoading(false);
+      return;
+    }
     if (!patientId) {
-      setData(EMPTY);
+      setData(EMPTY_PATIENT_CLINICAL_MEMORY);
       setError(null);
       return;
     }
@@ -31,12 +48,12 @@ export function usePatientClinicalMemory(patientId?: string | null) {
       const result = await fetchPatientClinicalMemory(patientId);
       setData(result);
     } catch (e) {
-      setData(EMPTY);
+      setData(EMPTY_PATIENT_CLINICAL_MEMORY);
       setError(e instanceof Error ? e.message : "Error al cargar memoria clínica");
     } finally {
       setLoading(false);
     }
-  }, [patientId]);
+  }, [enabled, initialData, patientId]);
 
   useEffect(() => {
     void load();

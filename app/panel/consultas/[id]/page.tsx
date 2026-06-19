@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   fetchConsultation,
@@ -64,6 +64,7 @@ import {
   parseEncounterNotes,
 } from "@/lib/compose-encounter-notes";
 import { useEncounterNotesDraft } from "@/hooks/useEncounterNotesDraft";
+import { usePatientClinicalMemory } from "@/hooks/usePatientClinicalMemory";
 import { PatientContextRail } from "./_components/PatientContextRail";
 import { EncounterHeader } from "./_components/EncounterHeader";
 import { StickyPatientHeader } from "./_components/StickyPatientHeader";
@@ -99,6 +100,7 @@ import {
 import { ClinicalModuleSheet } from "./_components/action-workspace/ClinicalModuleSheet";
 import { ClinicalModuleSheetContent } from "./_components/action-workspace/ClinicalModuleSheetContent";
 import { EncounterChromeShell } from "./_components/EncounterChromeShell";
+import { buildEncounterContextBarModel } from "./_components/encounter-context-bar-model";
 
 const clinicalActionWorkspaceEnabled = isClinicalActionWorkspaceEnabled();
 const smartClinicalWorkspaceEnabled = isSmartClinicalWorkspaceEnabled();
@@ -357,6 +359,32 @@ export default function ConsultationDetailPage() {
   }, [id]);
 
   const status = consultation?.status ?? "draft";
+  const patientName =
+    consultation?.patient?.name || consultation?.patient?.email || "Paciente";
+  const encounterDiagnosis =
+    diagnosisState.diagnosisDescription || diagnosisState.diagnosis || null;
+  const patientClinicalMemoryState = usePatientClinicalMemory(
+    consultation?.patientId,
+  );
+  const encounterContextModel = useMemo(
+    () =>
+      buildEncounterContextBarModel({
+        patient: patientRow,
+        profile: patientProfile,
+        fallbackName: patientName,
+        status,
+        diagnosis: encounterDiagnosis,
+        memory: patientClinicalMemoryState.data,
+      }),
+    [
+      encounterDiagnosis,
+      patientClinicalMemoryState.data,
+      patientName,
+      patientProfile,
+      patientRow,
+      status,
+    ],
+  );
   const isEditable = status === "draft" || status === "in_progress";
   const canSign = status === "in_progress" || status === "completed";
   const isSigned = status === "signed" || status === "locked";
@@ -765,8 +793,6 @@ export default function ConsultationDetailPage() {
     );
   }
 
-  const patientName =
-    consultation.patient?.name || consultation.patient?.email || "Paciente";
   const soapPatientAge = patientRow ? resolvePatientAge(patientRow) : undefined;
   const soapPatientSex = patientRow ? formatPatientSex(patientRow.sex) : undefined;
 
@@ -878,16 +904,8 @@ export default function ConsultationDetailPage() {
           />
           <div className="clinical-depth-2 space-y-hd-2 pb-hd-2">
             <StickyPatientHeader
-              patientName={patientName}
-              patient={patientRow}
-              profile={patientProfile}
-              status={status}
-              diagnosis={
-                diagnosisState.diagnosisDescription ||
-                diagnosisState.diagnosis ||
-                null
-              }
-              loading={patientContextLoading}
+              model={encounterContextModel}
+              loading={patientContextLoading || patientClinicalMemoryState.loading}
             />
             {clinicalActionWorkspaceEnabled && consultation.patientId ? (
               <ClinicalActionBar
@@ -945,6 +963,7 @@ export default function ConsultationDetailPage() {
         patientName={patientName}
         patientAge={soapPatientAge}
         patientSex={soapPatientSex}
+        clinicalMemory={patientClinicalMemoryState.data}
       />
 
       <DoctorDnaDrawer
@@ -1002,6 +1021,10 @@ export default function ConsultationDetailPage() {
               error={patientContextError}
               fallbackName={patientName}
               currentConsultationId={id}
+              encounterDiagnosis={encounterDiagnosis}
+              clinicalMemory={patientClinicalMemoryState.data}
+              clinicalMemoryLoading={patientClinicalMemoryState.loading}
+              clinicalMemoryError={patientClinicalMemoryState.error}
             />
           </div>
 
@@ -1025,10 +1048,10 @@ export default function ConsultationDetailPage() {
           error: patientContextError,
           fallbackName: patientName,
           currentConsultationId: id,
-          encounterDiagnosis:
-            diagnosisState.diagnosisDescription ||
-            diagnosisState.diagnosis ||
-            null,
+          encounterDiagnosis,
+          clinicalMemory: patientClinicalMemoryState.data,
+          clinicalMemoryLoading: patientClinicalMemoryState.loading,
+          clinicalMemoryError: patientClinicalMemoryState.error,
         }}
         ordersSubTab={ordersSubTab}
         onOrdersSubTabChange={setOrdersSubTab}
@@ -1068,11 +1091,11 @@ export default function ConsultationDetailPage() {
           diagnosisError,
           onDiagnosisConfirm: handleDiagnosisConfirm,
           patientId: consultation.patientId,
-          encounterDiagnosis:
-            diagnosisState.diagnosisDescription ||
-            diagnosisState.diagnosis ||
-            null,
+          encounterDiagnosis,
           allergyLines: jsonLinesToList(patientProfile?.allergies),
+          clinicalMemory: patientClinicalMemoryState.data,
+          clinicalMemoryLoading: patientClinicalMemoryState.loading,
+          clinicalMemoryError: patientClinicalMemoryState.error,
           editable: isEditable && editMode,
           autosaveStatus,
           lastSavedAt,
@@ -1141,10 +1164,10 @@ export default function ConsultationDetailPage() {
             error: patientContextError,
             fallbackName: patientName,
             currentConsultationId: id,
-            encounterDiagnosis:
-              diagnosisState.diagnosisDescription ||
-              diagnosisState.diagnosis ||
-              null,
+            encounterDiagnosis,
+            clinicalMemory: patientClinicalMemoryState.data,
+            clinicalMemoryLoading: patientClinicalMemoryState.loading,
+            clinicalMemoryError: patientClinicalMemoryState.error,
           }}
           ordersSubTab={ordersSubTab}
           onOrdersSubTabChange={setOrdersSubTab}

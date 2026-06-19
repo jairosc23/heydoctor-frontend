@@ -39,6 +39,14 @@ test.describe("Clinical P0 — workspace oficial (Action WS + Smart WS ON)", () 
     await expect(scrollContainer).toBeVisible();
     await expect(chrome).toBeVisible();
     await expect(header).toBeVisible();
+    await expect(header.getByTestId("context-bar-identity-row")).toBeVisible();
+    await expect(header.getByTestId("context-bar-risk-row")).toBeVisible();
+    if ((page.viewportSize()?.width ?? 0) >= 1024) {
+      await expect(header.getByTestId("context-bar-continuity-row")).toBeVisible();
+    }
+    await expect(
+      header.getByText(/Borrador|En consulta|Firmado|Bloqueado|Cancelado/),
+    ).toBeVisible();
 
     await expect(chrome).toHaveCSS("position", "sticky");
     await expect(chrome).toHaveCSS("top", "0px");

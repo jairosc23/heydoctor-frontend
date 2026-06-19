@@ -3,6 +3,7 @@
 import React from "react";
 import { usePatientClinicalMemory } from "@/hooks/usePatientClinicalMemory";
 import { ClinicalTimeline } from "@/components/clinical/ClinicalTimeline";
+import type { PatientClinicalMemory } from "@/lib/types/clinical-memory";
 import { cn } from "@/lib/utils";
 
 export interface PatientMemoryCardProps {
@@ -10,6 +11,9 @@ export interface PatientMemoryCardProps {
   currentConsultationId?: string;
   progressiveDisclosure?: boolean;
   initialEventLimit?: number;
+  memory?: PatientClinicalMemory;
+  memoryLoading?: boolean;
+  memoryError?: string | null;
   className?: string;
 }
 
@@ -18,9 +22,20 @@ export function PatientMemoryCard({
   currentConsultationId,
   progressiveDisclosure = false,
   initialEventLimit,
+  memory,
+  memoryLoading,
+  memoryError,
   className = "",
 }: PatientMemoryCardProps) {
-  const { data, loading, error } = usePatientClinicalMemory(patientId);
+  const memoryProvided = memory !== undefined;
+  const {
+    data: fetchedMemory,
+    loading: fetchedLoading,
+    error: fetchedError,
+  } = usePatientClinicalMemory(patientId, { enabled: !memoryProvided });
+  const data = memory ?? fetchedMemory;
+  const loading = memoryProvided ? Boolean(memoryLoading) : fetchedLoading;
+  const error = memoryProvided ? (memoryError ?? null) : fetchedError;
 
   if (loading) {
     return (

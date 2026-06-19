@@ -15,6 +15,7 @@ import {
 import { PatientMemoryCard } from "@/components/clinical/PatientMemoryCard";
 import { ClinicalCard } from "@/components/clinical/design";
 import { CLINICAL_SECTION_TITLE } from "@/lib/clinical-design-tokens";
+import type { PatientClinicalMemory } from "@/lib/types/clinical-memory";
 import { ClinicalMemoryCard } from "./memory/ClinicalMemoryCard";
 
 export interface PatientContextRailProps {
@@ -30,6 +31,9 @@ export interface PatientContextRailProps {
   encounterDiagnosis?: string | null;
   snapshotConditionLabels?: string[];
   smartWorkspaceEnabled?: boolean;
+  clinicalMemory?: PatientClinicalMemory;
+  clinicalMemoryLoading?: boolean;
+  clinicalMemoryError?: string | null;
 }
 
 function RailSkeleton() {
@@ -61,6 +65,9 @@ export function PatientContextRail({
   encounterDiagnosis,
   snapshotConditionLabels,
   smartWorkspaceEnabled = false,
+  clinicalMemory,
+  clinicalMemoryLoading,
+  clinicalMemoryError,
 }: PatientContextRailProps) {
   if (!patientId) return null;
 
@@ -115,6 +122,9 @@ export function PatientContextRail({
         snapshotConditionLabels={snapshotConditionLabels}
         allergyLines={allergyLines}
         compact={smartWorkspaceEnabled}
+        memory={clinicalMemory}
+        memoryLoading={clinicalMemoryLoading}
+        memoryError={clinicalMemoryError}
       />
 
       <div className="clinical-timeline-item rounded-hd-md border-t border-hd-border-subtle pt-hd-3">
@@ -122,6 +132,9 @@ export function PatientContextRail({
           patientId={patientId}
           currentConsultationId={currentConsultationId}
           progressiveDisclosure={smartWorkspaceEnabled}
+          memory={clinicalMemory}
+          memoryLoading={clinicalMemoryLoading}
+          memoryError={clinicalMemoryError}
           className="border-0 p-0 shadow-none"
         />
       </div>
