@@ -10,6 +10,8 @@ import {
   ClinicalEncounterChart,
   type ClinicalEncounterChartProps,
 } from "./chart/ClinicalEncounterChart";
+import { ClinicalEncounterIntelligenceCard } from "./ClinicalEncounterIntelligenceCard";
+import type { ClinicalEncounterIntelligenceModel } from "./clinical-encounter-intelligence-model";
 import { ClinicalNavigationRail } from "./ClinicalNavigationRail";
 import type {
   ClinicalNavigationProgress,
@@ -45,12 +47,14 @@ export function MobileConsultationWorkspace({
   encounterChart,
   navigationSections = [],
   navigationProgress,
+  encounterIntelligence,
   activeSectionId,
   onNavigateSection,
 }: MobileConsultationWorkspaceProps & {
   encounterChart?: ClinicalEncounterChartProps | null;
   navigationSections?: ClinicalNavigationSection[];
   navigationProgress?: ClinicalNavigationProgress;
+  encounterIntelligence?: ClinicalEncounterIntelligenceModel | null;
   activeSectionId?: string | null;
   onNavigateSection?: (sectionId: string) => void;
 }) {
@@ -99,6 +103,10 @@ export function MobileConsultationWorkspace({
                 orientation="horizontal"
               />
             ) : null}
+            <ClinicalEncounterIntelligenceCard
+              model={encounterIntelligence ?? null}
+              compact
+            />
             <ClinicalEncounterChart {...encounterChart} />
           </>
         ) : null

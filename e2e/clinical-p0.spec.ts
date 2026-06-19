@@ -74,6 +74,19 @@ test.describe("Clinical P0 — workspace oficial (Action WS + Smart WS ON)", () 
       /true|false/,
     );
 
+    const intelligenceCard = page
+      .locator('[data-testid="clinical-encounter-intelligence-card"]:visible')
+      .first();
+    await expect(intelligenceCard).toBeVisible();
+    await expect(intelligenceCard).toHaveAttribute(
+      "data-signature-ready",
+      /true|false/,
+    );
+    await expect(intelligenceCard).toHaveAttribute(
+      "data-completion-percentage",
+      /\d+/,
+    );
+
     const diagnosisNavItem = page
       .locator('[data-testid="clinical-navigation-item-11"]:visible')
       .first();

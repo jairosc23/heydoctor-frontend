@@ -16,11 +16,17 @@ import type { PatientContextRailProps } from "./PatientContextRail";
 import { ClinicalCollapsiblePanel } from "./ClinicalCollapsiblePanel";
 import { ClinicalContextPanels } from "./ClinicalContextPanels";
 import type { ClinicalEncounterChartProps } from "./chart/ClinicalEncounterChart";
+import { ClinicalEncounterIntelligenceCard } from "./ClinicalEncounterIntelligenceCard";
 import { ClinicalNavigationRail } from "./ClinicalNavigationRail";
 import { buildClinicalNavigationIntelligence } from "./clinical-navigation-rail-model";
+import {
+  buildClinicalEncounterIntelligence,
+  type ClinicalEncounterTimelineEvent,
+} from "./clinical-encounter-intelligence-model";
 import { useClinicalSectionSpy } from "@/hooks/useClinicalSectionSpy";
 
 const DESKTOP_MODULE_WIDTH = "mx-auto w-full xl:max-w-[1280px]";
+const EMPTY_TIMELINE: ClinicalEncounterTimelineEvent[] = [];
 
 export type WorkspaceTab =
   | "soap"
@@ -95,6 +101,19 @@ export function ConsultationWorkspace({
       encounterChart ? buildClinicalNavigationIntelligence(encounterChart) : null,
     [encounterChart],
   );
+  const encounterIntelligence = useMemo(
+    () =>
+      encounterChart && navigationIntelligence
+        ? buildClinicalEncounterIntelligence({
+            consultation,
+            patientProfile: encounterChart.longitudinal?.profile,
+            clinicalMemory: encounterChart.clinicalMemory,
+            timeline: EMPTY_TIMELINE,
+            navigationIntelligence,
+          })
+        : null,
+    [consultation, encounterChart, navigationIntelligence],
+  );
   const navigationSections = navigationIntelligence?.sections ?? [];
   const { activeSectionId, navigateToSection } = useClinicalSectionSpy(
     navigationSections,
@@ -109,6 +128,7 @@ export function ConsultationWorkspace({
           encounterChart={encounterChart}
           navigationSections={navigationSections}
           navigationProgress={navigationIntelligence?.progress}
+          encounterIntelligence={encounterIntelligence}
           activeSectionId={activeSectionId}
           onNavigateSection={navigateToSection}
           ordersHighlight={ordersHighlight}
@@ -130,6 +150,7 @@ export function ConsultationWorkspace({
             onNavigate={navigateToSection}
           />
           <div className="min-w-0 space-y-hd-4">
+            <ClinicalEncounterIntelligenceCard model={encounterIntelligence} />
             <ClinicalContextPanels
               {...patientContext}
               smartWorkspaceEnabled={smartWorkspaceEnabled}
