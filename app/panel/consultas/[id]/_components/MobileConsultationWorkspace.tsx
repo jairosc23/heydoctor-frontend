@@ -10,6 +10,8 @@ import {
   ClinicalEncounterChart,
   type ClinicalEncounterChartProps,
 } from "./chart/ClinicalEncounterChart";
+import { ClinicalNavigationRail } from "./ClinicalNavigationRail";
+import type { ClinicalNavigationSection } from "./clinical-navigation-rail-model";
 import type {
   MobileConsultationWorkspaceProps,
   WorkspaceTab,
@@ -38,8 +40,14 @@ export function MobileConsultationWorkspace({
   ordersRefreshKey,
   smartWorkspaceEnabled = false,
   encounterChart,
+  navigationSections = [],
+  activeSectionId,
+  onNavigateSection,
 }: MobileConsultationWorkspaceProps & {
   encounterChart?: ClinicalEncounterChartProps | null;
+  navigationSections?: ClinicalNavigationSection[];
+  activeSectionId?: string | null;
+  onNavigateSection?: (sectionId: string) => void;
 }) {
   const patientId = consultation.patientId;
 
@@ -76,7 +84,17 @@ export function MobileConsultationWorkspace({
 
       {activeTab === "soap" ? (
         encounterChart ? (
-          <ClinicalEncounterChart {...encounterChart} />
+          <>
+            {navigationSections.length > 0 && onNavigateSection ? (
+              <ClinicalNavigationRail
+                sections={navigationSections}
+                activeSectionId={activeSectionId ?? null}
+                onNavigate={onNavigateSection}
+                orientation="horizontal"
+              />
+            ) : null}
+            <ClinicalEncounterChart {...encounterChart} />
+          </>
         ) : null
       ) : null}
 

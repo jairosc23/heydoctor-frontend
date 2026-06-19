@@ -24,9 +24,11 @@ export function ClinicalEncounterSection({
   return (
     <section
       id={sectionId}
+      tabIndex={-1}
       data-encounter-section={sectionNumber}
+      data-testid={sectionId}
       className={cn(
-        "rounded-hd-lg border border-hd-border-subtle bg-hd-surface-raised p-hd-3 shadow-hd-1",
+        "scroll-mt-[calc(var(--encounter-chrome-h,5.5rem)+1rem)] rounded-hd-lg border border-hd-border-subtle bg-hd-surface-raised p-hd-3 shadow-hd-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
         className,
       )}
       aria-labelledby={`${sectionId}-title`}

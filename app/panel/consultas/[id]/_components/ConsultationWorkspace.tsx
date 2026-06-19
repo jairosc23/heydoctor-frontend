@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import type { NestConsultation } from "@/lib/services/consultations";
 import type { OrdersSubTab } from "./OrdersTab";
 import type {
@@ -15,6 +16,9 @@ import type { PatientContextRailProps } from "./PatientContextRail";
 import { ClinicalCollapsiblePanel } from "./ClinicalCollapsiblePanel";
 import { ClinicalContextPanels } from "./ClinicalContextPanels";
 import type { ClinicalEncounterChartProps } from "./chart/ClinicalEncounterChart";
+import { ClinicalNavigationRail } from "./ClinicalNavigationRail";
+import { buildClinicalNavigationSections } from "./clinical-navigation-rail-model";
+import { useClinicalSectionSpy } from "@/hooks/useClinicalSectionSpy";
 
 const DESKTOP_MODULE_WIDTH = "mx-auto w-full xl:max-w-[1280px]";
 
@@ -86,6 +90,14 @@ export function ConsultationWorkspace({
     onLegacyInvoiceResult,
     diagnosisCode,
   } = props;
+  const navigationSections = useMemo(
+    () => (encounterChart ? buildClinicalNavigationSections(encounterChart) : []),
+    [encounterChart],
+  );
+  const { activeSectionId, navigateToSection } = useClinicalSectionSpy(
+    navigationSections,
+    { enabled: Boolean(encounterChart) },
+  );
 
   return (
     <div className="clinical-workspace">
@@ -93,6 +105,9 @@ export function ConsultationWorkspace({
         <MobileConsultationWorkspace
           {...props}
           encounterChart={encounterChart}
+          navigationSections={navigationSections}
+          activeSectionId={activeSectionId}
+          onNavigateSection={navigateToSection}
           ordersHighlight={ordersHighlight}
           ordersRefreshKey={ordersRefreshKey}
           smartWorkspaceEnabled={smartWorkspaceEnabled}
@@ -111,19 +126,26 @@ export function ConsultationWorkspace({
           />
         </div>
 
-        <ClinicalSurface
-          depth={3}
-          focusPrimary
-          className={`soap-command-center-shell clinical-focus-primary min-w-0 p-hd-3 shadow-hd-3 ring-1 ring-primary/10 ${DESKTOP_MODULE_WIDTH}`}
-        >
-          <EncounterLeftPane
-            consultation={consultation}
-            consultationId={consultationId}
-            activeTab={leftPaneTab}
-            onTabChange={onLeftPaneTabChange}
-            encounterChart={encounterChart}
+        <div className={`grid gap-hd-3 xl:grid-cols-[minmax(176px,220px)_minmax(0,1fr)] ${DESKTOP_MODULE_WIDTH}`}>
+          <ClinicalNavigationRail
+            sections={navigationSections}
+            activeSectionId={activeSectionId}
+            onNavigate={navigateToSection}
           />
-        </ClinicalSurface>
+          <ClinicalSurface
+            depth={3}
+            focusPrimary
+            className="soap-command-center-shell clinical-focus-primary min-w-0 p-hd-3 shadow-hd-3 ring-1 ring-primary/10"
+          >
+            <EncounterLeftPane
+              consultation={consultation}
+              consultationId={consultationId}
+              activeTab={leftPaneTab}
+              onTabChange={onLeftPaneTabChange}
+              encounterChart={encounterChart}
+            />
+          </ClinicalSurface>
+        </div>
 
         <ClinicalCollapsiblePanel
           title="Orders Command Center™"
