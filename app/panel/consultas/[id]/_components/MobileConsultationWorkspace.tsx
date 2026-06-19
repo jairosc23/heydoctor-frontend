@@ -11,7 +11,10 @@ import {
   type ClinicalEncounterChartProps,
 } from "./chart/ClinicalEncounterChart";
 import { ClinicalNavigationRail } from "./ClinicalNavigationRail";
-import type { ClinicalNavigationSection } from "./clinical-navigation-rail-model";
+import type {
+  ClinicalNavigationProgress,
+  ClinicalNavigationSection,
+} from "./clinical-navigation-rail-model";
 import type {
   MobileConsultationWorkspaceProps,
   WorkspaceTab,
@@ -41,11 +44,13 @@ export function MobileConsultationWorkspace({
   smartWorkspaceEnabled = false,
   encounterChart,
   navigationSections = [],
+  navigationProgress,
   activeSectionId,
   onNavigateSection,
 }: MobileConsultationWorkspaceProps & {
   encounterChart?: ClinicalEncounterChartProps | null;
   navigationSections?: ClinicalNavigationSection[];
+  navigationProgress?: ClinicalNavigationProgress;
   activeSectionId?: string | null;
   onNavigateSection?: (sectionId: string) => void;
 }) {
@@ -88,6 +93,7 @@ export function MobileConsultationWorkspace({
             {navigationSections.length > 0 && onNavigateSection ? (
               <ClinicalNavigationRail
                 sections={navigationSections}
+                progress={navigationProgress}
                 activeSectionId={activeSectionId ?? null}
                 onNavigate={onNavigateSection}
                 orientation="horizontal"

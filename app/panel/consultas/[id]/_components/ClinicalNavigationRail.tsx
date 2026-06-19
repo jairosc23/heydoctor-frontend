@@ -5,6 +5,8 @@ import {
   clinicalNavigationGroupLabel,
   type ClinicalNavigationCompletion,
   type ClinicalNavigationGroup,
+  type ClinicalNavigationProgress,
+  type ClinicalNavigationRisk,
   type ClinicalNavigationSection,
 } from "./clinical-navigation-rail-model";
 
@@ -12,15 +14,23 @@ export interface ClinicalNavigationRailProps {
   sections: ClinicalNavigationSection[];
   activeSectionId: string | null;
   onNavigate: (sectionId: string) => void;
+  progress?: ClinicalNavigationProgress;
   orientation?: "vertical" | "horizontal";
   className?: string;
 }
 
 const COMPLETION_LABELS: Record<ClinicalNavigationCompletion, string> = {
-  pending: "Pendiente",
-  partial: "Parcial",
-  complete: "Completado",
-  informational: "Informativo",
+  empty: "Sin iniciar",
+  in_progress: "En progreso",
+  completed: "Completado",
+  warning: "Requiere atención",
+  blocked: "Bloqueado",
+};
+
+const RISK_LABELS: Record<ClinicalNavigationRisk, string> = {
+  critical: "Crítico",
+  warning: "Advertencia",
+  info: "Informativo",
 };
 
 function groupedSections(sections: ClinicalNavigationSection[]) {
@@ -37,6 +47,22 @@ function groupedSections(sections: ClinicalNavigationSection[]) {
   }, []);
 }
 
+function completionDotClass(
+  completion: ClinicalNavigationCompletion,
+  risk?: ClinicalNavigationRisk,
+) {
+  if (risk) {
+    if (risk === "critical") return "border-red-200 bg-red-500";
+    if (risk === "warning") return "border-amber-200 bg-amber-500";
+    return "border-blue-200 bg-blue-500";
+  }
+  if (completion === "blocked") return "border-red-200 bg-red-500";
+  if (completion === "warning") return "border-amber-200 bg-amber-500";
+  if (completion === "completed") return "border-emerald-200 bg-emerald-500";
+  if (completion === "in_progress") return "border-blue-200 bg-blue-500";
+  return "border-slate-200 bg-slate-300";
+}
+
 function NavigationRailItem({
   section,
   active,
@@ -49,16 +75,20 @@ function NavigationRailItem({
   onNavigate: (sectionId: string) => void;
 }) {
   const label = orientation === "horizontal" ? section.shortLabel : section.label;
+  const riskLabel = section.risk ? ` Riesgo: ${RISK_LABELS[section.risk]}.` : "";
+  const helperLabel = section.helperText ? ` ${section.helperText}.` : "";
   return (
     <button
       type="button"
       aria-current={active ? "location" : undefined}
       aria-label={`Ir a ${section.label}. Estado: ${
         COMPLETION_LABELS[section.completion]
-      }`}
+      }.${riskLabel}${helperLabel}`}
       data-testid={`clinical-navigation-item-${section.sectionNumber}`}
       data-section-id={section.id}
       data-completion={section.completion}
+      data-risk={section.risk}
+      data-validation={section.validationCode}
       onClick={() => onNavigate(section.id)}
       className={cn(
         "clinical-interactive min-w-0 rounded-hd-md border text-left font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
@@ -80,11 +110,68 @@ function NavigationRailItem({
         {section.sectionNumber}
       </span>
       <span className="min-w-0 truncate">{label}</span>
+      <span
+        className={cn(
+          "ml-auto inline-flex h-2.5 w-2.5 shrink-0 rounded-full border",
+          completionDotClass(section.completion, section.risk),
+        )}
+        aria-hidden
+      />
       <span className="sr-only">
         {active ? "Sección activa. " : ""}
         {COMPLETION_LABELS[section.completion]}
+        {section.risk ? `. ${RISK_LABELS[section.risk]}` : ""}
       </span>
     </button>
+  );
+}
+
+function RailProgressSummary({
+  progress,
+  compact = false,
+}: {
+  progress: ClinicalNavigationProgress;
+  compact?: boolean;
+}) {
+  return (
+    <div
+      data-testid="clinical-navigation-progress"
+      data-progress={progress.completionPercentage}
+      data-signature-ready={progress.signatureReady ? "true" : "false"}
+      className={cn(
+        "rounded-hd-md border border-hd-border-subtle bg-hd-surface-muted",
+        compact ? "min-w-[132px] px-2 py-1.5" : "mt-hd-2 px-2 py-1.5",
+      )}
+    >
+      <div className="flex items-center justify-between gap-2 text-[10px] font-semibold text-slate-600">
+        <span>{progress.completionPercentage}%</span>
+        <span
+          className={cn(
+            progress.signatureReady ? "text-emerald-700" : "text-amber-700",
+          )}
+        >
+          {progress.signatureReady ? "Firma lista" : "Firma pendiente"}
+        </span>
+      </div>
+      <div
+        className="mt-1 h-1.5 overflow-hidden rounded-full bg-white"
+        aria-hidden
+      >
+        <div
+          className={cn(
+            "h-full rounded-full",
+            progress.signatureReady ? "bg-emerald-500" : "bg-primary",
+          )}
+          style={{ width: `${progress.completionPercentage}%` }}
+        />
+      </div>
+      {!compact ? (
+        <p className="mt-1 text-[10px] text-slate-500">
+          {progress.completedSections}/{progress.totalSections} completas ·{" "}
+          {progress.pendingSections} pendientes
+        </p>
+      ) : null}
+    </div>
   );
 }
 
@@ -92,6 +179,7 @@ export function ClinicalNavigationRail({
   sections,
   activeSectionId,
   onNavigate,
+  progress,
   orientation = "vertical",
   className,
 }: ClinicalNavigationRailProps) {
@@ -108,6 +196,7 @@ export function ClinicalNavigationRail({
           className,
         )}
       >
+        {progress ? <RailProgressSummary progress={progress} compact /> : null}
         {sections.map((section) => (
           <NavigationRailItem
             key={section.id}
@@ -138,6 +227,7 @@ export function ClinicalNavigationRail({
         <p className="mt-0.5 text-[11px] text-slate-500">
           Ficha Clínica
         </p>
+        {progress ? <RailProgressSummary progress={progress} /> : null}
       </div>
       <div className="space-y-hd-3">
         {groupedSections(sections).map((group) => (

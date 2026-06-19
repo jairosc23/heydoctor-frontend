@@ -64,10 +64,31 @@ test.describe("Clinical P0 — workspace oficial (Action WS + Smart WS ON)", () 
       "aria-label",
       "Navegación de ficha clínica",
     );
+    const navigationProgress = navigationRail
+      .locator('[data-testid="clinical-navigation-progress"]')
+      .first();
+    await expect(navigationProgress).toBeVisible();
+    await expect(navigationProgress).toHaveAttribute("data-progress", /\d+/);
+    await expect(navigationProgress).toHaveAttribute(
+      "data-signature-ready",
+      /true|false/,
+    );
+
+    const diagnosisNavItem = page
+      .locator('[data-testid="clinical-navigation-item-11"]:visible')
+      .first();
+    await expect(diagnosisNavItem).toHaveAttribute(
+      "data-completion",
+      /empty|in_progress|completed|warning|blocked/,
+    );
 
     const treatmentNavItem = page
       .locator('[data-testid="clinical-navigation-item-13"]:visible')
       .first();
+    await expect(treatmentNavItem).toHaveAttribute(
+      "data-completion",
+      /empty|in_progress|completed|warning|blocked/,
+    );
     await treatmentNavItem.click();
     await expect(visibleEncounterSection(page, "encounter-section-13")).toBeVisible();
     await expect(treatmentNavItem).toHaveAttribute("aria-current", "location");
