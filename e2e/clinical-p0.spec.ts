@@ -11,6 +11,10 @@ const E2E_READY =
   Boolean(process.env.E2E_DOCTOR_EMAIL) &&
   Boolean(process.env.E2E_DOCTOR_PASSWORD);
 
+function visibleEncounterSection(page: import("@playwright/test").Page, id: string) {
+  return page.locator(`[data-testid="${id}"]:visible`).first();
+}
+
 test.describe("Clinical P0 — workspace oficial (Action WS + Smart WS ON)", () => {
   test.beforeEach(async ({ page }) => {
     test.skip(!E2E_READY, "Requiere E2E_BASE_URL, E2E_DOCTOR_EMAIL, E2E_DOCTOR_PASSWORD");
@@ -52,13 +56,29 @@ test.describe("Clinical P0 — workspace oficial (Action WS + Smart WS ON)", () 
     await expect(chrome).toHaveCSS("top", "0px");
     await expect(chrome).toHaveCSS("z-index", "30");
 
+    const navigationRail = page
+      .locator('[data-testid="clinical-navigation-rail"]:visible')
+      .first();
+    await expect(navigationRail).toBeVisible();
+    await expect(navigationRail).toHaveAttribute(
+      "aria-label",
+      "Navegación de ficha clínica",
+    );
+
+    const treatmentNavItem = page
+      .locator('[data-testid="clinical-navigation-item-13"]:visible')
+      .first();
+    await treatmentNavItem.click();
+    await expect(visibleEncounterSection(page, "encounter-section-13")).toBeVisible();
+    await expect(treatmentNavItem).toHaveAttribute("aria-current", "location");
+
     await scrollContainer.evaluate((element) => {
       element.scrollTop = 0;
       element.dispatchEvent(new Event("scroll", { bubbles: true }));
     });
     await expect(header).toHaveAttribute("data-compact", "false");
 
-    await page.getByTestId("encounter-section-13").scrollIntoViewIfNeeded();
+    await visibleEncounterSection(page, "encounter-section-13").scrollIntoViewIfNeeded();
     await scrollContainer.evaluate((element) => {
       element.scrollTop = Math.min(
         element.scrollHeight - element.clientHeight,
@@ -131,7 +151,7 @@ test.describe("Clinical P0 — workspace oficial (Action WS + Smart WS ON)", () 
     await expect(page.getByTestId("clinical-module-sheet")).toBeVisible();
 
     // Firma en bloque de cierre (§20)
-    await page.getByTestId("encounter-section-20").scrollIntoViewIfNeeded();
+    await visibleEncounterSection(page, "encounter-section-20").scrollIntoViewIfNeeded();
     const signButton = page.getByRole("button", { name: /firmar consulta/i });
     if (await signButton.isVisible()) {
       await signButton.click();
@@ -155,7 +175,7 @@ test.describe("Clinical P0 — workspace oficial (Action WS + Smart WS ON)", () 
 
     // Bloque de cierre médico legal visible
     await expect(page.getByTestId("encounter-closure-section")).toBeVisible();
-    await expect(page.getByTestId("encounter-section-22")).toBeVisible();
+    await expect(visibleEncounterSection(page, "encounter-section-22")).toBeVisible();
   });
 
   test("P0-2 DM2 — Lab order → plan → firma", async ({ page }) => {
@@ -179,7 +199,7 @@ test.describe("Clinical P0 — workspace oficial (Action WS + Smart WS ON)", () 
       await createLab.click();
     }
 
-    await page.getByTestId("encounter-section-20").scrollIntoViewIfNeeded();
+    await visibleEncounterSection(page, "encounter-section-20").scrollIntoViewIfNeeded();
     await page.getByRole("button", { name: /firmar consulta/i }).click();
     await expect(page.getByText(/firmada|signed/i)).toBeVisible({
       timeout: 30_000,
@@ -206,7 +226,7 @@ test.describe("Clinical P0 — workspace oficial (Action WS + Smart WS ON)", () 
 
     await page.keyboard.press("Escape");
 
-    await page.getByTestId("encounter-section-20").scrollIntoViewIfNeeded();
+    await visibleEncounterSection(page, "encounter-section-20").scrollIntoViewIfNeeded();
     await page.getByRole("button", { name: /firmar consulta/i }).click();
     await expect(page.getByText(/firmada|signed/i)).toBeVisible({
       timeout: 30_000,
