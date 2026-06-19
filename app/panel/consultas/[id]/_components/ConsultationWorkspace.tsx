@@ -17,7 +17,7 @@ import { ClinicalCollapsiblePanel } from "./ClinicalCollapsiblePanel";
 import { ClinicalContextPanels } from "./ClinicalContextPanels";
 import type { ClinicalEncounterChartProps } from "./chart/ClinicalEncounterChart";
 import { ClinicalNavigationRail } from "./ClinicalNavigationRail";
-import { buildClinicalNavigationSections } from "./clinical-navigation-rail-model";
+import { buildClinicalNavigationIntelligence } from "./clinical-navigation-rail-model";
 import { useClinicalSectionSpy } from "@/hooks/useClinicalSectionSpy";
 
 const DESKTOP_MODULE_WIDTH = "mx-auto w-full xl:max-w-[1280px]";
@@ -90,10 +90,12 @@ export function ConsultationWorkspace({
     onLegacyInvoiceResult,
     diagnosisCode,
   } = props;
-  const navigationSections = useMemo(
-    () => (encounterChart ? buildClinicalNavigationSections(encounterChart) : []),
+  const navigationIntelligence = useMemo(
+    () =>
+      encounterChart ? buildClinicalNavigationIntelligence(encounterChart) : null,
     [encounterChart],
   );
+  const navigationSections = navigationIntelligence?.sections ?? [];
   const { activeSectionId, navigateToSection } = useClinicalSectionSpy(
     navigationSections,
     { enabled: Boolean(encounterChart) },
@@ -106,6 +108,7 @@ export function ConsultationWorkspace({
           {...props}
           encounterChart={encounterChart}
           navigationSections={navigationSections}
+          navigationProgress={navigationIntelligence?.progress}
           activeSectionId={activeSectionId}
           onNavigateSection={navigateToSection}
           ordersHighlight={ordersHighlight}
@@ -122,6 +125,7 @@ export function ConsultationWorkspace({
         <div className={`grid gap-hd-3 xl:grid-cols-[minmax(176px,220px)_minmax(0,1fr)] ${DESKTOP_MODULE_WIDTH}`}>
           <ClinicalNavigationRail
             sections={navigationSections}
+            progress={navigationIntelligence?.progress}
             activeSectionId={activeSectionId}
             onNavigate={navigateToSection}
           />
