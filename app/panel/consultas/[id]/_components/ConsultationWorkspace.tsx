@@ -119,32 +119,31 @@ export function ConsultationWorkspace({
         data-clinical-action-workspace={actionWorkspaceEnabled ? "true" : undefined}
         data-columns="1"
       >
-        <div className={DESKTOP_MODULE_WIDTH}>
-          <ClinicalContextPanels
-            {...patientContext}
-            smartWorkspaceEnabled={smartWorkspaceEnabled}
-          />
-        </div>
-
         <div className={`grid gap-hd-3 xl:grid-cols-[minmax(176px,220px)_minmax(0,1fr)] ${DESKTOP_MODULE_WIDTH}`}>
           <ClinicalNavigationRail
             sections={navigationSections}
             activeSectionId={activeSectionId}
             onNavigate={navigateToSection}
           />
-          <ClinicalSurface
-            depth={3}
-            focusPrimary
-            className="soap-command-center-shell clinical-focus-primary min-w-0 p-hd-3 shadow-hd-3 ring-1 ring-primary/10"
-          >
-            <EncounterLeftPane
-              consultation={consultation}
-              consultationId={consultationId}
-              activeTab={leftPaneTab}
-              onTabChange={onLeftPaneTabChange}
-              encounterChart={encounterChart}
+          <div className="min-w-0 space-y-hd-4">
+            <ClinicalContextPanels
+              {...patientContext}
+              smartWorkspaceEnabled={smartWorkspaceEnabled}
             />
-          </ClinicalSurface>
+            <ClinicalSurface
+              depth={3}
+              focusPrimary
+              className="soap-command-center-shell clinical-focus-primary min-w-0 p-hd-3 shadow-hd-3 ring-1 ring-primary/10"
+            >
+              <EncounterLeftPane
+                consultation={consultation}
+                consultationId={consultationId}
+                activeTab={leftPaneTab}
+                onTabChange={onLeftPaneTabChange}
+                encounterChart={encounterChart}
+              />
+            </ClinicalSurface>
+          </div>
         </div>
 
         <ClinicalCollapsiblePanel
