@@ -404,34 +404,37 @@ export default function ConsultationDetailPage() {
   const foundationPatient = selectFoundationPatient(foundation);
   const foundationConsultation = selectFoundationConsultation(foundation);
   const foundationMemory = selectFoundationMemory(foundation);
-  const foundationReadyForP0 =
+  const foundationReadyForEncounter =
     Boolean(foundation) && !selectFoundationIsDegraded(foundation);
+  const clinicalFoundationForEncounter = foundationReadyForEncounter
+    ? foundation
+    : null;
   const p0PatientRow =
-    foundationReadyForP0 && foundationPatient
+    foundationReadyForEncounter && foundationPatient
       ? mapFoundationPatientToPatientRow(foundationPatient)
       : patientRow;
   const p0ClinicalMemory =
-    foundationReadyForP0 && foundationMemory
+    foundationReadyForEncounter && foundationMemory
       ? foundationMemory
       : patientClinicalMemoryState.data;
   const p0EncounterDiagnosis =
-    foundationReadyForP0
+    foundationReadyForEncounter
       ? resolveFoundationDiagnosis(foundationConsultation) ?? encounterDiagnosis
       : encounterDiagnosis;
   const p0Status =
-    foundationReadyForP0 && foundationConsultation?.status
+    foundationReadyForEncounter && foundationConsultation?.status
       ? foundationConsultation.status
       : status;
-  const p0ClinicalMemoryLoading = foundationReadyForP0
+  const p0ClinicalMemoryLoading = foundationReadyForEncounter
     ? false
     : patientClinicalMemoryState.loading;
-  const p0ClinicalMemoryError = foundationReadyForP0
+  const p0ClinicalMemoryError = foundationReadyForEncounter
     ? null
     : patientClinicalMemoryState.error;
-  const p0PatientContextLoading = foundationReadyForP0
+  const p0PatientContextLoading = foundationReadyForEncounter
     ? false
     : patientContextLoading;
-  const p0PatientContextError = foundationReadyForP0
+  const p0PatientContextError = foundationReadyForEncounter
     ? null
     : patientContextError;
   const encounterContextModel = useMemo(
@@ -1100,6 +1103,7 @@ export default function ConsultationDetailPage() {
         actionWorkspaceEnabled={clinicalActionWorkspaceEnabled}
         smartWorkspaceEnabled={smartClinicalWorkspaceEnabled}
         consultation={consultation}
+        clinicalFoundation={clinicalFoundationForEncounter}
         consultationId={id}
         clinicId={consultation.clinicId ?? ctxClinicId ?? null}
         activeTab={workspaceTab}
@@ -1216,6 +1220,7 @@ export default function ConsultationDetailPage() {
           actionWorkspaceEnabled={clinicalActionWorkspaceEnabled}
         smartWorkspaceEnabled={smartClinicalWorkspaceEnabled}
           consultation={consultation}
+          clinicalFoundation={clinicalFoundationForEncounter}
           consultationId={id}
           clinicId={consultation.clinicId ?? ctxClinicId ?? null}
           activeTab={workspaceTab}

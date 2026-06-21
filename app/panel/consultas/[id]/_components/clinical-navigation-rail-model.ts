@@ -1,6 +1,7 @@
 import { hasClinicalVitalSignsData } from "@/lib/clinical-vital-signs-context";
 import { hasPhysicalExamData } from "@/lib/physical-exam-framework";
 import type { PatientProfile } from "@/lib/services/patients";
+import type { ClinicalFoundationBundle } from "@/lib/types/clinical-foundation.types";
 import type { ClinicalEncounterChartProps } from "./chart/ClinicalEncounterChart";
 
 export type ClinicalNavigationGroup = "context" | "documentation" | "closure";
@@ -90,6 +91,57 @@ function hasProfileContent(profile: PatientProfile | null | undefined): boolean 
   );
 }
 
+function foundationText(value: string | null | undefined): string | null {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
+}
+
+function foundationHasProfileContent(
+  foundation: ClinicalFoundationBundle | null | undefined,
+): boolean | null {
+  if (!foundation) return null;
+  return foundation.provenance.some((item) => item.kind === "patient_profile");
+}
+
+function foundationHasDiagnosis(
+  foundation: ClinicalFoundationBundle | null | undefined,
+): boolean | null {
+  if (!foundation) return null;
+  return Boolean(
+    foundationText(foundation.consultation.cie10?.code) ||
+      foundationText(foundation.consultation.cie10?.description) ||
+      foundationText(foundation.consultation.diagnosisText) ||
+      foundationText(foundation.encounter.assessment),
+  );
+}
+
+function foundationHasAnamnesis(
+  foundation: ClinicalFoundationBundle | null | undefined,
+): boolean | null {
+  if (!foundation) return null;
+  return Boolean(
+    foundationText(foundation.encounter.subjective) ||
+      foundationText(foundation.encounter.chiefComplaint) ||
+      foundationText(foundation.consultation.reason),
+  );
+}
+
+function foundationHasTreatment(
+  foundation: ClinicalFoundationBundle | null | undefined,
+): boolean | null {
+  if (!foundation) return null;
+  return Boolean(
+    foundationText(foundation.encounter.plan) ||
+      foundationText(foundation.consultation.treatment),
+  );
+}
+
+function foundationStatus(
+  foundation: ClinicalFoundationBundle | null | undefined,
+): string | null {
+  return foundationText(foundation?.consultation.status);
+}
+
 function issue(
   code: ClinicalNavigationValidationCode,
   sectionId: string,
@@ -124,20 +176,31 @@ function buildProgress(
 
 export function buildClinicalNavigationIntelligence(
   chart: ClinicalEncounterChartProps,
+  foundation?: ClinicalFoundationBundle | null,
 ): ClinicalNavigationIntelligence {
-  const hasPatient = Boolean(chart.patientId);
-  const hasDiagnosis = Boolean(
-    chart.diagnosisCode?.trim() ||
-      chart.diagnosisDescription?.trim() ||
-      chart.diagnosis?.trim(),
-  );
-  const hasAnamnesis = hasText(chart.presentIllnessHistory);
-  const hasTreatment = hasText(chart.treatment);
-  const activeProblemsCount = chart.clinicalMemory?.activeConditions.length ?? 0;
+  const hasPatient = Boolean(foundation?.patient.id ?? chart.patientId);
+  const hasDiagnosis =
+    foundationHasDiagnosis(foundation) ??
+    Boolean(
+      chart.diagnosisCode?.trim() ||
+        chart.diagnosisDescription?.trim() ||
+        chart.diagnosis?.trim(),
+    );
+  const hasAnamnesis =
+    foundationHasAnamnesis(foundation) ?? hasText(chart.presentIllnessHistory);
+  const hasTreatment =
+    foundationHasTreatment(foundation) ?? hasText(chart.treatment);
+  const activeProblemsCount =
+    foundation?.memory?.activeConditions.length ??
+    chart.clinicalMemory?.activeConditions.length ??
+    0;
+  const status = foundationStatus(foundation) ?? chart.closure?.status;
   const signedOrLocked =
-    chart.closure?.status === "signed" || chart.closure?.status === "locked";
+    status === "signed" || status === "locked";
   const profileLoading = Boolean(chart.longitudinal?.loading);
-  const profileHasContent = hasProfileContent(chart.longitudinal?.profile);
+  const profileHasContent =
+    foundationHasProfileContent(foundation) ??
+    hasProfileContent(chart.longitudinal?.profile);
   const canSign = Boolean(chart.closure?.canSign);
   const signatureReady = signedOrLocked || canSign;
   const validationIssues: ClinicalNavigationValidationIssue[] = [];
@@ -247,11 +310,11 @@ export function buildClinicalNavigationIntelligence(
       label: "Signos vitales",
       shortLabel: "Vitales",
       group: "documentation",
-      completion: hasClinicalVitalSignsData(chart.vitals)
+      completion: foundation?.encounter.vitalSigns || hasClinicalVitalSignsData(chart.vitals)
         ? "completed"
         : "empty",
-      risk: hasClinicalVitalSignsData(chart.vitals) ? undefined : "info",
-      helperText: hasClinicalVitalSignsData(chart.vitals)
+      risk: foundation?.encounter.vitalSigns || hasClinicalVitalSignsData(chart.vitals) ? undefined : "info",
+      helperText: foundation?.encounter.vitalSigns || hasClinicalVitalSignsData(chart.vitals)
         ? "Signos vitales documentados"
         : "Sin signos vitales registrados",
     },
@@ -261,11 +324,11 @@ export function buildClinicalNavigationIntelligence(
       label: "Examen físico",
       shortLabel: "Ex. físico",
       group: "documentation",
-      completion: hasPhysicalExamData(chart.physicalExam)
+      completion: foundation?.encounter.physicalExam || hasPhysicalExamData(chart.physicalExam)
         ? "completed"
         : "empty",
-      risk: hasPhysicalExamData(chart.physicalExam) ? undefined : "info",
-      helperText: hasPhysicalExamData(chart.physicalExam)
+      risk: foundation?.encounter.physicalExam || hasPhysicalExamData(chart.physicalExam) ? undefined : "info",
+      helperText: foundation?.encounter.physicalExam || hasPhysicalExamData(chart.physicalExam)
         ? "Examen físico documentado"
         : "Sin examen físico registrado",
     },
@@ -353,6 +416,7 @@ export function buildClinicalNavigationIntelligence(
 
 export function buildClinicalNavigationSections(
   chart: ClinicalEncounterChartProps,
+  foundation?: ClinicalFoundationBundle | null,
 ): ClinicalNavigationSection[] {
-  return buildClinicalNavigationIntelligence(chart).sections;
+  return buildClinicalNavigationIntelligence(chart, foundation).sections;
 }

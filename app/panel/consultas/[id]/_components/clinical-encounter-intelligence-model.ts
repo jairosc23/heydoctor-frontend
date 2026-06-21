@@ -2,6 +2,7 @@ import { jsonLinesToList } from "@/lib/patient-profile-display";
 import type { NestConsultation } from "@/lib/services/consultations";
 import type { PatientProfile } from "@/lib/services/patients";
 import type { PatientClinicalMemory } from "@/lib/types/clinical-memory";
+import type { ClinicalFoundationBundle } from "@/lib/types/clinical-foundation.types";
 import type {
   ClinicalNavigationIntelligence,
   ClinicalNavigationRisk,
@@ -36,6 +37,7 @@ export interface ClinicalEncounterIntelligenceInput {
   clinicalMemory: PatientClinicalMemory | null | undefined;
   timeline: ClinicalEncounterTimelineEvent[];
   navigationIntelligence: ClinicalNavigationIntelligence;
+  foundation?: ClinicalFoundationBundle | null;
 }
 
 export interface ClinicalEncounterSignal {
@@ -310,6 +312,7 @@ function buildRecentChangeSignal(
 export function buildClinicalEncounterIntelligence(
   input: ClinicalEncounterIntelligenceInput,
 ): ClinicalEncounterIntelligenceModel {
+  const clinicalMemory = input.foundation?.memory ?? input.clinicalMemory;
   const documentationSignals = buildDocumentationSignals(
     input.navigationIntelligence.validationIssues,
   );
@@ -317,18 +320,18 @@ export function buildClinicalEncounterIntelligence(
   const allergySignals = buildAllergySignals(input.patientProfile);
   const medicationSignal = buildMedicationSignal(
     input.patientProfile,
-    input.clinicalMemory,
+    clinicalMemory,
   );
   const recurrentProblemSignal = buildRecurrentProblemSignal(
-    input.clinicalMemory,
+    clinicalMemory,
     input.timeline,
   );
   const recurrentConsultationSignal = buildRecurrentConsultationSignal(
-    input.clinicalMemory,
+    clinicalMemory,
     input.timeline,
   );
   const recentChangeSignal = buildRecentChangeSignal(
-    input.clinicalMemory,
+    clinicalMemory,
     input.timeline,
   );
 
@@ -362,7 +365,7 @@ export function buildClinicalEncounterIntelligence(
     sourceCounts: {
       navigationIssues: input.navigationIntelligence.validationIssues.length,
       allergies: jsonLinesToList(input.patientProfile?.allergies).length,
-      activeMedications: input.clinicalMemory?.currentMedications.length ?? 0,
+      activeMedications: clinicalMemory?.currentMedications.length ?? 0,
       recurrentProblems: recurrentProblemSignal ? 1 : 0,
       recurrentConsultations: recurrentConsultationSignal ? 1 : 0,
       recentChanges: recentChangeSignal ? 1 : 0,

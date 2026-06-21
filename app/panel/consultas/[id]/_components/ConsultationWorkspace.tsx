@@ -9,6 +9,7 @@ import type {
 } from "@/components/clinical/ConsultationActionBar";
 import { ClinicalSurface } from "@/components/clinical/design";
 import type { ActionResult } from "@/lib/services/consultation-actions";
+import type { ClinicalFoundationBundle } from "@/lib/types/clinical-foundation.types";
 import { EncounterLeftPane, type EncounterLeftPaneTab } from "./EncounterLeftPane";
 import { EncounterRightPane, type EncounterRightPaneTab } from "./EncounterRightPane";
 import { MobileConsultationWorkspace } from "./MobileConsultationWorkspace";
@@ -60,6 +61,7 @@ export interface ConsultationWorkspaceProps {
   actionWorkspaceEnabled?: boolean;
   smartWorkspaceEnabled?: boolean;
   encounterChart?: ClinicalEncounterChartProps | null;
+  clinicalFoundation?: ClinicalFoundationBundle | null;
 }
 
 export type MobileConsultationWorkspaceProps = Omit<
@@ -83,6 +85,7 @@ export function ConsultationWorkspace({
   actionWorkspaceEnabled = false,
   smartWorkspaceEnabled = false,
   encounterChart,
+  clinicalFoundation,
   ...props
 }: ConsultationWorkspaceProps) {
   const {
@@ -98,8 +101,10 @@ export function ConsultationWorkspace({
   } = props;
   const navigationIntelligence = useMemo(
     () =>
-      encounterChart ? buildClinicalNavigationIntelligence(encounterChart) : null,
-    [encounterChart],
+      encounterChart
+        ? buildClinicalNavigationIntelligence(encounterChart, clinicalFoundation)
+        : null,
+    [clinicalFoundation, encounterChart],
   );
   const encounterIntelligence = useMemo(
     () =>
@@ -110,9 +115,10 @@ export function ConsultationWorkspace({
             clinicalMemory: encounterChart.clinicalMemory,
             timeline: EMPTY_TIMELINE,
             navigationIntelligence,
+            foundation: clinicalFoundation,
           })
         : null,
-    [consultation, encounterChart, navigationIntelligence],
+    [clinicalFoundation, consultation, encounterChart, navigationIntelligence],
   );
   const navigationSections = navigationIntelligence?.sections ?? [];
   const { activeSectionId, navigateToSection } = useClinicalSectionSpy(
