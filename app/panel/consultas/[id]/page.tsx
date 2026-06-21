@@ -64,7 +64,15 @@ import {
   parseEncounterNotes,
 } from "@/lib/compose-encounter-notes";
 import { useEncounterNotesDraft } from "@/hooks/useEncounterNotesDraft";
+import { useClinicalFoundation } from "@/hooks/useClinicalFoundation";
 import { usePatientClinicalMemory } from "@/hooks/usePatientClinicalMemory";
+import {
+  selectFoundationConsultation,
+  selectFoundationIsDegraded,
+  selectFoundationMemory,
+  selectFoundationPatient,
+} from "@/lib/clinical-foundation-selectors";
+import type { ClinicalFoundationPatient } from "@/lib/types/clinical-foundation.types";
 import { PatientContextRail } from "./_components/PatientContextRail";
 import { EncounterHeader } from "./_components/EncounterHeader";
 import { StickyPatientHeader } from "./_components/StickyPatientHeader";
@@ -104,6 +112,31 @@ import { buildEncounterContextBarModel } from "./_components/encounter-context-b
 
 const clinicalActionWorkspaceEnabled = isClinicalActionWorkspaceEnabled();
 const smartClinicalWorkspaceEnabled = isSmartClinicalWorkspaceEnabled();
+
+function mapFoundationPatientToPatientRow(
+  patient: ClinicalFoundationPatient,
+): PatientRow {
+  return {
+    id: patient.id,
+    name: patient.displayName,
+    displayName: patient.displayName,
+    email: patient.email ?? undefined,
+    documentType: patient.documentType as PatientRow["documentType"],
+    documentNumber: patient.documentNumber,
+    birthDate: patient.birthDate,
+    sex: patient.sex,
+  };
+}
+
+function resolveFoundationDiagnosis(
+  consultation: ReturnType<typeof selectFoundationConsultation>,
+): string | null {
+  return (
+    consultation?.cie10?.description?.trim() ||
+    consultation?.diagnosisText?.trim() ||
+    null
+  );
+}
 
 function paymentFailureUserMessage(err: unknown): string {
   if (err instanceof ApiError) {
@@ -363,26 +396,61 @@ export default function ConsultationDetailPage() {
     consultation?.patient?.name || consultation?.patient?.email || "Paciente";
   const encounterDiagnosis =
     diagnosisState.diagnosisDescription || diagnosisState.diagnosis || null;
+  const clinicalFoundationState = useClinicalFoundation(id);
   const patientClinicalMemoryState = usePatientClinicalMemory(
     consultation?.patientId,
   );
+  const foundation = clinicalFoundationState.data;
+  const foundationPatient = selectFoundationPatient(foundation);
+  const foundationConsultation = selectFoundationConsultation(foundation);
+  const foundationMemory = selectFoundationMemory(foundation);
+  const foundationReadyForP0 =
+    Boolean(foundation) && !selectFoundationIsDegraded(foundation);
+  const p0PatientRow =
+    foundationReadyForP0 && foundationPatient
+      ? mapFoundationPatientToPatientRow(foundationPatient)
+      : patientRow;
+  const p0ClinicalMemory =
+    foundationReadyForP0 && foundationMemory
+      ? foundationMemory
+      : patientClinicalMemoryState.data;
+  const p0EncounterDiagnosis =
+    foundationReadyForP0
+      ? resolveFoundationDiagnosis(foundationConsultation) ?? encounterDiagnosis
+      : encounterDiagnosis;
+  const p0Status =
+    foundationReadyForP0 && foundationConsultation?.status
+      ? foundationConsultation.status
+      : status;
+  const p0ClinicalMemoryLoading = foundationReadyForP0
+    ? false
+    : patientClinicalMemoryState.loading;
+  const p0ClinicalMemoryError = foundationReadyForP0
+    ? null
+    : patientClinicalMemoryState.error;
+  const p0PatientContextLoading = foundationReadyForP0
+    ? false
+    : patientContextLoading;
+  const p0PatientContextError = foundationReadyForP0
+    ? null
+    : patientContextError;
   const encounterContextModel = useMemo(
     () =>
       buildEncounterContextBarModel({
-        patient: patientRow,
+        patient: p0PatientRow,
         profile: patientProfile,
         fallbackName: patientName,
-        status,
-        diagnosis: encounterDiagnosis,
-        memory: patientClinicalMemoryState.data,
+        status: p0Status,
+        diagnosis: p0EncounterDiagnosis,
+        memory: p0ClinicalMemory,
       }),
     [
-      encounterDiagnosis,
-      patientClinicalMemoryState.data,
+      p0ClinicalMemory,
+      p0EncounterDiagnosis,
+      p0PatientRow,
+      p0Status,
       patientName,
       patientProfile,
-      patientRow,
-      status,
     ],
   );
   const isEditable = status === "draft" || status === "in_progress";
@@ -905,7 +973,7 @@ export default function ConsultationDetailPage() {
           <div className="clinical-depth-2 space-y-hd-2 pb-hd-2">
             <StickyPatientHeader
               model={encounterContextModel}
-              loading={patientContextLoading || patientClinicalMemoryState.loading}
+              loading={p0PatientContextLoading || p0ClinicalMemoryLoading}
             />
             {clinicalActionWorkspaceEnabled && consultation.patientId ? (
               <ClinicalActionBar
@@ -1042,16 +1110,16 @@ export default function ConsultationDetailPage() {
         onRightPaneTabChange={setRightPaneTab}
         patientContext={{
           patientId: consultation.patientId,
-          patient: patientRow,
+          patient: p0PatientRow,
           profile: patientProfile,
-          loading: patientContextLoading,
-          error: patientContextError,
+          loading: p0PatientContextLoading,
+          error: p0PatientContextError,
           fallbackName: patientName,
           currentConsultationId: id,
-          encounterDiagnosis,
-          clinicalMemory: patientClinicalMemoryState.data,
-          clinicalMemoryLoading: patientClinicalMemoryState.loading,
-          clinicalMemoryError: patientClinicalMemoryState.error,
+          encounterDiagnosis: p0EncounterDiagnosis,
+          clinicalMemory: p0ClinicalMemory,
+          clinicalMemoryLoading: p0ClinicalMemoryLoading,
+          clinicalMemoryError: p0ClinicalMemoryError,
         }}
         ordersSubTab={ordersSubTab}
         onOrdersSubTabChange={setOrdersSubTab}
@@ -1158,16 +1226,16 @@ export default function ConsultationDetailPage() {
           onRightPaneTabChange={setRightPaneTab}
           patientContext={{
             patientId: consultation.patientId,
-            patient: patientRow,
+            patient: p0PatientRow,
             profile: patientProfile,
-            loading: patientContextLoading,
-            error: patientContextError,
+            loading: p0PatientContextLoading,
+            error: p0PatientContextError,
             fallbackName: patientName,
             currentConsultationId: id,
-            encounterDiagnosis,
-            clinicalMemory: patientClinicalMemoryState.data,
-            clinicalMemoryLoading: patientClinicalMemoryState.loading,
-            clinicalMemoryError: patientClinicalMemoryState.error,
+            encounterDiagnosis: p0EncounterDiagnosis,
+            clinicalMemory: p0ClinicalMemory,
+            clinicalMemoryLoading: p0ClinicalMemoryLoading,
+            clinicalMemoryError: p0ClinicalMemoryError,
           }}
           ordersSubTab={ordersSubTab}
           onOrdersSubTabChange={setOrdersSubTab}
