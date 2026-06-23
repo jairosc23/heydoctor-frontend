@@ -16,6 +16,7 @@ const MENU = [
   { label: "Reportes", href: "/panel/reportes" },
   { label: "Facturación", href: "/panel/facturacion" },
   { label: "Configuración", href: "/panel/config" },
+  { label: "Perfil profesional", href: "/panel/settings/professional-profile" },
   { label: "Admin", href: "/panel/admin" },
 ];
 
@@ -27,6 +28,7 @@ const TITLES: Record<string, string> = {
   "/panel/reportes": "Reportes",
   "/panel/facturacion": "Facturación",
   "/panel/config": "Configuración",
+  "/panel/settings/professional-profile": "Perfil profesional",
   "/panel/admin": "Admin",
   "/panel": "Panel",
 };
