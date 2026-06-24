@@ -12,6 +12,7 @@ import type {
   DiagnosisContext,
   SelectedDiagnosis,
 } from "@/lib/types/clinical-intelligence-flow";
+import type { ClinicalFoundationBundle } from "@/lib/types/clinical-foundation";
 
 export interface ClinicalIntelligenceContextValue {
   consultationId: string | null;
@@ -20,6 +21,7 @@ export interface ClinicalIntelligenceContextValue {
   cie10CodeId: string | null;
   diagnosisLabel: string | null;
   diagnosisContext: DiagnosisContext | null;
+  clinicalFoundation: ClinicalFoundationBundle | null;
   drugSuggestionsRefreshKey: number;
   diagnosisSuggestionsRefreshKey: number;
   flowSuggestionsRefreshKey: number;
@@ -43,12 +45,14 @@ export function ClinicalIntelligenceProvider({
   initialPatientId = null,
   initialCountryCode = "CL",
   initialDiagnosis = null,
+  clinicalFoundation = null,
 }: {
   children: ReactNode;
   initialConsultationId?: string | null;
   initialPatientId?: string | null;
   initialCountryCode?: string;
   initialDiagnosis?: SelectedDiagnosis | null;
+  clinicalFoundation?: ClinicalFoundationBundle | null;
 }) {
   const [consultationId, setConsultationId] = useState<string | null>(
     initialConsultationId,
@@ -135,6 +139,7 @@ export function ClinicalIntelligenceProvider({
       cie10CodeId,
       diagnosisLabel,
       diagnosisContext,
+      clinicalFoundation,
       drugSuggestionsRefreshKey,
       diagnosisSuggestionsRefreshKey,
       flowSuggestionsRefreshKey,
@@ -151,6 +156,7 @@ export function ClinicalIntelligenceProvider({
       cie10CodeId,
       diagnosisLabel,
       diagnosisContext,
+      clinicalFoundation,
       drugSuggestionsRefreshKey,
       diagnosisSuggestionsRefreshKey,
       flowSuggestionsRefreshKey,

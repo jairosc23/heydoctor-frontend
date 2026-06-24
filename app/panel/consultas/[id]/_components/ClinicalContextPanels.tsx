@@ -52,6 +52,9 @@ export function ClinicalContextPanels({
   clinicalMemory,
   clinicalMemoryLoading,
   clinicalMemoryError,
+  clinicalFoundationOutputs,
+  clinicalFoundationLoading,
+  clinicalFoundationError,
 }: PatientContextRailProps) {
   if (!patientId) return null;
 
@@ -66,6 +69,10 @@ export function ClinicalContextPanels({
   const activeProblems = memory.activeConditions.slice(0, 3);
   const activeMedications = memory.currentMedications.slice(0, 3);
   const lastConsultation = memory.recentConsultations[0];
+  const foundationSummaryLines =
+    clinicalFoundationOutputs?.clinicalSummary?.lines ?? [];
+  const foundationFindings = clinicalFoundationOutputs?.clinicalFindings ?? [];
+  const foundationGaps = clinicalFoundationOutputs?.documentationGaps ?? [];
 
   return (
     <section
@@ -102,6 +109,14 @@ export function ClinicalContextPanels({
           role="alert"
         >
           Memoria clínica no disponible en este momento.
+        </p>
+      ) : null}
+      {clinicalFoundationError ? (
+        <p
+          className="rounded-hd-md border border-amber-200 bg-amber-50 px-hd-3 py-hd-2 text-xs text-amber-900"
+          role="alert"
+        >
+          Foundation no disponible; se mantiene el contexto clínico local.
         </p>
       ) : null}
 
@@ -151,6 +166,54 @@ export function ClinicalContextPanels({
           />
         </div>
       </section>
+
+      {foundationSummaryLines.length > 0 ||
+      foundationFindings.length > 0 ||
+      foundationGaps.length > 0 ? (
+        <section className="rounded-hd-lg border border-primary/10 bg-primaryLight/30 px-hd-4 py-hd-3 shadow-hd-1">
+          <div className="mb-hd-2 flex flex-wrap items-center justify-between gap-hd-2">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-primary">
+              Clinical Foundation
+            </p>
+            <p className="text-[10px] text-slate-500">Fuente backend primaria</p>
+          </div>
+          {foundationSummaryLines.length > 0 ? (
+            <ul className="space-y-1 text-xs leading-relaxed text-slate-700">
+              {foundationSummaryLines.slice(0, 4).map((line) => (
+                <li key={line.id}>{line.text}</li>
+              ))}
+            </ul>
+          ) : null}
+          {foundationFindings.length > 0 ? (
+            <div className="mt-hd-2 flex flex-wrap gap-1.5">
+              {foundationFindings.slice(0, 5).map((finding) => (
+                <span
+                  key={finding.id}
+                  className="rounded-full border border-primary/10 bg-white px-2 py-1 text-[10px] font-medium text-slate-700"
+                >
+                  {finding.label}: {finding.value}
+                </span>
+              ))}
+            </div>
+          ) : null}
+          {foundationGaps.length > 0 ? (
+            <div className="mt-hd-2 rounded-hd-md border border-amber-200 bg-amber-50 px-hd-3 py-hd-2">
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
+                Documentation gaps
+              </p>
+              <ul className="space-y-1 text-xs text-amber-900">
+                {foundationGaps.slice(0, 3).map((gap) => (
+                  <li key={gap.id}>{gap.label}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+        </section>
+      ) : clinicalFoundationLoading ? (
+        <p className="rounded-hd-md border border-slate-100 bg-slate-50 px-hd-3 py-hd-2 text-xs text-slate-500">
+          Cargando Clinical Foundation...
+        </p>
+      ) : null}
 
       <div className="grid gap-hd-3">
         <ClinicalCollapsiblePanel

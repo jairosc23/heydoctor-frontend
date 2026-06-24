@@ -16,6 +16,7 @@ import { PatientMemoryCard } from "@/components/clinical/PatientMemoryCard";
 import { ClinicalCard } from "@/components/clinical/design";
 import { CLINICAL_SECTION_TITLE } from "@/lib/clinical-design-tokens";
 import type { PatientClinicalMemory } from "@/lib/types/clinical-memory";
+import type { ClinicalFoundationOutputs } from "@/lib/types/clinical-foundation";
 import { ClinicalMemoryCard } from "./memory/ClinicalMemoryCard";
 
 export interface PatientContextRailProps {
@@ -34,6 +35,9 @@ export interface PatientContextRailProps {
   clinicalMemory?: PatientClinicalMemory;
   clinicalMemoryLoading?: boolean;
   clinicalMemoryError?: string | null;
+  clinicalFoundationOutputs?: ClinicalFoundationOutputs | null;
+  clinicalFoundationLoading?: boolean;
+  clinicalFoundationError?: string | null;
 }
 
 function RailSkeleton() {
@@ -68,6 +72,9 @@ export function PatientContextRail({
   clinicalMemory,
   clinicalMemoryLoading,
   clinicalMemoryError,
+  clinicalFoundationOutputs,
+  clinicalFoundationLoading,
+  clinicalFoundationError,
 }: PatientContextRailProps) {
   if (!patientId) return null;
 
@@ -115,6 +122,27 @@ export function PatientContextRail({
         {displayName} · {ageLabel} · {sexLabel}
         {documentLabel !== "—" ? ` · ${documentLabel}` : ""}
       </p>
+
+      {clinicalFoundationOutputs?.clinicalSummary ? (
+        <div className="rounded-hd-md border border-primary/10 bg-primaryLight/40 px-hd-3 py-hd-2">
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-primary">
+            Clinical Foundation
+          </p>
+          <ul className="space-y-1 text-[11px] leading-relaxed text-slate-700">
+            {clinicalFoundationOutputs.clinicalSummary.lines.slice(0, 3).map((line) => (
+              <li key={line.id}>{line.text}</li>
+            ))}
+          </ul>
+        </div>
+      ) : clinicalFoundationLoading ? (
+        <p className="rounded-hd-md border border-slate-100 bg-slate-50 px-hd-3 py-hd-2 text-[11px] text-slate-500">
+          Cargando Clinical Foundation...
+        </p>
+      ) : clinicalFoundationError ? (
+        <p className="rounded-hd-md border border-amber-200 bg-amber-50 px-hd-3 py-hd-2 text-[11px] text-amber-900">
+          Foundation no disponible; usando contexto local.
+        </p>
+      ) : null}
 
       <ClinicalMemoryCard
         patientId={patientId}

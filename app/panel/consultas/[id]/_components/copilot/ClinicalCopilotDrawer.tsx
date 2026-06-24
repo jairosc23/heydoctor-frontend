@@ -4,9 +4,19 @@ import { useEffect, useMemo } from "react";
 import { useDoctorDna } from "@/hooks/useDoctorDna";
 import { EMPTY_PATIENT_CLINICAL_MEMORY } from "@/hooks/usePatientClinicalMemory";
 import { buildClinicalMemoryView } from "@/lib/clinical-memory";
-import { buildClinicalCopilotIntelligence, COPILOT_SILENCE_MESSAGE } from "@/lib/clinical-copilot-intelligence";
+import {
+  buildClinicalCopilotIntelligence,
+  COPILOT_SILENCE_MESSAGE,
+  type CopilotInsight,
+  type CopilotInsightKind,
+  type DocumentationGap,
+} from "@/lib/clinical-copilot-intelligence";
 import { buildDoctorDnaIntelligenceView } from "@/lib/doctor-dna-intelligence";
 import type { PatientClinicalMemory } from "@/lib/types/clinical-memory";
+import type {
+  ClinicalFoundationFinding,
+  ClinicalFoundationOutputs,
+} from "@/lib/types/clinical-foundation";
 import { cn } from "@/lib/utils";
 import {
   CLINICAL_OVERLAY_BACKDROP_CLASS,
@@ -36,7 +46,45 @@ export interface ClinicalCopilotDrawerProps {
   patientAge?: string | number | null;
   patientSex?: string | null;
   clinicalMemory?: PatientClinicalMemory;
+  foundationOutputs?: ClinicalFoundationOutputs | null;
   generativeExpandToken?: number;
+}
+
+function mapFoundationFindingKind(
+  finding: ClinicalFoundationFinding,
+): CopilotInsightKind {
+  switch (finding.category) {
+    case "medication":
+    case "order":
+      return "medication";
+    case "vital_sign":
+      return "vitals";
+    case "memory":
+      return "continuity";
+    default:
+      return "context";
+  }
+}
+
+function mapFoundationFindingsToInsights(
+  outputs?: ClinicalFoundationOutputs | null,
+): CopilotInsight[] {
+  return (outputs?.clinicalFindings ?? []).map((finding) => ({
+    id: `foundation-${finding.id}`,
+    kind: mapFoundationFindingKind(finding),
+    title: finding.label,
+    body: finding.value,
+  }));
+}
+
+function mapFoundationGapsToDocumentationGaps(
+  outputs?: ClinicalFoundationOutputs | null,
+): DocumentationGap[] {
+  return (outputs?.documentationGaps ?? []).map((gap) => ({
+    id: `foundation-${gap.id}`,
+    field: gap.code,
+    message: gap.label,
+  }));
 }
 
 export function ClinicalCopilotDrawer({
@@ -54,6 +102,7 @@ export function ClinicalCopilotDrawer({
   patientAge,
   patientSex,
   clinicalMemory: providedClinicalMemory,
+  foundationOutputs,
   generativeExpandToken = 0,
 }: ClinicalCopilotDrawerProps) {
   const clinicalMemoryData =
@@ -123,6 +172,22 @@ export function ClinicalCopilotDrawer({
     }
     return diagnosisDescription?.trim() || diagnosis?.trim() || null;
   }, [diagnosis, diagnosisCode, diagnosisDescription]);
+  const foundationInsights = useMemo(
+    () => mapFoundationFindingsToInsights(foundationOutputs),
+    [foundationOutputs],
+  );
+  const foundationGaps = useMemo(
+    () => mapFoundationGapsToDocumentationGaps(foundationOutputs),
+    [foundationOutputs],
+  );
+  const displayedInsights =
+    foundationInsights.length > 0 ? foundationInsights : intelligence.insights;
+  const displayedGaps =
+    foundationGaps.length > 0 ? foundationGaps : intelligence.documentationGaps;
+  const silenceMode =
+    displayedInsights.length === 0 &&
+    intelligence.riskSignals.length === 0 &&
+    displayedGaps.length === 0;
 
   useEffect(() => {
     if (!open) return;
@@ -180,7 +245,7 @@ export function ClinicalCopilotDrawer({
 
         <div className="flex-1 space-y-hd-5 overflow-y-auto px-hd-4 py-hd-4">
           <CopilotGovernanceBoundary />
-          {intelligence.silenceMode ? (
+          {silenceMode ? (
             <p
               role="status"
               className="rounded-hd-md border border-slate-200/80 bg-slate-50/80 px-hd-3 py-hd-2 text-[11px] text-slate-600"
@@ -188,11 +253,23 @@ export function ClinicalCopilotDrawer({
               {COPILOT_SILENCE_MESSAGE}
             </p>
           ) : null}
+          {foundationOutputs?.clinicalSummary ? (
+            <section className="rounded-hd-md border border-primary/10 bg-primaryLight/40 px-hd-3 py-hd-2">
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                Resumen Foundation
+              </p>
+              <ul className="space-y-1 text-[11px] leading-relaxed text-slate-700">
+                {foundationOutputs.clinicalSummary.lines.slice(0, 4).map((line) => (
+                  <li key={line.id}>{line.text}</li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
           <CopilotDocumentationQuality quality={intelligence.documentationQuality} />
           <CopilotContextEngine context={intelligence.context} />
-          <CopilotInsightCards insights={intelligence.insights} />
+          <CopilotInsightCards insights={displayedInsights} />
           <CopilotRiskSignals signals={intelligence.riskSignals} />
-          <CopilotDocumentationGaps gaps={intelligence.documentationGaps} />
+          <CopilotDocumentationGaps gaps={displayedGaps} />
           <CopilotGenerativeSection
             chiefComplaint={chiefComplaint}
             notes={notes}
