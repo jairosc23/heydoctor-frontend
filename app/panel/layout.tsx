@@ -7,8 +7,8 @@ export default function PanelRootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <ConsultationProvider>
-      <PanelLayout>{children}</PanelLayout>
-    </ConsultationProvider>
+    <PanelLayout>
+      <ConsultationProvider>{children}</ConsultationProvider>
+    </PanelLayout>
   );
 }
