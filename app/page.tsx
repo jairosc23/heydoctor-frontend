@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { GrowthLandingVisitBeacon } from "@/components/GrowthLandingVisitBeacon";
 import { WhatsAppPatientCTA } from "@/components/WhatsAppPatientCTA";
 import HomeQuickAccess from "@/components/HomeQuickAccess";
 import HeyDoctorLogo from "@/components/ui/HeyDoctorLogo";
@@ -57,6 +58,61 @@ const TRUST_ITEMS = [
   },
 ];
 
+const ENTERPRISE_TRUST_SIGNALS = [
+  "Backend Enterprise V1",
+  "Production Ready",
+  "Clinical Foundation",
+  "AI Governance",
+  "Observability",
+  "Interactive Demo",
+];
+
+const CLINICAL_STORY = [
+  {
+    title: "Paciente",
+    description:
+      "La atención parte de una consulta clara, con contexto clínico y señales relevantes para el médico.",
+  },
+  {
+    title: "Clinical Foundation",
+    description:
+      "El backend consolida memoria, órdenes, alertas y datos de consulta en una base clínica consistente.",
+  },
+  {
+    title: "AI Governance",
+    description:
+      "La IA opera con contratos, guardrails y evidencia, manteniendo trazabilidad para revisión clínica.",
+  },
+  {
+    title: "Observability",
+    description:
+      "Health, readiness y señales operativas permiten evaluar la plataforma con criterio production-ready.",
+  },
+];
+
+const ENTERPRISE_CAPABILITIES = [
+  {
+    title: "Clinical Foundation",
+    description:
+      "Snapshot clínico consistente para paciente, consulta, memoria, órdenes y alertas.",
+  },
+  {
+    title: "AI Governance",
+    description:
+      "Ejecuciones IA con políticas internas, metadatos, contratos y degradación controlada.",
+  },
+  {
+    title: "Production Ready",
+    description:
+      "Backend Enterprise V1 preparado para operación clínica con readiness y smoke checks.",
+  },
+  {
+    title: "Marketplace",
+    description:
+      "Conexión directa con planes y activación comercial sin duplicar el flujo de Pricing.",
+  },
+];
+
 const TESTIMONIALS = [
   {
     name: "Dra. Carolina Méndez",
@@ -83,6 +139,8 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-white font-sans text-gray-900">
+      <GrowthLandingVisitBeacon />
+
       {/* ── NAV ── */}
       <header className="sticky top-0 z-50 border-b border-gray-100 bg-white/80 backdrop-blur-md">
         <Container className="flex h-16 items-center justify-between">
@@ -161,6 +219,132 @@ export default function LandingPage() {
       <HomeQuickAccess />
 
       {whatsAppUrl ? <WhatsAppPatientCTA url={whatsAppUrl} /> : null}
+
+      {/* ── ENTERPRISE TRUST BAR ── */}
+      <section className="border-y border-primaryLight bg-white py-8">
+        <Container>
+          <div className="mb-5 text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primaryMid">
+              Backend Enterprise V1
+            </p>
+            <h2
+              className="mt-2 text-2xl font-bold tracking-tight text-gray-900"
+              style={{ fontFamily: FONT_HEADING }}
+            >
+              Plataforma clínica con IA gobernada y operación production-ready
+            </h2>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+            {ENTERPRISE_TRUST_SIGNALS.map((signal) => (
+              <div
+                key={signal}
+                className="rounded-2xl border border-primaryLight bg-primaryLight/40 px-4 py-3 text-center"
+              >
+                <p className="text-sm font-semibold text-primaryDark">{signal}</p>
+              </div>
+            ))}
+          </div>
+        </Container>
+      </section>
+
+      {/* ── CLINICAL STORY ── */}
+      <section className="bg-white py-20">
+        <Container>
+          <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_360px]">
+            <div>
+              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.24em] text-primaryMid">
+                Clinical Story
+              </p>
+              <h2
+                className="mb-4 text-3xl font-bold tracking-tight text-gray-900"
+                style={{ fontFamily: FONT_HEADING }}
+              >
+                Del paciente a la evidencia clínica, sin perder trazabilidad.
+              </h2>
+              <p className="max-w-2xl text-base leading-relaxed text-gray-600">
+                HeyDoctor conecta el flujo comercial existente con una base enterprise:
+                Clinical Foundation, gobernanza de IA, observabilidad e Interactive Demo
+                para evaluar capacidades reales sin ejecutar acciones mutables.
+              </p>
+              <div className="mt-8 grid gap-4 md:grid-cols-2">
+                {CLINICAL_STORY.map((step, index) => (
+                  <Card key={step.title} className="border border-gray-100 shadow-soft">
+                    <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-bold text-white">
+                      {index + 1}
+                    </div>
+                    <h3
+                      className="mb-2 text-lg font-bold text-gray-900"
+                      style={{ fontFamily: FONT_HEADING }}
+                    >
+                      {step.title}
+                    </h3>
+                    <p className="text-sm leading-relaxed text-gray-600">{step.description}</p>
+                  </Card>
+                ))}
+              </div>
+            </div>
+            <Card className="border-2 border-primaryLight bg-gradient-to-br from-primaryLight/70 to-white">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.24em] text-primaryMid">
+                Interactive Demo
+              </p>
+              <h3
+                className="mb-3 text-2xl font-bold text-gray-900"
+                style={{ fontFamily: FONT_HEADING }}
+              >
+                Evalúa el recorrido clínico enterprise
+              </h3>
+              <p className="mb-6 text-sm leading-relaxed text-gray-700">
+                La demo muestra workspace clínico, Copilot, capa de evidencia y señales de
+                readiness con Mock Mode por defecto.
+              </p>
+              <div className="flex flex-col gap-3">
+                <Button href="/demo/interactive" variant="primary" className="w-full">
+                  Ver Demo Interactiva
+                </Button>
+                <Button href="/pricing" variant="secondary" className="w-full bg-white">
+                  Explorar Marketplace
+                </Button>
+              </div>
+            </Card>
+          </div>
+        </Container>
+      </section>
+
+      {/* ── ENTERPRISE CAPABILITIES ── */}
+      <section className="bg-gray-50 py-20">
+        <Container>
+          <div className="mb-12 text-center">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.24em] text-primaryMid">
+              Enterprise Capabilities
+            </p>
+            <h2
+              className="mb-3 text-3xl font-bold tracking-tight text-gray-900"
+              style={{ fontFamily: FONT_HEADING }}
+            >
+              Capacidades productivas sobre el flujo clínico existente
+            </h2>
+            <p className="mx-auto max-w-2xl text-gray-600">
+              Backend Enterprise V1 aporta fundamento clínico, gobernanza, observabilidad
+              y activación comercial sin reemplazar la experiencia actual de pacientes y médicos.
+            </p>
+          </div>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            {ENTERPRISE_CAPABILITIES.map((capability) => (
+              <Card key={capability.title} className="h-full border border-gray-100 text-left">
+                <h3
+                  className="mb-3 text-lg font-bold text-gray-900"
+                  style={{ fontFamily: FONT_HEADING }}
+                >
+                  {capability.title}
+                </h3>
+                <p className="text-sm leading-relaxed text-gray-600">
+                  {capability.description}
+                </p>
+              </Card>
+            ))}
+          </div>
+        </Container>
+      </section>
 
       {/* ── FEATURES ── */}
       <section className="bg-gray-50 py-20">
