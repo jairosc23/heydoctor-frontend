@@ -313,23 +313,23 @@ export default function AdminAnalyticsPage() {
             MRR recurrente (DB + replay) · churn real · ARPU / LTV / ARR · cohortes
           </p>
         </div>
-        <nav className="flex flex-wrap gap-3 text-sm">
+        <nav className="flex flex-wrap gap-3 text-sm" aria-label="Navegación de analytics">
           <Link
             href="/admin/subscriptions"
-            className="text-slate-600 underline hover:text-slate-900"
+            className="rounded text-slate-600 underline hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
           >
             Timeline / KPIs
           </Link>
           <Link
             href="/panel"
-            className="text-slate-600 underline hover:text-slate-900"
+            className="rounded text-slate-600 underline hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
           >
             Panel
           </Link>
           <button
             type="button"
             onClick={() => void load()}
-            className="text-slate-600 underline hover:text-slate-900"
+            className="rounded text-slate-600 underline hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
           >
             Refrescar
           </button>

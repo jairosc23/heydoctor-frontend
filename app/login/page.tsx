@@ -81,34 +81,60 @@ function LoginContent() {
           Acceso Médico
         </h2>
         <form onSubmit={handleSubmit} className="text-left">
+          <label htmlFor="login-email" className="sr-only">
+            Email
+          </label>
           <Input
+            id="login-email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Email"
             disabled={loading}
             autoComplete="username"
+            aria-invalid={Boolean(error)}
+            aria-describedby={error ? "login-error" : undefined}
             className="mb-3"
           />
+          <label htmlFor="login-password" className="sr-only">
+            Contraseña
+          </label>
           <Input
+            id="login-password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Contraseña"
             disabled={loading}
             autoComplete="current-password"
+            aria-invalid={Boolean(error)}
+            aria-describedby={error ? "login-error" : undefined}
             className="mb-4"
           />
-          <Button type="submit" variant="primary" disabled={loading} className="w-full">
+          <Button
+            type="submit"
+            variant="primary"
+            disabled={loading}
+            className="w-full focus:outline-none focus:ring-2 focus:ring-primaryLight focus:ring-offset-2"
+          >
             {loading ? "Ingresando…" : "Ingresar"}
           </Button>
         </form>
         {error && (
-          <div className="mt-3 min-h-[20px] text-center text-sm text-red-600">{error}</div>
+          <div
+            id="login-error"
+            className="mt-3 min-h-[20px] text-center text-sm text-red-600"
+            role="alert"
+          >
+            {error}
+          </div>
         )}
         <p className="mt-4 text-sm text-gray-600">
           ¿No tienes cuenta?{" "}
-          <Link href="/register" className="font-semibold text-primary no-underline hover:underline">
+          <Link
+            href="/register"
+            className="rounded font-semibold text-primary no-underline hover:underline focus:outline-none focus:ring-2 focus:ring-primaryLight focus:ring-offset-2"
+          >
             Registrarse
           </Link>
         </p>

@@ -224,7 +224,8 @@ export function LabOrdersPanel({
                         type="button"
                         onClick={() => void handlePdf(o.id)}
                         disabled={pdfLoadingId === o.id}
-                        className="font-medium text-slate-600 hover:text-primary hover:underline disabled:opacity-50"
+                        className="rounded font-medium text-slate-600 hover:text-primary hover:underline disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-primaryLight focus:ring-offset-2"
+                        aria-label={`Descargar PDF de ${formatLabOrderTitle(o)}`}
                       >
                         {pdfLoadingId === o.id ? "PDF…" : "PDF"}
                       </button>
@@ -242,11 +243,12 @@ export function LabOrdersPanel({
                     key={t.id}
                     type="button"
                     onClick={() => applyTemplate(t)}
+                      aria-label={`Aplicar plantilla ${t.name}`}
                     className={`text-xs px-2 py-1 rounded ${
                       t.isFavorite
                         ? "bg-amber-50 text-amber-800 border border-amber-200"
                         : "bg-gray-50 text-gray-700 border border-gray-200"
-                    }`}
+                    } focus:outline-none focus:ring-2 focus:ring-indigo-500`}
                   >
                     {t.isFavorite ? "★ " : ""}
                     {t.name}
@@ -266,7 +268,8 @@ export function LabOrdersPanel({
                       key={t}
                       type="button"
                       onClick={() => addSuggested(t)}
-                      className="text-xs px-2 py-1 bg-indigo-50 text-indigo-700 rounded hover:bg-indigo-100"
+                      aria-label={`Agregar examen sugerido ${t}`}
+                      className="text-xs px-2 py-1 bg-indigo-50 text-indigo-700 rounded hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     >
                       + {t}
                     </button>
@@ -280,14 +283,16 @@ export function LabOrdersPanel({
                   type="text"
                   value={exam.exam}
                   onChange={(e) => updateExam(idx, { exam: e.target.value })}
+                  aria-label={`Nombre del examen ${idx + 1}`}
                   placeholder="Examen"
-                  className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm"
+                  className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
                 <div className="grid grid-cols-2 gap-1">
                   <select
                     value={exam.priority ?? "routine"}
                     onChange={(e) => updateExam(idx, { priority: e.target.value })}
-                    className="px-2 py-1.5 border border-gray-300 rounded text-sm"
+                    aria-label={`Prioridad del examen ${idx + 1}`}
+                    className="px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="routine">Rutina</option>
                     <option value="urgent">Urgente</option>
@@ -297,46 +302,58 @@ export function LabOrdersPanel({
                     type="text"
                     value={exam.reason ?? ""}
                     onChange={(e) => updateExam(idx, { reason: e.target.value })}
+                    aria-label={`Motivo clínico del examen ${idx + 1}`}
                     placeholder="Motivo clínico"
-                    className="px-2 py-1.5 border border-gray-300 rounded text-sm"
+                    className="px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
                 <input
                   type="text"
                   value={exam.observations ?? ""}
                   onChange={(e) => updateExam(idx, { observations: e.target.value })}
+                  aria-label={`Observaciones del examen ${idx + 1}`}
                   placeholder="Observaciones"
-                  className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm"
+                  className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
-                <button type="button" onClick={() => removeExamRow(idx)} className="text-xs text-red-600">
+                <button
+                  type="button"
+                  onClick={() => removeExamRow(idx)}
+                  className="rounded text-xs text-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                  aria-label={`Quitar examen ${idx + 1}`}
+                >
                   Quitar examen
                 </button>
               </div>
             ))}
-            <button type="button" onClick={addExamRow} className="text-xs text-indigo-600 hover:underline">
+            <button
+              type="button"
+              onClick={addExamRow}
+              className="rounded text-xs text-indigo-600 hover:underline focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+            >
               + Agregar examen
             </button>
             <input
               type="text"
               value={templateName}
               onChange={(e) => setTemplateName(e.target.value)}
+              aria-label="Nombre de plantilla de laboratorio"
               placeholder="Nombre plantilla (opcional)"
-              className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm"
+              className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            {error && <p className="text-sm text-red-600" role="alert">{error}</p>}
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => void handleCreateOrder()}
                 disabled={creating}
-                className="px-3 py-1.5 bg-teal-600 text-white rounded text-sm hover:bg-teal-700 disabled:opacity-50"
+                className="px-3 py-1.5 bg-teal-600 text-white rounded text-sm hover:bg-teal-700 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
               >
                 {creating ? "Guardando…" : "Generar orden"}
               </button>
               <button
                 type="button"
                 onClick={() => void handleSaveTemplate()}
-                className="px-3 py-1.5 border border-gray-300 rounded text-sm hover:bg-gray-50"
+                className="px-3 py-1.5 border border-gray-300 rounded text-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
               >
                 Guardar como favorita
               </button>

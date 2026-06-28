@@ -208,7 +208,8 @@ export function PrescriptionPanel({
                         <button
                           type="button"
                           onClick={() => startEdit(p)}
-                          className="font-medium text-slate-600 hover:text-primary hover:underline"
+                          className="rounded font-medium text-slate-600 hover:text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primaryLight focus:ring-offset-2"
+                          aria-label={`Editar receta ${formatPrescriptionTitle(p)}`}
                         >
                           Editar
                         </button>
@@ -219,7 +220,8 @@ export function PrescriptionPanel({
                           type="button"
                           onClick={() => void handlePdf(p.id)}
                           disabled={pdfLoadingId === p.id}
-                          className="font-medium text-slate-600 hover:text-primary hover:underline disabled:opacity-50"
+                          className="rounded font-medium text-slate-600 hover:text-primary hover:underline disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-primaryLight focus:ring-offset-2"
+                          aria-label={`Descargar PDF de ${formatPrescriptionTitle(p)}`}
                         >
                           {pdfLoadingId === p.id ? "PDF…" : "PDF"}
                         </button>
@@ -229,7 +231,8 @@ export function PrescriptionPanel({
                         <button
                           type="button"
                           onClick={() => void handleDelete(p.id)}
-                          className="font-medium text-slate-500 hover:text-red-600 hover:underline"
+                          className="rounded font-medium text-slate-500 hover:text-red-600 hover:underline focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                          aria-label={`Eliminar receta ${formatPrescriptionTitle(p)}`}
                         >
                           Eliminar
                         </button>
@@ -244,8 +247,9 @@ export function PrescriptionPanel({
               type="text"
               value={diagnosis}
               onChange={(e) => setDiagnosis(e.target.value)}
+              aria-label="Diagnóstico de la receta"
               placeholder="Diagnóstico"
-              className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm"
+              className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
             {draftMeds.map((med, idx) => (
               <div key={idx} className="grid grid-cols-1 sm:grid-cols-4 gap-1 border border-gray-100 rounded p-2">
@@ -254,53 +258,65 @@ export function PrescriptionPanel({
                   onChange={(name) => updateDraftMed(idx, { name })}
                   placeholder="Medicamento"
                   className="sm:col-span-2"
-                  inputClassName="w-full px-2 py-1.5 border border-gray-300 rounded text-sm"
+                  inputClassName="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
                 <input
                   type="text"
                   value={med.dosage ?? ""}
                   onChange={(e) => updateDraftMed(idx, { dosage: e.target.value })}
+                  aria-label={`Dosis del medicamento ${idx + 1}`}
                   placeholder="Dosis"
-                  className="px-2 py-1.5 border border-gray-300 rounded text-sm"
+                  className="px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
                 <input
                   type="text"
                   value={med.frequency ?? ""}
                   onChange={(e) => updateDraftMed(idx, { frequency: e.target.value })}
+                  aria-label={`Posología del medicamento ${idx + 1}`}
                   placeholder="Posología"
-                  className="px-2 py-1.5 border border-gray-300 rounded text-sm"
+                  className="px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
                 <button
                   type="button"
                   onClick={() => removeDraftRow(idx)}
-                  className="text-xs text-red-600 sm:col-span-4 text-left"
+                  className="rounded text-xs text-red-600 sm:col-span-4 text-left focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                  aria-label={`Quitar medicamento ${idx + 1}`}
                 >
                   Quitar línea
                 </button>
               </div>
             ))}
-            <button type="button" onClick={addDraftRow} className="text-xs text-indigo-600 hover:underline">
+            <button
+              type="button"
+              onClick={addDraftRow}
+              className="rounded text-xs text-indigo-600 hover:underline focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+            >
               + Agregar medicamento
             </button>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
+              aria-label="Notas generales de la receta"
               placeholder="Notas adicionales"
               rows={2}
-              className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm"
+              className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            {error && <p className="text-sm text-red-600" role="alert">{error}</p>}
             <div className="flex gap-2 flex-wrap">
               <button
                 type="button"
                 onClick={() => void handleSave()}
                 disabled={creating}
-                className="px-3 py-1.5 bg-teal-600 text-white rounded text-sm hover:bg-teal-700 disabled:opacity-50"
+                className="px-3 py-1.5 bg-teal-600 text-white rounded text-sm hover:bg-teal-700 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
               >
                 {creating ? "Guardando…" : editingId ? "Actualizar receta" : "Crear receta"}
               </button>
               {editingId && (
-                <button type="button" onClick={resetForm} className="px-3 py-1.5 border border-gray-300 rounded text-sm">
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="px-3 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
+                >
                   Cancelar edición
                 </button>
               )}
