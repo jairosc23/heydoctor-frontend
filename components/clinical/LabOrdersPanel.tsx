@@ -243,7 +243,7 @@ export function LabOrdersPanel({
                     key={t.id}
                     type="button"
                     onClick={() => applyTemplate(t)}
-                      aria-label={`Aplicar plantilla ${t.name}`}
+                    aria-label={`Aplicar plantilla ${t.name}`}
                     className={`text-xs px-2 py-1 rounded ${
                       t.isFavorite
                         ? "bg-amber-50 text-amber-800 border border-amber-200"
