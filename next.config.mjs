@@ -2,68 +2,7 @@ import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-
-/**
- * Orígenes permitidos para fetch/WebSocket/Socket.IO (además de lo que pida el entorno).
- * Sin esto, una CSP mínima rompe panel, teleconsulta o Sentry en producción.
- */
-function connectSrcDirective() {
-  const parts = [
-    "'self'",
-    "https://pro-api.heydoctor.health",
-    "wss://pro-api.heydoctor.health",
-    "https://vitals.vercel-insights.com",
-    "https://vercel.live",
-    "wss://vercel.live",
-    /** Vercel Toolbar / Comments (Pusher) — ver docs CSP de Vercel. */
-    "https://ws-us3.pusher.com",
-    "wss://ws-us3.pusher.com",
-    "https://*.railway.app",
-    "wss://*.railway.app",
-    "https://*.heydoctor.health",
-    "wss://*.heydoctor.health",
-    "https://*.ingest.sentry.io",
-    "https://*.sentry.io",
-  ];
-  const raw = process.env.NEXT_PUBLIC_HEYDOCTOR_API_URL?.trim();
-  if (raw) {
-    try {
-      const normalized = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
-      const u = new URL(normalized.replace(/\/api\/?$/i, ""));
-      const origin = u.origin;
-      const wss = u.protocol === "https:" ? `wss://${u.host}` : "";
-      if (origin && !parts.includes(origin)) parts.push(origin);
-      if (wss && !parts.includes(wss)) parts.push(wss);
-    } catch {
-      /* URL inválida: se omiten entradas extra */
-    }
-  }
-  return parts.join(" ");
-}
-
-/**
- * CSP única (evitar duplicar con middleware: varias políticas se combinan y endurecen todo).
- * script-src: 'unsafe-inline' + 'unsafe-eval' — requerido por hidratación App Router en Vercel;
- * endurecer después con nonces si aplica.
- */
-function contentSecurityPolicy() {
-  return [
-    "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live https://va.vercel-scripts.com",
-    /** Toolbar: https://vercel.com/docs/vercel-toolbar/managing-toolbar#using-a-content-security-policy */
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://vercel.live",
-    "font-src 'self' https://fonts.gstatic.com https://vercel.live https://assets.vercel.com",
-    "img-src 'self' data: blob: https://vercel.live https://vercel.com https://assets.vercel.com",
-    "media-src 'self' blob:",
-    "worker-src 'self' blob:",
-    `connect-src ${connectSrcDirective()}`,
-    "frame-src 'self' https://vercel.live https://*.payku.cl",
-    "object-src 'none'",
-    "base-uri 'self'",
-    "form-action 'self'",
-    "upgrade-insecure-requests",
-  ].join("; ");
-}
+const isProd = process.env.NODE_ENV === "production";
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -71,21 +10,22 @@ const nextConfig = {
     root: __dirname,
   },
   async headers() {
-    const csp = contentSecurityPolicy();
-    return [
+    const list = [
+      { key: "X-DNS-Prefetch-Control", value: "on" },
       {
-        source: "/(.*)",
-        headers: [
-          { key: "Content-Security-Policy", value: csp },
-          { key: "X-Frame-Options", value: "DENY" },
-          { key: "X-Content-Type-Options", value: "nosniff" },
-          {
-            key: "Referrer-Policy",
-            value: "strict-origin-when-cross-origin",
-          },
-        ],
+        key: "Permissions-Policy",
+        value:
+          "camera=(self), microphone=(self), geolocation=(), payment=(), usb=()",
       },
+      /** CSP (nonce + connect-src): ver `middleware.ts` — no duplicar directivas aquí. */
     ];
+    if (isProd) {
+      list.push({
+        key: "Strict-Transport-Security",
+        value: "max-age=63072000; includeSubDomains; preload",
+      });
+    }
+    return [{ source: "/:path*", headers: list }];
   },
 };
 

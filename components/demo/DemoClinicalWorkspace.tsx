@@ -1,5 +1,6 @@
-import type { DemoScenario } from '../../lib/demo/interactive-demo-scenario';
-import type { ReactNode } from 'react';
+import { DemoCopilotPanel } from "@/components/demo/DemoCopilotPanel";
+import type { DemoScenario } from "@/lib/demo/interactive-demo-scenario";
+import type { ReactNode } from "react";
 
 function WorkspaceCard({
   title,
@@ -66,7 +67,7 @@ function ReadOnlySection({
 export function DemoClinicalWorkspace({ scenario }: { scenario: DemoScenario }) {
   const { workspace } = scenario;
   const modeLabel =
-    scenario.mode === 'live' ? 'Live checks + demo data' : 'Mock deterministic';
+    scenario.mode === "live" ? "Live checks + demo data" : "Mock deterministic";
 
   return (
     <section
@@ -95,7 +96,7 @@ export function DemoClinicalWorkspace({ scenario }: { scenario: DemoScenario }) 
         <div className="space-y-5">
           <WorkspaceCard
             title="Patient Memory"
-            caption="Adaptación read-only del contenido esperado por memoria clínica."
+            caption="Adaptación read-only del contenido esperado por PatientMemoryCard."
           >
             <div className="grid gap-5 md:grid-cols-2">
               <ReadOnlySection
@@ -169,7 +170,7 @@ export function DemoClinicalWorkspace({ scenario }: { scenario: DemoScenario }) 
 
           <WorkspaceCard
             title="Nota clínica"
-            caption="Vista read-only del contenido que alimentaría una nota clínica."
+            caption="Vista read-only del contenido que alimentaría ClinicalNoteEditor."
           >
             <div className="grid gap-4 md:grid-cols-2">
               <NoteBlock title="Motivo" value={workspace.clinicalNote.chiefComplaint} />
@@ -183,9 +184,9 @@ export function DemoClinicalWorkspace({ scenario }: { scenario: DemoScenario }) 
         <aside className="space-y-5">
           <WorkspaceCard
             title="Clinical Copilot"
-            caption="Payload mock estructurado para mostrar sugerencias clínicas read-only."
+            caption="DemoCopilotPanel con payload mock del escenario."
           >
-            <CopilotPreview scenario={scenario} />
+            <DemoCopilotPanel data={workspace.copilot} />
           </WorkspaceCard>
 
           <WorkspaceCard title="Timeline de consulta">
@@ -197,63 +198,6 @@ export function DemoClinicalWorkspace({ scenario }: { scenario: DemoScenario }) 
         </aside>
       </div>
     </section>
-  );
-}
-
-function CopilotPreview({ scenario }: { scenario: DemoScenario }) {
-  const { copilot } = scenario.workspace;
-  return (
-    <div className="space-y-4">
-      <ReadOnlySection
-        title="Síntomas detectados"
-        items={copilot.symptoms_detected}
-        emptyLabel="Sin síntomas"
-      />
-      <div>
-        <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Diagnósticos sugeridos
-        </h4>
-        <div className="space-y-2">
-          {copilot.suggested_diagnoses.map((diagnosis) => (
-            <div key={diagnosis.code} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-              <p className="text-sm font-semibold text-slate-900">
-                {diagnosis.code} · {diagnosis.description}
-              </p>
-              <p className="mt-1 text-xs text-slate-500">
-                Confianza {(diagnosis.confidence * 100).toFixed(0)}%
-              </p>
-              <p className="mt-2 text-sm leading-6 text-slate-600">{diagnosis.explanation}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-      <ReadOnlySection
-        title="Preguntas sugeridas"
-        items={copilot.suggested_questions}
-        emptyLabel="Sin preguntas"
-      />
-      <ReadOnlySection
-        title="Tests sugeridos"
-        items={copilot.suggested_tests}
-        emptyLabel="Sin tests"
-      />
-      <div>
-        <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Tratamientos sugeridos
-        </h4>
-        <div className="space-y-2">
-          {copilot.suggested_treatments.map((treatment) => (
-            <div key={treatment.name} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-              <p className="text-sm font-semibold text-slate-900">{treatment.name}</p>
-              <p className="mt-1 text-xs text-slate-500">
-                Confianza {(treatment.confidence * 100).toFixed(0)}%
-              </p>
-              <p className="mt-2 text-sm leading-6 text-slate-600">{treatment.explanation}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
   );
 }
 

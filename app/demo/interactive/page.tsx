@@ -1,13 +1,13 @@
-import { DemoNarrativeRail } from '../../../components/demo/DemoNarrativeRail';
-import { DemoClinicalWorkspace } from '../../../components/demo/DemoClinicalWorkspace';
-import { DemoEvidenceReadinessPanel } from '../../../components/demo/DemoEvidenceReadinessPanel';
-import { DemoModeSelector } from '../../../components/demo/DemoModeSelector';
-import { DemoShell } from '../../../components/demo/DemoShell';
+import { DemoClinicalWorkspace } from "@/components/demo/DemoClinicalWorkspace";
+import { DemoEvidenceReadinessPanel } from "@/components/demo/DemoEvidenceReadinessPanel";
+import { DemoModeSelector } from "@/components/demo/DemoModeSelector";
+import { DemoNarrativeRail } from "@/components/demo/DemoNarrativeRail";
+import { DemoShell } from "@/components/demo/DemoShell";
 import {
   getInteractiveDemoScenario,
   resolveInteractiveDemoMode,
-} from '../../../lib/demo/interactive-demo-provider';
-import type { ReactNode } from 'react';
+} from "@/lib/demo/interactive-demo-provider";
+import type { ReactNode } from "react";
 
 function StoryCard({
   title,
@@ -82,7 +82,7 @@ export default async function InteractiveDemoPage({
               <ul className="mt-4 space-y-3">
                 {scenario.consultation.timeline.map((item) => (
                   <li key={item} className="flex gap-3 text-sm text-slate-700">
-                    <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
+                    <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
                     <span>{item}</span>
                   </li>
                 ))}

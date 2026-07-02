@@ -3,18 +3,18 @@ import type {
   DemoEvidenceCapability,
   DemoEvidenceStatus,
   DemoScenario,
-} from '../../lib/demo/interactive-demo-scenario';
+} from "@/lib/demo/interactive-demo-scenario";
 
 const statusLabel: Record<DemoEvidenceStatus, string> = {
-  active: 'Active',
-  ready: 'Ready',
-  protected: 'Protected',
+  active: "Active",
+  ready: "Ready",
+  protected: "Protected",
 };
 
 const statusClass: Record<DemoEvidenceStatus, string> = {
-  active: 'border-indigo-200 bg-indigo-50 text-indigo-900',
-  ready: 'border-emerald-200 bg-emerald-50 text-emerald-900',
-  protected: 'border-amber-200 bg-amber-50 text-amber-900',
+  active: "border-indigo-200 bg-indigo-50 text-indigo-900",
+  ready: "border-emerald-200 bg-emerald-50 text-emerald-900",
+  protected: "border-amber-200 bg-amber-50 text-amber-900",
 };
 
 function DataOriginCard({ item }: { item: DemoDataOrigin }) {
@@ -52,7 +52,7 @@ function CapabilityCard({ item }: { item: DemoEvidenceCapability }) {
 }
 
 export function DemoEvidenceReadinessPanel({ scenario }: { scenario: DemoScenario }) {
-  const liveLabel = scenario.mode === 'live' ? 'Backend live: read-only GET' : 'Backend live: off';
+  const liveLabel = scenario.mode === "live" ? "Backend live: read-only GET" : "Backend live: off";
 
   return (
     <section

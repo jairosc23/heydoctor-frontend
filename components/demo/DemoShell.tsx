@@ -1,11 +1,11 @@
-import type { ReactNode } from 'react';
-import type { DemoScenario, DemoSignal } from '../../lib/demo/interactive-demo-scenario';
+import type { ReactNode } from "react";
+import type { DemoScenario, DemoSignal } from "@/lib/demo/interactive-demo-scenario";
 
-const toneClass: Record<DemoSignal['tone'], string> = {
-  amber: 'border-amber-200 bg-amber-50 text-amber-900',
-  emerald: 'border-emerald-200 bg-emerald-50 text-emerald-900',
-  indigo: 'border-indigo-200 bg-indigo-50 text-indigo-900',
-  slate: 'border-slate-200 bg-slate-50 text-slate-700',
+const toneClass: Record<DemoSignal["tone"], string> = {
+  amber: "border-amber-200 bg-amber-50 text-amber-900",
+  emerald: "border-emerald-200 bg-emerald-50 text-emerald-900",
+  indigo: "border-indigo-200 bg-indigo-50 text-indigo-900",
+  slate: "border-slate-200 bg-slate-50 text-slate-700",
 };
 
 function SignalBadge({ signal }: { signal: DemoSignal }) {

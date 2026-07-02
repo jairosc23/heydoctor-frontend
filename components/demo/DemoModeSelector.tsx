@@ -1,9 +1,9 @@
-import Link from 'next/link';
-import type { InteractiveDemoMode } from '../../lib/demo/interactive-demo-provider';
+import Link from "next/link";
+import type { InteractiveDemoMode } from "@/lib/demo/interactive-demo-provider";
 
 const modeClass: Record<InteractiveDemoMode, string> = {
-  mock: 'border-indigo-200 bg-indigo-50 text-indigo-900',
-  live: 'border-emerald-200 bg-emerald-50 text-emerald-900',
+  mock: "border-indigo-200 bg-indigo-50 text-indigo-900",
+  live: "border-emerald-200 bg-emerald-50 text-emerald-900",
 };
 
 export function DemoModeSelector({ mode }: { mode: InteractiveDemoMode }) {
@@ -28,18 +28,18 @@ export function DemoModeSelector({ mode }: { mode: InteractiveDemoMode }) {
         <nav className="flex flex-wrap gap-2" aria-label="Cambiar modo de datos demo">
           <Link
             href="/demo/interactive"
-            aria-current={mode === 'mock' ? 'page' : undefined}
+            aria-current={mode === "mock" ? "page" : undefined}
             className={`rounded-full border px-3 py-2 text-sm font-semibold ${
-              mode === 'mock' ? modeClass.mock : 'border-slate-200 bg-slate-50 text-slate-600'
+              mode === "mock" ? modeClass.mock : "border-slate-200 bg-slate-50 text-slate-600"
             } focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2`}
           >
             Mock Mode
           </Link>
           <Link
             href="/demo/interactive?mode=live"
-            aria-current={mode === 'live' ? 'page' : undefined}
+            aria-current={mode === "live" ? "page" : undefined}
             className={`rounded-full border px-3 py-2 text-sm font-semibold ${
-              mode === 'live' ? modeClass.live : 'border-slate-200 bg-slate-50 text-slate-600'
+              mode === "live" ? modeClass.live : "border-slate-200 bg-slate-50 text-slate-600"
             } focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2`}
           >
             Live Backend Mode

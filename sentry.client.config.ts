@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/nextjs";
+import { sanitizeTelemetry } from "@/lib/sentry-redaction";
 
 const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN?.trim();
 
@@ -21,11 +22,7 @@ if (dsn) {
     release: releaseId(),
     tracesSampleRate: process.env.NODE_ENV === "production" ? 0.12 : 1,
     beforeSend(event) {
-      if (event.request?.headers) {
-        delete event.request.headers.cookie;
-        delete event.request.headers.authorization;
-      }
-      return event;
+      return sanitizeTelemetry(event);
     },
   });
 }

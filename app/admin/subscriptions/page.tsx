@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { SubscriptionTimeline } from "@/components/subscriptions/SubscriptionTimeline";
 import type {
   SubscriptionEventRow,
   SubscriptionsMetricsResponse,
@@ -12,46 +13,14 @@ import { fetchWithAuth } from "@/lib/heydoctor-api";
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-async function fetchJson<T>(path: string): Promise<{ ok: boolean; status: number; body: T | null }> {
-  const response = await fetchWithAuth(path, { method: "GET" });
-  if (!response.ok) {
-    return { ok: false, status: response.status, body: null };
+async function fetchJson<T>(
+  path: string,
+): Promise<{ ok: boolean; status: number; body: T | null }> {
+  const res = await fetchWithAuth(path, { method: "GET" });
+  if (!res.ok) {
+    return { ok: false, status: res.status, body: null };
   }
-  return { ok: true, status: response.status, body: (await response.json()) as T };
-}
-
-function SubscriptionTimeline({
-  events,
-  loading,
-}: {
-  events: SubscriptionEventRow[];
-  loading: boolean;
-}) {
-  if (loading) {
-    return <p className="text-sm text-slate-600" role="status">Cargando timeline...</p>;
-  }
-  if (events.length === 0) {
-    return (
-      <p className="text-sm text-slate-600">
-        Introduce un UUID y pulsa Ver eventos, o revisa si no hay historia.
-      </p>
-    );
-  }
-  return (
-    <ol className="space-y-3">
-      {events.map((event) => (
-        <li key={event.id} className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm">
-          <p className="font-medium text-slate-900">{event.eventType}</p>
-          <p className="text-xs text-slate-500">{event.createdAt}</p>
-          <p className="mt-1 text-slate-700">
-            {event.previousPlan ?? "-"} / {event.previousStatus ?? "-"} →{" "}
-            {event.newPlan ?? "-"} / {event.newStatus ?? "-"}
-          </p>
-          <p className="mt-1 text-xs text-slate-500">Origen: {event.source}</p>
-        </li>
-      ))}
-    </ol>
-  );
+  return { ok: true, status: res.status, body: (await res.json()) as T };
 }
 
 export default function AdminSubscriptionsPage() {
@@ -69,22 +38,22 @@ export default function AdminSubscriptionsPage() {
     setDashLoading(true);
     setDashError(null);
     try {
-      const [summaryResponse, metricsResponse] = await Promise.all([
+      const [sRes, mRes] = await Promise.all([
         fetchJson<SubscriptionsSummaryResponse>("/api/admin/subscriptions/summary"),
         fetchJson<SubscriptionsMetricsResponse>("/api/admin/subscriptions/metrics"),
       ]);
-      if (!summaryResponse.ok || !metricsResponse.ok) {
-        if (summaryResponse.status === 403 || metricsResponse.status === 403) {
+      if (!sRes.ok || !mRes.ok) {
+        if (sRes.status === 403 || mRes.status === 403) {
           setDashError("No tienes permisos de administrador para ver este dashboard.");
         } else {
-          setDashError(`Error cargando datos (${summaryResponse.status} / ${metricsResponse.status}).`);
+          setDashError(`Error cargando datos (${sRes.status} / ${mRes.status}).`);
         }
         setSummary(null);
         setMetrics(null);
         return;
       }
-      setSummary(summaryResponse.body);
-      setMetrics(metricsResponse.body);
+      setSummary(sRes.body);
+      setMetrics(mRes.body);
     } catch {
       setDashError("Error de red al cargar el dashboard.");
     } finally {
@@ -106,19 +75,19 @@ export default function AdminSubscriptionsPage() {
     setTimelineLoading(true);
     setTimelineError(null);
     try {
-      const response = await fetchJson<SubscriptionEventRow[]>(
+      const r = await fetchJson<SubscriptionEventRow[]>(
         `/api/admin/subscriptions/${trimmed}/events`,
       );
-      if (!response.ok) {
-        setTimelineError(
-          response.status === 403
-            ? "Sin permisos para consultar timeline."
-            : `Error ${response.status} al cargar eventos.`,
-        );
+      if (!r.ok) {
+        if (r.status === 403) {
+          setTimelineError("Sin permisos para consultar timeline.");
+        } else {
+          setTimelineError(`Error ${r.status} al cargar eventos.`);
+        }
         setEvents([]);
         return;
       }
-      setEvents(Array.isArray(response.body) ? response.body : []);
+      setEvents(Array.isArray(r.body) ? r.body : []);
     } catch {
       setTimelineError("Error de red al cargar timeline.");
       setEvents([]);
@@ -128,12 +97,14 @@ export default function AdminSubscriptionsPage() {
   };
 
   const churnPct =
-    metrics == null ? "-" : `${(metrics.churnRate * 100).toFixed(1)}%`;
+    metrics == null ? "—" : `${(metrics.churnRate * 100).toFixed(1)}%`;
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-10">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold text-slate-900">Suscripciones (admin)</h1>
+        <h1 className="text-xl font-semibold text-slate-900">
+          Suscripciones (admin)
+        </h1>
         <nav className="flex flex-wrap gap-3 text-sm" aria-label="Navegación de suscripciones admin">
           <Link
             href="/admin/analytics"
@@ -141,10 +112,7 @@ export default function AdminSubscriptionsPage() {
           >
             Analytics
           </Link>
-          <Link
-            href="/panel"
-            className="rounded text-slate-600 underline hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
-          >
+          <Link href="/panel" className="rounded text-slate-600 underline hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2">
             Panel
           </Link>
           <button
@@ -157,7 +125,9 @@ export default function AdminSubscriptionsPage() {
         </nav>
       </div>
 
-      {dashLoading && <p className="text-sm text-slate-600">Cargando resumen...</p>}
+      {dashLoading && (
+        <p className="text-sm text-slate-600">Cargando resumen…</p>
+      )}
 
       {!dashLoading && dashError && (
         <div
@@ -180,8 +150,12 @@ export default function AdminSubscriptionsPage() {
                 <dd className="font-medium">{summary.totalUsers}</dd>
               </div>
               <div className="flex justify-between gap-2">
-                <dt className="text-slate-600">Usuarios PRO</dt>
+                <dt className="text-slate-600">Usuarios PRO (fila BD)</dt>
                 <dd className="font-medium">{summary.proUsers}</dd>
+              </div>
+              <div className="flex justify-between gap-2">
+                <dt className="text-slate-600">PRO inactivos</dt>
+                <dd className="font-medium">{summary.inactivePro}</dd>
               </div>
               <div className="flex justify-between gap-2">
                 <dt className="text-slate-600">PRO activos</dt>
@@ -191,7 +165,7 @@ export default function AdminSubscriptionsPage() {
           </div>
           <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
             <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
-              Mes actual (UTC)
+              Mes actual (UTC) — eventos
             </h2>
             <dl className="space-y-2 text-sm">
               <div className="flex justify-between gap-2">
@@ -201,6 +175,10 @@ export default function AdminSubscriptionsPage() {
               <div className="flex justify-between gap-2">
                 <dt className="text-slate-600">Churn snapshot</dt>
                 <dd className="font-medium">{churnPct}</dd>
+              </div>
+              <div className="flex justify-between gap-2">
+                <dt className="text-slate-600">Nuevas suscripciones</dt>
+                <dd className="font-medium">{metrics.newSubscriptions}</dd>
               </div>
               <div className="flex justify-between gap-2">
                 <dt className="text-slate-600">Pagos confirmados</dt>
@@ -224,7 +202,7 @@ export default function AdminSubscriptionsPage() {
             type="text"
             placeholder="UUID de usuario"
             value={userId}
-            onChange={(event) => setUserId(event.target.value)}
+            onChange={(e) => setUserId(e.target.value)}
             className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 sm:max-w-md"
             autoCapitalize="off"
             spellCheck={false}
@@ -244,7 +222,11 @@ export default function AdminSubscriptionsPage() {
           </p>
         )}
 
-        <SubscriptionTimeline events={events} loading={timelineLoading} />
+        <SubscriptionTimeline
+          events={events}
+          loading={timelineLoading}
+          emptyMessage="Introduce un UUID y pulsa Ver eventos, o revisa si no hay historia."
+        />
       </section>
     </main>
   );

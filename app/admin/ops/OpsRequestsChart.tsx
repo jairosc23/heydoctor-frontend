@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import {
   Bar,
@@ -8,7 +8,7 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-} from 'recharts';
+} from "recharts";
 
 type RequestsPoint = {
   minute: string;

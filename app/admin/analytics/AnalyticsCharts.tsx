@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import {
   CartesianGrid,
@@ -9,7 +9,7 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-} from 'recharts';
+} from "recharts";
 
 type ChartDatum = Record<string, string | number>;
 

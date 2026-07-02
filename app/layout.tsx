@@ -1,19 +1,19 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { Analytics } from "@vercel/analytics/react";
 import { AnalyticsProvider } from "@/components/AnalyticsProvider";
 import { CookieBanner } from "@/components/CookieBanner";
 import { GlobalWhatsAppFab } from "@/components/GlobalWhatsAppFab";
 import { Providers } from "@/components/Providers";
+import { absoluteUrl, siteName } from "@/lib/seo";
 import "./globals.css";
 
 const SITE_DESCRIPTION = "Consulta médica online inmediata";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL ?? "https://heydoctor.health",
-  ),
+  metadataBase: new URL(absoluteUrl("/")),
 
-  title: "HeyDoctor",
+  title: siteName,
   description: SITE_DESCRIPTION,
 
   icons: {
@@ -21,28 +21,28 @@ export const metadata: Metadata = {
   },
 
   openGraph: {
-    title: "HeyDoctor",
+    title: siteName,
     description: SITE_DESCRIPTION,
-    url: "https://heydoctor.health",
-    siteName: "HeyDoctor",
-    images: ["/logo-heydoctor.png"],
+    url: absoluteUrl("/"),
+    siteName,
     locale: "es_CL",
     type: "website",
   },
 
   twitter: {
     card: "summary_large_image",
-    title: "HeyDoctor",
+    title: siteName,
     description: SITE_DESCRIPTION,
-    images: ["/logo-heydoctor.png"],
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  await connection();
+
   return (
     <html lang="es">
       <head>

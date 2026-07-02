@@ -140,7 +140,6 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen overflow-x-hidden bg-white font-sans text-gray-900">
       <GrowthLandingVisitBeacon />
-
       {/* ── NAV ── */}
       <header className="sticky top-0 z-50 border-b border-gray-100 bg-white/80 backdrop-blur-md">
         <Container className="flex h-16 items-center justify-between">
@@ -464,7 +463,7 @@ export default function LandingPage() {
                   </li>
                 ))}
               </ul>
-              <Button href="/login" variant="primary" className="w-full">
+              <Button href="/pricing" variant="primary" className="w-full">
                 Upgrade a PRO
               </Button>
             </Card>

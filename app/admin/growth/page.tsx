@@ -32,8 +32,16 @@ type FunnelDashboard = {
   startCheckout: number;
   payments: number;
   calls: number;
-  conversionRates: Record<string, number | null>;
+  conversionRates: {
+    signupPerVisit: number | null;
+    pricingPerSignup: number | null;
+    upgradePerPricing: number | null;
+    checkoutPerUpgrade: number | null;
+    paymentPerCheckout: number | null;
+    callPerPayment: number | null;
+  };
   experimentPricingUpgradeCta: {
+    experimentKey: string;
     variants: Record<
       string,
       {
@@ -57,30 +65,18 @@ type GrowthRetention = {
   }[];
 };
 
-function pct(value: number | null | undefined): string {
-  if (value == null || Number.isNaN(value)) return "-";
-  return `${(value * 100).toFixed(2)}%`;
+function pct(v: number | null | undefined): string {
+  if (v == null || Number.isNaN(v)) return "—";
+  return `${(v * 100).toFixed(2)}%`;
 }
 
 async function adminGet<T>(path: string): Promise<T> {
-  const response = await fetchWithAuth(path, {
-    method: "GET",
-    headers: { Accept: "application/json" },
-  });
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`${response.status}: ${text.slice(0, 200)}`);
+  const res = await fetchWithAuth(path, { method: "GET" });
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error(`${res.status}: ${t.slice(0, 200)}`);
   }
-  return (await response.json()) as T;
-}
-
-function Metric({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">{value}</p>
-    </div>
-  );
+  return (await res.json()) as T;
 }
 
 export default function AdminGrowthPage() {
@@ -95,19 +91,18 @@ export default function AdminGrowthPage() {
     setError(null);
     setLoading(true);
     try {
-      const [summaryResponse, alertsResponse, funnelResponse, retentionResponse] =
-        await Promise.all([
-          adminGet<GrowthSummary>("/api/admin/growth/summary"),
-          adminGet<GrowthAlert[]>("/api/admin/growth/alerts"),
-          adminGet<FunnelDashboard>("/api/admin/growth/funnel"),
-          adminGet<GrowthRetention>("/api/admin/growth/retention?days=1,7,30"),
-        ]);
-      setSummary(summaryResponse);
-      setAlerts(alertsResponse);
-      setFunnel(funnelResponse);
-      setRetention(retentionResponse);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Error");
+      const [s, a, f, r] = await Promise.all([
+        adminGet<GrowthSummary>("/api/admin/growth/summary"),
+        adminGet<GrowthAlert[]>("/api/admin/growth/alerts"),
+        adminGet<FunnelDashboard>("/api/admin/growth/funnel"),
+        adminGet<GrowthRetention>("/api/admin/growth/retention?days=1,7,30"),
+      ]);
+      setSummary(s);
+      setAlerts(a);
+      setFunnel(f);
+      setRetention(r);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Error");
       setSummary(null);
       setAlerts([]);
       setFunnel(null);
@@ -133,7 +128,7 @@ export default function AdminGrowthPage() {
         <div>
           <h1 className="text-xl font-semibold text-slate-900">Growth</h1>
           <p className="text-sm text-slate-600">
-            Embudo, retención, experimento pricing CTA y alertas.
+            Embudo, retención, experimento pricing CTA, alertas (product_events + suscripciones)
           </p>
         </div>
         <nav className="flex flex-wrap gap-3 text-sm" aria-label="Navegación de growth">
@@ -141,13 +136,13 @@ export default function AdminGrowthPage() {
             href="/pricing"
             className="rounded text-slate-600 underline hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
           >
-            Pricing
+            Pricing (live experiment)
           </Link>
           <Link
             href="/admin/analytics"
             className="rounded text-slate-600 underline hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
           >
-            Analytics
+            Analytics SaaS
           </Link>
           <Link
             href="/admin/ops"
@@ -171,7 +166,7 @@ export default function AdminGrowthPage() {
         </nav>
       </div>
 
-      {loading && <p className="text-sm text-slate-600">Cargando growth...</p>}
+      {loading && <p className="text-sm text-slate-600">Cargando growth…</p>}
 
       {error && !loading && (
         <div
@@ -190,10 +185,10 @@ export default function AdminGrowthPage() {
                 Alertas
               </h2>
               <ul className="space-y-2 text-sm text-red-950">
-                {alerts.map((alert) => (
-                  <li key={alert.code}>
-                    <strong>{alert.code}</strong> ({alert.severity}
-                    {alert.value != null ? ` · ${pct(alert.value)}` : ""}) · {alert.message}
+                {alerts.map((x) => (
+                  <li key={x.code}>
+                    <strong>{x.code}</strong> ({x.severity}
+                    {x.value != null ? ` · ${(x.value * 100).toFixed(2)}%` : ""}) · {x.message}
                   </li>
                 ))}
               </ul>
@@ -201,70 +196,177 @@ export default function AdminGrowthPage() {
           )}
 
           <section className="mb-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Metric
-              label="Conversión PRO / usuarios"
-              value={pct(summary.subscriptionTotals.conversionProVsUsersApprox)}
-            />
-            <Metric label="Signup a pago" value={pct(summary.signupToPaidApprox)} />
-            <Metric label="Pagos" value={funnel.payments} />
-            <Metric label="Calls" value={funnel.calls} />
-          </section>
-
-          <section className="mb-10 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-700">
-              Embudo operativo ({funnel.windowDays}d)
-            </h2>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <Metric label="Visitas" value={funnel.visits} />
-              <Metric label="Signups" value={funnel.signups} />
-              <Metric label="Pricing views" value={funnel.viewPricing} />
-              <Metric label="Start checkout" value={funnel.startCheckout} />
+            <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+              <p className="text-xs font-medium uppercase text-slate-500">
+                Conversión PRO / usuarios
+              </p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums">
+                {(summary.subscriptionTotals.conversionProVsUsersApprox * 100).toFixed(2)}%
+              </p>
+              <p className="mt-1 text-xs text-slate-600">
+                {summary.subscriptionTotals.proUsers} PRO /{" "}
+                {summary.subscriptionTotals.totalUsers} usuarios
+              </p>
+            </div>
+            <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+              <p className="text-xs font-medium uppercase text-slate-500">
+                Signup → pago (aprox.)
+              </p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums">
+                {(summary.signupToPaidApprox * 100).toFixed(2)}%
+              </p>
+              <p className="mt-1 text-xs text-slate-600">Ventana {summary.windowDays}d</p>
             </div>
           </section>
 
-          {variantRows.length > 0 && (
-            <section className="mb-10 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-700">
-                Experimento pricing CTA
-              </h2>
+          <section className="mb-10 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+            <h2 className="mb-3 text-sm font-semibold uppercase text-slate-700">
+              Embudo operativo ({funnel.windowDays}d)
+            </h2>
+            <p className="mb-4 text-xs text-slate-500">
+              VISIT_MARKETING (anon permitido), SIGNUP, VIEW_PRICING, CLICK_UPGRADE_CTA,
+              START_CHECKOUT, PAYMENT_SUCCESS, START_CALL.
+            </p>
+            <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <Metric label="Visitas" value={funnel.visits} />
+              <Metric label="Signups" value={funnel.signups} />
+              <Metric label="View pricing" value={funnel.viewPricing} />
+              <Metric label="Click upgrade" value={funnel.upgrades} />
+              <Metric label="Start checkout" value={funnel.startCheckout} />
+              <Metric label="Pagos OK" value={funnel.payments} />
+              <Metric label="Start call" value={funnel.calls} />
+            </div>
+            <h3 className="mb-2 text-xs font-semibold uppercase text-slate-600">
+              Tasas paso a paso
+            </h3>
+            <ul className="grid gap-2 text-sm text-slate-800 sm:grid-cols-2">
+              <li>Signup / visita: {pct(funnel.conversionRates.signupPerVisit)}</li>
+              <li>Pricing / signup: {pct(funnel.conversionRates.pricingPerSignup)}</li>
+              <li>Upgrade CTA / pricing: {pct(funnel.conversionRates.upgradePerPricing)}</li>
+              <li>Checkout / upgrade: {pct(funnel.conversionRates.checkoutPerUpgrade)}</li>
+              <li>Pago / checkout: {pct(funnel.conversionRates.paymentPerCheckout)}</li>
+              <li>Call / pago: {pct(funnel.conversionRates.callPerPayment)}</li>
+            </ul>
+          </section>
+
+          <section className="mb-10 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+            <h2 className="mb-2 text-sm font-semibold uppercase text-slate-700">
+              Experimento {funnel.experimentPricingUpgradeCta.experimentKey}
+            </h2>
+            <p className="mb-4 text-xs text-slate-500">
+              Requiere <code className="text-xs">properties.experimentKey</code> +{" "}
+              <code className="text-xs">variant</code> en VIEW_PRICING_PAGE y CLICK_UPGRADE_CTA
+              (emite desde <code className="text-xs">/pricing</code>).
+            </p>
+            {variantRows.length === 0 ? (
+              <p className="text-sm text-slate-600">Sin exposiciones etiquetadas aún.</p>
+            ) : (
               <div className="overflow-x-auto">
-                <table className="min-w-full text-left text-sm">
-                  <thead className="text-xs uppercase text-slate-500">
-                    <tr>
+                <table className="min-w-max text-sm">
+                  <thead>
+                    <tr className="border-b text-left">
                       <th className="px-2 py-2">Variante</th>
-                      <th className="px-2 py-2">Views</th>
-                      <th className="px-2 py-2">Clicks</th>
-                      <th className="px-2 py-2">CTR</th>
+                      <th className="px-2 py-2 tabular-nums">Vistas pricing</th>
+                      <th className="px-2 py-2 tabular-nums">Clicks</th>
+                      <th className="px-2 py-2 tabular-nums">CTR</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {variantRows.map(([variant, row]) => (
-                      <tr key={variant} className="border-t border-slate-100">
-                        <td className="px-2 py-2 font-medium">{variant}</td>
-                        <td className="px-2 py-2">{row.viewPricingActors}</td>
-                        <td className="px-2 py-2">{row.clickUpgradeActors}</td>
-                        <td className="px-2 py-2">{pct(row.clickThroughRate)}</td>
+                    {variantRows.map(([variant, stats]) => (
+                      <tr key={variant} className="border-b border-slate-100">
+                        <td className="px-2 py-2 font-mono text-xs">{variant}</td>
+                        <td className="px-2 py-2 tabular-nums">{stats.viewPricingActors}</td>
+                        <td className="px-2 py-2 tabular-nums">{stats.clickUpgradeActors}</td>
+                        <td className="px-2 py-2 tabular-nums">{pct(stats.clickThroughRate)}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-            </section>
-          )}
+            )}
+          </section>
 
-          <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-700">
-              Retención
+          <section className="mb-10 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+            <h2 className="mb-2 text-sm font-semibold uppercase text-slate-700">
+              Retención (post primer START_CALL)
             </h2>
-            <p className="mb-4 text-xs text-slate-500">{retention.definition}</p>
-            <div className="grid gap-3 sm:grid-cols-3">
-              {retention.buckets.map((bucket) => (
-                <Metric key={bucket.days} label={`${bucket.days} días`} value={pct(bucket.rate)} />
-              ))}
+            <p className="mb-4 text-xs text-slate-500">
+              Ventana cohorte últimos {retention.cohortLookbackDays}d · {retention.definition}
+            </p>
+            <div className="overflow-x-auto">
+              <table className="min-w-max text-sm">
+                <thead>
+                  <tr className="border-b text-left">
+                    <th className="px-2 py-2">Día</th>
+                    <th className="px-2 py-2 tabular-nums">Elegibles</th>
+                    <th className="px-2 py-2 tabular-nums">Activos</th>
+                    <th className="px-2 py-2 tabular-nums">Tasa</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {retention.buckets.map((b) => (
+                    <tr key={b.days} className="border-b border-slate-100">
+                      <td className="px-2 py-2">D{b.days}</td>
+                      <td className="px-2 py-2 tabular-nums">{b.cohortEligible}</td>
+                      <td className="px-2 py-2 tabular-nums">{b.retained}</td>
+                      <td className="px-2 py-2 tabular-nums">{pct(b.rate)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
+          </section>
+
+          <section className="mb-10 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+            <h2 className="mb-4 text-sm font-semibold uppercase text-slate-700">
+              Todos los eventos (usuarios únicos · últimos {summary.windowDays} días)
+            </h2>
+            <p className="mb-4 text-xs text-slate-500">{summary.signupToPaidNote}</p>
+            <div className="overflow-x-auto">
+              <table className="min-w-max text-sm">
+                <thead>
+                  <tr className="border-b text-left">
+                    <th className="px-2 py-2">Evento</th>
+                    <th className="px-2 py-2 tabular-nums">Usuarios</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(summary.funnelDistinctUsers)
+                    .filter(([, c]) => c > 0)
+                    .map(([name, cnt]) => (
+                      <tr key={name} className="border-b border-slate-100">
+                        <td className="px-2 py-2 font-mono text-xs">{name}</td>
+                        <td className="px-2 py-2 tabular-nums">{cnt}</td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+            {Object.values(summary.funnelDistinctUsers).every((c) => c === 0) && (
+              <p className="text-sm text-slate-600">
+                Aún sin eventos en <code className="text-xs">product_events</code>. Usa{" "}
+                <code className="text-xs">/pricing</code> y flujos de pago/consulta.
+              </p>
+            )}
+          </section>
+
+          <section className="rounded-lg border border-slate-100 bg-slate-50 px-4 py-3 text-xs text-slate-600">
+            API: <code className="font-mono">GET /api/admin/growth/funnel</code>,{" "}
+            <code className="font-mono">GET /api/admin/growth/retention?days=1,7,30</code>. Flags:{" "}
+            <code className="font-mono">GET/PATCH /api/admin/feature-flags</code>. Experiments:{" "}
+            <code className="font-mono">GET/PATCH /api/admin/experiments</code>.
           </section>
         </>
       )}
     </main>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-md border border-slate-100 bg-slate-50/80 p-3">
+      <p className="text-xs font-medium uppercase text-slate-500">{label}</p>
+      <p className="mt-1 text-xl font-semibold tabular-nums text-slate-900">{value}</p>
+    </div>
   );
 }

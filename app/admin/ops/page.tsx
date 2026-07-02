@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import dynamic from 'next/dynamic';
-import { useCallback, useEffect, useState } from 'react';
-import { fetchWithAuth } from '@/lib/heydoctor-api';
+import Link from "next/link";
+import dynamic from "next/dynamic";
+import { useCallback, useEffect, useState } from "react";
+import { fetchWithAuth } from "@/lib/heydoctor-api";
 
 const OpsRequestsChart = dynamic(
-  () => import('./OpsRequestsChart').then((mod) => mod.OpsRequestsChart),
+  () => import("./OpsRequestsChart").then((mod) => mod.OpsRequestsChart),
   {
     ssr: false,
     loading: () => (
@@ -69,22 +69,16 @@ type OpsScaling = {
 };
 
 async function fetchOpsScaling(): Promise<OpsScaling | null> {
-  const res = await fetchWithAuth('/api/admin/ops/scaling', {
-    method: 'GET',
-    headers: { Accept: 'application/json' },
-  });
+  const res = await fetchWithAuth("/api/admin/ops/scaling", { method: "GET" });
   if (!res.ok) return null;
   return (await res.json()) as OpsScaling;
 }
 
 async function fetchOpsOverview(): Promise<OpsOverview> {
-  const res = await fetchWithAuth('/api/admin/ops/overview', {
-    method: 'GET',
-    headers: { Accept: 'application/json' },
-  });
+  const res = await fetchWithAuth("/api/admin/ops/overview", { method: "GET" });
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`${res.status}: ${text.slice(0, 200)}`);
+    const t = await res.text();
+    throw new Error(`${res.status}: ${t.slice(0, 200)}`);
   }
   return (await res.json()) as OpsOverview;
 }
@@ -101,7 +95,7 @@ function formatUptime(seconds: number): string {
 export default function AdminOpsPage() {
   const [data, setData] = useState<OpsOverview | null>(null);
   const [scaling, setScaling] = useState<OpsScaling | null>(null);
-  const [traceId, setTraceId] = useState('');
+  const [traceId, setTraceId] = useState("");
   const [traceHit, setTraceHit] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -110,14 +104,11 @@ export default function AdminOpsPage() {
     setError(null);
     setLoading(true);
     try {
-      const [overview, scalingSignals] = await Promise.all([
-        fetchOpsOverview(),
-        fetchOpsScaling(),
-      ]);
-      setData(overview);
-      setScaling(scalingSignals);
+      const [o, s] = await Promise.all([fetchOpsOverview(), fetchOpsScaling()]);
+      setData(o);
+      setScaling(s);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error');
+      setError(e instanceof Error ? e.message : "Error");
       setData(null);
       setScaling(null);
     } finally {
@@ -130,7 +121,7 @@ export default function AdminOpsPage() {
     if (!id) return;
     const res = await fetchWithAuth(
       `/api/admin/ops/traces/${encodeURIComponent(id)}`,
-      { method: 'GET', headers: { Accept: 'application/json' } },
+      { method: "GET" },
     );
     if (!res.ok) {
       setTraceHit({ error: await res.text() });
@@ -155,26 +146,26 @@ export default function AdminOpsPage() {
     <main className="mx-auto max-w-6xl px-4 py-10">
       <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold text-slate-900">
-            Operations
-          </h1>
+          <h1 className="text-xl font-semibold text-slate-900">Operations</h1>
           <p className="text-sm text-slate-600">
             RPM/latencia/errores (Redis si aplica). CPU load y señales de scaling
-            en tarjeta dedicada. Trazas: índice por réplica.
+            en tarjeta dedicada. Trazas: índice por réplica. Documentación de escalado en el
+            repositorio backend:{" "}
+            <code className="text-xs">docs/RAILWAY-SCALING.md</code>.
           </p>
         </div>
         <nav className="flex flex-wrap gap-3 text-sm" aria-label="Navegación de operaciones">
+          <Link
+            href="/admin/growth"
+            className="rounded text-slate-600 underline hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
+          >
+            Growth
+          </Link>
           <Link
             href="/admin/analytics"
             className="rounded text-slate-600 underline hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
           >
             Analytics
-          </Link>
-          <Link
-            href="/panel"
-            className="rounded text-slate-600 underline hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
-          >
-            Panel
           </Link>
           <button
             type="button"
@@ -191,8 +182,9 @@ export default function AdminOpsPage() {
           role="alert"
           className="mb-6 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-950"
         >
-          <strong>Tasa de error elevada:</strong> {((data?.errorRate ?? 0) * 100).toFixed(2)}
-          % de peticiones 5xx en los últimos ~5 min (objetivo &lt; 5%).
+          <strong>Tasa de error elevada:</strong>{" "}
+          {((data?.errorRate ?? 0) * 100).toFixed(2)}% de peticiones 5xx en los últimos ~5 min
+          (objetivo &lt; 5%).
         </div>
       )}
 
@@ -201,9 +193,8 @@ export default function AdminOpsPage() {
           role="status"
           className="mb-6 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950"
         >
-          <strong>Revenue hoy (UTC):</strong> $0 CLP según eventos
-          PAYMENT_SUCCEEDED. Comprueba webhooks Payku o si el día UTC recién
-          comenzó.
+          <strong>Revenue hoy (UTC):</strong> $0 CLP según eventos PAYMENT_SUCCEEDED. Comprueba
+          webhooks Payku o si el día UTC recién comenzó.
         </div>
       )}
 
@@ -213,16 +204,40 @@ export default function AdminOpsPage() {
             Señales de autoscaling (referencia; Railway usa CPU/RAM en panel)
           </h2>
           <div className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-            <Metric label="CPU load (1m)" value={String(scaling.cpuLoad)} />
-            <Metric label="RPM" value={String(scaling.requestsPerMinute)} />
-            <Metric label="Latencia media" value={`${scaling.avgResponseTime} ms`} />
-            <Metric label="P95" value={`${scaling.p95ResponseTime} ms`} tone="amber" />
-            <Metric label="P99" value={`${scaling.p99ResponseTime} ms`} tone="orange" />
-            <Metric label="Error rate" value={`${(scaling.errorRate * 100).toFixed(2)}%`} />
+            <div>
+              <p className="text-xs uppercase text-slate-500">CPU load (1m)</p>
+              <p className="text-lg font-semibold tabular-nums">{scaling.cpuLoad}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase text-slate-500">RPM</p>
+              <p className="text-lg font-semibold tabular-nums">{scaling.requestsPerMinute}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase text-slate-500">Latencia media</p>
+              <p className="text-lg font-semibold tabular-nums">{scaling.avgResponseTime} ms</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase text-amber-800">P95 🔥</p>
+              <p className="text-lg font-semibold tabular-nums text-amber-950">
+                {scaling.p95ResponseTime} ms
+              </p>
+            </div>
+            <div>
+              <p className="text-xs uppercase text-orange-800">P99 🔥</p>
+              <p className="text-lg font-semibold tabular-nums text-orange-950">
+                {scaling.p99ResponseTime} ms
+              </p>
+            </div>
+            <div>
+              <p className="text-xs uppercase text-slate-500">Error rate</p>
+              <p className="text-lg font-semibold tabular-nums">
+                {(scaling.errorRate * 100).toFixed(2)}%
+              </p>
+            </div>
           </div>
           <p className="mt-2 text-xs text-slate-500">
-            Reglas orientativas: RPM &gt; 200 o error &gt; 5% o latencia &gt; 800ms →
-            revisar scale up; RPM &lt; 20 sostenido → scale down.
+            Reglas orientativas: RPM &gt; 200 o error &gt; 5% o latencia &gt; 800ms → revisar scale
+            up; RPM &lt; 20 sostenido → scale down.
           </p>
         </section>
       )}
@@ -255,9 +270,7 @@ export default function AdminOpsPage() {
         )}
       </section>
 
-      {loading && (
-        <p className="text-sm text-slate-600">Cargando panel…</p>
-      )}
+      {loading && <p className="text-sm text-slate-600">Cargando panel…</p>}
 
       {error && !loading && (
         <div
@@ -271,27 +284,87 @@ export default function AdminOpsPage() {
       {data && !loading && (
         <>
           <section className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-            <MetricCard label="Error rate (~5 min)" value={`${(data.errorRate * 100).toFixed(2)}%`} highlight={highError} />
-            <MetricCard label="Requests / min" value={String(data.requestsPerMinute)} />
-            <MetricCard label="Latencia media" value={`${data.avgResponseTime} ms`} />
-            <MetricCard label="P95" value={`${data.p95ResponseTime} ms`} tone="amber" />
-            <MetricCard label="P99" value={`${data.p99ResponseTime} ms`} tone="orange" />
-            <MetricCard label="Uptime proceso" value={formatUptime(data.uptime)} />
+            <div
+              className={`rounded-lg border bg-white p-4 shadow-sm ${
+                highError ? "border-red-400 ring-2 ring-red-100" : "border-slate-200"
+              }`}
+            >
+              <p className="text-xs font-medium uppercase text-slate-500">Error rate (~5 min)</p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">
+                {(data.errorRate * 100).toFixed(2)}%
+              </p>
+            </div>
+            <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+              <p className="text-xs font-medium uppercase text-slate-500">Requests / min</p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">
+                {data.requestsPerMinute}
+              </p>
+            </div>
+            <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+              <p className="text-xs font-medium uppercase text-slate-500">Latencia media</p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">
+                {data.avgResponseTime} ms
+              </p>
+              <p className="mt-0.5 text-[10px] text-slate-500">ventana misma que P95/P99</p>
+            </div>
+            <div className="rounded-lg border border-amber-100 bg-amber-50/40 p-4 shadow-sm">
+              <p className="text-xs font-medium uppercase text-amber-900">P95 🔥</p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums text-amber-950">
+                {data.p95ResponseTime} ms
+              </p>
+            </div>
+            <div className="rounded-lg border border-orange-100 bg-orange-50/40 p-4 shadow-sm">
+              <p className="text-xs font-medium uppercase text-orange-900">P99 🔥</p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums text-orange-950">
+                {data.p99ResponseTime} ms
+              </p>
+            </div>
+            <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+              <p className="text-xs font-medium uppercase text-slate-500">Uptime proceso</p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">
+                {formatUptime(data.uptime)}
+              </p>
+            </div>
           </section>
 
           <section className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <MetricCard
-              label="Revenue hoy (UTC)"
-              value={data.revenueToday.toLocaleString('es-CL', {
-                style: 'currency',
-                currency: 'CLP',
-                maximumFractionDigits: 0,
-              })}
-              highlight={zeroRevenue}
-            />
-            <MetricCard label="Pagos hoy (eventos)" value={String(data.paymentsToday)} />
-            <MetricCard label="Usuarios activos (~15 min)" value={String(data.activeUsers)} />
-            <MetricCard label="Alertas (24h, esta instancia)" value={String(data.alertsLast24h)} />
+            <div
+              className={`rounded-lg border bg-white p-4 shadow-sm ${
+                zeroRevenue ? "border-amber-300" : "border-slate-200"
+              }`}
+            >
+              <p className="text-xs font-medium uppercase text-slate-500">Revenue hoy (UTC)</p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums">
+                {data.revenueToday.toLocaleString("es-CL", {
+                  style: "currency",
+                  currency: "CLP",
+                  maximumFractionDigits: 0,
+                })}
+              </p>
+            </div>
+            <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+              <p className="text-xs font-medium uppercase text-slate-500">Pagos hoy (eventos)</p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">
+                {data.paymentsToday}
+              </p>
+            </div>
+            <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+              <p className="text-xs font-medium uppercase text-slate-500">
+                Usuarios activos (~15 min)
+              </p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">
+                {data.activeUsers}
+              </p>
+              <p className="mt-1 text-xs text-slate-500">product_events</p>
+            </div>
+            <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+              <p className="text-xs font-medium uppercase text-slate-500">
+                Alertas (24h, esta instancia)
+              </p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">
+                {data.alertsLast24h}
+              </p>
+            </div>
           </section>
 
           <section className="mb-10 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
@@ -304,43 +377,97 @@ export default function AdminOpsPage() {
           </section>
 
           {data.errorsByEndpoint.length > 0 && (
-            <OpsTable
-              title="Errores por endpoint (5xx, ~5 min)"
-              headers={['Path', '5xx', 'Total', 'Err %']}
-              rows={data.errorsByEndpoint.map((row) => [
-                row.path,
-                row.errorCount,
-                row.requestCount,
-                `${(row.errorRate * 100).toFixed(1)}%`,
-              ])}
-            />
+            <section className="mb-10">
+              <h2 className="mb-3 text-sm font-semibold text-slate-900">
+                Errores por endpoint (5xx, ~5 min)
+              </h2>
+              <div className="overflow-x-auto rounded-lg border border-slate-200">
+                <table className="min-w-full text-left text-sm">
+                  <thead className="bg-slate-50 text-xs uppercase text-slate-600">
+                    <tr>
+                      <th className="px-3 py-2">Path</th>
+                      <th className="px-3 py-2">5xx</th>
+                      <th className="px-3 py-2">Total</th>
+                      <th className="px-3 py-2">Err %</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.errorsByEndpoint.map((row) => (
+                      <tr key={row.path} className="border-t border-slate-100">
+                        <td className="px-3 py-2 font-mono text-xs text-slate-800">{row.path}</td>
+                        <td className="px-3 py-2 tabular-nums text-red-700">{row.errorCount}</td>
+                        <td className="px-3 py-2 tabular-nums">{row.requestCount}</td>
+                        <td className="px-3 py-2 tabular-nums">
+                          {(row.errorRate * 100).toFixed(1)}%
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
           )}
 
           {data.topEndpointsByLatency.length > 0 && (
-            <OpsTable
-              title="Top latencia por path (~5 min, muestras en esta réplica)"
-              headers={['Path', 'Avg ms', 'Muestras']}
-              rows={data.topEndpointsByLatency.map((row) => [
-                row.path,
-                row.avgMs,
-                row.count,
-              ])}
-            />
+            <section className="mb-10">
+              <h2 className="mb-3 text-sm font-semibold text-slate-900">
+                Top latencia por path (~5 min, muestras en esta réplica)
+              </h2>
+              <div className="overflow-x-auto rounded-lg border border-slate-200">
+                <table className="min-w-full text-left text-sm">
+                  <thead className="bg-slate-50 text-xs uppercase text-slate-600">
+                    <tr>
+                      <th className="px-3 py-2">Path</th>
+                      <th className="px-3 py-2">Avg ms</th>
+                      <th className="px-3 py-2">Muestras</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.topEndpointsByLatency.map((row) => (
+                      <tr key={row.path} className="border-t border-slate-100">
+                        <td className="px-3 py-2 font-mono text-xs">{row.path}</td>
+                        <td className="px-3 py-2 tabular-nums">{row.avgMs}</td>
+                        <td className="px-3 py-2 tabular-nums">{row.count}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
           )}
 
           {data.requestTraceTimeline.length > 0 && (
-            <OpsTable
-              title="Línea de tiempo de peticiones (esta réplica)"
-              headers={['requestId', 'method', 'path', 'status', 'ms', 'at']}
-              rows={data.requestTraceTimeline.map((row) => [
-                `${row.requestId.slice(0, 8)}…`,
-                row.method,
-                row.path,
-                row.statusCode,
-                row.durationMs,
-                row.at,
-              ])}
-            />
+            <section className="mb-10">
+              <h2 className="mb-3 text-sm font-semibold text-slate-900">
+                Línea de tiempo de peticiones (esta réplica)
+              </h2>
+              <div className="overflow-x-auto rounded-lg border border-slate-200">
+                <table className="min-w-full text-left text-xs">
+                  <thead className="bg-slate-50 uppercase text-slate-600">
+                    <tr>
+                      <th className="px-2 py-2">requestId</th>
+                      <th className="px-2 py-2">method</th>
+                      <th className="px-2 py-2">path</th>
+                      <th className="px-2 py-2">status</th>
+                      <th className="px-2 py-2">ms</th>
+                      <th className="px-2 py-2">at</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.requestTraceTimeline.map((r) => (
+                      <tr key={`${r.at}-${r.requestId}`} className="border-t border-slate-100">
+                        <td className="px-2 py-1 font-mono">{r.requestId.slice(0, 8)}…</td>
+                        <td className="px-2 py-1">{r.method}</td>
+                        <td className="px-2 py-1 font-mono">{r.path}</td>
+                        <td className="px-2 py-1">{r.statusCode}</td>
+                        <td className="px-2 py-1">{r.durationMs}</td>
+                        <td className="px-2 py-1 text-slate-500">{r.at}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
           )}
 
           <section>
@@ -351,27 +478,17 @@ export default function AdminOpsPage() {
               <p className="text-sm text-slate-600">Sin alertas en ventana.</p>
             ) : (
               <ul className="space-y-2 text-sm">
-                {data.recentAlerts.map((alert) => (
+                {data.recentAlerts.map((a) => (
                   <li
-                    key={`${alert.at}-${alert.event}`}
+                    key={`${a.at}-${a.event}`}
                     className="rounded border border-slate-200 bg-slate-50 px-3 py-2"
                   >
-                    <span className="font-medium text-slate-800">
-                      {alert.event}
-                    </span>
-                    <span className="ml-2 text-xs uppercase text-slate-500">
-                      {alert.level}
-                    </span>
-                    <span className="ml-2 text-xs text-slate-500">
-                      {alert.at}
-                    </span>
-                    {alert.message && (
-                      <p className="mt-1 text-slate-700">{alert.message}</p>
-                    )}
-                    {alert.analysis && (
-                      <p className="mt-1 text-sm text-indigo-900">
-                        {alert.analysis}
-                      </p>
+                    <span className="font-medium text-slate-800">{a.event}</span>
+                    <span className="ml-2 text-xs uppercase text-slate-500">{a.level}</span>
+                    <span className="ml-2 text-xs text-slate-500">{a.at}</span>
+                    {a.message && <p className="mt-1 text-slate-700">{a.message}</p>}
+                    {a.analysis && (
+                      <p className="mt-1 text-sm text-indigo-900">🧠 {a.analysis}</p>
                     )}
                   </li>
                 ))}
@@ -381,104 +498,5 @@ export default function AdminOpsPage() {
         </>
       )}
     </main>
-  );
-}
-
-function Metric({
-  label,
-  value,
-  tone = 'slate',
-}: {
-  label: string;
-  value: string;
-  tone?: 'slate' | 'amber' | 'orange';
-}) {
-  const toneClass =
-    tone === 'amber'
-      ? 'text-amber-950'
-      : tone === 'orange'
-        ? 'text-orange-950'
-        : 'text-slate-900';
-  return (
-    <div>
-      <p className="text-xs uppercase text-slate-500">{label}</p>
-      <p className={`tabular-nums text-lg font-semibold ${toneClass}`}>{value}</p>
-    </div>
-  );
-}
-
-function MetricCard({
-  label,
-  value,
-  highlight = false,
-  tone = 'slate',
-}: {
-  label: string;
-  value: string;
-  highlight?: boolean;
-  tone?: 'slate' | 'amber' | 'orange';
-}) {
-  const toneClass =
-    tone === 'amber'
-      ? 'border-amber-100 bg-amber-50/40 text-amber-950'
-      : tone === 'orange'
-        ? 'border-orange-100 bg-orange-50/40 text-orange-950'
-        : 'border-slate-200 bg-white text-slate-900';
-  return (
-    <div
-      className={`rounded-lg border p-4 shadow-sm ${highlight ? 'border-amber-300' : toneClass}`}
-    >
-      <p className="text-xs font-medium uppercase text-slate-500">
-        {label}
-      </p>
-      <p className="mt-1 text-2xl font-semibold tabular-nums">
-        {value}
-      </p>
-    </div>
-  );
-}
-
-function OpsTable({
-  title,
-  headers,
-  rows,
-}: {
-  title: string;
-  headers: string[];
-  rows: Array<Array<string | number>>;
-}) {
-  return (
-    <section className="mb-10">
-      <h2 className="mb-3 text-sm font-semibold text-slate-900">
-        {title}
-      </h2>
-      <div className="overflow-x-auto rounded-lg border border-slate-200">
-        <table className="min-w-full text-left text-sm">
-          <thead className="bg-slate-50 text-xs uppercase text-slate-600">
-            <tr>
-              {headers.map((header) => (
-                <th key={header} className="px-3 py-2">
-                  {header}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, index) => (
-              <tr key={`${title}-${index}`} className="border-t border-slate-100">
-                {row.map((cell, cellIndex) => (
-                  <td
-                    key={`${title}-${index}-${cellIndex}`}
-                    className={cellIndex === 0 ? 'px-3 py-2 font-mono text-xs' : 'px-3 py-2 tabular-nums'}
-                  >
-                    {cell}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </section>
   );
 }

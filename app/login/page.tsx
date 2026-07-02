@@ -36,7 +36,7 @@ function LoginContent() {
 
     try {
       await login(email.trim(), password);
-      /** Navegación completa: el proxy SSR debe recibir `heydoctor_session` (no solo RSC client). */
+      /** Navegación completa: el middleware SSR debe recibir `heydoctor_session` (no solo RSC client). */
       window.location.assign(redirect);
     } catch (err) {
       const msg =

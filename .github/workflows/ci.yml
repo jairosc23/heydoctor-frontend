@@ -41,3 +41,14 @@ jobs:
 
       - name: Test
         run: npm test
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: E2E (staging optional)
+        continue-on-error: true
+        run: npm run test:e2e
+        env:
+          E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
+          E2E_DOCTOR_EMAIL: ${{ secrets.E2E_DOCTOR_EMAIL }}
+          E2E_DOCTOR_PASSWORD: ${{ secrets.E2E_DOCTOR_PASSWORD }}

@@ -1,11 +1,11 @@
-import type { DemoStep, DemoStepKey } from '../../lib/demo/interactive-demo-scenario';
+import type { DemoStep, DemoStepKey } from "@/lib/demo/interactive-demo-scenario";
 
-const activeStep: DemoStepKey = 'welcome';
+const activeStep: DemoStepKey = "welcome";
 
 function stepClass(isActive: boolean): string {
   return isActive
-    ? 'border-indigo-200 bg-indigo-50 text-indigo-950'
-    : 'border-slate-200 bg-white text-slate-700';
+    ? "border-indigo-200 bg-indigo-50 text-indigo-950"
+    : "border-slate-200 bg-white text-slate-700";
 }
 
 export function DemoNarrativeRail({ steps }: { steps: DemoStep[] }) {

@@ -1,6 +1,6 @@
 /**
  * POST relativo a `/api/auth/session` — Route Handler de Next (mismo origen que el front).
- * Fija cookie HttpOnly `heydoctor_session` para que `proxy.ts` valide SSR en /panel.
+ * Fija cookie HttpOnly `heydoctor_session` para que `middleware.ts` valide SSR en /panel.
  * Las cookies del Nest (`access_token` en pro-api) no son visibles en Edge/Vercel.
  */
 
