@@ -2,13 +2,13 @@ import Link from "next/link";
 import { GrowthLandingVisitBeacon } from "@/components/GrowthLandingVisitBeacon";
 import { WhatsAppPatientCTA } from "@/components/WhatsAppPatientCTA";
 import HomeQuickAccess from "@/components/HomeQuickAccess";
-import HeyDoctorLogo from "@/components/ui/HeyDoctorLogo";
+import { LandingHero } from "@/components/landing/LandingHero";
+import { LandingNav } from "@/components/landing/LandingNav";
 import Container from "@/components/ui/Container";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import { getWhatsAppBookingUrl } from "@/lib/whatsapp-url";
 
-const BRAND = "#078a92";
 const FONT_HEADING = "Montserrat, sans-serif";
 
 const FEATURES = [
@@ -140,79 +140,9 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen overflow-x-hidden bg-white font-sans text-gray-900">
       <GrowthLandingVisitBeacon />
-      {/* ── NAV ── */}
-      <header className="sticky top-0 z-50 border-b border-gray-100 bg-white/80 backdrop-blur-md">
-        <Container className="flex h-16 items-center justify-between">
-          <Link
-            href="/"
-            className="flex items-center gap-2 no-underline"
-            style={{ fontFamily: FONT_HEADING, color: BRAND }}
-          >
-            <HeyDoctorLogo size={36} priority />
-            <span className="text-lg font-semibold">HeyDoctor</span>
-          </Link>
-          <div className="flex items-center gap-3">
-            <Link
-              href="/consultar"
-              className="rounded-lg px-4 py-2 text-sm font-semibold text-gray-600 no-underline transition-all duration-200 hover:bg-gray-50"
-            >
-              Consultar
-            </Link>
-            <Link
-              href="/for-doctors/apply"
-              className="rounded-lg px-4 py-2 text-sm font-semibold text-gray-600 no-underline transition-all duration-200 hover:bg-gray-50"
-            >
-              Para Médicos
-            </Link>
-            <Button href="/login" variant="secondary" className="px-5 py-2 text-sm font-[family-name:Montserrat,sans-serif]">
-              Iniciar Sesión
-            </Button>
-            <Button href="/consulta-rapida" variant="primary" className="px-5 py-2 text-sm font-[family-name:Montserrat,sans-serif]">
-              Consulta rápida
-            </Button>
-          </div>
-        </Container>
-      </header>
+      <LandingNav />
 
-      {/* ── HERO ── */}
-      <section className="py-20">
-        <Container>
-          <div className="flex flex-col items-center text-center">
-            <div className="mb-6 flex w-full justify-center">
-              <HeyDoctorLogo size={88} priority />
-            </div>
-            <span className="mb-6 inline-block rounded-full bg-primaryLight px-4 py-1.5 text-sm font-semibold tracking-wide text-primaryMid">
-              Atención médica online, sin esperas
-            </span>
-            <h1
-              className="mb-5 max-w-4xl font-bold leading-[1.1] tracking-tight text-gray-900"
-              style={{
-                fontFamily: FONT_HEADING,
-                fontSize: "clamp(32px, 5vw, 56px)",
-              }}
-            >
-              Médico online en menos de 1 minuto
-            </h1>
-            <p className="mb-10 max-w-xl text-lg leading-relaxed text-gray-600">
-              Videollamada segura desde el navegador. Atención profesional cuando
-              la necesitas, sin colas ni trámites eternos.
-            </p>
-            <div className="flex w-full max-w-lg flex-col items-stretch justify-center gap-4 sm:max-w-2xl sm:items-center">
-              <Button href="/consulta-rapida" variant="primary" className="min-h-14 w-full px-8 text-lg font-semibold shadow-premium sm:min-h-16 sm:max-w-md sm:px-12">
-                Empezar ahora — sin registro
-              </Button>
-              <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:justify-center">
-                <Button href="#acceso-qr" variant="secondary" className="min-h-12 w-full text-base sm:w-auto sm:min-w-[180px]">
-                  Ver código QR
-                </Button>
-                <Button href="/login" variant="secondary" className="min-h-12 w-full text-base sm:w-auto sm:min-w-[180px]">
-                  Soy médico
-                </Button>
-              </div>
-            </div>
-          </div>
-        </Container>
-      </section>
+      <LandingHero whatsAppUrl={whatsAppUrl} />
 
       {/* ── ACCESO RÁPIDO (CTA guest + WhatsApp + QR) ── */}
       <HomeQuickAccess />
