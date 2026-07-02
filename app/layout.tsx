@@ -4,7 +4,9 @@ import { Analytics } from "@vercel/analytics/react";
 import { AnalyticsProvider } from "@/components/AnalyticsProvider";
 import { CookieBanner } from "@/components/CookieBanner";
 import { GlobalWhatsAppFab } from "@/components/GlobalWhatsAppFab";
+import { BrandMarkProvider } from "@/components/branding";
 import { Providers } from "@/components/Providers";
+import { getBrandMarkSrc } from "@/lib/brand-mark.server";
 import { absoluteUrl, siteName } from "@/lib/seo";
 import "./globals.css";
 
@@ -42,6 +44,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   await connection();
+  const brandMarkSrc = getBrandMarkSrc();
 
   return (
     <html lang="es">
@@ -52,9 +55,11 @@ export default async function RootLayout({
         />
       </head>
       <body>
-        <Providers>
-          <AnalyticsProvider>{children}</AnalyticsProvider>
-        </Providers>
+        <BrandMarkProvider markSrc={brandMarkSrc}>
+          <Providers>
+            <AnalyticsProvider>{children}</AnalyticsProvider>
+          </Providers>
+        </BrandMarkProvider>
         <CookieBanner />
         <GlobalWhatsAppFab />
         <Analytics />

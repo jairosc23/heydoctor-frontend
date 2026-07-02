@@ -4,6 +4,7 @@ import { WhatsAppPatientCTA } from "@/components/WhatsAppPatientCTA";
 import HomeQuickAccess from "@/components/HomeQuickAccess";
 import { LandingHero } from "@/components/landing/LandingHero";
 import { LandingNav } from "@/components/landing/LandingNav";
+import { LandingFooter } from "@/components/landing/LandingFooter";
 import Container from "@/components/ui/Container";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
@@ -500,30 +501,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── FOOTER ── */}
-      <footer className="border-t border-gray-200 bg-white py-10">
-        <Container className="flex flex-wrap items-center justify-between gap-4">
-          <p className="m-0 text-sm text-gray-500">
-            &copy; {new Date().getFullYear()} HeyDoctor. Todos los derechos reservados.
-          </p>
-          <div className="flex flex-wrap gap-6">
-            <Link href="/terms" className="text-sm text-gray-500 no-underline hover:text-primary">
-              Términos
-            </Link>
-            <Link href="/privacy" className="text-sm text-gray-500 no-underline hover:text-primary">
-              Privacidad
-            </Link>
-            <Link
-              href="/for-doctors/apply"
-              className="text-sm text-gray-500 no-underline hover:text-primary"
-            >
-              Para Médicos
-            </Link>
-            <Link href="/consultar" className="text-sm text-gray-500 no-underline hover:text-primary">
-              Consultar
-            </Link>
-          </div>
-        </Container>
-      </footer>
+      <LandingFooter whatsAppUrl={whatsAppUrl} />
     </div>
   );
 }

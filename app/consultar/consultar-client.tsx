@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import HeyDoctorLogo from "@/components/ui/HeyDoctorLogo";
+import { BrandLogo } from "@/components/branding";
 import { useRouter } from "next/navigation";
 import type { DoctorProfile } from "@/lib/services/doctor-profiles";
 import {
@@ -75,13 +75,8 @@ export function ConsultarClient({
     <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #f0fdfa 0%, #ecfdf5 100%)" }}>
       <nav className="sticky top-0 z-50 border-b border-gray-100 bg-white/80 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-[1120px] items-center justify-between px-6">
-          <Link
-            href="/"
-            className="flex items-center gap-2 no-underline"
-            style={{ fontFamily: "Montserrat", color: TEAL }}
-          >
-            <HeyDoctorLogo size={36} priority />
-            <span className="text-lg font-semibold tracking-tight">HeyDoctor</span>
+          <Link href="/" className="no-underline">
+            <BrandLogo variant="nav" priority />
           </Link>
           <div className="flex items-center gap-4">
             <Link href="/login" className="font-semibold no-underline hover:underline" style={{ color: TEAL }}>
@@ -93,8 +88,8 @@ export function ConsultarClient({
 
       <div style={{ maxWidth: 640, margin: "0 auto", padding: "32px 24px 80px" }}>
         <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <div className="mb-6 flex w-full justify-center items-center">
-            <HeyDoctorLogo size={72} priority />
+          <div className="mb-6 flex w-full items-center justify-center">
+            <BrandLogo markOnly markSize={72} priority />
           </div>
           <h1 style={{ fontFamily: "Montserrat", color: TEAL, fontSize: 36, marginBottom: 12 }}>
             Consulta médica online

@@ -1,55 +1,53 @@
+import type { ReactNode } from "react";
 import Image from "next/image";
-import { BrandLogo } from "@/components/branding";
 import Button from "@/components/ui/Button";
 import Container from "@/components/ui/Container";
+import {
+  LANDING_HERO_DOCTOR_HEIGHT,
+  LANDING_HERO_DOCTOR_WIDTH,
+  LANDING_PATIENT_PIP_HEIGHT,
+  LANDING_PATIENT_PIP_WIDTH,
+} from "@/lib/landing-assets.constants";
+import { getLandingHeroAssets } from "@/lib/landing-assets.server";
 
 const FONT_HEADING = "Montserrat, sans-serif";
-const HERO_DOCTOR_IMAGE = "/og-image.jpg";
-const HERO_DOCTOR_WIDTH = 640;
-const HERO_DOCTOR_HEIGHT = 800;
-
-const TRUST_INDICATORS = [
-  "Privado y encriptado",
-  "Sin tarjeta de crédito",
-  "Funciona desde cualquier dispositivo",
-] as const;
 
 type LandingHeroProps = {
   whatsAppUrl?: string | null;
 };
 
 export function LandingHero({ whatsAppUrl }: LandingHeroProps) {
+  const { doctorImageSrc, patientPipSrc } = getLandingHeroAssets();
   const primaryHref = whatsAppUrl ?? "/consulta-rapida";
   const primaryExternal = Boolean(whatsAppUrl);
 
   return (
     <section
       aria-labelledby="landing-hero-title"
-      className="bg-gradient-to-b from-primaryLight/30 via-white to-white py-12 sm:py-16 lg:py-20"
+      className="bg-white py-12 sm:py-14 lg:py-14"
     >
       <Container>
-        <div className="grid items-center gap-8 md:grid-cols-[minmax(0,1fr)_minmax(260px,340px)] md:gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)] lg:gap-12 xl:grid-cols-[minmax(0,1.05fr)_minmax(360px,440px)]">
-          <div className="order-1">
-            <div className="mb-6">
-              <BrandLogo variant="landing" priority />
-            </div>
-
-            <span className="mb-5 inline-flex rounded-full bg-primaryLight px-4 py-1.5 text-sm font-semibold tracking-wide text-primaryMid">
-              Atención médica online, sin esperas
-            </span>
-
+        <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,1.08fr)_minmax(360px,480px)] lg:gap-10">
+          <div className="max-w-[520px]">
             <h1
               id="landing-hero-title"
-              className="mb-5 max-w-2xl font-bold leading-[1.08] tracking-tight text-gray-900"
+              className="mb-4 max-w-[480px] font-bold leading-[1.08] tracking-tight text-primaryDark"
               style={{
                 fontFamily: FONT_HEADING,
-                fontSize: "clamp(32px, 4.8vw, 56px)",
+                fontSize: "clamp(36px, 4.2vw, 48px)",
               }}
             >
               Médico online en menos de 1 minuto
             </h1>
 
-            <p className="mb-8 max-w-xl text-lg leading-relaxed text-gray-600">
+            <p
+              className="mb-4 text-xl font-semibold text-primary"
+              style={{ fontFamily: FONT_HEADING }}
+            >
+              Atención médica online, sin esperas
+            </p>
+
+            <p className="mb-8 max-w-lg text-base leading-7 text-gray-700">
               Videollamada segura desde el navegador. Atención profesional cuando
               la necesitas, sin colas ni trámites eternos.
             </p>
@@ -60,7 +58,7 @@ export function LandingHero({ whatsAppUrl }: LandingHeroProps) {
                   href={primaryHref}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex min-h-14 items-center justify-center gap-2 rounded-xl bg-[#25d366] px-8 text-lg font-semibold text-white no-underline shadow-soft transition-all duration-200 hover:scale-[1.02] hover:bg-[#1fb957] hover:shadow-premium focus:outline-none focus:ring-2 focus:ring-[#25d366] focus:ring-offset-2"
+                  className="inline-flex min-h-[52px] items-center justify-center gap-2.5 rounded-xl bg-[#25D366] px-7 text-base font-semibold text-white no-underline shadow-[0_8px_20px_rgba(37,211,102,0.18)] transition-colors duration-200 hover:bg-[#20BD5A] focus:outline-none focus:ring-2 focus:ring-[#25D366] focus:ring-offset-2"
                 >
                   <WhatsappIcon />
                   Consulta por WhatsApp
@@ -69,11 +67,9 @@ export function LandingHero({ whatsAppUrl }: LandingHeroProps) {
                 <Button
                   href={primaryHref}
                   variant="primary"
-                  className="min-h-14 px-8 text-lg font-semibold shadow-premium"
+                  className="min-h-[52px] gap-2.5 rounded-xl bg-[#25D366] px-7 text-base font-semibold shadow-[0_8px_20px_rgba(37,211,102,0.18)] hover:from-[#20BD5A] hover:to-[#20BD5A] hover:scale-100"
                 >
-                  <span className="mr-2 inline-flex" aria-hidden>
-                    <WhatsappIcon />
-                  </span>
+                  <WhatsappIcon />
                   Consulta por WhatsApp
                 </Button>
               )}
@@ -81,127 +77,136 @@ export function LandingHero({ whatsAppUrl }: LandingHeroProps) {
               <Button
                 href="/login"
                 variant="secondary"
-                className="min-h-14 px-8 text-base sm:min-w-[180px]"
+                className="min-h-[52px] rounded-xl border-gray-300 bg-white px-7 text-base font-semibold text-primaryDark hover:scale-100"
               >
                 Soy médico
               </Button>
             </div>
-
-            <ul
-              className="mt-8 flex flex-col gap-2 text-sm text-gray-600 sm:flex-row sm:flex-wrap sm:gap-x-6 sm:gap-y-2"
-              aria-label="Beneficios de la consulta"
-            >
-              {TRUST_INDICATORS.map((item) => (
-                <li key={item} className="inline-flex items-center gap-2">
-                  <span aria-hidden className="font-bold text-primary">
-                    ✓
-                  </span>
-                  {item}
-                </li>
-              ))}
-            </ul>
           </div>
 
-          <div className="order-2">
-            <LandingHeroVisual />
-          </div>
+          <LandingHeroVisual
+            doctorImageSrc={doctorImageSrc}
+            patientPipSrc={patientPipSrc}
+          />
         </div>
       </Container>
     </section>
   );
 }
 
-function LandingHeroVisual() {
+function LandingHeroVisual({
+  doctorImageSrc,
+  patientPipSrc,
+}: {
+  doctorImageSrc: string;
+  patientPipSrc: string | null;
+}) {
   return (
-    <div className="relative mx-auto w-full max-w-[440px] lg:max-w-none">
+    <div className="relative mx-auto w-full max-w-[460px] lg:max-w-none">
       <div
-        className="relative overflow-hidden rounded-[1.75rem] bg-primaryLight/40 shadow-premium ring-1 ring-primaryLight"
-        style={{ aspectRatio: `${HERO_DOCTOR_WIDTH} / ${HERO_DOCTOR_HEIGHT}` }}
+        className="relative overflow-hidden rounded-[2rem] bg-slate-100 shadow-[0_20px_48px_rgba(2,44,44,0.12)]"
+        style={{
+          aspectRatio: `${LANDING_HERO_DOCTOR_WIDTH} / ${LANDING_HERO_DOCTOR_HEIGHT - 80}`,
+        }}
       >
         <Image
-          src={HERO_DOCTOR_IMAGE}
-          alt="Médica profesional de HeyDoctor lista para una videollamada segura"
-          width={HERO_DOCTOR_WIDTH}
-          height={HERO_DOCTOR_HEIGHT}
-          sizes="(max-width: 1024px) 100vw, 420px"
-          className="h-full w-full object-cover object-center"
+          src={doctorImageSrc}
+          alt="Médico profesional de HeyDoctor listo para una videollamada segura"
+          width={LANDING_HERO_DOCTOR_WIDTH}
+          height={LANDING_HERO_DOCTOR_HEIGHT}
+          sizes="(max-width: 1024px) 100vw, 460px"
+          className="h-full w-full object-cover object-[center_22%]"
           priority
         />
 
         <div
-          className="pointer-events-none absolute inset-0 bg-gradient-to-t from-primaryDark/25 via-transparent to-transparent"
+          className="absolute bottom-[4.5rem] right-5 overflow-hidden rounded-2xl border-[3px] border-white shadow-[0_12px_28px_rgba(0,0,0,0.2)] sm:right-6"
+          style={{
+            width: "28%",
+            minWidth: "96px",
+            maxWidth: "116px",
+            aspectRatio: "3 / 4",
+          }}
           aria-hidden
-        />
-
-        <aside
-          className="absolute bottom-4 left-4 right-4 rounded-2xl border border-white/20 bg-white/95 p-4 shadow-xl backdrop-blur-sm sm:bottom-6 sm:left-auto sm:right-6 sm:max-w-[280px]"
-          aria-label="Vista previa de videollamada segura"
         >
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <span
-                className="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500"
-                aria-hidden
-              />
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                Videollamada segura
-              </p>
+          {patientPipSrc ? (
+            <Image
+              src={patientPipSrc}
+              alt=""
+              width={LANDING_PATIENT_PIP_WIDTH}
+              height={LANDING_PATIENT_PIP_HEIGHT}
+              sizes="128px"
+              className="h-full w-full object-cover object-[center_20%]"
+            />
+          ) : (
+            <div className="relative h-full w-full bg-gradient-to-br from-[#f3d5c0] via-[#e7b39a] to-[#c57d62]">
+              <div className="absolute inset-0 flex items-end justify-center pb-2">
+                <PatientSilhouette />
+              </div>
             </div>
-            <span className="rounded-full bg-primaryLight px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primaryMid">
-              En vivo
-            </span>
-          </div>
+          )}
+        </div>
 
-          <div className="overflow-hidden rounded-xl bg-slate-900">
-            <div className="flex items-center gap-2 border-b border-white/10 px-3 py-2">
-              <span className="h-2 w-2 rounded-full bg-red-400" aria-hidden />
-              <span className="h-2 w-2 rounded-full bg-amber-300" aria-hidden />
-              <span className="h-2 w-2 rounded-full bg-emerald-400" aria-hidden />
-              <p className="ml-1 truncate text-[11px] font-medium text-white/80">
-                consulta.heydoctor.health
-              </p>
-            </div>
-            <div className="grid grid-cols-2 gap-1 p-2">
-              <MockVideoTile label="Paciente" tone="slate" />
-              <MockVideoTile label="Médico" tone="primary" active />
-            </div>
-          </div>
-
-          <p className="mt-3 text-xs leading-relaxed text-gray-600">
-            Conéctate desde el navegador. Sin descargas ni esperas.
-          </p>
-        </aside>
+        <div
+          className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full bg-black/60 px-2.5 py-1.5 backdrop-blur-[2px]"
+          aria-hidden
+        >
+          <ControlIcon label="Micrófono">
+            <path
+              d="M12 14a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v5a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"
+              fill="currentColor"
+            />
+          </ControlIcon>
+          <ControlIcon label="Cámara">
+            <path
+              d="M17 10.5V7a2 2 0 0 0-2-2H5A2 2 0 0 0 3 7v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3.5l4 3v-9l-4 3z"
+              fill="currentColor"
+            />
+          </ControlIcon>
+          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-red-500 text-white">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+              <path d="M6.62 10.79a15.05 15.05 0 0 0 6.59 6.59l2.2-2.2a1 1 0 0 1 1.01-.24c1.12.37 2.33.57 3.58.57a1 1 0 0 1 1 1V21a1 1 0 0 1-1 1C10.07 22 2 13.93 2 3a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.46.57 3.58a1 1 0 0 1-.25 1.01l-2.2 2.2z" />
+            </svg>
+          </span>
+          <ControlIcon label="Más opciones">
+            <circle cx="6" cy="12" r="1.6" fill="currentColor" />
+            <circle cx="12" cy="12" r="1.6" fill="currentColor" />
+            <circle cx="18" cy="12" r="1.6" fill="currentColor" />
+          </ControlIcon>
+        </div>
       </div>
     </div>
   );
 }
 
-function MockVideoTile({
+function ControlIcon({
   label,
-  tone,
-  active = false,
+  children,
 }: {
   label: string;
-  tone: "slate" | "primary";
-  active?: boolean;
+  children: ReactNode;
 }) {
-  const bg =
-    tone === "primary"
-      ? "bg-gradient-to-br from-primaryMid to-primaryDark"
-      : "bg-gradient-to-br from-slate-600 to-slate-800";
-
   return (
-    <div
-      className={`relative aspect-[4/3] overflow-hidden rounded-lg ${bg} ${
-        active ? "ring-2 ring-emerald-400/80" : ""
-      }`}
+    <span
+      className="inline-flex h-7 w-7 items-center justify-center rounded-full text-white/95"
+      aria-label={label}
     >
-      <div className="absolute inset-0 flex items-end p-2">
-        <span className="rounded-md bg-black/45 px-2 py-0.5 text-[10px] font-semibold text-white">
-          {label}
-        </span>
-      </div>
-    </div>
+      <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden>
+        {children}
+      </svg>
+    </span>
+  );
+}
+
+function PatientSilhouette() {
+  return (
+    <svg width="56" height="56" viewBox="0 0 64 64" fill="none" aria-hidden>
+      <circle cx="32" cy="22" r="12" fill="rgba(255,255,255,0.82)" />
+      <path
+        d="M12 58c3.5-12 12.5-18 20-18s16.5 6 20 18"
+        fill="rgba(255,255,255,0.82)"
+      />
+    </svg>
   );
 }
 

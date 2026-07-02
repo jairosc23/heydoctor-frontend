@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/context/AuthContext";
-import HeyDoctorLogo from "@/components/ui/HeyDoctorLogo";
+import { BrandLogo } from "@/components/branding";
 import { cn } from "@/lib/utils";
 import { trackRedirectToLogin } from "@/lib/session-analytics";
 
@@ -130,13 +130,7 @@ export default function PanelLayout({
     <div className="flex min-h-screen overflow-hidden bg-[#eef4f7] font-sans">
       <aside className="fixed bottom-0 left-0 top-0 z-40 flex h-screen w-64 flex-col border-r border-gray-100 bg-white p-4 shadow-soft">
         <div className="mb-8 flex flex-col items-center">
-          <HeyDoctorLogo size={56} className="mx-auto mb-2" />
-          <h2
-            className="m-0 text-center text-lg font-semibold text-primary"
-            style={{ fontFamily: "Montserrat, sans-serif" }}
-          >
-            HeyDoctor
-          </h2>
+          <BrandLogo variant="nav" markSize={56} className="flex-col items-center gap-1" />
         </div>
         {MENU.map((item) => (
           <Link
@@ -160,15 +154,7 @@ export default function PanelLayout({
       </aside>
       <header className="fixed left-64 right-0 top-0 z-30 flex h-16 items-center justify-between border-b border-gray-100 bg-white/80 px-6 backdrop-blur-md">
         <div className="flex min-w-0 flex-1 items-center gap-6">
-          <div className="flex shrink-0 items-center gap-2">
-            <HeyDoctorLogo size={36} />
-            <span
-              className="text-lg font-semibold text-primary"
-              style={{ fontFamily: "Montserrat, sans-serif" }}
-            >
-              HeyDoctor
-            </span>
-          </div>
+          <BrandLogo variant="nav" priority />
           <span
             className="truncate border-l border-gray-200 pl-6 text-lg font-semibold text-slate-600"
             style={{ fontFamily: "Montserrat, sans-serif" }}

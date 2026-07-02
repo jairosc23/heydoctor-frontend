@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 type BrandWordmarkProps = {
   tagline?: string;
   className?: string;
-  variant?: "enterprise" | "landing" | "nav";
+  variant?: "enterprise" | "landing" | "nav" | "footer";
 };
 
 export function BrandWordmark({
@@ -11,10 +11,26 @@ export function BrandWordmark({
   className = "",
   variant = "enterprise",
 }: BrandWordmarkProps) {
+  if (variant === "footer") {
+    return (
+      <div className={className}>
+        <p
+          className="text-[22px] font-bold tracking-tight text-white"
+          style={{ fontFamily: "Montserrat, sans-serif" }}
+        >
+          HeyDoctor
+        </p>
+        {tagline ? (
+          <p className="mt-1 max-w-sm text-sm leading-6 text-slate-300">{tagline}</p>
+        ) : null}
+      </div>
+    );
+  }
+
   if (variant === "nav") {
     return (
       <span
-        className={cn("text-lg font-semibold text-primaryMid", className)}
+        className={cn("text-[18px] font-bold text-primaryDark", className)}
         style={{ fontFamily: "Montserrat, sans-serif" }}
       >
         HeyDoctor
@@ -26,13 +42,13 @@ export function BrandWordmark({
     return (
       <div className={className}>
         <p
-          className="text-2xl font-bold tracking-tight text-primaryMid sm:text-3xl"
+          className="text-2xl font-bold tracking-tight text-primaryDark sm:text-[1.75rem]"
           style={{ fontFamily: "Montserrat, sans-serif" }}
         >
           HeyDoctor
         </p>
         {tagline ? (
-          <p className="mt-1 max-w-sm text-sm leading-6 text-gray-600">{tagline}</p>
+          <p className="mt-1 max-w-sm text-sm leading-6 text-gray-500">{tagline}</p>
         ) : null}
       </div>
     );

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useState, useRef, useEffect } from "react";
-import HeyDoctorLogo from "@/components/ui/HeyDoctorLogo";
+import { BrandLogo } from "@/components/branding";
 import Container from "@/components/ui/Container";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
@@ -78,13 +78,8 @@ export default function GuestConsultationPage() {
     <div className="min-h-screen bg-gradient-to-b from-primaryLight/30 to-white pb-[env(safe-area-inset-bottom)]">
       <header className="border-b border-gray-100 bg-white/80 backdrop-blur-md">
         <Container className="flex h-16 items-center justify-between">
-          <Link
-            href="/"
-            className="flex items-center gap-2 no-underline"
-            style={{ fontFamily: FONT_HEADING, color: "#078a92" }}
-          >
-            <HeyDoctorLogo size={36} priority />
-            <span className="text-lg font-semibold">HeyDoctor</span>
+          <Link href="/" className="no-underline">
+            <BrandLogo variant="nav" priority />
           </Link>
           <Link
             href="/login"

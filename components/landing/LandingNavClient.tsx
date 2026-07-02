@@ -1,10 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useId, useState } from "react";
-import { isBrandMarkSvg } from "@/lib/brand-mark.constants";
-import { BrandWordmark } from "@/components/branding/BrandWordmark";
+import { BrandLogo } from "@/components/branding";
 import Button from "@/components/ui/Button";
 import Container from "@/components/ui/Container";
 
@@ -13,11 +11,7 @@ const NAV_LINKS = [
   { href: "/for-doctors/apply", label: "Para Médicos" },
 ] as const;
 
-type LandingNavClientProps = {
-  brandMarkSrc: string;
-};
-
-export function LandingNavClient({ brandMarkSrc }: LandingNavClientProps) {
+export function LandingNavClient() {
   const [open, setOpen] = useState(false);
   const panelId = useId();
 
@@ -41,25 +35,25 @@ export function LandingNavClient({ brandMarkSrc }: LandingNavClientProps) {
   const close = () => setOpen(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-gray-100 bg-white/80 backdrop-blur-md">
-      <Container className="flex h-16 items-center justify-between gap-3">
+    <header className="sticky top-0 z-50 box-border h-[72px] border-b border-gray-100 bg-white shadow-[0_1px_0_rgba(2,44,44,0.04)]">
+      <Container className="flex h-full items-center justify-between gap-6">
         <Link
           href="/"
           className="flex min-w-0 shrink items-center no-underline"
           onClick={close}
         >
-          <NavBrand markSrc={brandMarkSrc} priority />
+          <BrandLogo variant="nav" priority className="min-w-0 truncate" />
         </Link>
 
         <nav
-          className="hidden items-center gap-3 md:flex"
+          className="hidden items-center gap-2 md:flex"
           aria-label="Navegación principal"
         >
           {NAV_LINKS.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className="rounded-lg px-4 py-2 text-sm font-semibold text-gray-600 no-underline transition-all duration-200 hover:bg-gray-50"
+              className="rounded-lg px-4 py-2 text-sm font-medium text-primaryDark no-underline transition-colors duration-200 hover:bg-gray-50"
             >
               {item.label}
             </Link>
@@ -67,15 +61,16 @@ export function LandingNavClient({ brandMarkSrc }: LandingNavClientProps) {
           <Button
             href="/login"
             variant="secondary"
-            className="px-5 py-2 text-sm font-[family-name:Montserrat,sans-serif]"
+            className="h-[42px] min-h-[42px] rounded-xl border-gray-300 bg-white px-5 py-0 text-sm font-semibold text-primaryDark shadow-none hover:scale-100"
           >
             Iniciar Sesión
           </Button>
           <Button
             href="/consulta-rapida"
             variant="primary"
-            className="px-5 py-2 text-sm font-[family-name:Montserrat,sans-serif]"
+            className="h-[42px] min-h-[42px] gap-2 rounded-xl px-5 py-0 text-sm font-semibold shadow-[0_8px_20px_rgba(7,138,146,0.22)] hover:scale-100"
           >
+            <WhatsappIcon />
             Consulta rápida
           </Button>
         </nav>
@@ -106,7 +101,7 @@ export function LandingNavClient({ brandMarkSrc }: LandingNavClientProps) {
             aria-label="Menú de navegación móvil"
           >
             <div className="mb-6 flex items-center justify-between gap-3">
-              <NavBrand markSrc={brandMarkSrc} />
+              <BrandLogo variant="nav" className="min-w-0 truncate" />
               <button
                 type="button"
                 className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-gray-600 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
@@ -141,8 +136,9 @@ export function LandingNavClient({ brandMarkSrc }: LandingNavClientProps) {
               <Button
                 href="/consulta-rapida"
                 variant="primary"
-                className="w-full py-3 text-sm font-[family-name:Montserrat,sans-serif]"
+                className="w-full gap-2 rounded-xl py-3 text-sm font-semibold"
               >
+                <WhatsappIcon />
                 Consulta rápida
               </Button>
             </div>
@@ -150,37 +146,6 @@ export function LandingNavClient({ brandMarkSrc }: LandingNavClientProps) {
         </>
       ) : null}
     </header>
-  );
-}
-
-function NavBrand({
-  markSrc,
-  priority = false,
-}: {
-  markSrc: string;
-  priority?: boolean;
-}) {
-  return (
-    <div className="flex min-w-0 items-center gap-2">
-      <span
-        className="inline-flex shrink-0 justify-center leading-none"
-        style={{
-          filter: "drop-shadow(0 10px 25px rgba(0, 150, 136, 0.2))",
-        }}
-        aria-hidden
-      >
-        <Image
-          src={markSrc}
-          alt=""
-          width={36}
-          height={36}
-          priority={priority}
-          unoptimized={isBrandMarkSvg(markSrc)}
-          className="object-contain"
-        />
-      </span>
-      <BrandWordmark variant="nav" className="truncate" />
-    </div>
   );
 }
 
@@ -206,6 +171,14 @@ function CloseIcon() {
         strokeWidth={2}
         strokeLinecap="round"
       />
+    </svg>
+  );
+}
+
+function WhatsappIcon() {
+  return (
+    <svg width={16} height={16} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <path d="M.057 24l1.687-6.163a11.867 11.867 0 0 1-1.587-5.946C.16 5.335 5.495 0 12.05 0a11.82 11.82 0 0 1 8.413 3.488 11.82 11.82 0 0 1 3.48 8.42c-.003 6.554-5.338 11.892-11.893 11.892a11.9 11.9 0 0 1-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.86 9.86 0 0 0 1.51 5.26l-.999 3.648 3.978-1.607zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413z" />
     </svg>
   );
 }

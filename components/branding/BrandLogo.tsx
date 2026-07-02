@@ -1,16 +1,25 @@
+"use client";
+
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { isBrandMarkSvg } from "@/lib/brand-mark.constants";
+import { useBrandMarkSrc } from "./BrandMarkProvider";
 import { BrandWordmark } from "./BrandWordmark";
-import { getBrandMarkSrc } from "@/lib/brand-mark.server";
 
 type BrandLogoProps = {
   tagline?: string;
   className?: string;
-  variant?: "enterprise" | "landing" | "nav";
-  /** Prioritize LCP mark (hero / nav). */
+  variant?: "enterprise" | "landing" | "nav" | "footer";
   priority?: boolean;
+  markOnly?: boolean;
+  markSize?: number;
 };
+
+const VARIANT_MARK_SIZE = {
+  nav: 32,
+  footer: 44,
+  landing: 52,
+} as const;
 
 function BrandMark({
   src,
@@ -26,9 +35,6 @@ function BrandMark({
   return (
     <span
       className={cn("inline-flex shrink-0 justify-center leading-none", className)}
-      style={{
-        filter: "drop-shadow(0 10px 25px rgba(0, 150, 136, 0.2))",
-      }}
       aria-hidden
     >
       <Image
@@ -49,14 +55,43 @@ export function BrandLogo({
   className = "",
   variant = "enterprise",
   priority = false,
+  markOnly = false,
+  markSize,
 }: BrandLogoProps) {
-  const markSrc = getBrandMarkSrc();
+  const markSrc = useBrandMarkSrc();
+  const resolvedMarkSize =
+    markSize ?? VARIANT_MARK_SIZE[variant as keyof typeof VARIANT_MARK_SIZE] ?? 52;
+
+  if (markOnly) {
+    return (
+      <div className={className}>
+        <BrandMark src={markSrc} size={resolvedMarkSize} priority={priority} />
+      </div>
+    );
+  }
 
   if (variant === "nav") {
     return (
-      <div className={cn("flex items-center gap-2", className)}>
-        <BrandMark src={markSrc} size={36} priority={priority} />
+      <div className={cn("flex min-w-0 items-center gap-2", className)}>
+        <BrandMark src={markSrc} size={resolvedMarkSize} priority={priority} />
         <BrandWordmark variant="nav" />
+      </div>
+    );
+  }
+
+  if (variant === "footer") {
+    return (
+      <div className={cn("flex items-center gap-3", className)}>
+        <BrandMark
+          src={markSrc}
+          size={resolvedMarkSize}
+          priority={priority}
+          className="brightness-0 invert"
+        />
+        <BrandWordmark
+          variant="footer"
+          tagline={tagline ?? "Atención médica online, sin esperas"}
+        />
       </div>
     );
   }
@@ -64,7 +99,7 @@ export function BrandLogo({
   if (variant === "landing") {
     return (
       <div className={cn("flex items-center gap-3", className)}>
-        <BrandMark src={markSrc} size={52} priority={priority} />
+        <BrandMark src={markSrc} size={resolvedMarkSize} priority={priority} />
         <BrandWordmark variant="landing" tagline={tagline} />
       </div>
     );

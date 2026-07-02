@@ -4,7 +4,7 @@ import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/context/AuthContext";
-import HeyDoctorLogo from "@/components/ui/HeyDoctorLogo";
+import { BrandLogo } from "@/components/branding";
 import Card from "@/components/ui/Card";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
@@ -73,7 +73,12 @@ function LoginContent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primaryDark via-primaryMid to-primary px-4 py-12">
       <Card className="w-full max-w-md text-center shadow-premium">
-        <HeyDoctorLogo size={96} className="mx-auto mb-6 drop-shadow-xl" />
+        <BrandLogo
+          markOnly
+          markSize={96}
+          priority
+          className="mx-auto mb-6 drop-shadow-xl"
+        />
         <h2
           className="mb-5 text-[28px] font-bold text-gray-900"
           style={{ fontFamily: "Montserrat, sans-serif" }}
