@@ -78,9 +78,10 @@ export default function RegisterPage() {
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primaryDark via-primaryMid to-primary px-4 py-12">
         <Card className="w-full max-w-md text-center shadow-premium">
           <BrandLogo
-            variant="landing"
+            markOnly
+            markSize={128}
             priority
-            className="mx-auto mb-6 origin-center scale-[1.12]"
+            className="mx-auto mb-6"
           />
           <div
             className="mb-4 text-4xl font-bold text-primary"
@@ -106,9 +107,10 @@ export default function RegisterPage() {
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primaryDark via-primaryMid to-primary px-4 py-12">
       <Card className="w-full max-w-md text-center shadow-premium">
         <BrandLogo
-          variant="landing"
+          markOnly
+          markSize={128}
           priority
-          className="mx-auto mb-6 origin-center scale-[1.12]"
+          className="mx-auto mb-6"
         />
         <h2
           className="mb-5 text-[28px] font-bold text-primary"
