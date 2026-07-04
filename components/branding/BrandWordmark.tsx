@@ -15,7 +15,7 @@ export function BrandWordmark({
     return (
       <div className={className}>
         <p
-          className="text-[22px] font-bold tracking-tight text-white"
+          className="text-[22px] font-bold tracking-tight text-primary"
           style={{ fontFamily: "Montserrat, sans-serif" }}
         >
           HeyDoctor
@@ -31,7 +31,7 @@ export function BrandWordmark({
     return (
       <span
         className={cn(
-          "inline-flex items-baseline text-[18px] leading-none text-primaryDark",
+          "inline-flex items-baseline text-[18px] leading-none text-primary",
           className,
         )}
         style={{ fontFamily: "Montserrat, sans-serif" }}
@@ -46,7 +46,7 @@ export function BrandWordmark({
     return (
       <div className={className}>
         <p
-          className="text-2xl font-bold tracking-tight text-primaryDark sm:text-[1.75rem]"
+          className="text-2xl font-bold tracking-tight text-primary sm:text-[1.75rem]"
           style={{ fontFamily: "Montserrat, sans-serif" }}
         >
           HeyDoctor
@@ -60,7 +60,7 @@ export function BrandWordmark({
 
   return (
     <div className={className}>
-      <p className="text-sm font-bold uppercase tracking-[0.24em] text-indigo-200 sm:text-base sm:tracking-[0.28em]">
+      <p className="text-sm font-bold uppercase tracking-[0.24em] text-primary sm:text-base sm:tracking-[0.28em]">
         HeyDoctor Enterprise
       </p>
       {tagline ? (

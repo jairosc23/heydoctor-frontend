@@ -86,7 +86,6 @@ export function BrandLogo({
           src={markSrc}
           size={resolvedMarkSize}
           priority={priority}
-          className="brightness-0 invert"
         />
         <BrandWordmark
           variant="footer"
