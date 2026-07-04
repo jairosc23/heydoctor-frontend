@@ -1,4 +1,5 @@
 import Button from "@/components/ui/Button";
+import { WhatsappIcon } from "@/components/WhatsappIcon";
 
 type WhatsAppButtonProps = {
   href: string;
@@ -15,11 +16,9 @@ export function WhatsAppButton({ href, label = "Agendar por WhatsApp" }: WhatsAp
       variant="primary"
       target="_blank"
       rel="noopener noreferrer"
-      className="whatsapp-cta-button min-h-[56px] text-lg font-[family-name:Montserrat,sans-serif]"
+      className="whatsapp-cta-button inline-flex min-h-[56px] items-center gap-2.5 text-lg font-[family-name:Montserrat,sans-serif]"
     >
-      <span aria-hidden className="mr-2.5 text-2xl">
-        💬
-      </span>
+      <WhatsappIcon size={24} />
       {label}
     </Button>
   );

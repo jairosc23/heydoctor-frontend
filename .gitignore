@@ -8,5 +8,11 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Artefactos de auditoría / capturas temporales (no producto)
+visual-audit/
+playwright-report/
+test-results/
+.cursor/
+
 # Monorepo sibling (cuando el clon standalone vive junto al backend en el mismo disco)
 heydoctor-backend-pro/

@@ -15,6 +15,7 @@ import {
   type ConsultationMessage,
   type ConsultationMessageAttachment,
 } from "@/lib/services/consultation-messages";
+import { MessageCircle } from "lucide-react";
 import { createClinicalLogger } from "@/lib/clinical-logger";
 
 const log = createClinicalLogger("consultation");
@@ -374,7 +375,7 @@ export function ChatPanel({
     >
       <header className="flex items-center justify-between px-3 py-2 border-b border-gray-200">
         <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-          <span aria-hidden>💬</span> Chat
+          <MessageCircle className="h-4 w-4" aria-hidden /> Chat
           {backendOnline === false && (
             <span
               className="text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-800 rounded font-normal"

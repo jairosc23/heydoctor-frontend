@@ -2,6 +2,7 @@ import { WhatsAppQR } from "@/components/WhatsAppQR";
 import Card from "@/components/ui/Card";
 import Container from "@/components/ui/Container";
 import Button from "@/components/ui/Button";
+import { WhatsappIcon } from "@/components/WhatsappIcon";
 
 type WhatsAppPatientCTAProps = {
   url: string;
@@ -35,11 +36,9 @@ export function WhatsAppPatientCTA({ url }: WhatsAppPatientCTAProps) {
                 variant="primary"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="whatsapp-cta-button min-h-[56px] text-base font-[family-name:Montserrat,sans-serif]"
+                className="whatsapp-cta-button inline-flex min-h-[56px] items-center gap-2.5 text-base font-[family-name:Montserrat,sans-serif]"
               >
-                <span aria-hidden className="mr-2.5 text-xl">
-                  💬
-                </span>
+                <WhatsappIcon size={22} />
                 Consultar por WhatsApp
               </Button>
             </div>
