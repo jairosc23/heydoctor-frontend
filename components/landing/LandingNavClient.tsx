@@ -43,7 +43,7 @@ export function LandingNavClient() {
           className="flex min-w-0 shrink items-center no-underline"
           onClick={close}
         >
-          <BrandLogo variant="nav" priority className="min-w-0 truncate" />
+          <BrandLogo variant="nav" priority className="min-w-0 origin-left scale-[1.12] truncate" />
         </Link>
 
         <div className="hidden w-[305px] shrink-0 md:block" aria-hidden />
@@ -107,7 +107,7 @@ export function LandingNavClient() {
             aria-label="Menú de navegación móvil"
           >
             <div className="mb-6 flex items-center justify-between gap-3">
-              <BrandLogo variant="nav" className="min-w-0 truncate" />
+              <BrandLogo variant="nav" className="min-w-0 origin-left scale-[1.12] truncate" />
               <button
                 type="button"
                 className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-gray-600 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
