@@ -7,6 +7,7 @@ import { BrandLogo } from "@/components/branding";
 import Container from "@/components/ui/Container";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
+import Input from "@/components/ui/Input";
 import { GuestConsultationError } from "@/lib/services/public-consultations";
 import { getWhatsAppBookingUrl } from "@/lib/whatsapp-url";
 import { useConsultationEngine } from "@/hooks/useConsultationEngine";
@@ -14,6 +15,17 @@ import { useConsultationEngine } from "@/hooks/useConsultationEngine";
 const FONT_HEADING = "Montserrat, sans-serif";
 const NAME_MAX = 120;
 const REASON_MAX = 4000;
+
+/** Tokens CTA primario DS (Landing / Login). */
+const CTA_PRIMARY =
+  "rounded-lg border-0 bg-primary shadow-none !shadow-[0_4px_12px_rgba(7,138,146,0.22)] hover:bg-primaryMid hover:scale-100 focus:outline-none focus:ring-2 focus:ring-primaryLight focus:ring-offset-2 disabled:hover:bg-primary disabled:hover:scale-100";
+
+/** Tokens CTA secundario DS. */
+const CTA_SECONDARY =
+  "rounded-lg border border-hd-border-default bg-hd-surface-chrome text-primaryDark shadow-none hover:bg-hd-surface-muted hover:scale-100 focus:outline-none focus:ring-2 focus:ring-primaryLight focus:ring-offset-2";
+
+const FIELD =
+  "min-h-12 rounded-lg border-hd-border-default px-3 py-3 text-base text-primaryDark focus:border-primary focus:ring-2 focus:ring-primaryLight";
 
 /**
  * Flujo público en 3 pasos (sin login): nombre → motivo → confirmar y entrar.
@@ -75,15 +87,16 @@ export default function GuestConsultationPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-primaryLight/30 to-white pb-[env(safe-area-inset-bottom)]">
-      <header className="border-b border-gray-100 bg-white/80 backdrop-blur-md">
+    <div className="min-h-screen bg-hd-surface-base pb-[env(safe-area-inset-bottom)]">
+      <header className="border-b border-hd-border-subtle bg-hd-surface-chrome shadow-hd-1">
         <Container className="flex h-16 items-center justify-between">
           <Link href="/" className="no-underline">
             <BrandLogo variant="nav" priority />
           </Link>
           <Link
             href="/login"
-            className="rounded-lg px-3 py-1.5 text-sm font-semibold text-gray-600 no-underline hover:bg-gray-50"
+            className="inline-flex h-10 min-h-10 items-center rounded-lg border border-primary bg-hd-surface-chrome px-5 text-sm font-medium text-primary no-underline transition-colors duration-hd-base hover:bg-primaryLight focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            style={{ fontFamily: FONT_HEADING }}
           >
             Iniciar Sesión
           </Link>
@@ -94,30 +107,31 @@ export default function GuestConsultationPage() {
         <Container className="max-w-xl">
           <div className="mb-8 text-center">
             <h1
-              className="mb-3 text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl"
+              className="mb-3 text-2xl font-bold tracking-tight text-primary sm:text-3xl"
               style={{ fontFamily: FONT_HEADING }}
             >
               Médico online en menos de 1 minuto
             </h1>
-            <p className="mx-auto max-w-md text-sm leading-relaxed text-gray-600">
+            <p className="mx-auto max-w-md text-sm leading-relaxed text-primaryDark/70">
               Tres pasos. Sin cuenta. Te llevamos directo a la videollamada segura.
             </p>
           </div>
 
           <StepIndicator step={step} />
 
-          <Card className="p-6 sm:p-8">
+          <Card className="p-6 shadow-premium sm:p-8">
             <form onSubmit={onSubmit} noValidate>
               {step === 1 && (
                 <div className="space-y-4">
                   <div>
                     <label
                       htmlFor="guest-name"
-                      className="mb-1 block text-sm font-semibold text-gray-700"
+                      className="mb-1 block text-sm font-semibold text-primaryDark"
+                      style={{ fontFamily: FONT_HEADING }}
                     >
                       Paso 1 · Tu nombre
                     </label>
-                    <input
+                    <Input
                       ref={nameInputRef}
                       id="guest-name"
                       type="text"
@@ -136,14 +150,14 @@ export default function GuestConsultationPage() {
                       autoComplete="name"
                       maxLength={NAME_MAX}
                       disabled={submitting}
-                      className="w-full min-h-12 rounded-lg border border-gray-300 px-3 py-3 text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
+                      className={FIELD}
                     />
                   </div>
                   <Button
                     type="button"
                     variant="primary"
                     disabled={!step1Ok || submitting}
-                    className="w-full min-h-12 text-base"
+                    className={`w-full min-h-12 text-base ${CTA_PRIMARY}`}
                     onClick={() => step1Ok && setStep(2)}
                   >
                     Continuar
@@ -156,7 +170,8 @@ export default function GuestConsultationPage() {
                   <div>
                     <label
                       htmlFor="guest-reason"
-                      className="mb-1 block text-sm font-semibold text-gray-700"
+                      className="mb-1 block text-sm font-semibold text-primaryDark"
+                      style={{ fontFamily: FONT_HEADING }}
                     >
                       Paso 2 · Motivo de la consulta
                     </label>
@@ -178,9 +193,9 @@ export default function GuestConsultationPage() {
                       rows={5}
                       maxLength={REASON_MAX}
                       disabled={submitting}
-                      className="w-full resize-none rounded-lg border border-gray-300 px-3 py-3 text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
+                      className={`w-full resize-none outline-none transition-all duration-200 disabled:opacity-60 ${FIELD}`}
                     />
-                    <p className="mt-1 text-[11px] text-gray-400">
+                    <p className="mt-1 text-[11px] text-primaryDark/50">
                       {trimmedReason.length}/{REASON_MAX}
                     </p>
                   </div>
@@ -189,7 +204,7 @@ export default function GuestConsultationPage() {
                       type="button"
                       variant="primary"
                       disabled={!step2Ok || submitting}
-                      className="w-full min-h-12 text-base sm:flex-1"
+                      className={`w-full min-h-12 text-base sm:flex-1 ${CTA_PRIMARY}`}
                       onClick={() => step2Ok && setStep(3)}
                     >
                       Revisar
@@ -197,7 +212,7 @@ export default function GuestConsultationPage() {
                     <Button
                       type="button"
                       variant="secondary"
-                      className="w-full min-h-12"
+                      className={`w-full min-h-12 ${CTA_SECONDARY}`}
                       onClick={() => setStep(1)}
                     >
                       Atrás
@@ -208,22 +223,25 @@ export default function GuestConsultationPage() {
 
               {step === 3 && (
                 <div className="space-y-5">
-                  <div className="rounded-xl border border-gray-100 bg-gray-50/80 p-4 text-sm">
-                    <p className="m-0 mb-2 font-semibold text-gray-900">
+                  <div className="rounded-xl border border-hd-border-subtle bg-hd-surface-muted p-4 text-sm">
+                    <p
+                      className="m-0 mb-2 font-semibold text-primaryDark"
+                      style={{ fontFamily: FONT_HEADING }}
+                    >
                       Paso 3 · Confirma y entra
                     </p>
                     <dl className="m-0 space-y-3">
                       <div>
-                        <dt className="text-[11px] font-bold uppercase tracking-wide text-gray-500">
+                        <dt className="text-[11px] font-bold uppercase tracking-wide text-primaryDark/60">
                           Nombre
                         </dt>
-                        <dd className="m-0 text-gray-900">{trimmedName}</dd>
+                        <dd className="m-0 text-primaryDark">{trimmedName}</dd>
                       </div>
                       <div>
-                        <dt className="text-[11px] font-bold uppercase tracking-wide text-gray-500">
+                        <dt className="text-[11px] font-bold uppercase tracking-wide text-primaryDark/60">
                           Motivo
                         </dt>
-                        <dd className="m-0 whitespace-pre-wrap text-gray-800">
+                        <dd className="m-0 whitespace-pre-wrap text-primaryDark/90">
                           {trimmedReason}
                         </dd>
                       </div>
@@ -243,27 +261,27 @@ export default function GuestConsultationPage() {
                     type="submit"
                     variant="primary"
                     disabled={!step1Ok || !step2Ok || submitting}
-                    className="w-full min-h-12 text-base"
+                    className={`w-full min-h-12 text-base ${CTA_PRIMARY}`}
                   >
                     {submitting ? "Entrando…" : "Entrar a la videollamada"}
                   </Button>
                   <Button
                     type="button"
                     variant="secondary"
-                    className="w-full min-h-12"
+                    className={`w-full min-h-12 ${CTA_SECONDARY}`}
                     disabled={submitting}
                     onClick={() => setStep(2)}
                   >
                     Editar motivo
                   </Button>
 
-                  <p className="text-center text-[11px] leading-relaxed text-gray-500">
+                  <p className="text-center text-[11px] leading-relaxed text-primaryDark/60">
                     Al continuar aceptas los{" "}
-                    <Link href="/terms" className="text-primary hover:underline">
+                    <Link href="/terms" className="font-semibold text-primary hover:underline">
                       Términos
                     </Link>{" "}
                     y la{" "}
-                    <Link href="/privacy" className="text-primary hover:underline">
+                    <Link href="/privacy" className="font-semibold text-primary hover:underline">
                       Política de Privacidad
                     </Link>
                     .
@@ -275,12 +293,12 @@ export default function GuestConsultationPage() {
 
           {whatsAppUrl && (
             <div className="mt-6 text-center">
-              <p className="mb-2 text-xs text-gray-500">¿Prefieres WhatsApp?</p>
+              <p className="mb-2 text-xs text-primaryDark/60">¿Prefieres WhatsApp?</p>
               <a
                 href={whatsAppUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#25d366] px-4 py-2 text-sm font-semibold text-white no-underline hover:bg-[#1fb957]"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#25D366] px-4 py-2 text-sm font-semibold text-white no-underline shadow-[0_6px_16px_rgba(37,211,102,0.16)] transition-colors duration-hd-base hover:bg-[#20BD5A] focus:outline-none focus:ring-2 focus:ring-[#25D366] focus:ring-offset-2"
               >
                 <WhatsappIcon />
                 Chatear por WhatsApp
@@ -313,7 +331,7 @@ function StepIndicator({ step }: { step: number }) {
                     ? "bg-primary text-white"
                     : active
                       ? "bg-primaryMid text-white ring-2 ring-primary/30"
-                      : "bg-gray-200 text-gray-600"
+                      : "bg-hd-border-default text-primaryDark/70"
                 }`}
                 aria-current={active ? "step" : undefined}
               >
@@ -321,8 +339,9 @@ function StepIndicator({ step }: { step: number }) {
               </span>
               <span
                 className={`hidden text-[10px] font-semibold uppercase tracking-wide sm:block ${
-                  active ? "text-primary" : "text-gray-500"
+                  active ? "text-primary" : "text-primaryDark/60"
                 }`}
+                style={{ fontFamily: FONT_HEADING }}
               >
                 {label}
               </span>
@@ -330,7 +349,7 @@ function StepIndicator({ step }: { step: number }) {
             {i < labels.length - 1 ? (
               <span
                 className={`mb-4 hidden h-0.5 w-6 sm:mb-5 sm:inline-block sm:w-10 ${
-                  step > n ? "bg-primary" : "bg-gray-200"
+                  step > n ? "bg-primary" : "bg-hd-border-default"
                 }`}
                 aria-hidden
               />

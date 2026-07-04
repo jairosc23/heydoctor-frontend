@@ -3,6 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { BrandLogo } from "@/components/branding";
+import Container from "@/components/ui/Container";
+import { cn } from "@/lib/utils";
+
+const FONT_HEADING = "Montserrat, sans-serif";
 
 const ADMIN_NAV = [
   { href: "/admin/analytics", label: "Analytics" },
@@ -18,11 +23,13 @@ function AdminNavLink({ href, label }: { href: string; label: string }) {
     <Link
       href={href}
       aria-current={active ? "page" : undefined}
-      className={`rounded px-2 py-1 underline-offset-2 hover:underline focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 ${
+      className={cn(
+        "rounded-lg px-3 py-1.5 text-sm font-medium no-underline transition-colors duration-hd-base focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
         active
-          ? "font-semibold text-slate-900"
-          : "text-slate-600 hover:text-slate-900"
-      }`}
+          ? "bg-primaryLight text-primary"
+          : "text-primaryDark/70 hover:bg-hd-surface-muted hover:text-primary",
+      )}
+      style={{ fontFamily: FONT_HEADING }}
     >
       {label}
     </Link>
@@ -31,14 +38,22 @@ function AdminNavLink({ href, label }: { href: string; label: string }) {
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-3">
-          <p className="text-sm font-semibold uppercase tracking-wide text-slate-900">
-            HeyDoctor · Admin
-          </p>
+    <div className="min-h-screen bg-hd-surface-base text-primaryDark">
+      <header className="border-b border-hd-border-subtle bg-hd-surface-chrome shadow-hd-1">
+        <Container className="flex min-h-16 flex-wrap items-center justify-between gap-4 py-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <Link href="/" className="no-underline">
+              <BrandLogo variant="nav" priority />
+            </Link>
+            <span
+              className="hidden border-l border-hd-border-default pl-3 text-xs font-semibold uppercase tracking-wide text-primaryDark/60 sm:inline"
+              style={{ fontFamily: FONT_HEADING }}
+            >
+              Admin
+            </span>
+          </div>
           <nav
-            className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm"
+            className="flex flex-wrap items-center gap-1 sm:gap-2"
             aria-label="Navegación admin"
           >
             {ADMIN_NAV.map(({ href, label }) => (
@@ -46,12 +61,13 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             ))}
             <Link
               href="/panel"
-              className="rounded px-2 py-1 text-slate-600 underline-offset-2 hover:text-slate-900 hover:underline focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
+              className="rounded-lg px-3 py-1.5 text-sm font-medium text-primaryDark/70 no-underline transition-colors hover:bg-hd-surface-muted hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+              style={{ fontFamily: FONT_HEADING }}
             >
               Panel
             </Link>
           </nav>
-        </div>
+        </Container>
       </header>
       {children}
     </div>

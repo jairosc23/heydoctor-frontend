@@ -17,8 +17,11 @@ import {
   BarChart,
   Bar,
 } from "recharts";
+import Card from "@/components/ui/Card";
+import DashboardCard from "@/components/ui/DashboardCard";
 
-const BRAND = "#078a92";
+const FONT_HEADING = "Montserrat, sans-serif";
+const BRAND = "#078A92";
 
 function formatClp(n: number): string {
   return new Intl.NumberFormat("es-CL", {
@@ -75,71 +78,46 @@ export default function ReportesPage() {
   const revenuePending = data?.revenue?.revenue_pending ?? 0;
 
   return (
-    <div style={{ padding: 25 }}>
-      <h1 style={{ fontFamily: "Montserrat", color: BRAND, marginBottom: 12 }}>
-        Analytics clínicos
-      </h1>
-      <p style={{ color: "#666", marginBottom: 24 }}>
-        Dashboard ejecutivo — últimos 30 días.
-      </p>
+    <div className="space-y-6">
+      <div>
+        <h1
+          className="mb-3 text-2xl font-bold text-primary"
+          style={{ fontFamily: FONT_HEADING }}
+        >
+          Analytics clínicos
+        </h1>
+        <p className="m-0 text-primaryDark/70">
+          Dashboard ejecutivo — últimos 30 días.
+        </p>
+      </div>
 
-      {loading && <p style={{ color: "#888" }}>Cargando métricas…</p>}
-      {error && (
-        <p role="alert" style={{ color: "#991b1b", marginBottom: 16 }}>
+      {loading ? (
+        <p className="text-primaryDark/60">Cargando métricas…</p>
+      ) : null}
+      {error ? (
+        <p role="alert" className="mb-0 text-red-700">
           {error}
         </p>
-      )}
+      ) : null}
 
-      {data && (
+      {data ? (
         <>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-              gap: 16,
-              marginBottom: 28,
-            }}
-          >
-            {[
-              { label: "Pacientes totales", value: data.totalPatients },
-              { label: "Pacientes nuevos (30d)", value: data.newPatients30d },
-              { label: "Recurrentes (30d)", value: data.recurringPatients30d },
-              { label: "Ingresos cobrados", value: formatClp(revenuePaid) },
-              { label: "Ingresos pendientes", value: formatClp(revenuePending) },
-            ].map((kpi) => (
-              <div
-                key={kpi.label}
-                style={{
-                  background: "white",
-                  padding: 18,
-                  borderRadius: 14,
-                  boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
-                }}
-              >
-                <p style={{ fontSize: 12, color: "#999", margin: "0 0 6px" }}>
-                  {kpi.label}
-                </p>
-                <p style={{ fontSize: 22, fontWeight: 700, color: BRAND, margin: 0 }}>
-                  {kpi.value}
-                </p>
-              </div>
-            ))}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+            <DashboardCard title="Pacientes totales" value={data.totalPatients} />
+            <DashboardCard title="Pacientes nuevos (30d)" value={data.newPatients30d} />
+            <DashboardCard title="Recurrentes (30d)" value={data.recurringPatients30d} />
+            <DashboardCard title="Ingresos cobrados" value={formatClp(revenuePaid)} />
+            <DashboardCard title="Ingresos pendientes" value={formatClp(revenuePending)} />
           </div>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-              gap: 20,
-            }}
-          >
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
             <ChartCard title="Tendencia de consultas">
               {trendData.length === 0 ? (
                 <EmptyChart />
               ) : (
                 <ResponsiveContainer width="100%" height={240}>
                   <LineChart data={trendData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E8EEF0" />
                     <XAxis dataKey="day" tick={{ fontSize: 11 }} />
                     <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
                     <Tooltip />
@@ -161,22 +139,22 @@ export default function ReportesPage() {
               ) : (
                 <ResponsiveContainer width="100%" height={240}>
                   <BarChart data={doctorData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E8EEF0" />
                     <XAxis dataKey="doctor" tick={{ fontSize: 11 }} />
                     <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
                     <Tooltip />
-                    <Bar dataKey="consultas" fill="#07acb5" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="consultas" fill={BRAND} radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               )}
             </ChartCard>
           </div>
 
-          <p style={{ fontSize: 12, color: "#aaa", marginTop: 20 }}>
+          <p className="text-xs text-primaryDark/50">
             Actualizado: {new Date(data.generatedAt).toLocaleString("es-CL")}
           </p>
         </>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -189,33 +167,21 @@ function ChartCard({
   children: React.ReactNode;
 }) {
   return (
-    <div
-      style={{
-        background: "white",
-        borderRadius: 14,
-        padding: 20,
-        boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
-        minHeight: 300,
-      }}
-    >
+    <Card className="min-h-[300px] p-5 shadow-premium">
       <h3
-        style={{
-          fontFamily: "Montserrat",
-          fontSize: 15,
-          color: "#333",
-          marginBottom: 12,
-        }}
+        className="mb-3 text-[15px] font-bold text-primaryDark"
+        style={{ fontFamily: FONT_HEADING }}
       >
         {title}
       </h3>
       {children}
-    </div>
+    </Card>
   );
 }
 
 function EmptyChart() {
   return (
-    <p style={{ color: "#bbb", fontSize: 13, textAlign: "center", padding: 40 }}>
+    <p className="p-10 text-center text-[13px] text-primaryDark/40">
       Sin datos en el período seleccionado.
     </p>
   );

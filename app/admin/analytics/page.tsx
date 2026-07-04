@@ -131,7 +131,7 @@ function ChartsLoading() {
       {[0, 1, 2, 3].map((item) => (
         <div
           key={item}
-          className="h-80 animate-pulse rounded-lg border border-slate-200 bg-slate-50 shadow-sm"
+          className="h-80 animate-pulse rounded-lg border border-hd-border-subtle bg-hd-surface-muted shadow-sm"
         />
       ))}
     </section>
@@ -306,30 +306,30 @@ export default function AdminAnalyticsPage() {
     <main className="mx-auto max-w-6xl px-4 py-10">
       <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold text-slate-900">
+          <h1 className="text-xl font-bold text-primary">
             Analytics · Suscripciones
           </h1>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-primaryDark/70">
             MRR recurrente (DB + replay) · churn real · ARPU / LTV / ARR · cohortes
           </p>
         </div>
         <nav className="flex flex-wrap gap-3 text-sm" aria-label="Navegación de analytics">
           <Link
             href="/admin/subscriptions"
-            className="rounded text-slate-600 underline hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
+            className="rounded text-primaryDark/70 underline hover:text-primaryDark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
           >
             Timeline / KPIs
           </Link>
           <Link
             href="/panel"
-            className="rounded text-slate-600 underline hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
+            className="rounded text-primaryDark/70 underline hover:text-primaryDark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
           >
             Panel
           </Link>
           <button
             type="button"
             onClick={() => void load()}
-            className="rounded text-slate-600 underline hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
+            className="rounded text-primaryDark/70 underline hover:text-primaryDark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
           >
             Refrescar
           </button>
@@ -337,7 +337,7 @@ export default function AdminAnalyticsPage() {
       </div>
 
       {loading && (
-        <p className="text-sm text-slate-600">Cargando analytics…</p>
+        <p className="text-sm text-primaryDark/70">Cargando analytics…</p>
       )}
 
       {error && !loading && (
@@ -352,128 +352,128 @@ export default function AdminAnalyticsPage() {
       {!loading && !error && summary && metrics && mrrReal && mrrSeriesReal && churnReal && arpu && arr && ltv && (
         <>
           <section className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+            <div className="rounded-lg border border-hd-border-subtle bg-white p-4 shadow-sm">
+              <p className="text-xs font-medium uppercase tracking-wide text-primaryDark/50">
                 MRR según PAYMENT_SUCCEEDED (legacy)
               </p>
-              <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">
+              <p className="mt-1 text-2xl font-semibold tabular-nums text-primaryDark">
                 {mrr?.currentMonthAmount ?? metrics.monthlyRevenue}
               </p>
               {mrrGrowth?.pct != null && (
-                <p className="mt-1 text-xs text-slate-600">
+                <p className="mt-1 text-xs text-primaryDark/70">
                   vs mes anterior · {mrrGrowth.pct >= 0 ? '+' : ''}
                   {mrrGrowth.pct.toFixed(1)}%
                 </p>
               )}
             </div>
-            <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+            <div className="rounded-lg border border-hd-border-subtle bg-white p-4 shadow-sm">
+              <p className="text-xs font-medium uppercase tracking-wide text-primaryDark/50">
                 Churn legacy (snapshot PRO)
               </p>
-              <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">
+              <p className="mt-1 text-2xl font-semibold tabular-nums text-primaryDark">
                 {churnPctFmt}
               </p>
-              <p className="mt-1 text-xs text-slate-600">
+              <p className="mt-1 text-xs text-primaryDark/70">
                 {churn
                   ? `Base PRO snapshot · mes ${churn.lastClosedMonthStart}`
                   : null}
               </p>
             </div>
-            <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+            <div className="rounded-lg border border-hd-border-subtle bg-white p-4 shadow-sm">
+              <p className="text-xs font-medium uppercase tracking-wide text-primaryDark/50">
                 Altas (mes UTC)
               </p>
-              <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">
+              <p className="mt-1 text-2xl font-semibold tabular-nums text-primaryDark">
                 {metrics.newSubscriptions}
               </p>
-              <p className="mt-1 text-xs text-slate-600">
+              <p className="mt-1 text-xs text-primaryDark/70">
                 Pagos confirmados · {metrics.paymentSuccessCount}
               </p>
             </div>
-            <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+            <div className="rounded-lg border border-hd-border-subtle bg-white p-4 shadow-sm">
+              <p className="text-xs font-medium uppercase tracking-wide text-primaryDark/50">
                 PRO activo / total PRO
               </p>
-              <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">
+              <p className="mt-1 text-2xl font-semibold tabular-nums text-primaryDark">
                 {summary.activeSubscriptions} / {summary.proUsers}
               </p>
-              <p className="mt-1 text-xs text-slate-600">
+              <p className="mt-1 text-xs text-primaryDark/70">
                 Snapshot · autorización usa plan en DB activo (no estos eventos)
               </p>
             </div>
           </section>
 
-          <p className="mb-4 text-xs font-semibold uppercase tracking-wide text-indigo-800">
+          <p className="mb-4 text-xs font-semibold uppercase tracking-wide text-primary">
             Suscripción recurrente (Stripe-style · DB / replay · UTC)
           </p>
           <section className="mb-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-            <div className="rounded-lg border border-indigo-100 bg-indigo-50/40 p-4 shadow-sm">
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-600">
+            <div className="rounded-lg border border-primary/20 bg-primaryLight/40 p-4 shadow-sm">
+              <p className="text-xs font-medium uppercase tracking-wide text-primaryDark/70">
                 MRR real (DB vigente)
               </p>
-              <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">
+              <p className="mt-1 text-2xl font-semibold tabular-nums text-primaryDark">
                 {mrrReal.mrr.toFixed(2)}
               </p>
-              <p className="mt-1 text-xs text-slate-600">
+              <p className="mt-1 text-xs text-primaryDark/70">
                 {mrrReal.payerCount} pagadores · corte{' '}
                 {mrrReal.asOfDate}
               </p>
             </div>
-            <div className="rounded-lg border border-indigo-100 bg-indigo-50/40 p-4 shadow-sm">
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-600">
+            <div className="rounded-lg border border-primary/20 bg-primaryLight/40 p-4 shadow-sm">
+              <p className="text-xs font-medium uppercase tracking-wide text-primaryDark/70">
                 ARR · MRR×12
               </p>
-              <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">
+              <p className="mt-1 text-2xl font-semibold tabular-nums text-primaryDark">
                 {arr.arr.toFixed(2)}
               </p>
-              <p className="mt-1 text-xs text-slate-600">
+              <p className="mt-1 text-xs text-primaryDark/70">
                 MRR fuente DB · {arr.mrr.toFixed(2)}
               </p>
             </div>
-            <div className="rounded-lg border border-indigo-100 bg-indigo-50/40 p-4 shadow-sm">
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-600">
+            <div className="rounded-lg border border-primary/20 bg-primaryLight/40 p-4 shadow-sm">
+              <p className="text-xs font-medium uppercase tracking-wide text-primaryDark/70">
                 ARPU
               </p>
-              <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">
+              <p className="mt-1 text-2xl font-semibold tabular-nums text-primaryDark">
                 {arpu.arpu.toFixed(2)}
               </p>
-              <p className="mt-1 text-xs text-slate-600">
+              <p className="mt-1 text-xs text-primaryDark/70">
                 {arpu.payerCount} pagadores recurrentes · {arpu.asOfDate}
               </p>
             </div>
-            <div className="rounded-lg border border-indigo-100 bg-indigo-50/40 p-4 shadow-sm">
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-600">
+            <div className="rounded-lg border border-primary/20 bg-primaryLight/40 p-4 shadow-sm">
+              <p className="text-xs font-medium uppercase tracking-wide text-primaryDark/70">
                 LTV
               </p>
-              <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">
+              <p className="mt-1 text-2xl font-semibold tabular-nums text-primaryDark">
                 {ltv.ltvMonths.toFixed(2)}
               </p>
-              <p className="mt-1 text-xs text-slate-600">
+              <p className="mt-1 text-xs text-primaryDark/70">
                 ARPU&nbsp;/ churn mes cerrado
                 {ltv.ltvAnnualizedFallback ? ' · ARPU×12 (churn≈0)' : ''}
               </p>
             </div>
-            <div className="rounded-lg border border-indigo-100 bg-indigo-50/40 p-4 shadow-sm">
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-600">
+            <div className="rounded-lg border border-primary/20 bg-primaryLight/40 p-4 shadow-sm">
+              <p className="text-xs font-medium uppercase tracking-wide text-primaryDark/70">
                 Churn real (mes cerrado)
               </p>
-              <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">
+              <p className="mt-1 text-2xl font-semibold tabular-nums text-primaryDark">
                 {churnRealPctFmt}
               </p>
-              <p className="mt-1 text-xs text-slate-600">
+              <p className="mt-1 text-xs text-primaryDark/70">
                 Pagadores PRO al inicio de mes UTC · último cerrado{' '}
                 {churnReal.lastClosedMonthStart}
               </p>
             </div>
-            <div className="rounded-lg border border-indigo-100 bg-indigo-50/40 p-4 shadow-sm">
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-600">
+            <div className="rounded-lg border border-primary/20 bg-primaryLight/40 p-4 shadow-sm">
+              <p className="text-xs font-medium uppercase tracking-wide text-primaryDark/70">
                 Tarifa replay PRO
               </p>
-              <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">
+              <p className="mt-1 text-2xl font-semibold tabular-nums text-primaryDark">
                 {mrrSeriesReal.proMonthlyPrice.toFixed(2)}
               </p>
               {mrrReplayGrowth?.pct != null && (
-                <p className="mt-1 text-xs text-slate-600">
+                <p className="mt-1 text-xs text-primaryDark/70">
                   curva replay · vs mes ant.{' '}
                   {mrrReplayGrowth.pct >= 0 ? '+' : ''}
                   {mrrReplayGrowth.pct.toFixed(1)}%
@@ -492,15 +492,15 @@ export default function AdminAnalyticsPage() {
           />
 
           {cohorts && cohorts.cohorts.length > 0 && (
-            <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-              <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-700">
+            <section className="rounded-lg border border-hd-border-subtle bg-white p-4 shadow-sm">
+              <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-primaryDark">
                 Retención por cohorte (primer alta SUBSCRIPTION_CREATED; filas hasta
                 mes +{maxHorizon ? maxHorizon - 1 : 0})
               </h2>
               <div className="overflow-x-auto">
                 <table className="min-w-max border-collapse text-sm">
                   <thead>
-                    <tr className="border-b border-slate-200 text-left">
+                    <tr className="border-b border-hd-border-subtle text-left">
                       <th className="sticky left-0 z-10 bg-white px-2 py-2 font-medium">
                         Alta cohorte
                       </th>
@@ -516,12 +516,12 @@ export default function AdminAnalyticsPage() {
                     {cohorts.cohorts.map((row) => (
                       <tr
                         key={row.cohortMonth}
-                        className="border-b border-slate-100"
+                        className="border-b border-hd-border-subtle"
                       >
-                        <td className="sticky left-0 z-10 whitespace-nowrap bg-white px-2 py-2 text-slate-800">
+                        <td className="sticky left-0 z-10 whitespace-nowrap bg-white px-2 py-2 text-primaryDark">
                           {row.cohortMonth}
                         </td>
-                        <td className="px-2 py-2 tabular-nums text-slate-700">
+                        <td className="px-2 py-2 tabular-nums text-primaryDark">
                           {row.signups}
                         </td>
                         {row.horizons.map((h) => {
@@ -534,7 +534,7 @@ export default function AdminAnalyticsPage() {
                           return (
                             <td
                               key={h.offsetMonths}
-                              className="border-l border-slate-100 px-2 py-2 text-center tabular-nums text-slate-800"
+                              className="border-l border-hd-border-subtle px-2 py-2 text-center tabular-nums text-primaryDark"
                               style={{ backgroundColor: bg }}
                               title={`${h.retainedUsers} usuarios`}
                             >

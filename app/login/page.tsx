@@ -77,10 +77,10 @@ function LoginContent() {
           markOnly
           markSize={96}
           priority
-          className="mx-auto mb-6 drop-shadow-xl"
+          className="mx-auto mb-6"
         />
         <h2
-          className="mb-5 text-[28px] font-bold text-gray-900"
+          className="mb-5 text-[28px] font-bold text-primary"
           style={{ fontFamily: "Montserrat, sans-serif" }}
         >
           Acceso Médico
@@ -120,7 +120,7 @@ function LoginContent() {
             type="submit"
             variant="primary"
             disabled={loading}
-            className="w-full focus:outline-none focus:ring-2 focus:ring-primaryLight focus:ring-offset-2"
+            className="w-full rounded-lg border-0 bg-primary shadow-none !shadow-[0_4px_12px_rgba(7,138,146,0.22)] hover:bg-primaryMid hover:scale-100 focus:outline-none focus:ring-2 focus:ring-primaryLight focus:ring-offset-2 disabled:hover:bg-primary disabled:hover:scale-100"
           >
             {loading ? "Ingresando…" : "Ingresar"}
           </Button>

@@ -58,15 +58,22 @@ export default function AgendaPage() {
     <div className="space-y-6 p-4 md:p-6 lg:p-8">
       <header className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-primary dark:text-primaryLight">
+          <h1
+            className="text-2xl font-bold text-primary"
+            style={{ fontFamily: "Montserrat, sans-serif" }}
+          >
             Agenda médica
           </h1>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+          <p className="mt-1 text-sm text-primaryDark/70">
             Calendario profesional · zona horaria {timeZone}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button type="button" onClick={() => openCreate()}>
+          <Button
+            type="button"
+            onClick={() => openCreate()}
+            className="rounded-lg border-0 bg-primary shadow-none !shadow-[0_4px_12px_rgba(7,138,146,0.22)] hover:bg-primaryMid hover:scale-100"
+          >
             <Plus className="mr-2 h-4 w-4" />
             Nueva cita
           </Button>
@@ -75,6 +82,7 @@ export default function AgendaPage() {
             variant="secondary"
             onClick={() => refetch()}
             disabled={isFetching}
+            className="rounded-lg border border-hd-border-default bg-hd-surface-chrome text-primaryDark hover:bg-hd-surface-muted hover:scale-100"
           >
             {isFetching ? "Actualizando…" : "Actualizar"}
           </Button>

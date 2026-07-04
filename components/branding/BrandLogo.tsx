@@ -16,7 +16,7 @@ type BrandLogoProps = {
 };
 
 const VARIANT_MARK_SIZE = {
-  nav: 32,
+  nav: 36,
   footer: 44,
   landing: 52,
 } as const;
@@ -90,7 +90,7 @@ export function BrandLogo({
         />
         <BrandWordmark
           variant="footer"
-          tagline={tagline ?? "Atención médica online, sin esperas"}
+          tagline={tagline}
         />
       </div>
     );

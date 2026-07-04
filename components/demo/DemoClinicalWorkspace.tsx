@@ -37,7 +37,7 @@ function ReadOnlyList({
     <ul className="space-y-2">
       {items.map((item) => (
         <li key={item} className="flex gap-2 text-sm leading-6 text-slate-700">
-          <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-500" />
+          <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primaryLight0" />
           <span>{item}</span>
         </li>
       ))}
@@ -76,7 +76,7 @@ export function DemoClinicalWorkspace({ scenario }: { scenario: DemoScenario }) 
     >
       <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-indigo-600">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">
             Clinical Workspace
           </p>
           <h2 id="clinical-workspace-title" className="mt-2 text-2xl font-semibold tracking-tight">

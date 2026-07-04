@@ -4,6 +4,11 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { heydoctorApi } from "@/lib/heydoctor-api";
+import { BrandLogo } from "@/components/branding";
+import Container from "@/components/ui/Container";
+import Card from "@/components/ui/Card";
+
+const FONT_HEADING = "Montserrat, sans-serif";
 
 export default function DoctorPage() {
   const params = useParams();
@@ -38,56 +43,55 @@ export default function DoctorPage() {
   }, []);
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        padding: 40,
-        fontFamily: "Open Sans",
-      }}
-    >
-      <Link
-        href="/"
-        style={{
-          color: "#078a92",
-          textDecoration: "none",
-          marginBottom: 24,
-          display: "inline-block",
-        }}
-      >
-        ← Volver
-      </Link>
-      {loading ? (
-        <p>Cargando...</p>
-      ) : unavailable ? (
-        <p>Información del doctor no disponible.</p>
-      ) : doctor ? (
-        <div
-          style={{
-            background: "white",
-            padding: 32,
-            borderRadius: 16,
-            boxShadow: "0 4px 18px rgba(0,0,0,0.06)",
-          }}
-        >
-          <h1
-            style={{
-              fontFamily: "Montserrat",
-              color: "#078a92",
-              marginBottom: 12,
-            }}
+    <div className="min-h-screen bg-hd-surface-base">
+      <header className="border-b border-hd-border-subtle bg-hd-surface-chrome shadow-hd-1">
+        <Container className="flex h-16 items-center justify-between">
+          <Link href="/" className="no-underline">
+            <BrandLogo variant="nav" priority />
+          </Link>
+          <Link
+            href="/"
+            className="text-sm font-medium text-primary no-underline hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
           >
-            {doctor.name || "Doctor"}
-          </h1>
-          <p style={{ color: "#666", marginBottom: 8 }}>
-            Especialidad: {doctor.specialty || "—"}
-          </p>
-          <p style={{ color: "#666" }}>
-            Registro: {doctor.registration || "—"}
-          </p>
-        </div>
-      ) : (
-        <p>No se encontró información del doctor.</p>
-      )}
+            ← Volver
+          </Link>
+        </Container>
+      </header>
+
+      <main className="py-8 sm:py-12">
+        <Container className="max-w-xl">
+          {loading ? (
+            <p className="text-primaryDark/70">Cargando...</p>
+          ) : unavailable ? (
+            <Card className="p-8 shadow-premium">
+              <p className="m-0 text-primaryDark/70">
+                Información del doctor no disponible.
+              </p>
+            </Card>
+          ) : doctor ? (
+            <Card className="p-8 shadow-premium">
+              <h1
+                className="mb-3 text-2xl font-bold text-primary"
+                style={{ fontFamily: FONT_HEADING }}
+              >
+                {doctor.name || "Doctor"}
+              </h1>
+              <p className="mb-2 text-primaryDark/70">
+                Especialidad: {doctor.specialty || "—"}
+              </p>
+              <p className="m-0 text-primaryDark/70">
+                Registro: {doctor.registration || "—"}
+              </p>
+            </Card>
+          ) : (
+            <Card className="p-8 shadow-premium">
+              <p className="m-0 text-primaryDark/70">
+                No se encontró información del doctor.
+              </p>
+            </Card>
+          )}
+        </Container>
+      </main>
     </div>
   );
 }

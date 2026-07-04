@@ -8,8 +8,10 @@ import {
   type ClinicalInvoice,
 } from "@/lib/services";
 import { getApiErrorMessage } from "@/lib/heydoctor-api";
+import Card from "@/components/ui/Card";
+import DashboardCard from "@/components/ui/DashboardCard";
 
-const BRAND = "#078a92";
+const FONT_HEADING = "Montserrat, sans-serif";
 
 function formatClp(n: number): string {
   return new Intl.NumberFormat("es-CL", {
@@ -54,126 +56,96 @@ export default function FacturacionPage() {
   };
 
   return (
-    <div style={{ padding: 25 }}>
-      <h1 style={{ fontFamily: "Montserrat", color: BRAND, marginBottom: 12 }}>
-        Facturación
-      </h1>
-      <p style={{ color: "#666", marginBottom: 24 }}>
-        Ingresos, cobros pendientes y comprobantes del centro médico.
-      </p>
+    <div className="space-y-6">
+      <div>
+        <h1
+          className="mb-3 text-2xl font-bold text-primary"
+          style={{ fontFamily: FONT_HEADING }}
+        >
+          Facturación
+        </h1>
+        <p className="m-0 text-primaryDark/70">
+          Ingresos, cobros pendientes y comprobantes del centro médico.
+        </p>
+      </div>
 
-      {loading && <p style={{ color: "#888" }}>Cargando datos financieros…</p>}
-      {error && (
-        <p role="alert" style={{ color: "#991b1b", marginBottom: 16 }}>
+      {loading ? (
+        <p className="text-primaryDark/60">Cargando datos financieros…</p>
+      ) : null}
+      {error ? (
+        <p role="alert" className="mb-0 text-red-700">
           {error}
         </p>
-      )}
+      ) : null}
 
-      {data && (
+      {data ? (
         <>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-              gap: 20,
-              marginBottom: 32,
-            }}
-          >
-            {[
-              {
-                label: "Ingresos cobrados",
-                value: formatClp(data.totalRevenueClp),
-                color: "#0bb38a",
-              },
-              {
-                label: "Pendientes de cobro",
-                value: String(data.pendingCount),
-                color: "#f2a900",
-              },
-              {
-                label: "Monto pendiente",
-                value: formatClp(data.pendingAmountClp),
-                color: "#e67e22",
-              },
-              {
-                label: "Facturas pagadas",
-                value: String(data.paidCount),
-                color: "#07acb5",
-              },
-            ].map((card) => (
-              <div
-                key={card.label}
-                style={{
-                  background: "white",
-                  padding: 20,
-                  borderRadius: 14,
-                  boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
-                  borderLeft: `5px solid ${card.color}`,
-                }}
-              >
-                <h3 style={{ color: "#999", marginBottom: 8, fontSize: 13 }}>
-                  {card.label}
-                </h3>
-                <p style={{ fontSize: 24, color: BRAND, margin: 0, fontWeight: 700 }}>
-                  {card.value}
-                </p>
-              </div>
-            ))}
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+            <DashboardCard
+              title="Ingresos cobrados"
+              value={formatClp(data.totalRevenueClp)}
+              accentColor="#078A92"
+            />
+            <DashboardCard
+              title="Pendientes de cobro"
+              value={String(data.pendingCount)}
+              accentColor="#05636B"
+            />
+            <DashboardCard
+              title="Monto pendiente"
+              value={formatClp(data.pendingAmountClp)}
+              accentColor="#022C2C"
+            />
+            <DashboardCard
+              title="Facturas pagadas"
+              value={String(data.paidCount)}
+              accentColor="#078A92"
+            />
           </div>
 
-          <div
-            style={{
-              background: "white",
-              borderRadius: 14,
-              padding: 20,
-              boxShadow: "0 2px 10px rgba(0,0,0,0.04)",
-            }}
-          >
-            <h2 style={{ fontSize: 16, color: "#333", marginBottom: 16 }}>
+          <Card className="p-5 shadow-premium">
+            <h2
+              className="mb-4 text-base font-bold text-primaryDark"
+              style={{ fontFamily: FONT_HEADING }}
+            >
               Comprobantes recientes
             </h2>
             {data.invoices.length === 0 ? (
-              <p style={{ color: "#999", fontSize: 14 }}>
+              <p className="m-0 text-sm text-primaryDark/50">
                 Aún no hay facturas registradas. Créalas desde una consulta completada.
               </p>
             ) : (
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-left text-sm">
                   <thead>
-                    <tr style={{ borderBottom: "1px solid #eee", textAlign: "left" }}>
-                      <th style={{ padding: "8px 4px" }}>Documento</th>
-                      <th style={{ padding: "8px 4px" }}>Monto</th>
-                      <th style={{ padding: "8px 4px" }}>Estado</th>
-                      <th style={{ padding: "8px 4px" }}>Fecha</th>
-                      <th style={{ padding: "8px 4px" }}></th>
+                    <tr className="border-b border-hd-border-subtle">
+                      <th className="px-1 py-2 font-semibold text-primaryDark/60">Documento</th>
+                      <th className="px-1 py-2 font-semibold text-primaryDark/60">Monto</th>
+                      <th className="px-1 py-2 font-semibold text-primaryDark/60">Estado</th>
+                      <th className="px-1 py-2 font-semibold text-primaryDark/60">Fecha</th>
+                      <th className="px-1 py-2" />
                     </tr>
                   </thead>
                   <tbody>
                     {data.invoices.slice(0, 50).map((inv) => (
-                      <tr key={inv.id} style={{ borderBottom: "1px solid #f5f5f5" }}>
-                        <td style={{ padding: "10px 4px" }}>{inv.documentNumber}</td>
-                        <td style={{ padding: "10px 4px" }}>{formatClp(inv.amountClp)}</td>
-                        <td style={{ padding: "10px 4px", textTransform: "capitalize" }}>
-                          {inv.status}
-                        </td>
-                        <td style={{ padding: "10px 4px", color: "#888" }}>
+                      <tr
+                        key={inv.id}
+                        className="border-b border-hd-border-subtle last:border-b-0"
+                      >
+                        <td className="px-1 py-2.5 text-primaryDark">{inv.documentNumber}</td>
+                        <td className="px-1 py-2.5 text-primaryDark">{formatClp(inv.amountClp)}</td>
+                        <td className="px-1 py-2.5 capitalize text-primaryDark/80">{inv.status}</td>
+                        <td className="px-1 py-2.5 text-primaryDark/60">
                           {inv.issuedAt
                             ? new Date(inv.issuedAt).toLocaleDateString("es-CL")
                             : "—"}
                         </td>
-                        <td style={{ padding: "10px 4px" }}>
+                        <td className="px-1 py-2.5">
                           <button
                             type="button"
                             onClick={() => void handlePdf(inv)}
                             disabled={pdfLoadingId === inv.id}
-                            style={{
-                              fontSize: 12,
-                              color: BRAND,
-                              background: "none",
-                              border: "none",
-                              cursor: pdfLoadingId === inv.id ? "wait" : "pointer",
-                              textDecoration: "underline",
-                            }}
+                            className="border-0 bg-transparent p-0 text-xs font-semibold text-primary underline disabled:cursor-wait"
                           >
                             {pdfLoadingId === inv.id ? "Descargando…" : "PDF"}
                           </button>
@@ -184,9 +156,9 @@ export default function FacturacionPage() {
                 </table>
               </div>
             )}
-          </div>
+          </Card>
         </>
-      )}
+      ) : null}
     </div>
   );
 }

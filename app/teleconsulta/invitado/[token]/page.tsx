@@ -29,7 +29,7 @@ export default function InvitadoTeleconsultaPage() {
     <Suspense
       fallback={
         <div style={teleconsultaFullscreenGateShell}>
-          <p style={{ margin: 0, color: "#94a3b8" }}>Cargando…</p>
+          <p className="m-0 text-white/60">Cargando…</p>
         </div>
       }
     >

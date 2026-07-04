@@ -4,6 +4,11 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { heydoctorApi } from "@/lib/heydoctor-api";
+import { BrandLogo } from "@/components/branding";
+import Container from "@/components/ui/Container";
+import Card from "@/components/ui/Card";
+
+const FONT_HEADING = "Montserrat, sans-serif";
 
 interface VerifyResult {
   valid: boolean;
@@ -38,101 +43,78 @@ export default function VerifyPage() {
   }, [id]);
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        padding: 40,
-        fontFamily: "Open Sans",
-        background: "#f9fafb",
-      }}
-    >
-      <Link
-        href="/"
-        style={{
-          color: "#078a92",
-          textDecoration: "none",
-          marginBottom: 24,
-          display: "inline-block",
-        }}
-      >
-        ← Volver
-      </Link>
-      {loading ? (
-        <p>Cargando verificación...</p>
-      ) : unavailable ? (
-        <div
-          style={{
-            background: "white",
-            padding: 32,
-            borderRadius: 16,
-            boxShadow: "0 4px 18px rgba(0,0,0,0.06)",
-            borderLeft: "6px solid #f2a900",
-          }}
-        >
-          <h1 style={{ fontFamily: "Montserrat", color: "#f2a900", marginBottom: 16 }}>
-            Verificación no disponible
-          </h1>
-          <p style={{ color: "#666" }}>
-            El endpoint de verificación no está configurado en este backend.
-          </p>
-        </div>
-      ) : result?.valid ? (
-        <div
-          style={{
-            background: "white",
-            padding: 32,
-            borderRadius: 16,
-            boxShadow: "0 4px 18px rgba(0,0,0,0.06)",
-            borderLeft: "6px solid #0bb38a",
-          }}
-        >
-          <h1
-            style={{
-              fontFamily: "Montserrat",
-              color: "#0bb38a",
-              marginBottom: 16,
-            }}
+    <div className="min-h-screen bg-hd-surface-base">
+      <header className="border-b border-hd-border-subtle bg-hd-surface-chrome shadow-hd-1">
+        <Container className="flex h-16 items-center justify-between">
+          <Link href="/" className="no-underline">
+            <BrandLogo variant="nav" priority />
+          </Link>
+          <Link
+            href="/"
+            className="text-sm font-medium text-primary no-underline hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
           >
-            ✓ Documento verificado
-          </h1>
-          <p style={{ color: "#666", marginBottom: 8 }}>
-            Tipo: {result.type || "—"}
-          </p>
-          <p style={{ color: "#666", marginBottom: 8 }}>
-            Fecha: {result.date ? new Date(result.date).toLocaleDateString() : "—"}
-          </p>
-          {result.doctor && (
-            <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid #eee" }}>
-              <p style={{ fontWeight: 600, color: "#333" }}>{result.doctor.name}</p>
-              <p style={{ color: "#666" }}>{result.doctor.specialty}</p>
-              <p style={{ color: "#666" }}>Registro: {result.doctor.registration}</p>
-            </div>
+            ← Volver
+          </Link>
+        </Container>
+      </header>
+
+      <main className="py-8 sm:py-12">
+        <Container className="max-w-xl">
+          {loading ? (
+            <p className="text-primaryDark/70">Cargando verificación...</p>
+          ) : unavailable ? (
+            <Card className="border-l-4 border-l-primaryMid p-8 shadow-premium">
+              <h1
+                className="mb-4 text-2xl font-bold text-primaryMid"
+                style={{ fontFamily: FONT_HEADING }}
+              >
+                Verificación no disponible
+              </h1>
+              <p className="m-0 text-primaryDark/70">
+                El endpoint de verificación no está configurado en este backend.
+              </p>
+            </Card>
+          ) : result?.valid ? (
+            <Card className="border-l-4 border-l-primary p-8 shadow-premium">
+              <h1
+                className="mb-4 text-2xl font-bold text-primary"
+                style={{ fontFamily: FONT_HEADING }}
+              >
+                ✓ Documento verificado
+              </h1>
+              <p className="mb-2 text-primaryDark/70">
+                Tipo: {result.type || "—"}
+              </p>
+              <p className="mb-2 text-primaryDark/70">
+                Fecha: {result.date ? new Date(result.date).toLocaleDateString() : "—"}
+              </p>
+              {result.doctor ? (
+                <div className="mt-4 border-t border-hd-border-subtle pt-4">
+                  <p className="m-0 font-semibold text-primaryDark">
+                    {result.doctor.name}
+                  </p>
+                  <p className="m-0 text-primaryDark/70">{result.doctor.specialty}</p>
+                  <p className="m-0 text-primaryDark/70">
+                    Registro: {result.doctor.registration}
+                  </p>
+                </div>
+              ) : null}
+            </Card>
+          ) : (
+            <Card className="border-l-4 border-l-red-600 p-8 shadow-premium">
+              <h1
+                className="mb-4 text-2xl font-bold text-red-600"
+                style={{ fontFamily: FONT_HEADING }}
+              >
+                Documento no válido
+              </h1>
+              <p className="m-0 text-primaryDark/70">
+                El documento con ID {id} no pudo ser verificado.
+              </p>
+            </Card>
           )}
-        </div>
-      ) : (
-        <div
-          style={{
-            background: "white",
-            padding: 32,
-            borderRadius: 16,
-            boxShadow: "0 4px 18px rgba(0,0,0,0.06)",
-            borderLeft: "6px solid #df3c3c",
-          }}
-        >
-          <h1
-            style={{
-              fontFamily: "Montserrat",
-              color: "#df3c3c",
-              marginBottom: 16,
-            }}
-          >
-            Documento no válido
-          </h1>
-          <p style={{ color: "#666" }}>
-            El documento con ID {id} no pudo ser verificado.
-          </p>
-        </div>
-      )}
+        </Container>
+      </main>
     </div>
   );
 }

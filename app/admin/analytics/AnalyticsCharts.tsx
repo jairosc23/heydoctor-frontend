@@ -33,8 +33,8 @@ export function AnalyticsCharts({
   return (
     <>
       <section className="mb-10 grid gap-8 lg:grid-cols-2">
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-700">
+        <div className="rounded-lg border border-hd-border-subtle bg-white p-4 shadow-sm">
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-primaryDark">
             MRR mensual · replay eventos ({mrrRealMonthsLookback} meses)
           </h2>
           <div style={{ height: 280 }}>
@@ -57,8 +57,8 @@ export function AnalyticsCharts({
             </ResponsiveContainer>
           </div>
         </div>
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-700">
+        <div className="rounded-lg border border-hd-border-subtle bg-white p-4 shadow-sm">
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-primaryDark">
             Churn real · ratio mensual
           </h2>
           <div style={{ height: 280 }}>
@@ -83,12 +83,12 @@ export function AnalyticsCharts({
         </div>
       </section>
 
-      <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
+      <p className="mb-2 text-xs font-medium uppercase tracking-wide text-primaryDark/50">
         Referencia legacy · suma PAYMENT_SUCCEEDED / churn vs PRO snapshot
       </p>
       <section className="mb-10 grid gap-8 lg:grid-cols-2">
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-700">
+        <div className="rounded-lg border border-hd-border-subtle bg-white p-4 shadow-sm">
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-primaryDark">
             MRR mensual · pagos ({legacyMonthsLookback} meses)
           </h2>
           <div style={{ height: 280 }}>
@@ -111,8 +111,8 @@ export function AnalyticsCharts({
             </ResponsiveContainer>
           </div>
         </div>
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-700">
+        <div className="rounded-lg border border-hd-border-subtle bg-white p-4 shadow-sm">
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-primaryDark">
             Eventos churn (deactivated + expired)
           </h2>
           <div style={{ height: 280 }}>

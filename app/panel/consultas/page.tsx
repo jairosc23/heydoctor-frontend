@@ -188,45 +188,29 @@ function ConsultasContent() {
   const consultationPrice = useConsultationPrice();
 
   return (
-    <div style={{ padding: 25 }}>
-      <h1
-        style={{
-          fontFamily: "Montserrat",
-          color: "#078a92",
-          marginBottom: 12,
-        }}
-      >
-        Consultas
-      </h1>
-      <p style={{ color: "#666", marginBottom: 20 }}>
-        Gestión de consultas médicas.
-      </p>
+    <div className="space-y-5">
+      <div>
+        <h1
+          className="mb-3 text-2xl font-bold text-primary"
+          style={{ fontFamily: "Montserrat, sans-serif" }}
+        >
+          Consultas
+        </h1>
+        <p className="mb-0 text-primaryDark/70">
+          Gestión de consultas médicas.
+        </p>
+      </div>
 
       {/* Patient selector / consultation starter */}
       {!consultationId ? (
-        <div
-          style={{
-            background: "white",
-            padding: 20,
-            borderRadius: 12,
-            marginBottom: 24,
-            boxShadow: "0 2px 10px rgba(0,0,0,0.06)",
-          }}
-        >
-          <h3 style={{ marginBottom: 12, fontSize: 16 }}>Iniciar consulta</h3>
-          <p
-            style={{
-              margin: "0 0 8px",
-              fontSize: 13,
-              fontWeight: 600,
-              color: "#0f766e",
-            }}
-          >
+        <div className="mb-6 rounded-2xl bg-hd-surface-chrome p-5 shadow-premium">
+          <h3 className="mb-3 text-base font-bold text-primaryDark">Iniciar consulta</h3>
+          <p className="mb-2 text-[13px] font-semibold text-primaryMid">
             {URGENCY_AVAILABLE_NOW}
           </p>
-          <p style={{ margin: "0 0 16px", fontSize: 14, color: "#334155" }}>
+          <p className="mb-4 text-sm text-primaryDark/80">
             Valor referencial de la consulta:{" "}
-            <strong style={{ color: "#078a92" }}>
+            <strong className="text-primary">
               {consultationPrice.loading
                 ? "…"
                 : formatConsultationPrice(
@@ -234,21 +218,14 @@ function ConsultasContent() {
                     consultationPrice.currency,
                   )}
             </strong>{" "}
-            <span style={{ color: "#64748b", fontSize: 12 }}>
+            <span className="text-xs text-primaryDark/50">
               (mismo monto que verás al pagar con Payku)
             </span>
           </p>
           <select
             value={patientId ?? patientIdParam ?? ""}
             onChange={(e) => setPatient(e.target.value || null)}
-            style={{
-              padding: "10px 14px",
-              borderRadius: 8,
-              border: "1px solid #ddd",
-              minWidth: 280,
-              marginRight: 12,
-              marginBottom: 12,
-            }}
+            className="mb-3 mr-3 min-w-[280px] rounded-lg border border-hd-border-default px-3.5 py-2.5 text-sm text-primaryDark outline-none focus:border-primary focus:ring-2 focus:ring-primaryLight"
           >
             <option value="">Seleccionar paciente</option>
             {patients.map((p) => (
@@ -258,6 +235,7 @@ function ConsultasContent() {
             ))}
           </select>
           <button
+            type="button"
             onClick={handleStartConsultation}
             disabled={
               starting ||
@@ -265,35 +243,17 @@ function ConsultasContent() {
               !(patientId ?? patientIdParam)?.trim() ||
               !doctorId
             }
-            style={{
-              padding: "10px 20px",
-              background: "#078a92",
-              color: "white",
-              border: "none",
-              borderRadius: 8,
-              cursor: starting ? "not-allowed" : "pointer",
-              fontSize: 14,
-            }}
+            className="rounded-lg border-0 bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-[0_4px_12px_rgba(7,138,146,0.22)] hover:bg-primaryMid disabled:cursor-not-allowed disabled:opacity-50"
           >
             {starting ? "Iniciando..." : "Hablar con médico ahora"}
           </button>
           {!doctorId && !ctxLoading && (
-            <p style={{ marginTop: 8, color: "#c00", fontSize: 13 }}>
+            <p className="mt-2 text-[13px] text-red-600">
               No se pudo identificar al médico en sesión. Vuelve a iniciar sesión.
             </p>
           )}
           {hasTelemedicineConsent === false && !startError && (
-            <p
-              style={{
-                marginTop: 8,
-                color: "#92400e",
-                background: "#fffbeb",
-                border: "1px solid #fde68a",
-                borderRadius: 8,
-                padding: "8px 10px",
-                fontSize: 13,
-              }}
-            >
+            <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-2 text-[13px] text-amber-900">
               Antes de iniciar tu primera consulta debes aceptar el
               consentimiento informado de telemedicina. Se mostrará al pulsar
               «Hablar con médico ahora».
@@ -302,35 +262,15 @@ function ConsultasContent() {
           {startError && (
             <p
               role="alert"
-              style={{
-                marginTop: 8,
-                color: "#b91c1c",
-                background: "#fef2f2",
-                border: "1px solid #fecaca",
-                borderRadius: 8,
-                padding: "8px 10px",
-                fontSize: 13,
-              }}
+              className="mt-2 rounded-lg border border-red-200 bg-red-50 px-2.5 py-2 text-[13px] text-red-700"
             >
               {startError}
             </p>
           )}
         </div>
       ) : (
-        <div
-          style={{
-            background: "#e8f7f7",
-            padding: 16,
-            borderRadius: 12,
-            marginBottom: 24,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: 12,
-          }}
-        >
-          <span>
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-primaryLight p-4">
+          <span className="text-primaryDark">
             Consulta activa:{" "}
             <strong>
               {selectedPatient
@@ -340,58 +280,30 @@ function ConsultasContent() {
                 : patientId}
             </strong>
           </span>
-          <div
-            style={{
-              display: "flex",
-              gap: 8,
-              alignItems: "center",
-              flexWrap: "wrap",
-            }}
-          >
+          <div className="flex flex-wrap items-center gap-2">
             <button
+              type="button"
               onClick={() =>
                 consultationId &&
                 router.push(`/panel/consultas/${consultationId}/teleconsulta`)
               }
               disabled={!consultationId}
-              style={{
-                padding: "8px 16px",
-                background: "#078a92",
-                color: "white",
-                border: "none",
-                borderRadius: 8,
-                cursor: consultationId ? "pointer" : "not-allowed",
-                fontSize: 13,
-              }}
+              className="rounded-lg border-0 bg-primary px-4 py-2 text-[13px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
             >
-              📹 Iniciar Teleconsulta
+              Iniciar Teleconsulta
             </button>
             <button
+              type="button"
               onClick={() => consultationId && setShareOpen(true)}
               disabled={!consultationId}
-              style={{
-                padding: "8px 16px",
-                background: "white",
-                color: "#078a92",
-                border: "1px solid #078a92",
-                borderRadius: 8,
-                cursor: consultationId ? "pointer" : "not-allowed",
-                fontSize: 13,
-              }}
+              className="rounded-lg border border-primary bg-hd-surface-chrome px-4 py-2 text-[13px] font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50"
             >
-              🔗 Compartir
+              Compartir
             </button>
             <button
+              type="button"
               onClick={endConsultation}
-              style={{
-                padding: "8px 16px",
-                background: "transparent",
-                color: "#c00",
-                border: "1px solid #c00",
-                borderRadius: 8,
-                cursor: "pointer",
-                fontSize: 13,
-              }}
+              className="rounded-lg border border-red-600 bg-transparent px-4 py-2 text-[13px] font-semibold text-red-600"
             >
               Cerrar consulta
             </button>
@@ -533,39 +445,19 @@ function ConsultasContent() {
       )}
 
       {!LEGACY_INLINE_CONSULTATION_WORKSPACE && consultationId ? (
-        <div
-          style={{
-            marginTop: 24,
-            padding: "20px 24px",
-            borderRadius: 12,
-            border: "1px solid #c7d7f7",
-            background: "#f0f9ff",
-            fontSize: 14,
-            color: "#0f172a",
-            lineHeight: 1.5,
-          }}
-        >
-          <p style={{ margin: "0 0 12px", fontWeight: 600 }}>
+        <div className="mt-6 rounded-2xl border border-primary/20 bg-primaryLight px-6 py-5 text-sm leading-relaxed text-primaryDark">
+          <p className="mb-3 font-semibold">
             Workspace clínico oficial
           </p>
-          <p style={{ margin: "0 0 16px" }}>
+          <p className="mb-4">
             La consulta activa se gestiona en el detalle canónico{" "}
-            <code>/panel/consultas/[id]</code> (firma, pago, Clinical Copilot™,
+            <code className="text-primary">/panel/consultas/[id]</code> (firma, pago, Clinical Copilot™,
             Close Flow). Redirigiendo automáticamente…
           </p>
           <button
             type="button"
             onClick={() => router.push(`/panel/consultas/${consultationId}`)}
-            style={{
-              padding: "8px 16px",
-              background: "#078a92",
-              color: "white",
-              border: "none",
-              borderRadius: 8,
-              cursor: "pointer",
-              fontSize: 13,
-              fontWeight: 600,
-            }}
+            className="rounded-lg border-0 bg-primary px-4 py-2 text-[13px] font-semibold text-white"
           >
             Abrir consulta →
           </button>
@@ -574,14 +466,14 @@ function ConsultasContent() {
 
       {/* Recent consultations list */}
       {!consultationId && (
-        <div style={{ marginTop: 32 }}>
-          <h3 style={{ marginBottom: 16, fontSize: 16 }}>Consultas recientes</h3>
+        <div className="mt-8">
+          <h3 className="mb-4 text-base font-bold text-primaryDark">Consultas recientes</h3>
           {loading ? (
-            <p style={{ color: "#666" }}>Cargando...</p>
+            <p className="text-primaryDark/70">Cargando...</p>
           ) : consultations.length === 0 ? (
-            <p style={{ color: "#666" }}>No hay consultas.</p>
+            <p className="text-primaryDark/70">No hay consultas.</p>
           ) : (
-            <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+            <ul className="m-0 list-none p-0">
               {(consultations as {
                 id: string;
                 createdAt?: string;
@@ -604,24 +496,14 @@ function ConsultasContent() {
                   <li
                     key={c.id}
                     onClick={() => router.push(`/panel/consultas/${c.id}`)}
-                    style={{
-                      padding: "12px 16px",
-                      background: "white",
-                      marginBottom: 8,
-                      borderRadius: 8,
-                      boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-                      cursor: "pointer",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
+                    className="mb-2 flex cursor-pointer items-center justify-between rounded-lg bg-hd-surface-chrome px-4 py-3 shadow-soft"
                   >
-                    <span>
+                    <span className="text-primaryDark">
                       {patientLabel}{" "}
                       · {when ? new Date(when).toLocaleDateString() : "—"} ·{" "}
                       {c.status ?? "—"}
                     </span>
-                    <span style={{ color: "#078a92", fontSize: 13 }}>
+                    <span className="text-[13px] font-semibold text-primary">
                       Ver detalle →
                     </span>
                   </li>
@@ -637,7 +519,7 @@ function ConsultasContent() {
 
 export default function ConsultasPage() {
   return (
-    <Suspense fallback={<div style={{ padding: 25 }}>Cargando...</div>}>
+    <Suspense fallback={<div className="text-primaryDark/70">Cargando...</div>}>
       <ConsultasContent />
     </Suspense>
   );

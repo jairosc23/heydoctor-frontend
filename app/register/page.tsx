@@ -4,6 +4,16 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ApiError, heydoctorApi } from "@/lib/heydoctor-api";
+import { BrandLogo } from "@/components/branding";
+import Card from "@/components/ui/Card";
+import Input from "@/components/ui/Input";
+import Button from "@/components/ui/Button";
+
+const FONT_HEADING = "Montserrat, sans-serif";
+
+/** Tokens CTA primario DS (Login / Landing). */
+const CTA_PRIMARY =
+  "rounded-lg border-0 bg-primary shadow-none !shadow-[0_4px_12px_rgba(7,138,146,0.22)] hover:bg-primaryMid hover:scale-100 focus:outline-none focus:ring-2 focus:ring-primaryLight focus:ring-offset-2 disabled:hover:bg-primary disabled:hover:scale-100";
 
 export default function RegisterPage() {
   const [email, setEmail] = useState("");
@@ -63,162 +73,125 @@ export default function RegisterPage() {
     }
   }
 
-  const inputStyle: React.CSSProperties = {
-    width: "100%",
-    padding: 14,
-    borderRadius: 10,
-    border: "none",
-    marginBottom: 12,
-    fontSize: 15,
-    outline: "none",
-    background: "rgba(255,255,255,0.15)",
-    color: "white",
-  };
-
   if (success) {
     return (
-      <div
-        style={{
-          minHeight: "100vh",
-          background: "linear-gradient(135deg, #022c2c, #05636b, #078a92)",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          padding: 20,
-        }}
-      >
-        <div
-          style={{
-            background: "rgba(255,255,255,0.12)",
-            padding: 40,
-            width: "100%",
-            maxWidth: 350,
-            borderRadius: 20,
-            backdropFilter: "blur(14px)",
-            textAlign: "center",
-            border: "1px solid rgba(255,255,255,0.2)",
-          }}
-        >
-          <div style={{ fontSize: 48, marginBottom: 16 }}>✓</div>
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primaryDark via-primaryMid to-primary px-4 py-12">
+        <Card className="w-full max-w-md text-center shadow-premium">
+          <BrandLogo
+            markOnly
+            markSize={96}
+            priority
+            className="mx-auto mb-6"
+          />
+          <div
+            className="mb-4 text-4xl font-bold text-primary"
+            aria-hidden
+          >
+            ✓
+          </div>
           <h2
-            style={{
-              color: "white",
-              fontFamily: "Montserrat",
-              fontSize: 22,
-              marginBottom: 12,
-            }}
+            className="mb-3 text-[22px] font-bold text-primary"
+            style={{ fontFamily: FONT_HEADING }}
           >
             Cuenta creada
           </h2>
-          <p style={{ color: "rgba(255,255,255,0.8)", fontSize: 14 }}>
+          <p className="m-0 text-sm text-primaryDark/70">
             Redirigiendo al inicio de sesión...
           </p>
-        </div>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "linear-gradient(135deg, #022c2c, #05636b, #078a92)",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        padding: 20,
-      }}
-    >
-      <div
-        style={{
-          background: "rgba(255,255,255,0.12)",
-          padding: 40,
-          width: "100%",
-          maxWidth: 350,
-          borderRadius: 20,
-          backdropFilter: "blur(14px)",
-          boxShadow: "0 0 40px rgba(0,0,0,0.25)",
-          textAlign: "center",
-          border: "1px solid rgba(255,255,255,0.2)",
-        }}
-      >
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primaryDark via-primaryMid to-primary px-4 py-12">
+      <Card className="w-full max-w-md text-center shadow-premium">
+        <BrandLogo
+          markOnly
+          markSize={96}
+          priority
+          className="mx-auto mb-6"
+        />
         <h2
-          style={{
-            color: "white",
-            fontFamily: "Montserrat",
-            fontSize: 28,
-            marginBottom: 20,
-          }}
+          className="mb-5 text-[28px] font-bold text-primary"
+          style={{ fontFamily: FONT_HEADING }}
         >
           Crear Cuenta
         </h2>
-        <form onSubmit={handleSubmit}>
-          <input
+        <form onSubmit={handleSubmit} className="text-left">
+          <label htmlFor="register-email" className="sr-only">
+            Email
+          </label>
+          <Input
+            id="register-email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Email"
             disabled={loading}
-            style={inputStyle}
+            autoComplete="email"
+            aria-invalid={Boolean(error)}
+            aria-describedby={error ? "register-error" : undefined}
+            className="mb-3"
           />
-          <input
+          <label htmlFor="register-password" className="sr-only">
+            Contraseña
+          </label>
+          <Input
+            id="register-password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Contraseña"
             disabled={loading}
-            style={inputStyle}
+            autoComplete="new-password"
+            aria-invalid={Boolean(error)}
+            aria-describedby={error ? "register-error" : undefined}
+            className="mb-3"
           />
-          <input
+          <label htmlFor="register-confirm-password" className="sr-only">
+            Confirmar contraseña
+          </label>
+          <Input
+            id="register-confirm-password"
             type="password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             placeholder="Confirmar contraseña"
             disabled={loading}
-            style={inputStyle}
+            autoComplete="new-password"
+            aria-invalid={Boolean(error)}
+            aria-describedby={error ? "register-error" : undefined}
+            className="mb-4"
           />
-          <button
+          <Button
             type="submit"
+            variant="primary"
             disabled={loading}
-            style={{
-              width: "100%",
-              padding: 14,
-              marginTop: 5,
-              background: "#00d4ce",
-              color: "#003033",
-              border: "none",
-              fontSize: 17,
-              borderRadius: 10,
-              cursor: loading ? "not-allowed" : "pointer",
-              fontFamily: "Montserrat",
-              fontWeight: "bold",
-            }}
+            className={`w-full ${CTA_PRIMARY}`}
           >
             {loading ? "Registrando…" : "Registrarse"}
-          </button>
+          </Button>
         </form>
         {error && (
           <div
-            style={{
-              color: "#ffdada",
-              marginTop: 12,
-              fontSize: 14,
-              minHeight: 20,
-            }}
+            id="register-error"
+            className="mt-3 min-h-[20px] text-center text-sm text-red-600"
+            role="alert"
           >
             {error}
           </div>
         )}
-        <p style={{ color: "rgba(255,255,255,0.7)", marginTop: 16, fontSize: 14 }}>
+        <p className="mt-4 text-sm text-primaryDark/70">
           ¿Ya tienes cuenta?{" "}
           <Link
             href="/login"
-            style={{ color: "#00d4ce", textDecoration: "none", fontWeight: 600 }}
+            className="rounded font-semibold text-primary no-underline hover:underline focus:outline-none focus:ring-2 focus:ring-primaryLight focus:ring-offset-2"
           >
             Iniciar sesión
           </Link>
         </p>
-      </div>
+      </Card>
     </div>
   );
 }

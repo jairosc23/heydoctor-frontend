@@ -9,6 +9,14 @@ import { usePatientsListQuery } from "@/lib/hooks/use-panel-list-queries";
 import { PATIENTS_LIST_ROOT } from "@/lib/queries/query-keys";
 import { PatientIntakeForm } from "@/components/patients/PatientIntakeForm";
 import { formatPatientAge, formatPatientDisplayName } from "@/lib/services/patients";
+import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
+import Card from "@/components/ui/Card";
+
+const FONT_HEADING = "Montserrat, sans-serif";
+
+const CTA_PRIMARY =
+  "rounded-lg border-0 bg-primary shadow-none !shadow-[0_4px_12px_rgba(7,138,146,0.22)] hover:bg-primaryMid hover:scale-100 focus:outline-none focus:ring-2 focus:ring-primaryLight focus:ring-offset-2";
 
 interface PatientItem {
   id: string;
@@ -55,44 +63,33 @@ export default function PacientesPage() {
   }
 
   return (
-    <div style={{ padding: 25 }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 12,
-        }}
-      >
-        <h1 style={{ fontFamily: "Montserrat", color: "#078a92", margin: 0 }}>
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1
+          className="m-0 text-2xl font-bold text-primary"
+          style={{ fontFamily: FONT_HEADING }}
+        >
           Pacientes
         </h1>
-        <button
+        <Button
+          type="button"
+          variant="primary"
+          className={CTA_PRIMARY}
           onClick={() => setShowForm((v) => !v)}
-          style={{
-            padding: "10px 20px",
-            background: "#078a92",
-            color: "white",
-            border: "none",
-            borderRadius: 8,
-            cursor: "pointer",
-            fontSize: 14,
-            fontWeight: 600,
-          }}
         >
           {showForm ? "Cancelar" : "+ Nuevo paciente"}
-        </button>
+        </Button>
       </div>
 
-      <p style={{ color: "#666", marginBottom: 16 }}>
+      <p className="m-0 text-primaryDark/70">
         Gestión de pacientes del centro.
       </p>
 
-      {listError && (
-        <p className="text-red-500 text-sm" style={{ marginBottom: 12 }} role="alert">
+      {listError ? (
+        <p className="mb-0 text-sm text-red-600" role="alert">
           {listError}
         </p>
-      )}
+      ) : null}
 
       {showForm ? (
         <PatientIntakeForm
@@ -101,113 +98,81 @@ export default function PacientesPage() {
         />
       ) : null}
 
-      <input
+      <Input
         type="search"
         placeholder="Buscar por nombre..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        style={{
-          width: "100%",
-          maxWidth: 400,
-          padding: "10px 14px",
-          border: "1px solid #ddd",
-          borderRadius: 8,
-          marginBottom: 20,
-          fontSize: 14,
-        }}
+        className="max-w-md rounded-lg border-hd-border-default"
       />
 
       {loading ? (
-        <p style={{ color: "#666" }}>Cargando...</p>
+        <p className="text-primaryDark/70">Cargando...</p>
       ) : patients.length === 0 ? (
-        <p style={{ color: "#666" }}>No hay pacientes.</p>
+        <p className="text-primaryDark/70">No hay pacientes.</p>
       ) : (
-        <div
-          style={{
-            background: "white",
-            borderRadius: 12,
-            boxShadow: "0 2px 10px rgba(0,0,0,0.06)",
-            overflow: "hidden",
-          }}
-        >
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ background: "#f5f5f5", textAlign: "left" }}>
-                <th
-                  style={{ padding: "12px 16px", fontSize: 12, color: "#666" }}
-                >
-                  Nombre
-                </th>
-                <th
-                  style={{ padding: "12px 16px", fontSize: 12, color: "#666" }}
-                >
-                  Email
-                </th>
-                <th
-                  style={{ padding: "12px 16px", fontSize: 12, color: "#666" }}
-                >
-                  Edad
-                </th>
-                <th
-                  style={{ padding: "12px 16px", fontSize: 12, color: "#666" }}
-                >
-                  Acciones
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {patients.map((p) => (
-                <tr key={p.id} style={{ borderBottom: "1px solid #eee" }}>
-                  <td style={{ padding: "12px 16px" }}>{displayName(p)}</td>
-                  <td style={{ padding: "12px 16px", color: "#666" }}>
-                    {p.email || "—"}
-                  </td>
-                  <td style={{ padding: "12px 16px", color: "#666" }}>
-                    {formatPatientAge(p.age)}
-                  </td>
-                  <td style={{ padding: "12px 16px" }}>
-                    <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                      <button
-                        onClick={() =>
-                          router.push(`/panel/pacientes/${p.id}`)
-                        }
-                        style={{
-                          background: "none",
-                          border: "none",
-                          color: "#078a92",
-                          cursor: "pointer",
-                          fontSize: 14,
-                          padding: 0,
-                        }}
-                      >
-                        Ver ficha →
-                      </button>
-                      <button
-                        onClick={() =>
-                          router.push(`/panel/consultas?patientId=${p.id}`)
-                        }
-                        style={{
-                          background: "none",
-                          border: "none",
-                          color: "#078a92",
-                          cursor: "pointer",
-                          fontSize: 14,
-                          padding: 0,
-                        }}
-                      >
-                        Nueva consulta →
-                      </button>
-                    </div>
-                  </td>
+        <Card className="overflow-hidden p-0 shadow-premium">
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-left text-sm">
+              <thead>
+                <tr className="bg-hd-surface-muted">
+                  <th className="px-4 py-3 text-xs font-semibold text-primaryDark/60">
+                    Nombre
+                  </th>
+                  <th className="px-4 py-3 text-xs font-semibold text-primaryDark/60">
+                    Email
+                  </th>
+                  <th className="px-4 py-3 text-xs font-semibold text-primaryDark/60">
+                    Edad
+                  </th>
+                  <th className="px-4 py-3 text-xs font-semibold text-primaryDark/60">
+                    Acciones
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {patients.map((p) => (
+                  <tr
+                    key={p.id}
+                    className="border-b border-hd-border-subtle last:border-b-0"
+                  >
+                    <td className="px-4 py-3 text-primaryDark">{displayName(p)}</td>
+                    <td className="px-4 py-3 text-primaryDark/70">
+                      {p.email || "—"}
+                    </td>
+                    <td className="px-4 py-3 text-primaryDark/70">
+                      {formatPatientAge(p.age)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap gap-3">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            router.push(`/panel/pacientes/${p.id}`)
+                          }
+                          className="border-0 bg-transparent p-0 text-sm font-semibold text-primary hover:underline"
+                        >
+                          Ver ficha →
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            router.push(`/panel/consultas?patientId=${p.id}`)
+                          }
+                          className="border-0 bg-transparent p-0 text-sm font-semibold text-primary hover:underline"
+                        >
+                          Nueva consulta →
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
       )}
-      <p style={{ marginTop: 12, color: "#999", fontSize: 13 }}>
-        Total: {total}
-      </p>
+      <p className="text-[13px] text-primaryDark/50">Total: {total}</p>
     </div>
   );
 }

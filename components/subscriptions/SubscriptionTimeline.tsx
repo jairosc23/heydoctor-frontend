@@ -38,11 +38,11 @@ export function SubscriptionTimeline({
   emptyMessage = "Sin eventos",
 }: SubscriptionTimelineProps) {
   if (loading) {
-    return <p className="text-sm text-slate-600">Cargando historial…</p>;
+    return <p className="text-sm text-primaryDark/70">Cargando historial…</p>;
   }
 
   if (events.length === 0) {
-    return <p className="text-sm text-slate-500">{emptyMessage}</p>;
+    return <p className="text-sm text-primaryDark/50">{emptyMessage}</p>;
   }
 
   return (
@@ -50,12 +50,12 @@ export function SubscriptionTimeline({
       {events.map((e) => (
         <li
           key={e.id}
-          className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm"
+          className="rounded-lg border border-hd-border-subtle bg-white px-3 py-2 text-sm shadow-sm"
         >
-          <p className="font-medium text-slate-900">
+          <p className="font-medium text-primaryDark">
             {LABELS[e.eventType] ?? e.eventType}
           </p>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-primaryDark/50">
             {formatDateIso(e.createdAt)}
             {e.source ? ` · fuente ${e.source}` : ""}
           </p>
@@ -63,7 +63,7 @@ export function SubscriptionTimeline({
             e.newPlan != null ||
             e.previousStatus != null ||
             e.newStatus != null) && (
-            <p className="mt-1 text-xs text-slate-600">
+            <p className="mt-1 text-xs text-primaryDark/70">
               {e.previousPlan != null || e.newPlan != null
                 ? `plan ${e.previousPlan ?? "—"} → ${e.newPlan ?? "—"}`
                 : ""}

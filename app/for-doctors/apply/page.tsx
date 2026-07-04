@@ -3,8 +3,19 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { submitDoctorApplication } from "@/lib/services/doctor-applications";
+import { BrandLogo } from "@/components/branding";
+import Container from "@/components/ui/Container";
+import Card from "@/components/ui/Card";
+import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
 
-const TEAL = "#078a92";
+const FONT_HEADING = "Montserrat, sans-serif";
+
+const CTA_PRIMARY =
+  "rounded-lg border-0 bg-primary shadow-none !shadow-[0_4px_12px_rgba(7,138,146,0.22)] hover:bg-primaryMid hover:scale-100 focus:outline-none focus:ring-2 focus:ring-primaryLight focus:ring-offset-2 disabled:hover:bg-primary disabled:hover:scale-100";
+
+const FIELD =
+  "min-h-12 rounded-lg border-hd-border-default px-3 py-3 text-base text-primaryDark focus:border-primary focus:ring-2 focus:ring-primaryLight";
 
 const SPECIALTIES = [
   "Medicina General",
@@ -61,125 +72,191 @@ export default function DoctorApplyPage() {
 
   if (success) {
     return (
-      <div style={{ minHeight: "100vh", background: "#f0fdf4", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ textAlign: "center", maxWidth: 500, padding: 40 }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>&#x2705;</div>
-          <h1 style={{ fontFamily: "Montserrat", color: "#166534", fontSize: 28, marginBottom: 12 }}>
+      <div className="flex min-h-screen items-center justify-center bg-hd-surface-base px-4 py-12">
+        <Card className="w-full max-w-md text-center shadow-premium">
+          <BrandLogo markOnly markSize={72} priority className="mx-auto mb-6" />
+          <div className="mb-4 text-4xl font-bold text-primary" aria-hidden>
+            ✓
+          </div>
+          <h1
+            className="mb-3 text-[28px] font-bold text-primary"
+            style={{ fontFamily: FONT_HEADING }}
+          >
             Solicitud enviada
           </h1>
-          <p style={{ color: "#15803d", fontSize: 16, lineHeight: 1.6 }}>
+          <p className="mb-6 text-base leading-relaxed text-primaryDark/70">
             Gracias por tu interés en unirte a HeyDoctor. Revisaremos tu solicitud
             y te contactaremos por correo electrónico en las próximas 48 horas.
           </p>
-          <Link
-            href="/"
-            style={{ display: "inline-block", marginTop: 24, padding: "12px 32px", background: TEAL, color: "white", borderRadius: 8, textDecoration: "none", fontWeight: 600 }}
-          >
+          <Button href="/" variant="primary" className={`w-full min-h-12 ${CTA_PRIMARY}`}>
             Volver al inicio
-          </Link>
-        </div>
+          </Button>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #f0fdfa 0%, #e0f2fe 100%)" }}>
-      <nav style={{ padding: "16px 32px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <Link href="/" style={{ fontFamily: "Montserrat", fontWeight: 700, fontSize: 22, color: TEAL, textDecoration: "none" }}>
-          HeyDoctor
-        </Link>
-        <Link href="/login" style={{ color: TEAL, fontWeight: 600, textDecoration: "none" }}>
-          Iniciar sesión
-        </Link>
-      </nav>
+    <div className="min-h-screen bg-hd-surface-base pb-[env(safe-area-inset-bottom)]">
+      <header className="border-b border-hd-border-subtle bg-hd-surface-chrome shadow-hd-1">
+        <Container className="flex h-16 items-center justify-between">
+          <Link href="/" className="no-underline">
+            <BrandLogo variant="nav" priority />
+          </Link>
+          <Link
+            href="/login"
+            className="inline-flex h-10 min-h-10 items-center rounded-lg border border-primary bg-hd-surface-chrome px-5 text-sm font-medium text-primary no-underline transition-colors duration-hd-base hover:bg-primaryLight focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            style={{ fontFamily: FONT_HEADING }}
+          >
+            Iniciar sesión
+          </Link>
+        </Container>
+      </header>
 
-      <div style={{ maxWidth: 560, margin: "0 auto", padding: "40px 24px 80px" }}>
-        <h1 style={{ fontFamily: "Montserrat", color: TEAL, fontSize: 32, marginBottom: 8, textAlign: "center" }}>
-          Únete a HeyDoctor
-        </h1>
-        <p style={{ color: "#475569", fontSize: 16, textAlign: "center", marginBottom: 32, lineHeight: 1.6 }}>
-          Atiende pacientes en línea, gestiona tu agenda y haz crecer tu
-          práctica médica con la plataforma de telemedicina líder.
-        </p>
-
-        <form onSubmit={handleSubmit} style={{ background: "white", borderRadius: 16, padding: 32, boxShadow: "0 4px 20px rgba(0,0,0,0.08)" }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-            <Field label="Nombre completo" required>
-              <input type="text" value={name} onChange={(e) => setName(e.target.value)} required placeholder="Dr. Juan Pérez" style={inputStyle} />
-            </Field>
-
-            <Field label="Correo electrónico" required>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="doctor@email.com" style={inputStyle} />
-            </Field>
-
-            <Field label="Especialidad" required>
-              <select value={specialty} onChange={(e) => setSpecialty(e.target.value)} required style={inputStyle}>
-                <option value="">Seleccionar...</option>
-                {SPECIALTIES.map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
-            </Field>
-
-            <Field label="País" required>
-              <select value={country} onChange={(e) => setCountry(e.target.value)} required style={inputStyle}>
-                <option value="">Seleccionar...</option>
-                {COUNTRIES.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-            </Field>
-
-            <Field label="URL de licencia médica (opcional)">
-              <input type="url" value={licenseUrl} onChange={(e) => setLicenseUrl(e.target.value)} placeholder="https://drive.google.com/..." style={inputStyle} />
-            </Field>
-
-            {error && <p style={{ color: "#dc2626", fontSize: 14 }}>{error}</p>}
-
-            <button
-              type="submit"
-              disabled={submitting}
-              style={{
-                padding: "14px 24px",
-                background: TEAL,
-                color: "white",
-                border: "none",
-                borderRadius: 10,
-                fontSize: 16,
-                fontWeight: 700,
-                cursor: submitting ? "not-allowed" : "pointer",
-                opacity: submitting ? 0.7 : 1,
-              }}
+      <main className="py-8 sm:py-12">
+        <Container className="max-w-xl">
+          <div className="mb-8 text-center">
+            <h1
+              className="mb-3 text-3xl font-bold tracking-tight text-primary"
+              style={{ fontFamily: FONT_HEADING }}
             >
-              {submitting ? "Enviando solicitud..." : "Enviar solicitud"}
-            </button>
+              Únete a HeyDoctor
+            </h1>
+            <p className="mx-auto max-w-md text-base leading-relaxed text-primaryDark/70">
+              Atiende pacientes en línea, gestiona tu agenda y haz crecer tu
+              práctica médica con la plataforma de telemedicina líder.
+            </p>
           </div>
-        </form>
 
-        <p style={{ textAlign: "center", marginTop: 24, fontSize: 13, color: "#94a3b8" }}>
-          Al enviar tu solicitud aceptas nuestros{" "}
-          <Link href="/terms" style={{ color: TEAL }}>Términos</Link> y{" "}
-          <Link href="/privacy" style={{ color: TEAL }}>Política de Privacidad</Link>.
-        </p>
-      </div>
+          <Card className="p-6 shadow-premium sm:p-8">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+              <Field label="Nombre completo" required htmlFor="apply-name">
+                <Input
+                  id="apply-name"
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  placeholder="Dr. Juan Pérez"
+                  disabled={submitting}
+                  className={FIELD}
+                />
+              </Field>
+
+              <Field label="Correo electrónico" required htmlFor="apply-email">
+                <Input
+                  id="apply-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  placeholder="doctor@email.com"
+                  disabled={submitting}
+                  className={FIELD}
+                />
+              </Field>
+
+              <Field label="Especialidad" required htmlFor="apply-specialty">
+                <select
+                  id="apply-specialty"
+                  value={specialty}
+                  onChange={(e) => setSpecialty(e.target.value)}
+                  required
+                  disabled={submitting}
+                  className={`w-full outline-none transition-all duration-200 disabled:opacity-60 ${FIELD}`}
+                >
+                  <option value="">Seleccionar...</option>
+                  {SPECIALTIES.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+
+              <Field label="País" required htmlFor="apply-country">
+                <select
+                  id="apply-country"
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
+                  required
+                  disabled={submitting}
+                  className={`w-full outline-none transition-all duration-200 disabled:opacity-60 ${FIELD}`}
+                >
+                  <option value="">Seleccionar...</option>
+                  {COUNTRIES.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+
+              <Field label="URL de licencia médica (opcional)" htmlFor="apply-license">
+                <Input
+                  id="apply-license"
+                  type="url"
+                  value={licenseUrl}
+                  onChange={(e) => setLicenseUrl(e.target.value)}
+                  placeholder="https://drive.google.com/..."
+                  disabled={submitting}
+                  className={FIELD}
+                />
+              </Field>
+
+              {error ? (
+                <p className="text-sm text-red-600" role="alert">
+                  {error}
+                </p>
+              ) : null}
+
+              <Button
+                type="submit"
+                variant="primary"
+                disabled={submitting}
+                className={`w-full min-h-12 text-base ${CTA_PRIMARY}`}
+              >
+                {submitting ? "Enviando solicitud..." : "Enviar solicitud"}
+              </Button>
+            </form>
+          </Card>
+
+          <p className="mt-6 text-center text-[13px] text-primaryDark/60">
+            Al enviar tu solicitud aceptas nuestros{" "}
+            <Link href="/terms" className="font-semibold text-primary hover:underline">
+              Términos
+            </Link>{" "}
+            y{" "}
+            <Link href="/privacy" className="font-semibold text-primary hover:underline">
+              Política de Privacidad
+            </Link>
+            .
+          </p>
+        </Container>
+      </main>
     </div>
   );
 }
 
-const inputStyle: React.CSSProperties = {
-  width: "100%",
-  padding: 12,
-  border: "1px solid #e2e8f0",
-  borderRadius: 8,
-  fontSize: 14,
-  outline: "none",
-};
-
-function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+function Field({
+  label,
+  required,
+  htmlFor,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  htmlFor?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div>
-      <label style={{ fontSize: 13, fontWeight: 600, color: "#334155", display: "block", marginBottom: 4 }}>
-        {label} {required && <span style={{ color: "#dc2626" }}>*</span>}
+      <label
+        htmlFor={htmlFor}
+        className="mb-1 block text-sm font-semibold text-primaryDark"
+        style={{ fontFamily: FONT_HEADING }}
+      >
+        {label} {required ? <span className="text-red-600">*</span> : null}
       </label>
       {children}
     </div>

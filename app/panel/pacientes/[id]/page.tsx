@@ -21,7 +21,7 @@ import {
 
 type TabId = "datos" | "cobertura" | "emergencia" | "antecedentes";
 
-const TEAL = "#078a92";
+const TEAL = "#078A92";
 const TABS: { id: TabId; label: string }[] = [
   { id: "datos", label: "Datos personales" },
   { id: "cobertura", label: "Cobertura de salud" },
@@ -48,7 +48,7 @@ const SEX_OPTIONS: { value: PatientSex; label: string }[] = [
 
 const inputStyle: React.CSSProperties = {
   padding: "10px 14px",
-  border: "1px solid #ddd",
+  border: "1px solid #dfe6e8",
   borderRadius: 8,
   fontSize: 14,
   width: "100%",
@@ -58,7 +58,7 @@ const inputStyle: React.CSSProperties = {
 const labelStyle: React.CSSProperties = {
   display: "block",
   fontSize: 12,
-  color: "#666",
+  color: "rgba(2,44,44,0.7)",
   marginBottom: 4,
   fontWeight: 600,
 };
@@ -215,7 +215,7 @@ export default function PatientDetailPage() {
   if (loading) {
     return (
       <div style={{ padding: 25 }}>
-        <p style={{ color: "#666" }}>Cargando ficha clínica...</p>
+        <p style={{ color: "rgba(2,44,44,0.7)" }}>Cargando ficha clínica...</p>
       </div>
     );
   }
@@ -264,7 +264,7 @@ export default function PatientDetailPage() {
           >
             {displayName}
           </h1>
-          <p style={{ margin: 0, color: "#666", fontSize: 14 }}>
+          <p style={{ margin: 0, color: "rgba(2,44,44,0.7)", fontSize: 14 }}>
             {patient.email || "Sin email"} · Edad:{" "}
             {formatPatientAge(patient.age)}
             {patient.documentType && patient.documentNumber
@@ -298,7 +298,7 @@ export default function PatientDetailPage() {
           gap: 8,
           marginBottom: 20,
           flexWrap: "wrap",
-          borderBottom: "1px solid #eee",
+          borderBottom: "1px solid #e8eef0",
           paddingBottom: 8,
         }}
       >
@@ -329,7 +329,7 @@ export default function PatientDetailPage() {
         </p>
       )}
       {success && (
-        <p style={{ color: "#059669", fontSize: 14, marginBottom: 12 }} role="status">
+        <p style={{ color: "#078A92", fontSize: 14, marginBottom: 12 }} role="status">
           {success}
         </p>
       )}
@@ -430,7 +430,7 @@ export default function PatientDetailPage() {
             </Field>
             <Field label="Edad (calculada)">
               <input
-                style={{ ...inputStyle, background: "#f9f9f9" }}
+                style={{ ...inputStyle, background: "#f8fafb" }}
                 value={formatPatientAge(patient.age)}
                 readOnly
                 disabled
@@ -563,7 +563,7 @@ export default function PatientDetailPage() {
                 onChange={(e) => updateField("memberNumber", e.target.value)}
               />
             </Field>
-            <p style={{ gridColumn: "1 / -1", color: "#888", fontSize: 13, margin: 0 }}>
+            <p style={{ gridColumn: "1 / -1", color: "rgba(2,44,44,0.5)", fontSize: 13, margin: 0 }}>
               Compatible con coberturas de Chile (FONASA/ISAPRE), Colombia (EPS),
               Brasil (SUS/planes privados), USA (Medicare/Medicaid/privado) y
               Europa (seguros nacionales/privados).

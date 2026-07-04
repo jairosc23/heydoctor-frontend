@@ -17,17 +17,17 @@ export default function DashboardPage() {
     {
       label: "Pacientes totales",
       value: stats?.totalPatients ?? "—",
-      color: "#07acb5",
+      color: "#078A92",
     },
     {
       label: "Consultas hoy",
       value: stats?.consultationsToday ?? "—",
-      color: "#0bb38a",
+      color: "#05636B",
     },
     {
       label: "Consultas en curso",
       value: stats?.pendingConsultations ?? "—",
-      color: "#f2a900",
+      color: "#022C2C",
     },
   ];
 
@@ -42,7 +42,7 @@ export default function DashboardPage() {
             >
               Dashboard Clínico
             </h1>
-            <p className="m-0 text-gray-600">
+            <p className="m-0 text-primaryDark/70">
               Estado general de tu centro médico HeyDoctor
             </p>
           </div>
@@ -80,7 +80,7 @@ export default function DashboardPage() {
         >
           Actividad Clínica
         </h2>
-        <p className="text-gray-600">Bienvenido al panel principal de HeyDoctor.</p>
+        <p className="text-primaryDark/70">Bienvenido al panel principal de HeyDoctor.</p>
       </div>
     </PanelLayout>
   );

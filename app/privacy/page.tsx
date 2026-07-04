@@ -12,7 +12,7 @@ export default function PrivacyPage() {
         </p>
         <p>
           Delegado de Protección de Datos (DPO) / Privacy Officer:{" "}
-          <a href="mailto:privacy@heydoctor.health" style={{ color: "#078a92" }}>privacy@heydoctor.health</a>
+          <a href="mailto:privacy@heydoctor.health">privacy@heydoctor.health</a>
         </p>
       </Section>
 
@@ -32,7 +32,7 @@ export default function PrivacyPage() {
 
       <Section id="finalidad" title="4. Finalidad del Tratamiento">
         <p>Utilizamos sus datos para:</p>
-        <ul style={{ paddingLeft: 20 }}>
+        <ul>
           <li>Prestar el servicio de telemedicina y gestión clínica</li>
           <li>Procesar pagos por consultas</li>
           <li>Generar documentación legal (PDFs, consentimientos)</li>
@@ -58,7 +58,7 @@ export default function PrivacyPage() {
       <Section id="compartir" title="6. Compartir Información">
         <p><strong>No vendemos ni compartimos sus datos con terceros para fines publicitarios.</strong></p>
         <p>Podemos compartir datos con:</p>
-        <ul style={{ paddingLeft: 20 }}>
+        <ul>
           <li><strong>Proveedores de pago</strong> (Payku) para procesar transacciones</li>
           <li><strong>Proveedores de infraestructura</strong> (Railway, DigitalOcean) para hosting</li>
           <li><strong>Autoridades</strong> cuando sea requerido por ley o resolución judicial</li>
@@ -76,7 +76,7 @@ export default function PrivacyPage() {
 
       <Section id="derechos" title="8. Sus Derechos (ARCO + GDPR)">
         <p>Usted tiene derecho a:</p>
-        <ul style={{ paddingLeft: 20 }}>
+        <ul>
           <li><strong>Acceso:</strong> solicitar copia de sus datos personales</li>
           <li><strong>Rectificación:</strong> corregir datos inexactos</li>
           <li><strong>Cancelación/Supresión:</strong> solicitar eliminación (sujeto a retención legal obligatoria)</li>
@@ -86,13 +86,13 @@ export default function PrivacyPage() {
         </ul>
         <p>
           Para ejercer estos derechos:{" "}
-          <a href="mailto:privacy@heydoctor.health" style={{ color: "#078a92" }}>privacy@heydoctor.health</a>.
+          <a href="mailto:privacy@heydoctor.health">privacy@heydoctor.health</a>.
           Respuesta máxima: 30 días hábiles.
         </p>
       </Section>
 
       <Section id="seguridad" title="9. Medidas de Seguridad">
-        <ul style={{ paddingLeft: 20 }}>
+        <ul>
           <li>Cifrado en tránsito (TLS 1.2+)</li>
           <li>Autenticación con access tokens de corta duración (15 min)</li>
           <li>Refresh tokens en cookies HttpOnly, Secure, SameSite</li>
@@ -109,7 +109,7 @@ export default function PrivacyPage() {
         <p>
           Utilizamos cookies estrictamente necesarias para el funcionamiento de la plataforma.
           Para más información, consulte nuestra{" "}
-          <Link href="/cookies" style={{ color: "#078a92" }}>Política de Cookies</Link>.
+          <Link href="/cookies">Política de Cookies</Link>.
         </p>
       </Section>
 
@@ -124,7 +124,7 @@ export default function PrivacyPage() {
       <Section id="contacto" title="12. Contacto">
         <p>
           <strong>SAVAC LTDA</strong> &middot; RUT 76.373.761-6<br />
-          Privacy Officer / DPO: <a href="mailto:privacy@heydoctor.health" style={{ color: "#078a92" }}>privacy@heydoctor.health</a>
+          Privacy Officer / DPO: <a href="mailto:privacy@heydoctor.health">privacy@heydoctor.health</a>
         </p>
       </Section>
     </LegalPageLayout>

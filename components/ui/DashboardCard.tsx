@@ -21,8 +21,13 @@ export default function DashboardCard({
       )}
       style={accentColor ? { borderLeftColor: accentColor } : undefined}
     >
-      <p className="text-sm text-gray-500">{title}</p>
-      <h2 className="text-3xl font-bold text-primary">{value}</h2>
+      <p className="text-sm text-primaryDark/60">{title}</p>
+      <h2
+        className="text-3xl font-bold text-primary"
+        style={{ fontFamily: "Montserrat, sans-serif" }}
+      >
+        {value}
+      </h2>
     </div>
   );
 }

@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
+import { BrandLogo } from "@/components/branding";
+import Button from "@/components/ui/Button";
 
 export type ConsentModalProps = {
   onAccept: () => void | Promise<void>;
@@ -9,6 +11,14 @@ export type ConsentModalProps = {
   isSubmitting?: boolean;
   errorMessage?: string | null;
 };
+
+const FONT_HEADING = "Montserrat, sans-serif";
+
+const CTA_PRIMARY =
+  "rounded-lg border-0 bg-primary shadow-none !shadow-[0_4px_12px_rgba(7,138,146,0.22)] hover:bg-primaryMid hover:scale-100 focus:outline-none focus:ring-2 focus:ring-primaryLight focus:ring-offset-2 disabled:hover:bg-primary disabled:hover:scale-100";
+
+const CTA_SECONDARY =
+  "rounded-lg border border-hd-border-default bg-hd-surface-chrome text-primaryDark shadow-none hover:bg-hd-surface-muted hover:scale-100 focus:outline-none focus:ring-2 focus:ring-primaryLight focus:ring-offset-2";
 
 /**
  * Modal de consentimiento informado antes de iniciar videoconsulta.
@@ -27,76 +37,32 @@ export function ConsentModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="consent-modal-title"
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 1000,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 20,
-        background: "rgba(15, 23, 42, 0.72)",
-        backdropFilter: "blur(6px)",
-      }}
+      className="fixed inset-0 z-[1000] flex items-center justify-center bg-primaryDark/70 p-5 backdrop-blur-sm"
     >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: 480,
-          maxHeight: "90vh",
-          overflow: "auto",
-          background: "#f8fafc",
-          borderRadius: 16,
-          boxShadow:
-            "0 25px 50px -12px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(148, 163, 184, 0.2)",
-        }}
-      >
-        <div style={{ padding: "28px 28px 20px" }}>
+      <div className="max-h-[90vh] w-full max-w-md overflow-auto rounded-2xl bg-hd-surface-chrome shadow-premium">
+        <div className="px-7 pb-5 pt-7">
+          <div className="mb-4 flex justify-center">
+            <BrandLogo markOnly markSize={48} priority />
+          </div>
           <h2
             id="consent-modal-title"
-            style={{
-              margin: 0,
-              fontSize: 22,
-              fontWeight: 700,
-              color: "#0f172a",
-              letterSpacing: "-0.02em",
-            }}
+            className="m-0 text-[22px] font-bold tracking-tight text-primary"
+            style={{ fontFamily: FONT_HEADING }}
           >
             Consentimiento para telemedicina
           </h2>
-          <p
-            style={{
-              margin: "14px 0 0",
-              fontSize: 14,
-              lineHeight: 1.6,
-              color: "#475569",
-            }}
-          >
+          <p className="mt-3.5 mb-0 text-sm leading-relaxed text-primaryDark/70">
             Al continuar, accedes a una consulta a distancia por videollamada. El
             profesional evaluará tu caso con la información que aportes; la
             calidad del servicio depende de la conexión, del dispositivo y de la
             información veraz que proporciones.
           </p>
-          <p
-            style={{
-              margin: "12px 0 0",
-              fontSize: 14,
-              lineHeight: 1.6,
-              color: "#475569",
-            }}
-          >
+          <p className="mt-3 mb-0 text-sm leading-relaxed text-primaryDark/70">
             Esta modalidad no sustituye la atención presencial cuando sea
             necesaria (urgencias, signos de alarma). Si tu situación lo requiere,
             acude a un centro de salud o servicios de urgencias.
           </p>
-          <p
-            style={{
-              margin: "12px 0 0",
-              fontSize: 13,
-              lineHeight: 1.55,
-              color: "#64748b",
-            }}
-          >
+          <p className="mt-3 mb-0 text-[13px] leading-relaxed text-primaryDark/60">
             El tratamiento de tus datos se realiza conforme a la normativa
             aplicable en materia de protección de datos y salud. Puedes retirar
             tu consentimiento en cualquier momento desde la configuración de tu
@@ -107,112 +73,55 @@ export function ConsentModal({
         {errorMessage ? (
           <div
             role="alert"
-            style={{
-              margin: "0 28px 12px",
-              padding: "12px 14px",
-              borderRadius: 10,
-              background: "#fef2f2",
-              border: "1px solid #fecaca",
-              color: "#b91c1c",
-              fontSize: 13,
-              lineHeight: 1.5,
-            }}
+            className="mx-7 mb-3 rounded-lg border border-red-200 bg-red-50 px-3.5 py-3 text-[13px] leading-relaxed text-red-700"
           >
             {errorMessage}
           </div>
         ) : null}
 
-        <label
-          style={{
-            display: "flex",
-            alignItems: "flex-start",
-            gap: 12,
-            margin: "0 28px",
-            padding: "16px 14px",
-            cursor: "pointer",
-            borderRadius: 10,
-            background: "#e2e8f0",
-            border: "1px solid #cbd5e1",
-          }}
-        >
+        <label className="mx-7 flex cursor-pointer items-start gap-3 rounded-lg border border-hd-border-default bg-hd-surface-muted px-3.5 py-4">
           <input
             type="checkbox"
             checked={checked}
             onChange={(e) => setChecked(e.target.checked)}
-            style={{
-              marginTop: 3,
-              width: 18,
-              height: 18,
-              accentColor: "#078a92",
-              flexShrink: 0,
-            }}
+            className="mt-0.5 h-[18px] w-[18px] shrink-0 accent-primary"
           />
-          <span style={{ fontSize: 14, fontWeight: 600, color: "#1e293b" }}>
+          <span className="text-sm font-semibold text-primaryDark">
             Acepto el{" "}
             <a
               href="/telemedicine-consent"
               target="_blank"
               rel="noopener noreferrer"
-              style={{ color: "#078a92", textDecoration: "underline" }}
+              className="text-primary underline"
             >
               consentimiento informado de telemedicina
             </a>
           </span>
         </label>
 
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            gap: 12,
-            justifyContent: "flex-end",
-            padding: "20px 28px 28px",
-          }}
-        >
-          <button
+        <div className="flex flex-wrap justify-end gap-3 px-7 pb-7 pt-5">
+          <Button
             type="button"
+            variant="secondary"
             disabled={isSubmitting}
             onClick={onDecline}
-            style={{
-              padding: "12px 20px",
-              borderRadius: 10,
-              border: "1px solid #cbd5e1",
-              background: "#fff",
-              color: "#475569",
-              fontSize: 14,
-              fontWeight: 600,
-              cursor: isSubmitting ? "not-allowed" : "pointer",
-              opacity: isSubmitting ? 0.7 : 1,
-            }}
+            className={CTA_SECONDARY}
           >
             Cancelar
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="primary"
             disabled={!checked || isSubmitting}
             onClick={() => {
               void onAccept();
             }}
-            style={{
-              padding: "12px 22px",
-              borderRadius: 10,
-              border: "none",
-              background: checked && !isSubmitting ? "#078a92" : "#94a3b8",
-              color: "#fff",
-              fontSize: 14,
-              fontWeight: 600,
-              cursor:
-                checked && !isSubmitting ? "pointer" : "not-allowed",
-              boxShadow:
-                checked && !isSubmitting
-                  ? "0 4px 14px rgba(7, 138, 146, 0.35)"
-                  : "none",
-            }}
+            className={CTA_PRIMARY}
           >
             {isSubmitting
               ? "Registrando consentimiento…"
               : "Continuar a la videollamada"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

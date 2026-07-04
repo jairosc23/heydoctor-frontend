@@ -12,7 +12,7 @@ export default function TermsPage() {
           internacionales, actúa a través de <strong>SAVAC MedTech LLC</strong> (EIN 99-0757282),
           constituida en los Estados Unidos de América.
         </p>
-        <p>Contacto legal: <a href="mailto:legal@heydoctor.health" style={{ color: "#078a92" }}>legal@heydoctor.health</a></p>
+        <p>Contacto legal: <a href="mailto:legal@heydoctor.health">legal@heydoctor.health</a></p>
       </Section>
 
       <Section id="aceptacion" title="2. Aceptación de los Términos">
@@ -87,14 +87,14 @@ export default function TermsPage() {
         </p>
         <p>
           Los reembolsos se gestionan caso a caso. Las solicitudes deben dirigirse a{" "}
-          <a href="mailto:soporte@heydoctor.health" style={{ color: "#078a92" }}>soporte@heydoctor.health</a>.
+          <a href="mailto:soporte@heydoctor.health">soporte@heydoctor.health</a>.
         </p>
       </Section>
 
       <Section id="datos" title="8. Protección de Datos Personales">
         <p>
           El tratamiento de datos personales se rige por nuestra{" "}
-          <Link href="/privacy" style={{ color: "#078a92" }}>Política de Privacidad</Link>,
+          <Link href="/privacy">Política de Privacidad</Link>,
           conforme a la Ley 19.628 sobre Protección de la Vida Privada (Chile) y, para usuarios
           europeos, el Reglamento General de Protección de Datos (GDPR) de la Unión Europea.
         </p>
@@ -103,7 +103,7 @@ export default function TermsPage() {
       <Section id="consentimiento" title="9. Consentimiento Informado">
         <p>
           Antes de cada consulta de telemedicina, el usuario debe otorgar su{" "}
-          <Link href="/telemedicine-consent" style={{ color: "#078a92" }}>consentimiento informado</Link>{" "}
+          <Link href="/telemedicine-consent">consentimiento informado</Link>{" "}
           electrónico. Este consentimiento se registra con fecha, hora, versión del documento,
           dirección IP y se vincula inmutablemente a la consulta correspondiente.
         </p>
@@ -148,8 +148,8 @@ export default function TermsPage() {
         <p>
           Para consultas sobre estos términos:<br />
           <strong>SAVAC LTDA</strong> &middot; RUT 76.373.761-6<br />
-          Email: <a href="mailto:legal@heydoctor.health" style={{ color: "#078a92" }}>legal@heydoctor.health</a><br />
-          Soporte: <a href="mailto:soporte@heydoctor.health" style={{ color: "#078a92" }}>soporte@heydoctor.health</a>
+          Email: <a href="mailto:legal@heydoctor.health">legal@heydoctor.health</a><br />
+          Soporte: <a href="mailto:soporte@heydoctor.health">soporte@heydoctor.health</a>
         </p>
       </Section>
     </LegalPageLayout>

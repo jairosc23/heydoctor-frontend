@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
+import { Moon, Sun } from "lucide-react";
 import { useAuth } from "@/lib/context/AuthContext";
 import { BrandLogo } from "@/components/branding";
 import { cn } from "@/lib/utils";
@@ -33,6 +34,8 @@ const TITLES: Record<string, string> = {
   "/panel": "Panel",
 };
 
+const FONT_NAV = "Montserrat, sans-serif";
+
 function isMenuActive(pathname: string | null, href: string): boolean {
   if (!pathname) return false;
   if (href === "/dashboard") return pathname === "/dashboard";
@@ -61,6 +64,7 @@ export default function PanelLayout({
   const { isAuthenticated, logout, user, refreshUser, loading: authLoading } =
     useAuth();
   const [dark, setDark] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
   const [panelSessionChecked, setPanelSessionChecked] = useState(false);
 
   useEffect(() => {
@@ -69,6 +73,24 @@ export default function PanelLayout({
       document.body.classList.add("dark");
     }
   }, []);
+
+  useEffect(() => {
+    setNavOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!navOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setNavOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [navOpen]);
 
   useEffect(() => {
     if (authLoading) {
@@ -127,57 +149,113 @@ export default function PanelLayout({
   }
 
   return (
-    <div className="flex min-h-screen overflow-hidden bg-[#eef4f7] font-sans">
-      <aside className="fixed bottom-0 left-0 top-0 z-40 flex h-screen w-64 flex-col border-r border-gray-100 bg-white p-4 shadow-soft">
+    <div className="flex min-h-screen overflow-hidden bg-hd-surface-base font-sans">
+      {navOpen && (
+        <button
+          type="button"
+          className="fixed inset-0 z-30 bg-primaryDark/40 md:hidden"
+          aria-label="Cerrar menú de navegación"
+          onClick={() => setNavOpen(false)}
+        />
+      )}
+
+      <aside
+        className={cn(
+          "fixed bottom-0 left-0 top-0 z-40 flex h-screen w-64 flex-col border-r border-hd-border-subtle bg-hd-surface-chrome p-4 shadow-hd-2 transition-transform duration-hd-base",
+          navOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
+        )}
+      >
         <div className="mb-8 flex flex-col items-center">
           <BrandLogo variant="nav" markSize={56} className="flex-col items-center gap-1" />
         </div>
-        {MENU.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={cn(
-              "mb-2 rounded-xl px-4 py-2 text-[15px] font-medium text-gray-700 no-underline transition-all duration-200 hover:bg-gray-50",
-              isMenuActive(pathname, item.href) && "bg-primaryLight text-primary",
-            )}
-          >
-            {item.label}
-          </Link>
-        ))}
+        <nav className="flex min-h-0 flex-1 flex-col overflow-y-auto" aria-label="Navegación del panel">
+          {MENU.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={() => setNavOpen(false)}
+              className={cn(
+                "mb-2 rounded-lg px-4 py-2 text-[15px] font-medium text-primaryDark no-underline transition-colors duration-hd-base hover:bg-hd-surface-muted hover:text-primary",
+                isMenuActive(pathname, item.href) && "bg-primaryLight text-primary",
+              )}
+              style={{ fontFamily: FONT_NAV }}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
         <button
           type="button"
           onClick={() => void handleLogout()}
-          className="mt-auto rounded-xl border-0 bg-gray-50 px-4 py-2 text-left text-[15px] text-red-600 transition-all duration-200 hover:bg-red-50"
+          className="mt-auto rounded-lg border-0 bg-hd-surface-muted px-4 py-2 text-left text-[15px] font-medium text-red-600 transition-colors duration-hd-base hover:bg-red-50"
+          style={{ fontFamily: FONT_NAV }}
         >
           Cerrar sesión
         </button>
       </aside>
-      <header className="fixed left-64 right-0 top-0 z-30 flex h-16 items-center justify-between border-b border-gray-100 bg-white/80 px-6 backdrop-blur-md">
-        <div className="flex min-w-0 flex-1 items-center gap-6">
-          <BrandLogo variant="nav" priority />
+
+      <header className="fixed left-0 right-0 top-0 z-30 flex h-16 items-center justify-between border-b border-hd-border-subtle bg-hd-surface-chrome px-4 shadow-hd-1 md:left-64 md:px-6">
+        <div className="flex min-w-0 flex-1 items-center gap-3 md:gap-6">
+          <button
+            type="button"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-hd-border-default bg-hd-surface-chrome text-primaryDark transition-colors duration-hd-base hover:bg-hd-surface-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 md:hidden"
+            aria-expanded={navOpen}
+            aria-label={navOpen ? "Cerrar menú de navegación" : "Abrir menú de navegación"}
+            onClick={() => setNavOpen((value) => !value)}
+          >
+            <span className="sr-only">{navOpen ? "Cerrar menú" : "Abrir menú"}</span>
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden>
+              {navOpen ? (
+                <path
+                  d="M5 5l10 10M15 5L5 15"
+                  stroke="currentColor"
+                  strokeWidth="1.75"
+                  strokeLinecap="round"
+                />
+              ) : (
+                <path
+                  d="M4 6h12M4 10h12M4 14h12"
+                  stroke="currentColor"
+                  strokeWidth="1.75"
+                  strokeLinecap="round"
+                />
+              )}
+            </svg>
+          </button>
+          <div className="hidden min-w-0 md:block">
+            <BrandLogo variant="nav" priority />
+          </div>
           <span
-            className="truncate border-l border-gray-200 pl-6 text-lg font-semibold text-slate-600"
-            style={{ fontFamily: "Montserrat, sans-serif" }}
+            className="truncate border-l border-hd-border-default pl-3 text-lg font-semibold text-primaryDark md:pl-6"
+            style={{ fontFamily: FONT_NAV }}
           >
             {displayTitle}
           </span>
         </div>
-        <div className="flex items-center gap-5">
-          <span className="max-w-[220px] truncate text-xs text-gray-600">{user?.email}</span>
+        <div className="flex items-center gap-3 md:gap-5">
+          <span className="hidden max-w-[220px] truncate text-xs text-primaryDark/70 sm:inline">
+            {user?.email}
+          </span>
           <button
             type="button"
             onClick={toggleTheme}
-            className="border-0 bg-transparent p-0 text-[22px] transition-all duration-200 hover:scale-105"
+            className="inline-flex h-[22px] w-[22px] items-center justify-center border-0 bg-transparent p-0 text-primaryDark transition-transform duration-hd-base hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            aria-label={dark ? "Activar tema claro" : "Activar tema oscuro"}
           >
-            {dark ? "☀️" : "🌙"}
+            {dark ? (
+              <Sun className="h-[22px] w-[22px]" strokeWidth={1.75} aria-hidden />
+            ) : (
+              <Moon className="h-[22px] w-[22px]" strokeWidth={1.75} aria-hidden />
+            )}
           </button>
           <div
-            className="h-11 w-11 shrink-0 rounded-full bg-primaryMid transition-all duration-200"
+            className="h-10 w-10 shrink-0 rounded-full bg-primaryMid transition-colors duration-hd-base md:h-11 md:w-11"
             aria-hidden
           />
         </div>
       </header>
-      <main className="absolute bottom-0 left-64 right-0 top-16 overflow-y-auto bg-[#eef4f7] p-8">
+
+      <main className="absolute bottom-0 left-0 right-0 top-16 overflow-y-auto bg-hd-surface-base p-4 md:left-64 md:p-8">
         {children}
       </main>
     </div>

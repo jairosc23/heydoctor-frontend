@@ -5,40 +5,13 @@ import { fetchRollingMetrics, type RollingMetrics } from "@/lib/services/metrics
 
 type LoadingState = "loading" | "ready" | "error";
 
-const BRAND = "#078a92";
-const BRAND_LIGHT = "#dff7f8";
-const CARD_BG = "#ffffff";
-const MUTED = "#64748b";
+const FONT_HEADING = "Montserrat, sans-serif";
 
 function SkeletonCard() {
   return (
-    <div
-      style={{
-        background: CARD_BG,
-        borderRadius: 14,
-        padding: "28px 24px",
-        minWidth: 200,
-        flex: "1 1 0",
-        boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
-      }}
-    >
-      <div
-        style={{
-          width: 80,
-          height: 14,
-          borderRadius: 6,
-          background: "#e2e8f0",
-          marginBottom: 18,
-        }}
-      />
-      <div
-        style={{
-          width: 100,
-          height: 36,
-          borderRadius: 8,
-          background: "#e2e8f0",
-        }}
-      />
+    <div className="min-w-[200px] flex-1 rounded-2xl bg-hd-surface-chrome px-6 py-7 shadow-premium">
+      <div className="mb-4 h-3.5 w-20 animate-pulse rounded-md bg-hd-border-subtle" />
+      <div className="h-9 w-24 animate-pulse rounded-lg bg-hd-border-subtle" />
     </div>
   );
 }
@@ -47,54 +20,32 @@ function MetricCard({
   label,
   value,
   suffix,
-  accent = BRAND,
+  borderClass = "border-t-primary",
+  valueClass = "text-primary",
 }: {
   label: string;
   value: string;
   suffix?: string;
-  accent?: string;
+  borderClass?: string;
+  valueClass?: string;
 }) {
   return (
     <div
-      style={{
-        background: CARD_BG,
-        borderRadius: 14,
-        padding: "28px 24px",
-        minWidth: 200,
-        flex: "1 1 0",
-        boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
-        borderTop: `3px solid ${accent}`,
-      }}
+      className={`min-w-[200px] flex-1 rounded-2xl border-t-[3px] bg-hd-surface-chrome px-6 py-7 shadow-premium ${borderClass}`}
     >
-      <div
-        style={{
-          fontSize: 13,
-          color: MUTED,
-          fontWeight: 500,
-          marginBottom: 10,
-          textTransform: "uppercase",
-          letterSpacing: "0.04em",
-        }}
-      >
+      <div className="mb-2.5 text-[13px] font-medium uppercase tracking-wide text-primaryDark/60">
         {label}
       </div>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+      <div className="flex items-baseline gap-1">
         <span
-          style={{
-            fontSize: 36,
-            fontWeight: 700,
-            fontFamily: "Montserrat, sans-serif",
-            color: accent,
-            lineHeight: 1.1,
-          }}
+          className={`text-4xl font-bold leading-none ${valueClass}`}
+          style={{ fontFamily: FONT_HEADING }}
         >
           {value}
         </span>
-        {suffix && (
-          <span style={{ fontSize: 16, color: MUTED, fontWeight: 500 }}>
-            {suffix}
-          </span>
-        )}
+        {suffix ? (
+          <span className="text-base font-medium text-primaryDark/60">{suffix}</span>
+        ) : null}
       </div>
     </div>
   );
@@ -134,21 +85,16 @@ export default function MetricsDashboard() {
   }, []);
 
   return (
-    <section style={{ marginBottom: 32 }}>
+    <section className="mb-8">
       <h2
-        style={{
-          fontFamily: "Montserrat, sans-serif",
-          fontSize: 20,
-          fontWeight: 600,
-          color: BRAND,
-          marginBottom: 20,
-        }}
+        className="mb-5 text-xl font-semibold text-primary"
+        style={{ fontFamily: FONT_HEADING }}
       >
         Métricas de Negocio
       </h2>
 
       {state === "loading" && (
-        <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+        <div className="flex flex-wrap gap-4">
           <SkeletonCard />
           <SkeletonCard />
           <SkeletonCard />
@@ -156,23 +102,14 @@ export default function MetricsDashboard() {
       )}
 
       {state === "error" && (
-        <div
-          style={{
-            background: "#fef2f2",
-            border: "1px solid #fecaca",
-            borderRadius: 12,
-            padding: "16px 20px",
-            color: "#b91c1c",
-            fontSize: 14,
-          }}
-        >
+        <div className="rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
           {error ?? "No se pudieron obtener las métricas."}
         </div>
       )}
 
       {state === "ready" && metrics && (
         <>
-          <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+          <div className="flex flex-wrap gap-4">
             <MetricCard
               label="Upgrades (7 días)"
               value={String(metrics.upgrades7d)}
@@ -185,31 +122,25 @@ export default function MetricsDashboard() {
               label="Tasa de conversión (30d)"
               value={(metrics.conversionRate * 100).toFixed(1)}
               suffix="%"
-              accent="#0ea5e9"
+              borderClass="border-t-primaryMid"
+              valueClass="text-primaryMid"
             />
           </div>
 
-          <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginTop: 16 }}>
+          <div className="mt-4 flex flex-wrap gap-4">
             <MetricCard
               label="Ventas (30 días)"
               value={String(metrics.sales30d)}
-              accent="#8b5cf6"
+              borderClass="border-t-primaryDark"
+              valueClass="text-primaryDark"
             />
             <MetricCard
               label="Soporte (30 días)"
               value={String(metrics.support30d)}
-              accent="#f59e0b"
             />
           </div>
 
-          <p
-            style={{
-              fontSize: 12,
-              color: "#94a3b8",
-              marginTop: 14,
-              fontStyle: "italic",
-            }}
-          >
+          <p className="mt-3.5 text-xs italic text-primaryDark/50">
             Datos agregados desde daily_metrics. Se actualizan diariamente a las
             01:00 UTC.
           </p>

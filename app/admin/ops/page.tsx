@@ -11,7 +11,7 @@ const OpsRequestsChart = dynamic(
     ssr: false,
     loading: () => (
       <div
-        className="h-full w-full animate-pulse rounded bg-slate-100"
+        className="h-full w-full animate-pulse rounded bg-hd-surface-muted"
         aria-busy="true"
       />
     ),
@@ -146,8 +146,8 @@ export default function AdminOpsPage() {
     <main className="mx-auto max-w-6xl px-4 py-10">
       <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold text-slate-900">Operations</h1>
-          <p className="text-sm text-slate-600">
+          <h1 className="text-xl font-bold text-primary">Operations</h1>
+          <p className="text-sm text-primaryDark/70">
             RPM/latencia/errores (Redis si aplica). CPU load y señales de scaling
             en tarjeta dedicada. Trazas: índice por réplica. Documentación de escalado en el
             repositorio backend:{" "}
@@ -157,20 +157,20 @@ export default function AdminOpsPage() {
         <nav className="flex flex-wrap gap-3 text-sm" aria-label="Navegación de operaciones">
           <Link
             href="/admin/growth"
-            className="rounded text-slate-600 underline hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
+            className="rounded text-primaryDark/70 underline hover:text-primaryDark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
           >
             Growth
           </Link>
           <Link
             href="/admin/analytics"
-            className="rounded text-slate-600 underline hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
+            className="rounded text-primaryDark/70 underline hover:text-primaryDark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
           >
             Analytics
           </Link>
           <button
             type="button"
             onClick={() => void load()}
-            className="rounded text-slate-600 underline hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
+            className="rounded text-primaryDark/70 underline hover:text-primaryDark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
           >
             Refrescar
           </button>
@@ -199,21 +199,21 @@ export default function AdminOpsPage() {
       )}
 
       {data && !loading && scaling !== null && (
-        <section className="mb-6 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-          <h2 className="mb-2 text-sm font-semibold text-slate-900">
+        <section className="mb-6 rounded-lg border border-hd-border-subtle bg-white p-4 shadow-sm">
+          <h2 className="mb-2 text-sm font-semibold text-primaryDark">
             Señales de autoscaling (referencia; Railway usa CPU/RAM en panel)
           </h2>
           <div className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
             <div>
-              <p className="text-xs uppercase text-slate-500">CPU load (1m)</p>
+              <p className="text-xs uppercase text-primaryDark/50">CPU load (1m)</p>
               <p className="text-lg font-semibold tabular-nums">{scaling.cpuLoad}</p>
             </div>
             <div>
-              <p className="text-xs uppercase text-slate-500">RPM</p>
+              <p className="text-xs uppercase text-primaryDark/50">RPM</p>
               <p className="text-lg font-semibold tabular-nums">{scaling.requestsPerMinute}</p>
             </div>
             <div>
-              <p className="text-xs uppercase text-slate-500">Latencia media</p>
+              <p className="text-xs uppercase text-primaryDark/50">Latencia media</p>
               <p className="text-lg font-semibold tabular-nums">{scaling.avgResponseTime} ms</p>
             </div>
             <div>
@@ -229,40 +229,40 @@ export default function AdminOpsPage() {
               </p>
             </div>
             <div>
-              <p className="text-xs uppercase text-slate-500">Error rate</p>
+              <p className="text-xs uppercase text-primaryDark/50">Error rate</p>
               <p className="text-lg font-semibold tabular-nums">
                 {(scaling.errorRate * 100).toFixed(2)}%
               </p>
             </div>
           </div>
-          <p className="mt-2 text-xs text-slate-500">
+          <p className="mt-2 text-xs text-primaryDark/50">
             Reglas orientativas: RPM &gt; 200 o error &gt; 5% o latencia &gt; 800ms → revisar scale
             up; RPM &lt; 20 sostenido → scale down.
           </p>
         </section>
       )}
 
-      <section className="mb-6 flex flex-wrap items-end gap-2 rounded-lg border border-slate-200 bg-slate-50/80 p-3">
-        <label htmlFor="ops-trace-id" className="text-xs font-medium text-slate-600">
+      <section className="mb-6 flex flex-wrap items-end gap-2 rounded-lg border border-hd-border-subtle bg-hd-surface-muted p-3">
+        <label htmlFor="ops-trace-id" className="text-xs font-medium text-primaryDark/70">
           Buscar trace / X-Request-Id (esta réplica)
           <input
             id="ops-trace-id"
             value={traceId}
             onChange={(e) => setTraceId(e.target.value)}
-            className="ml-2 mt-1 block min-w-[220px] rounded border border-slate-300 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-slate-500"
+            className="ml-2 mt-1 block min-w-[220px] rounded border border-hd-border-default px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             placeholder="uuid"
           />
         </label>
         <button
           type="button"
           onClick={() => void lookupTrace()}
-          className="rounded bg-slate-800 px-3 py-1.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
+          className="rounded-lg bg-primary px-3 py-1.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
         >
           Buscar
         </button>
         {traceHit !== null && (
           <pre
-            className="max-h-40 w-full overflow-auto rounded border border-slate-200 bg-white p-2 text-xs"
+            className="max-h-40 w-full overflow-auto rounded border border-hd-border-subtle bg-white p-2 text-xs"
             aria-live="polite"
           >
             {JSON.stringify(traceHit, null, 2)}
@@ -270,7 +270,7 @@ export default function AdminOpsPage() {
         )}
       </section>
 
-      {loading && <p className="text-sm text-slate-600">Cargando panel…</p>}
+      {loading && <p className="text-sm text-primaryDark/70">Cargando panel…</p>}
 
       {error && !loading && (
         <div
@@ -286,26 +286,26 @@ export default function AdminOpsPage() {
           <section className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
             <div
               className={`rounded-lg border bg-white p-4 shadow-sm ${
-                highError ? "border-red-400 ring-2 ring-red-100" : "border-slate-200"
+                highError ? "border-red-400 ring-2 ring-red-100" : "border-hd-border-subtle"
               }`}
             >
-              <p className="text-xs font-medium uppercase text-slate-500">Error rate (~5 min)</p>
-              <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">
+              <p className="text-xs font-medium uppercase text-primaryDark/50">Error rate (~5 min)</p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums text-primaryDark">
                 {(data.errorRate * 100).toFixed(2)}%
               </p>
             </div>
-            <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-              <p className="text-xs font-medium uppercase text-slate-500">Requests / min</p>
-              <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">
+            <div className="rounded-lg border border-hd-border-subtle bg-white p-4 shadow-sm">
+              <p className="text-xs font-medium uppercase text-primaryDark/50">Requests / min</p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums text-primaryDark">
                 {data.requestsPerMinute}
               </p>
             </div>
-            <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-              <p className="text-xs font-medium uppercase text-slate-500">Latencia media</p>
-              <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">
+            <div className="rounded-lg border border-hd-border-subtle bg-white p-4 shadow-sm">
+              <p className="text-xs font-medium uppercase text-primaryDark/50">Latencia media</p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums text-primaryDark">
                 {data.avgResponseTime} ms
               </p>
-              <p className="mt-0.5 text-[10px] text-slate-500">ventana misma que P95/P99</p>
+              <p className="mt-0.5 text-[10px] text-primaryDark/50">ventana misma que P95/P99</p>
             </div>
             <div className="rounded-lg border border-amber-100 bg-amber-50/40 p-4 shadow-sm">
               <p className="text-xs font-medium uppercase text-amber-900">P95 🔥</p>
@@ -319,9 +319,9 @@ export default function AdminOpsPage() {
                 {data.p99ResponseTime} ms
               </p>
             </div>
-            <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-              <p className="text-xs font-medium uppercase text-slate-500">Uptime proceso</p>
-              <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">
+            <div className="rounded-lg border border-hd-border-subtle bg-white p-4 shadow-sm">
+              <p className="text-xs font-medium uppercase text-primaryDark/50">Uptime proceso</p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums text-primaryDark">
                 {formatUptime(data.uptime)}
               </p>
             </div>
@@ -330,10 +330,10 @@ export default function AdminOpsPage() {
           <section className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div
               className={`rounded-lg border bg-white p-4 shadow-sm ${
-                zeroRevenue ? "border-amber-300" : "border-slate-200"
+                zeroRevenue ? "border-amber-300" : "border-hd-border-subtle"
               }`}
             >
-              <p className="text-xs font-medium uppercase text-slate-500">Revenue hoy (UTC)</p>
+              <p className="text-xs font-medium uppercase text-primaryDark/50">Revenue hoy (UTC)</p>
               <p className="mt-1 text-2xl font-semibold tabular-nums">
                 {data.revenueToday.toLocaleString("es-CL", {
                   style: "currency",
@@ -342,33 +342,33 @@ export default function AdminOpsPage() {
                 })}
               </p>
             </div>
-            <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-              <p className="text-xs font-medium uppercase text-slate-500">Pagos hoy (eventos)</p>
-              <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">
+            <div className="rounded-lg border border-hd-border-subtle bg-white p-4 shadow-sm">
+              <p className="text-xs font-medium uppercase text-primaryDark/50">Pagos hoy (eventos)</p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums text-primaryDark">
                 {data.paymentsToday}
               </p>
             </div>
-            <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-              <p className="text-xs font-medium uppercase text-slate-500">
+            <div className="rounded-lg border border-hd-border-subtle bg-white p-4 shadow-sm">
+              <p className="text-xs font-medium uppercase text-primaryDark/50">
                 Usuarios activos (~15 min)
               </p>
-              <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">
+              <p className="mt-1 text-2xl font-semibold tabular-nums text-primaryDark">
                 {data.activeUsers}
               </p>
-              <p className="mt-1 text-xs text-slate-500">product_events</p>
+              <p className="mt-1 text-xs text-primaryDark/50">product_events</p>
             </div>
-            <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-              <p className="text-xs font-medium uppercase text-slate-500">
+            <div className="rounded-lg border border-hd-border-subtle bg-white p-4 shadow-sm">
+              <p className="text-xs font-medium uppercase text-primaryDark/50">
                 Alertas (24h, esta instancia)
               </p>
-              <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">
+              <p className="mt-1 text-2xl font-semibold tabular-nums text-primaryDark">
                 {data.alertsLast24h}
               </p>
             </div>
           </section>
 
-          <section className="mb-10 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-            <h2 className="mb-4 text-sm font-semibold text-slate-900">
+          <section className="mb-10 rounded-lg border border-hd-border-subtle bg-white p-4 shadow-sm">
+            <h2 className="mb-4 text-sm font-semibold text-primaryDark">
               Requests por minuto (últimos 30 min, esta instancia)
             </h2>
             <div className="h-72 w-full">
@@ -378,12 +378,12 @@ export default function AdminOpsPage() {
 
           {data.errorsByEndpoint.length > 0 && (
             <section className="mb-10">
-              <h2 className="mb-3 text-sm font-semibold text-slate-900">
+              <h2 className="mb-3 text-sm font-semibold text-primaryDark">
                 Errores por endpoint (5xx, ~5 min)
               </h2>
-              <div className="overflow-x-auto rounded-lg border border-slate-200">
+              <div className="overflow-x-auto rounded-lg border border-hd-border-subtle">
                 <table className="min-w-full text-left text-sm">
-                  <thead className="bg-slate-50 text-xs uppercase text-slate-600">
+                  <thead className="bg-hd-surface-muted text-xs uppercase text-primaryDark/70">
                     <tr>
                       <th className="px-3 py-2">Path</th>
                       <th className="px-3 py-2">5xx</th>
@@ -393,8 +393,8 @@ export default function AdminOpsPage() {
                   </thead>
                   <tbody>
                     {data.errorsByEndpoint.map((row) => (
-                      <tr key={row.path} className="border-t border-slate-100">
-                        <td className="px-3 py-2 font-mono text-xs text-slate-800">{row.path}</td>
+                      <tr key={row.path} className="border-t border-hd-border-subtle">
+                        <td className="px-3 py-2 font-mono text-xs text-primaryDark">{row.path}</td>
                         <td className="px-3 py-2 tabular-nums text-red-700">{row.errorCount}</td>
                         <td className="px-3 py-2 tabular-nums">{row.requestCount}</td>
                         <td className="px-3 py-2 tabular-nums">
@@ -410,12 +410,12 @@ export default function AdminOpsPage() {
 
           {data.topEndpointsByLatency.length > 0 && (
             <section className="mb-10">
-              <h2 className="mb-3 text-sm font-semibold text-slate-900">
+              <h2 className="mb-3 text-sm font-semibold text-primaryDark">
                 Top latencia por path (~5 min, muestras en esta réplica)
               </h2>
-              <div className="overflow-x-auto rounded-lg border border-slate-200">
+              <div className="overflow-x-auto rounded-lg border border-hd-border-subtle">
                 <table className="min-w-full text-left text-sm">
-                  <thead className="bg-slate-50 text-xs uppercase text-slate-600">
+                  <thead className="bg-hd-surface-muted text-xs uppercase text-primaryDark/70">
                     <tr>
                       <th className="px-3 py-2">Path</th>
                       <th className="px-3 py-2">Avg ms</th>
@@ -424,7 +424,7 @@ export default function AdminOpsPage() {
                   </thead>
                   <tbody>
                     {data.topEndpointsByLatency.map((row) => (
-                      <tr key={row.path} className="border-t border-slate-100">
+                      <tr key={row.path} className="border-t border-hd-border-subtle">
                         <td className="px-3 py-2 font-mono text-xs">{row.path}</td>
                         <td className="px-3 py-2 tabular-nums">{row.avgMs}</td>
                         <td className="px-3 py-2 tabular-nums">{row.count}</td>
@@ -438,12 +438,12 @@ export default function AdminOpsPage() {
 
           {data.requestTraceTimeline.length > 0 && (
             <section className="mb-10">
-              <h2 className="mb-3 text-sm font-semibold text-slate-900">
+              <h2 className="mb-3 text-sm font-semibold text-primaryDark">
                 Línea de tiempo de peticiones (esta réplica)
               </h2>
-              <div className="overflow-x-auto rounded-lg border border-slate-200">
+              <div className="overflow-x-auto rounded-lg border border-hd-border-subtle">
                 <table className="min-w-full text-left text-xs">
-                  <thead className="bg-slate-50 uppercase text-slate-600">
+                  <thead className="bg-hd-surface-muted uppercase text-primaryDark/70">
                     <tr>
                       <th className="px-2 py-2">requestId</th>
                       <th className="px-2 py-2">method</th>
@@ -455,13 +455,13 @@ export default function AdminOpsPage() {
                   </thead>
                   <tbody>
                     {data.requestTraceTimeline.map((r) => (
-                      <tr key={`${r.at}-${r.requestId}`} className="border-t border-slate-100">
+                      <tr key={`${r.at}-${r.requestId}`} className="border-t border-hd-border-subtle">
                         <td className="px-2 py-1 font-mono">{r.requestId.slice(0, 8)}…</td>
                         <td className="px-2 py-1">{r.method}</td>
                         <td className="px-2 py-1 font-mono">{r.path}</td>
                         <td className="px-2 py-1">{r.statusCode}</td>
                         <td className="px-2 py-1">{r.durationMs}</td>
-                        <td className="px-2 py-1 text-slate-500">{r.at}</td>
+                        <td className="px-2 py-1 text-primaryDark/50">{r.at}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -471,24 +471,24 @@ export default function AdminOpsPage() {
           )}
 
           <section>
-            <h2 className="mb-3 text-sm font-semibold text-slate-900">
+            <h2 className="mb-3 text-sm font-semibold text-primaryDark">
               Alertas recientes (insights + memoria local)
             </h2>
             {data.recentAlerts.length === 0 ? (
-              <p className="text-sm text-slate-600">Sin alertas en ventana.</p>
+              <p className="text-sm text-primaryDark/70">Sin alertas en ventana.</p>
             ) : (
               <ul className="space-y-2 text-sm">
                 {data.recentAlerts.map((a) => (
                   <li
                     key={`${a.at}-${a.event}`}
-                    className="rounded border border-slate-200 bg-slate-50 px-3 py-2"
+                    className="rounded border border-hd-border-subtle bg-hd-surface-muted px-3 py-2"
                   >
-                    <span className="font-medium text-slate-800">{a.event}</span>
-                    <span className="ml-2 text-xs uppercase text-slate-500">{a.level}</span>
-                    <span className="ml-2 text-xs text-slate-500">{a.at}</span>
-                    {a.message && <p className="mt-1 text-slate-700">{a.message}</p>}
+                    <span className="font-medium text-primaryDark">{a.event}</span>
+                    <span className="ml-2 text-xs uppercase text-primaryDark/50">{a.level}</span>
+                    <span className="ml-2 text-xs text-primaryDark/50">{a.at}</span>
+                    {a.message && <p className="mt-1 text-primaryDark">{a.message}</p>}
                     {a.analysis && (
-                      <p className="mt-1 text-sm text-indigo-900">🧠 {a.analysis}</p>
+                      <p className="mt-1 text-sm text-primaryDark">🧠 {a.analysis}</p>
                     )}
                   </li>
                 ))}

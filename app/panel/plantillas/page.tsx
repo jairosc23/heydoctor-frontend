@@ -1,20 +1,17 @@
 "use client";
 
-const BRAND = "#078a92";
+const FONT_HEADING = "Montserrat, sans-serif";
 
 export default function PlantillasPage() {
   return (
-    <div style={{ padding: 25 }}>
+    <div className="space-y-3">
       <h1
-        style={{
-          fontFamily: "Montserrat, sans-serif",
-          color: BRAND,
-          marginBottom: 12,
-        }}
+        className="text-2xl font-bold text-primary"
+        style={{ fontFamily: FONT_HEADING }}
       >
         Plantillas
       </h1>
-      <p style={{ color: "#666", maxWidth: 640 }}>
+      <p className="max-w-xl text-primaryDark/70">
         Módulo de plantillas clínicas y documentos reutilizables. Próximamente
         podrás crear y aplicar plantillas desde aquí.
       </p>

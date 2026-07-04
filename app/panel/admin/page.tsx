@@ -3,24 +3,21 @@
 import MetricsDashboard from "@/components/admin/MetricsDashboard";
 import DoctorApplicationsManager from "@/components/admin/DoctorApplicationsManager";
 
+const FONT_HEADING = "Montserrat, sans-serif";
+
 export default function AdminPage() {
   return (
-    <div style={{ maxWidth: 960 }}>
+    <div className="max-w-5xl space-y-8">
       <h1
-        style={{
-          fontFamily: "Montserrat, sans-serif",
-          color: "#078a92",
-          fontSize: 26,
-          fontWeight: 700,
-          marginBottom: 28,
-        }}
+        className="mb-0 text-[26px] font-bold text-primary"
+        style={{ fontFamily: FONT_HEADING }}
       >
         Panel de Administración
       </h1>
 
       <MetricsDashboard />
 
-      <div style={{ marginTop: 32 }}>
+      <div>
         <DoctorApplicationsManager />
       </div>
     </div>

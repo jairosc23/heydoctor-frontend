@@ -1,6 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
+import { BrandLogo } from "@/components/branding";
+import Card from "@/components/ui/Card";
+import Input from "@/components/ui/Input";
+import Button from "@/components/ui/Button";
 
 interface GuestNamePromptProps {
   defaultName?: string;
@@ -10,6 +14,10 @@ interface GuestNamePromptProps {
 }
 
 const NAME_MAX = 80;
+const FONT_HEADING = "Montserrat, sans-serif";
+
+const CTA_PRIMARY =
+  "rounded-lg border-0 bg-primary shadow-none !shadow-[0_4px_12px_rgba(7,138,146,0.22)] hover:bg-primaryMid hover:scale-100 focus:outline-none focus:ring-2 focus:ring-primaryLight focus:ring-offset-2 disabled:hover:bg-primary disabled:hover:scale-100";
 
 /**
  * Pantalla previa a entrar a la teleconsulta como invitado: pedimos un nombre
@@ -33,137 +41,59 @@ export function GuestNamePrompt({
   };
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 16,
-        background: "linear-gradient(180deg,#f0fdfa 0%,#ffffff 60%)",
-      }}
-    >
-      <form
-        onSubmit={submit}
-        style={{
-          width: "100%",
-          maxWidth: 420,
-          background: "#ffffff",
-          borderRadius: 16,
-          boxShadow: "0 12px 40px rgba(15,23,42,0.10)",
-          border: "1px solid #e5e7eb",
-          padding: "28px 24px",
-        }}
-        aria-labelledby="guest-prompt-title"
-      >
-        <div
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            background: "#fef3c7",
-            color: "#92400e",
-            padding: "4px 10px",
-            borderRadius: 999,
-            fontSize: 11,
-            fontWeight: 600,
-            marginBottom: 14,
-          }}
-        >
-          <span aria-hidden>🎫</span>
-          {subtitle}
-        </div>
-        <h1
-          id="guest-prompt-title"
-          style={{
-            margin: 0,
-            marginBottom: 6,
-            fontFamily: "Montserrat, sans-serif",
-            fontSize: 22,
-            fontWeight: 700,
-            color: "#0f172a",
-          }}
-        >
-          ¿Cómo te llamas?
-        </h1>
-        <p
-          style={{
-            margin: 0,
-            marginBottom: 16,
-            color: "#475569",
-            fontSize: 13,
-            lineHeight: 1.5,
-          }}
-        >
-          Antes de entrar, ingresa tu nombre para que el médico sepa quién está
-          en la videollamada.
-        </p>
+    <div className="flex min-h-screen items-center justify-center bg-hd-surface-base px-4 py-6">
+      <Card className="w-full max-w-md p-6 shadow-premium sm:p-7">
+        <form onSubmit={submit} aria-labelledby="guest-prompt-title">
+          <div className="mb-4 flex justify-center">
+            <BrandLogo markOnly markSize={56} priority />
+          </div>
+          <div className="mb-3.5 inline-flex items-center rounded-full bg-primaryLight px-2.5 py-1 text-[11px] font-semibold text-primary">
+            {subtitle}
+          </div>
+          <h1
+            id="guest-prompt-title"
+            className="mb-1.5 text-[22px] font-bold text-primary"
+            style={{ fontFamily: FONT_HEADING }}
+          >
+            ¿Cómo te llamas?
+          </h1>
+          <p className="mb-4 text-[13px] leading-relaxed text-primaryDark/70">
+            Antes de entrar, ingresa tu nombre para que el médico sepa quién está
+            en la videollamada.
+          </p>
 
-        <label
-          htmlFor="guest-name-input"
-          style={{
-            display: "block",
-            fontSize: 12,
-            fontWeight: 600,
-            color: "#475569",
-            marginBottom: 6,
-          }}
-        >
-          Tu nombre
-        </label>
-        <input
-          id="guest-name-input"
-          autoFocus
-          autoComplete="name"
-          maxLength={NAME_MAX}
-          value={name}
-          onChange={(e) => setName(e.target.value.slice(0, NAME_MAX))}
-          placeholder="Ej: María González"
-          style={{
-            width: "100%",
-            padding: "10px 12px",
-            border: "1px solid #d1d5db",
-            borderRadius: 10,
-            fontSize: 14,
-            outline: "none",
-            marginBottom: 14,
-            background: "#ffffff",
-          }}
-        />
+          <label
+            htmlFor="guest-name-input"
+            className="mb-1.5 block text-xs font-semibold text-primaryDark"
+            style={{ fontFamily: FONT_HEADING }}
+          >
+            Tu nombre
+          </label>
+          <Input
+            id="guest-name-input"
+            autoFocus
+            autoComplete="name"
+            maxLength={NAME_MAX}
+            value={name}
+            onChange={(e) => setName(e.target.value.slice(0, NAME_MAX))}
+            placeholder="Ej: María González"
+            className="mb-3.5 min-h-11 rounded-lg border-hd-border-default"
+          />
 
-        <button
-          type="submit"
-          disabled={!valid}
-          style={{
-            width: "100%",
-            padding: "12px 16px",
-            borderRadius: 10,
-            border: "none",
-            background: valid
-              ? "linear-gradient(90deg,#0d9488 0%,#078a92 100%)"
-              : "#cbd5e1",
-            color: "#ffffff",
-            fontWeight: 700,
-            fontSize: 14,
-            cursor: valid ? "pointer" : "not-allowed",
-            transition: "background 200ms ease",
-          }}
-        >
-          Entrar a la consulta
-        </button>
+          <Button
+            type="submit"
+            variant="primary"
+            disabled={!valid}
+            className={`w-full min-h-11 ${CTA_PRIMARY}`}
+          >
+            Entrar a la consulta
+          </Button>
 
-        <p
-          style={{
-            margin: 0,
-            marginTop: 10,
-            color: "#94a3b8",
-            fontSize: 11,
-            textAlign: "center",
-          }}
-        >
-          No se requiere cuenta · No guardamos contraseñas
-        </p>
-      </form>
+          <p className="mt-2.5 mb-0 text-center text-[11px] text-primaryDark/50">
+            No se requiere cuenta · No guardamos contraseñas
+          </p>
+        </form>
+      </Card>
     </div>
   );
 }

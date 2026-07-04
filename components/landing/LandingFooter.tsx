@@ -43,7 +43,7 @@ export function LandingFooter({ whatsAppUrl }: LandingFooterProps) {
   return (
     <footer className="bg-primaryDark text-white">
       <Container className="py-14">
-        <div className="flex flex-col gap-8 border-b border-white/10 pb-10 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-6 border-b border-white/10 pb-8 sm:flex-row sm:items-center sm:justify-between">
           <BrandLogo variant="footer" />
           <div className="flex items-center gap-3">
             <SocialIcon label="Facebook" />
@@ -63,7 +63,7 @@ export function LandingFooter({ whatsAppUrl }: LandingFooterProps) {
                     <li key={`${column.title}-${link.label}`}>
                       <Link
                         href={link.href}
-                        className="text-sm text-slate-400 no-underline transition-colors hover:text-white"
+                        className="text-sm text-white/70 no-underline transition-colors hover:text-white"
                       >
                         {link.label}
                       </Link>
@@ -74,21 +74,21 @@ export function LandingFooter({ whatsAppUrl }: LandingFooterProps) {
             ))}
           </div>
 
-          <div className="w-full shrink-0 rounded-2xl border border-[#25D366]/30 bg-[#043638] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+          <div className="w-full shrink-0 rounded-2xl border border-white/10 bg-[#043638] p-5">
             <a
               href={whatsAppHref}
               target={whatsAppUrl ? "_blank" : undefined}
               rel={whatsAppUrl ? "noopener noreferrer" : undefined}
               className="flex items-start gap-4 no-underline"
             >
-              <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#25D366] text-white">
+              <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#25D366] text-white">
                 <WhatsappIcon />
               </span>
               <span>
                 <span className="block text-base font-semibold text-white">
                   Consulta por WhatsApp
                 </span>
-                <span className="mt-1 block text-sm text-slate-300">
+                <span className="mt-1 block text-sm text-white/70">
                   Atención en menos de 1 minuto
                 </span>
               </span>
@@ -97,7 +97,7 @@ export function LandingFooter({ whatsAppUrl }: LandingFooterProps) {
         </div>
 
         <div className="mt-8 pt-2">
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-white/50">
             &copy; {new Date().getFullYear()} HeyDoctor. Todos los derechos reservados.
           </p>
         </div>

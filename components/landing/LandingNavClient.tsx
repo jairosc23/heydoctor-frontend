@@ -35,8 +35,8 @@ export function LandingNavClient() {
   const close = () => setOpen(false);
 
   return (
-    <header className="sticky top-0 z-50 box-border h-[72px] border-b border-gray-100 bg-white shadow-[0_1px_0_rgba(2,44,44,0.04)]">
-      <Container className="flex h-full items-center justify-between gap-6">
+    <header className="sticky top-0 z-50 box-border h-[72px] border-b border-[#E8EEF0] bg-white shadow-[0_1px_0_rgba(2,44,44,0.05)]">
+      <Container className="flex h-full items-center">
         <Link
           href="/"
           className="flex min-w-0 shrink items-center no-underline"
@@ -45,34 +45,39 @@ export function LandingNavClient() {
           <BrandLogo variant="nav" priority className="min-w-0 truncate" />
         </Link>
 
+        <div className="hidden w-[305px] shrink-0 md:block" aria-hidden />
+
         <nav
-          className="hidden items-center gap-2 md:flex"
+          className="hidden min-w-0 flex-1 items-center md:flex"
           aria-label="Navegación principal"
         >
           {NAV_LINKS.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className="rounded-lg px-4 py-2 text-sm font-medium text-primaryDark no-underline transition-colors duration-200 hover:bg-gray-50"
+              className="px-4 py-2 text-sm font-medium text-primaryDark no-underline transition-colors duration-200 hover:text-primary"
+              style={{ fontFamily: "Montserrat, sans-serif" }}
             >
               {item.label}
             </Link>
           ))}
-          <Button
-            href="/login"
-            variant="secondary"
-            className="h-[42px] min-h-[42px] rounded-xl border-gray-300 bg-white px-5 py-0 text-sm font-semibold text-primaryDark shadow-none hover:scale-100"
-          >
-            Iniciar Sesión
-          </Button>
-          <Button
-            href="/consulta-rapida"
-            variant="primary"
-            className="h-[42px] min-h-[42px] gap-2 rounded-xl px-5 py-0 text-sm font-semibold shadow-[0_8px_20px_rgba(7,138,146,0.22)] hover:scale-100"
-          >
-            <WhatsappIcon />
-            Consulta rápida
-          </Button>
+          <div className="ml-3 flex items-center gap-2">
+            <Button
+              href="/login"
+              variant="secondary"
+              className="h-10 min-h-10 rounded-lg border border-primary bg-white px-5 py-0 font-[Montserrat,sans-serif] text-sm font-medium text-primary shadow-none hover:bg-primaryLight hover:scale-100"
+            >
+              Iniciar Sesión
+            </Button>
+            <Button
+              href="/consulta-rapida"
+              variant="primary"
+              className="h-10 min-h-10 gap-2 rounded-lg border-0 bg-primary px-5 py-0 font-[Montserrat,sans-serif] text-sm font-medium shadow-none !shadow-[0_4px_12px_rgba(7,138,146,0.22)] hover:bg-primaryMid hover:scale-100"
+            >
+              <WhatsappIcon />
+              Consulta rápida
+            </Button>
+          </div>
         </nav>
 
         <button
@@ -129,14 +134,14 @@ export function LandingNavClient() {
               <Button
                 href="/login"
                 variant="secondary"
-                className="w-full py-3 text-sm font-[family-name:Montserrat,sans-serif]"
+                className="w-full rounded-lg border-primary py-3 text-sm font-medium text-primary"
               >
                 Iniciar Sesión
               </Button>
               <Button
                 href="/consulta-rapida"
                 variant="primary"
-                className="w-full gap-2 rounded-xl py-3 text-sm font-semibold"
+                className="w-full gap-2 rounded-lg bg-primary py-3 text-sm font-medium shadow-[0_4px_12px_rgba(7,138,146,0.22)] hover:bg-primaryMid"
               >
                 <WhatsappIcon />
                 Consulta rápida

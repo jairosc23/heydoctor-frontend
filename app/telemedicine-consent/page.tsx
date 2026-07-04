@@ -27,7 +27,7 @@ export default function TelemedicineConsentPage() {
 
       <Section id="limitaciones" title="3. Limitaciones de la Telemedicina">
         <p>Usted comprende y acepta que:</p>
-        <ul style={{ paddingLeft: 20 }}>
+        <ul>
           <li>La telemedicina <strong>no sustituye la atención presencial de urgencia</strong></li>
           <li>El profesional no puede realizar un examen físico directo</li>
           <li>La calidad del servicio depende de su conexión a internet y dispositivo</li>
@@ -41,7 +41,7 @@ export default function TelemedicineConsentPage() {
           Al otorgar este consentimiento, usted autoriza el registro de los datos clínicos
           generados durante la consulta (motivo, diagnóstico, tratamiento, notas clínicas,
           firma digital) en el sistema HeyDoctor. Estos datos se almacenan conforme a nuestra{" "}
-          <Link href="/privacy" style={{ color: "#078a92" }}>Política de Privacidad</Link> y
+          <Link href="/privacy">Política de Privacidad</Link> y
           la normativa sanitaria aplicable.
         </p>
         <p>
@@ -62,7 +62,7 @@ export default function TelemedicineConsentPage() {
         <p>
           Al aceptar este consentimiento en la plataforma, se registra automáticamente:
         </p>
-        <ul style={{ paddingLeft: 20 }}>
+        <ul>
           <li>Fecha y hora exacta de aceptación (timestamp del servidor)</li>
           <li>Versión del documento de consentimiento aceptada</li>
           <li>Dirección IP del dispositivo</li>
@@ -78,7 +78,7 @@ export default function TelemedicineConsentPage() {
       <Section id="revocacion" title="7. Revocación">
         <p>
           Usted puede revocar este consentimiento en cualquier momento contactando a{" "}
-          <a href="mailto:soporte@heydoctor.health" style={{ color: "#078a92" }}>soporte@heydoctor.health</a>.
+          <a href="mailto:soporte@heydoctor.health">soporte@heydoctor.health</a>.
           La revocación no afecta la licitud del tratamiento realizado antes de la misma ni
           la validez de las consultas ya completadas.
         </p>
@@ -96,8 +96,8 @@ export default function TelemedicineConsentPage() {
       <Section id="contacto" title="9. Contacto">
         <p>
           <strong>SAVAC LTDA</strong> &middot; RUT 76.373.761-6<br />
-          Legal: <a href="mailto:legal@heydoctor.health" style={{ color: "#078a92" }}>legal@heydoctor.health</a><br />
-          Soporte: <a href="mailto:soporte@heydoctor.health" style={{ color: "#078a92" }}>soporte@heydoctor.health</a>
+          Legal: <a href="mailto:legal@heydoctor.health">legal@heydoctor.health</a><br />
+          Soporte: <a href="mailto:soporte@heydoctor.health">soporte@heydoctor.health</a>
         </p>
       </Section>
     </LegalPageLayout>

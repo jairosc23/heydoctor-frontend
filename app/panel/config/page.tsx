@@ -1,122 +1,90 @@
 "use client";
 
 import { useAuth } from "@/lib/context/AuthContext";
+import Card from "@/components/ui/Card";
 
-const BRAND = "#078a92";
+const FONT_HEADING = "Montserrat, sans-serif";
 
 export default function ConfigPage() {
   const { user } = useAuth();
   const displayName = user?.email ? user.email.split("@")[0] : undefined;
 
   return (
-    <div style={{ padding: 25 }}>
-      <h1
-        style={{
-          fontFamily: "Montserrat",
-          color: BRAND,
-          marginBottom: 12,
-        }}
-      >
-        Configuración
-      </h1>
-      <p style={{ color: "#666", marginBottom: 24 }}>
-        Ajustes del centro médico y tu cuenta.
-      </p>
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-          gap: 24,
-        }}
-      >
-        <div
-          style={{
-            background: "white",
-            padding: 24,
-            borderRadius: 14,
-            boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
-          }}
+    <div className="space-y-6">
+      <div>
+        <h1
+          className="mb-3 text-2xl font-bold text-primary"
+          style={{ fontFamily: FONT_HEADING }}
         >
+          Configuración
+        </h1>
+        <p className="m-0 text-primaryDark/70">
+          Ajustes del centro médico y tu cuenta.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <Card className="p-6 shadow-premium">
           <h3
-            style={{
-              fontFamily: "Montserrat",
-              fontSize: 16,
-              color: "#333",
-              marginBottom: 16,
-            }}
+            className="mb-4 text-base font-bold text-primaryDark"
+            style={{ fontFamily: FONT_HEADING }}
           >
             Mi cuenta
           </h3>
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div className="flex flex-col gap-3">
             <div>
-              <label style={{ fontSize: 12, color: "#999", display: "block", marginBottom: 4 }}>
+              <label className="mb-1 block text-xs text-primaryDark/50">
                 Email
               </label>
-              <p style={{ margin: 0, fontSize: 14, color: "#333" }}>
+              <p className="m-0 text-sm text-primaryDark">
                 {user?.email ?? "—"}
               </p>
             </div>
             <div>
-              <label style={{ fontSize: 12, color: "#999", display: "block", marginBottom: 4 }}>
+              <label className="mb-1 block text-xs text-primaryDark/50">
                 Nombre
               </label>
-              <p style={{ margin: 0, fontSize: 14, color: "#333" }}>
+              <p className="m-0 text-sm text-primaryDark">
                 {displayName || "—"}
               </p>
             </div>
             <div>
-              <label style={{ fontSize: 12, color: "#999", display: "block", marginBottom: 4 }}>
+              <label className="mb-1 block text-xs text-primaryDark/50">
                 Rol
               </label>
-              <p style={{ margin: 0, fontSize: 14, color: "#333" }}>
+              <p className="m-0 text-sm text-primaryDark">
                 {user?.role || "—"}
               </p>
             </div>
             <div>
-              <label style={{ fontSize: 12, color: "#999", display: "block", marginBottom: 4 }}>
+              <label className="mb-1 block text-xs text-primaryDark/50">
                 Plan
               </label>
               <span
-                style={{
-                  display: "inline-block",
-                  padding: "4px 12px",
-                  fontSize: 12,
-                  fontWeight: 700,
-                  borderRadius: 6,
-                  background: user?.plan === "pro" ? "#dff7f8" : "#f3f4f6",
-                  color: user?.plan === "pro" ? BRAND : "#666",
-                }}
+                className={`inline-block rounded-md px-3 py-1 text-xs font-bold ${
+                  user?.plan === "pro"
+                    ? "bg-primaryLight text-primary"
+                    : "bg-hd-surface-muted text-primaryDark/70"
+                }`}
               >
                 {(user?.plan ?? "free").toUpperCase()}
               </span>
             </div>
           </div>
-        </div>
+        </Card>
 
-        <div
-          style={{
-            background: "white",
-            padding: 24,
-            borderRadius: 14,
-            boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
-          }}
-        >
+        <Card className="p-6 shadow-premium">
           <h3
-            style={{
-              fontFamily: "Montserrat",
-              fontSize: 16,
-              color: "#333",
-              marginBottom: 16,
-            }}
+            className="mb-4 text-base font-bold text-primaryDark"
+            style={{ fontFamily: FONT_HEADING }}
           >
             Centro Médico
           </h3>
-          <p style={{ color: "#888", fontSize: 13, lineHeight: 1.6 }}>
+          <p className="m-0 text-[13px] leading-relaxed text-primaryDark/60">
             La configuración del centro médico (nombre, dirección, horarios,
             especialidades) estará disponible próximamente.
           </p>
-        </div>
+        </Card>
       </div>
     </div>
   );

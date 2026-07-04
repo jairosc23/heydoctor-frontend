@@ -9,8 +9,15 @@ import {
   startGrowthPricingCheckout,
   trackAuthedOrPublic,
 } from "@/lib/growth";
+import Container from "@/components/ui/Container";
+import Card from "@/components/ui/Card";
+import Button from "@/components/ui/Button";
 
 const EXPERIMENT_KEY = "pricing_upgrade_cta";
+const FONT_HEADING = "Montserrat, sans-serif";
+
+const CTA_PRIMARY =
+  "rounded-lg border-0 bg-primary shadow-none !shadow-[0_4px_12px_rgba(7,138,146,0.22)] hover:bg-primaryMid hover:scale-100 focus:outline-none focus:ring-2 focus:ring-primaryLight focus:ring-offset-2 disabled:hover:bg-primary disabled:hover:scale-100";
 
 function PricingContent() {
   const searchParams = useSearchParams();
@@ -58,77 +65,89 @@ function PricingContent() {
   };
 
   return (
-    <main className="mx-auto max-w-lg px-4 py-12">
-      <nav
-        className="mb-8 flex flex-wrap justify-between gap-3 text-sm"
-        aria-label="Navegación de pricing"
-      >
-        <Link
-          href="/"
-          className="rounded text-slate-300 underline hover:text-white focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 focus:ring-offset-slate-950"
+    <main className="py-8 sm:py-12">
+      <Container className="max-w-lg">
+        <nav
+          className="mb-8 flex flex-wrap justify-between gap-3 text-sm"
+          aria-label="Navegación de pricing"
         >
-          Inicio
-        </Link>
-        <Link
-          href="/login"
-          className="rounded text-slate-300 underline hover:text-white focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 focus:ring-offset-slate-950"
-        >
-          Iniciar sesión
-        </Link>
-        <Link
-          href="/panel"
-          className="rounded text-slate-300 underline hover:text-white focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 focus:ring-offset-slate-950"
-        >
-          Panel
-        </Link>
-      </nav>
+          <Link
+            href="/"
+            className="rounded font-medium text-primary no-underline hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+          >
+            Inicio
+          </Link>
+          <Link
+            href="/login"
+            className="inline-flex h-10 min-h-10 items-center rounded-lg border border-primary bg-hd-surface-chrome px-5 text-sm font-medium text-primary no-underline transition-colors duration-hd-base hover:bg-primaryLight focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            style={{ fontFamily: FONT_HEADING }}
+          >
+            Iniciar sesión
+          </Link>
+          <Link
+            href="/panel"
+            className="rounded font-medium text-primaryDark/70 no-underline hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+          >
+            Panel
+          </Link>
+        </nav>
 
-      {paymentOk ? (
-        <div
-          role="status"
-          className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-950"
-        >
-          Pago recibido. Si iniciaste sesión más tarde, tu plan PRO aparecerá en el
-          panel; el webhook puede tardar unos segundos.
-        </div>
-      ) : null}
-
-      <h1 className="mb-4 text-xl font-semibold text-white">Planes HeyDoctor PRO</h1>
-      <p className="mb-6 text-sm text-slate-300">
-        Variante experimento «{EXPERIMENT_KEY}»: <strong>{variant}</strong>. Pago
-        seguro con Payku (sin pasar obligatoriamente por el panel).
-      </p>
-
-      <div className="rounded-lg border border-slate-700 bg-slate-900 p-6 shadow-sm">
-        <p className="mb-4 text-lg font-medium text-white">
-          PRO · Teleconsulta y toolkit clínico
-        </p>
-        <p className="mb-6 text-sm text-slate-300">
-          Redirige a Payku para completar el cobro; vuelves a esta página al
-          terminar.
-        </p>
-
-        {error ? (
-          <p className="mb-3 text-sm text-red-300" role="alert">
-            {error}
-          </p>
+        {paymentOk ? (
+          <div
+            role="status"
+            className="mb-6 rounded-lg border border-primary/20 bg-primaryLight px-3 py-2 text-sm text-primaryDark"
+          >
+            Pago recibido. Si iniciaste sesión más tarde, tu plan PRO aparecerá en el
+            panel; el webhook puede tardar unos segundos.
+          </div>
         ) : null}
 
-        <button
-          type="button"
-          disabled={!ready || anonSessionId.length < 12 || busy}
-          aria-describedby={!ready ? "pricing-loading" : undefined}
-          className="w-full rounded-lg bg-teal-600 px-4 py-3 text-center font-medium text-white hover:bg-teal-500 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:ring-offset-2 focus:ring-offset-slate-900"
-          onClick={() => void handleUpgrade()}
+        <h1
+          className="mb-4 text-2xl font-bold text-primary"
+          style={{ fontFamily: FONT_HEADING }}
         >
-          {busy ? "Abriendo checkout…" : buttonText}
-        </button>
-        {!ready ? (
-          <p id="pricing-loading" className="mt-2 text-xs text-slate-400">
-            Preparando variante del experimento…
+          Planes HeyDoctor PRO
+        </h1>
+        <p className="mb-6 text-sm text-primaryDark/70">
+          Variante experimento «{EXPERIMENT_KEY}»: <strong className="text-primaryDark">{variant}</strong>. Pago
+          seguro con Payku (sin pasar obligatoriamente por el panel).
+        </p>
+
+        <Card className="p-6 shadow-premium">
+          <p
+            className="mb-4 text-lg font-semibold text-primaryDark"
+            style={{ fontFamily: FONT_HEADING }}
+          >
+            PRO · Teleconsulta y toolkit clínico
           </p>
-        ) : null}
-      </div>
+          <p className="mb-6 text-sm text-primaryDark/70">
+            Redirige a Payku para completar el cobro; vuelves a esta página al
+            terminar.
+          </p>
+
+          {error ? (
+            <p className="mb-3 text-sm text-red-600" role="alert">
+              {error}
+            </p>
+          ) : null}
+
+          <Button
+            type="button"
+            variant="primary"
+            disabled={!ready || anonSessionId.length < 12 || busy}
+            aria-describedby={!ready ? "pricing-loading" : undefined}
+            className={`w-full min-h-12 ${CTA_PRIMARY}`}
+            onClick={() => void handleUpgrade()}
+          >
+            {busy ? "Abriendo checkout…" : buttonText}
+          </Button>
+          {!ready ? (
+            <p id="pricing-loading" className="mt-2 text-xs text-primaryDark/50">
+              Preparando variante del experimento…
+            </p>
+          ) : null}
+        </Card>
+      </Container>
     </main>
   );
 }
@@ -137,7 +156,7 @@ export default function PricingPage() {
   return (
     <Suspense
       fallback={
-        <p className="px-4 py-12 text-sm text-slate-300">Cargando pricing…</p>
+        <p className="px-4 py-12 text-sm text-primaryDark/70">Cargando pricing…</p>
       }
     >
       <PricingContent />

@@ -12,7 +12,7 @@ const statusLabel: Record<DemoEvidenceStatus, string> = {
 };
 
 const statusClass: Record<DemoEvidenceStatus, string> = {
-  active: "border-indigo-200 bg-indigo-50 text-indigo-900",
+  active: "border-primary/20 bg-primaryLight text-primaryDark",
   ready: "border-emerald-200 bg-emerald-50 text-emerald-900",
   protected: "border-amber-200 bg-amber-50 text-amber-900",
 };
@@ -23,7 +23,7 @@ function DataOriginCard({ item }: { item: DemoDataOrigin }) {
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
         {item.label}
       </p>
-      <p className="mt-2 text-sm font-semibold text-slate-950">{item.value}</p>
+      <p className="mt-2 text-sm font-semibold text-primaryDark">{item.value}</p>
       <p className="mt-2 text-sm leading-6 text-slate-600">{item.description}</p>
     </div>
   );
@@ -33,7 +33,7 @@ function CapabilityCard({ item }: { item: DemoEvidenceCapability }) {
   return (
     <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h3 className="text-sm font-semibold text-slate-950">{item.name}</h3>
+        <h3 className="text-sm font-semibold text-primaryDark">{item.name}</h3>
         <span
           className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${statusClass[item.status]}`}
         >
@@ -61,7 +61,7 @@ export function DemoEvidenceReadinessPanel({ scenario }: { scenario: DemoScenari
     >
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-indigo-600">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">
             Evidence + Readiness Layer
           </p>
           <h2 id="demo-evidence-title" className="mt-2 text-2xl font-semibold tracking-tight">

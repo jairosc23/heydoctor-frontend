@@ -16,6 +16,7 @@ import React, {
   useState,
 } from "react";
 import Link from "next/link";
+import { BrandLogo } from "@/components/branding";
 import { ConnectionQualityBadge } from "@/components/ConnectionQualityBadge";
 import {
   MessageCircle,
@@ -633,15 +634,21 @@ export const VideoCall = forwardRef<
       role="dialog"
       aria-label={displayTitle}
     >
-      <header className="flex shrink-0 items-center justify-between gap-3 border-b border-gray-200 bg-white px-4 py-3 pt-[max(env(safe-area-inset-top),12px)]">
-        <Link
-          href={callChrome.backHref}
-          className="premium-tap shrink-0 text-[15px] font-semibold text-emerald-700 no-underline hover:text-emerald-800"
-        >
-          ← {callChrome.backLabel}
-        </Link>
+      <header className="flex shrink-0 items-center justify-between gap-3 border-b border-hd-border-subtle bg-hd-surface-chrome px-4 py-3 pt-[max(env(safe-area-inset-top),12px)] shadow-hd-1">
+        <div className="flex min-w-0 items-center gap-3">
+          <BrandLogo markOnly markSize={28} className="shrink-0" />
+          <Link
+            href={callChrome.backHref}
+            className="premium-tap shrink-0 text-[15px] font-semibold text-primary no-underline hover:text-primaryMid"
+          >
+            ← {callChrome.backLabel}
+          </Link>
+        </div>
         <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
-          <h1 className="m-0 min-w-0 truncate text-right text-[15px] font-semibold text-emerald-700">
+          <h1
+            className="m-0 min-w-0 truncate text-right text-[15px] font-semibold text-primaryDark"
+            style={{ fontFamily: "Montserrat, sans-serif" }}
+          >
             {displayTitle}
           </h1>
           <div className="pointer-events-none shrink-0">
@@ -651,7 +658,7 @@ export const VideoCall = forwardRef<
             <button
               type="button"
               onClick={() => setDevicesOpen((v) => !v)}
-              className="premium-tap ml-1 inline-flex h-8 w-8 items-center justify-center rounded-full border border-emerald-100 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+              className="premium-tap ml-1 inline-flex h-8 w-8 items-center justify-center rounded-full border border-primary/20 bg-primaryLight text-primary hover:bg-primaryLight/80"
               aria-label="Ajustes de dispositivos (dev)"
               title="Ajustes de dispositivos (dev)"
             >
@@ -661,7 +668,7 @@ export const VideoCall = forwardRef<
         </div>
       </header>
 
-      <div className="relative flex min-h-0 flex-1 flex-col bg-[#0B0F14]">
+      <div className="relative flex min-h-0 flex-1 flex-col bg-primaryDark">
         <div className="relative z-0 flex min-h-0 flex-1 flex-col gap-4 p-4 md:flex-row">
           <div className="relative min-h-[200px] min-w-0 flex-1 overflow-hidden rounded-2xl bg-black md:min-h-0">
             <video
@@ -725,7 +732,7 @@ export const VideoCall = forwardRef<
                 toggleCam();
               }}
               onPointerDown={(e) => e.stopPropagation()}
-              className={`relative z-10 flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-full text-white premium-tap ${camOn ? "bg-emerald-500" : "bg-gray-500"}`}
+              className={`relative z-10 flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-full text-white premium-tap ${camOn ? "bg-primary" : "bg-gray-500"}`}
               aria-pressed={!camOn}
               aria-label={camOn ? "Apagar cámara" : "Encender cámara"}
             >
@@ -743,7 +750,7 @@ export const VideoCall = forwardRef<
                 toggleMic();
               }}
               onPointerDown={(e) => e.stopPropagation()}
-              className={`relative z-10 flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-full text-white premium-tap ${micOn ? "bg-emerald-500" : "bg-gray-500"}`}
+              className={`relative z-10 flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-full text-white premium-tap ${micOn ? "bg-primary" : "bg-gray-500"}`}
               aria-pressed={!micOn}
               aria-label={micOn ? "Silenciar micrófono" : "Activar micrófono"}
             >
@@ -762,7 +769,7 @@ export const VideoCall = forwardRef<
                   handleToggleScreenShare();
                 }}
                 onPointerDown={(e) => e.stopPropagation()}
-                className="relative z-10 flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-full bg-emerald-500 text-white premium-tap"
+                className="relative z-10 flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-full bg-primary text-white premium-tap"
                 aria-pressed={screenSharing}
                 aria-label={
                   screenSharing
@@ -781,7 +788,7 @@ export const VideoCall = forwardRef<
                 handleChatToggle();
               }}
               onPointerDown={(e) => e.stopPropagation()}
-              className="relative z-10 flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-full bg-emerald-500 text-white premium-tap"
+              className="relative z-10 flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-full bg-primary text-white premium-tap"
               aria-pressed={chatPanelOpen}
               aria-label="Chat"
             >
@@ -855,7 +862,7 @@ export const VideoCall = forwardRef<
                   onClick={() => {
                     if (selectedCam) void switchCamera(selectedCam);
                   }}
-                  className="premium-tap mt-2 w-full rounded-lg bg-emerald-600 px-3 py-2 font-semibold text-white"
+                  className="premium-tap mt-2 w-full rounded-lg bg-primary px-3 py-2 font-semibold text-white"
                 >
                   Aplicar cámara
                 </button>
@@ -879,7 +886,7 @@ export const VideoCall = forwardRef<
                   onClick={() => {
                     if (selectedMic) void switchMicrophone(selectedMic);
                   }}
-                  className="premium-tap mt-2 w-full rounded-lg bg-emerald-600 px-3 py-2 font-semibold text-white"
+                  className="premium-tap mt-2 w-full rounded-lg bg-primary px-3 py-2 font-semibold text-white"
                 >
                   Aplicar micrófono
                 </button>

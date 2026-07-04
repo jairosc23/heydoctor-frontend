@@ -192,10 +192,13 @@ export default function ProfessionalProfilePage() {
     <div className="mx-auto max-w-5xl">
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="m-0 text-2xl font-semibold text-slate-800">
+          <h1
+            className="m-0 text-2xl font-bold text-primary"
+            style={{ fontFamily: "Montserrat, sans-serif" }}
+          >
             Perfil profesional
           </h1>
-          <p className="mt-2 text-sm text-slate-600">
+          <p className="mt-2 text-sm text-primaryDark/70">
             Identidad profesional usada como fuente principal para documentos
             clínicos.
           </p>
@@ -204,19 +207,19 @@ export default function ProfessionalProfilePage() {
           type="button"
           onClick={() => void loadProfile()}
           disabled={loading || saving}
-          className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-xl border border-hd-border-default bg-white px-4 py-2 text-sm font-semibold text-primaryDark shadow-sm transition hover:bg-hd-surface-muted disabled:cursor-not-allowed disabled:opacity-60"
         >
           Recargar
         </button>
       </div>
 
-      <section className="mb-6 rounded-2xl border border-slate-100 bg-white p-5 shadow-soft">
+      <section className="mb-6 rounded-2xl border border-hd-border-subtle bg-white p-5 shadow-soft">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="m-0 text-base font-semibold text-slate-800">
+            <h2 className="m-0 text-base font-semibold text-primaryDark">
               Estado de completitud
             </h2>
-            <p className="mt-1 text-sm text-slate-600">
+            <p className="mt-1 text-sm text-primaryDark/70">
               MVP-A muestra el estado operativo sin bloquear la generación de
               documentos.
             </p>
@@ -233,7 +236,7 @@ export default function ProfessionalProfilePage() {
         </div>
 
         {loading && (
-          <p className="mt-4 text-sm text-slate-600">Cargando perfil...</p>
+          <p className="mt-4 text-sm text-primaryDark/70">Cargando perfil...</p>
         )}
 
         {!loading && missingLabels.length > 0 && (
@@ -250,14 +253,14 @@ export default function ProfessionalProfilePage() {
         )}
 
         {!loading && completeness?.isComplete && (
-          <p className="mt-4 text-sm font-medium text-emerald-700">
+          <p className="mt-4 text-sm font-medium text-primary">
             El perfil profesional mínimo operativo está completo.
           </p>
         )}
       </section>
 
-      <section className="rounded-2xl border border-slate-100 bg-white p-5 shadow-soft">
-        <h2 className="mb-4 mt-0 text-base font-semibold text-slate-800">
+      <section className="rounded-2xl border border-hd-border-subtle bg-white p-5 shadow-soft">
+        <h2 className="mb-4 mt-0 text-base font-semibold text-primaryDark">
           Datos profesionales
         </h2>
 
@@ -271,7 +274,7 @@ export default function ProfessionalProfilePage() {
         )}
 
         {savedMessage && (
-          <p className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+          <p className="mb-4 rounded-xl border border-primary/20 bg-primaryLight px-4 py-3 text-sm font-medium text-primary">
             {savedMessage}
           </p>
         )}
@@ -289,7 +292,7 @@ export default function ProfessionalProfilePage() {
             >
               <label
                 htmlFor={field.name}
-                className="mb-1 block text-sm font-semibold text-slate-700"
+                className="mb-1 block text-sm font-semibold text-primaryDark"
               >
                 {field.label}
               </label>
@@ -305,7 +308,7 @@ export default function ProfessionalProfilePage() {
                 }
                 placeholder={field.placeholder}
                 disabled={loading || saving}
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primaryLight disabled:bg-slate-50 disabled:text-slate-500"
+                className="w-full rounded-xl border border-hd-border-default bg-white px-3 py-2 text-sm text-primaryDark outline-none transition placeholder:text-primaryDark/40 focus:border-primary focus:ring-2 focus:ring-primaryLight disabled:bg-hd-surface-muted disabled:text-primaryDark/50"
               />
             </div>
           ))}
@@ -314,11 +317,11 @@ export default function ProfessionalProfilePage() {
             <button
               type="submit"
               disabled={loading || saving}
-              className="rounded-xl border-0 bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-primaryDark disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-xl border-0 bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-primaryMid disabled:cursor-not-allowed disabled:opacity-60"
             >
               {saving ? "Guardando..." : "Guardar perfil profesional"}
             </button>
-            <p className="m-0 text-xs text-slate-500">
+            <p className="m-0 text-xs text-primaryDark/50">
               Los campos guardados alimentan la identidad profesional en los
               documentos clínicos.
             </p>

@@ -102,23 +102,23 @@ export default function AdminSubscriptionsPage() {
   return (
     <main className="mx-auto max-w-3xl px-4 py-10">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold text-slate-900">
+        <h1 className="text-xl font-bold text-primary">
           Suscripciones (admin)
         </h1>
         <nav className="flex flex-wrap gap-3 text-sm" aria-label="Navegación de suscripciones admin">
           <Link
             href="/admin/analytics"
-            className="rounded text-slate-600 underline hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
+            className="rounded text-primaryDark/70 underline hover:text-primaryDark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
           >
             Analytics
           </Link>
-          <Link href="/panel" className="rounded text-slate-600 underline hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2">
+          <Link href="/panel" className="rounded text-primaryDark/70 underline hover:text-primaryDark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
             Panel
           </Link>
           <button
             type="button"
             onClick={() => void loadDashboard()}
-            className="rounded text-slate-600 underline hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
+            className="rounded text-primaryDark/70 underline hover:text-primaryDark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
           >
             Recargar métricas
           </button>
@@ -126,7 +126,7 @@ export default function AdminSubscriptionsPage() {
       </div>
 
       {dashLoading && (
-        <p className="text-sm text-slate-600">Cargando resumen…</p>
+        <p className="text-sm text-primaryDark/70">Cargando resumen…</p>
       )}
 
       {!dashLoading && dashError && (
@@ -140,48 +140,48 @@ export default function AdminSubscriptionsPage() {
 
       {!dashLoading && !dashError && summary && metrics && (
         <section className="mb-10 grid gap-4 sm:grid-cols-2">
-          <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+          <div className="rounded-lg border border-hd-border-subtle bg-white p-4 shadow-sm">
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-primaryDark/50">
               Resumen actual
             </h2>
             <dl className="space-y-2 text-sm">
               <div className="flex justify-between gap-2">
-                <dt className="text-slate-600">Total usuarios</dt>
+                <dt className="text-primaryDark/70">Total usuarios</dt>
                 <dd className="font-medium">{summary.totalUsers}</dd>
               </div>
               <div className="flex justify-between gap-2">
-                <dt className="text-slate-600">Usuarios PRO (fila BD)</dt>
+                <dt className="text-primaryDark/70">Usuarios PRO (fila BD)</dt>
                 <dd className="font-medium">{summary.proUsers}</dd>
               </div>
               <div className="flex justify-between gap-2">
-                <dt className="text-slate-600">PRO inactivos</dt>
+                <dt className="text-primaryDark/70">PRO inactivos</dt>
                 <dd className="font-medium">{summary.inactivePro}</dd>
               </div>
               <div className="flex justify-between gap-2">
-                <dt className="text-slate-600">PRO activos</dt>
+                <dt className="text-primaryDark/70">PRO activos</dt>
                 <dd className="font-medium">{summary.activeSubscriptions}</dd>
               </div>
             </dl>
           </div>
-          <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+          <div className="rounded-lg border border-hd-border-subtle bg-white p-4 shadow-sm">
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-primaryDark/50">
               Mes actual (UTC) — eventos
             </h2>
             <dl className="space-y-2 text-sm">
               <div className="flex justify-between gap-2">
-                <dt className="text-slate-600">Ingresos aprox.</dt>
+                <dt className="text-primaryDark/70">Ingresos aprox.</dt>
                 <dd className="font-medium">{metrics.monthlyRevenue}</dd>
               </div>
               <div className="flex justify-between gap-2">
-                <dt className="text-slate-600">Churn snapshot</dt>
+                <dt className="text-primaryDark/70">Churn snapshot</dt>
                 <dd className="font-medium">{churnPct}</dd>
               </div>
               <div className="flex justify-between gap-2">
-                <dt className="text-slate-600">Nuevas suscripciones</dt>
+                <dt className="text-primaryDark/70">Nuevas suscripciones</dt>
                 <dd className="font-medium">{metrics.newSubscriptions}</dd>
               </div>
               <div className="flex justify-between gap-2">
-                <dt className="text-slate-600">Pagos confirmados</dt>
+                <dt className="text-primaryDark/70">Pagos confirmados</dt>
                 <dd className="font-medium">{metrics.paymentSuccessCount}</dd>
               </div>
             </dl>
@@ -189,8 +189,8 @@ export default function AdminSubscriptionsPage() {
         </section>
       )}
 
-      <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+      <section className="rounded-lg border border-hd-border-subtle bg-white p-4 shadow-sm">
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-primaryDark/50">
           Timeline por usuario
         </h2>
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -203,14 +203,14 @@ export default function AdminSubscriptionsPage() {
             placeholder="UUID de usuario"
             value={userId}
             onChange={(e) => setUserId(e.target.value)}
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 sm:max-w-md"
+            className="w-full rounded-md border border-hd-border-default px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary sm:max-w-md"
             autoCapitalize="off"
             spellCheck={false}
           />
           <button
             type="button"
             onClick={() => void loadTimeline()}
-            className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
+            className="rounded-lg bg-primary px-4 py-2 shadow-[0_4px_12px_rgba(7,138,146,0.22)] text-sm font-medium text-white hover:bg-primaryMid focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
           >
             Ver eventos
           </button>

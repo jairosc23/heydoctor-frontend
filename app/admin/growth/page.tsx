@@ -126,47 +126,47 @@ export default function AdminGrowthPage() {
     <main className="mx-auto max-w-6xl px-4 py-10">
       <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold text-slate-900">Growth</h1>
-          <p className="text-sm text-slate-600">
+          <h1 className="text-xl font-bold text-primary">Growth</h1>
+          <p className="text-sm text-primaryDark/70">
             Embudo, retención, experimento pricing CTA, alertas (product_events + suscripciones)
           </p>
         </div>
         <nav className="flex flex-wrap gap-3 text-sm" aria-label="Navegación de growth">
           <Link
             href="/pricing"
-            className="rounded text-slate-600 underline hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
+            className="rounded text-primaryDark/70 underline hover:text-primaryDark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
           >
             Pricing (live experiment)
           </Link>
           <Link
             href="/admin/analytics"
-            className="rounded text-slate-600 underline hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
+            className="rounded text-primaryDark/70 underline hover:text-primaryDark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
           >
             Analytics SaaS
           </Link>
           <Link
             href="/admin/ops"
-            className="rounded text-slate-600 underline hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
+            className="rounded text-primaryDark/70 underline hover:text-primaryDark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
           >
             Ops
           </Link>
           <Link
             href="/panel"
-            className="rounded text-slate-600 underline hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
+            className="rounded text-primaryDark/70 underline hover:text-primaryDark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
           >
             Panel
           </Link>
           <button
             type="button"
             onClick={() => void load()}
-            className="rounded text-slate-600 underline hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
+            className="rounded text-primaryDark/70 underline hover:text-primaryDark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
           >
             Refrescar
           </button>
         </nav>
       </div>
 
-      {loading && <p className="text-sm text-slate-600">Cargando growth…</p>}
+      {loading && <p className="text-sm text-primaryDark/70">Cargando growth…</p>}
 
       {error && !loading && (
         <div
@@ -196,34 +196,34 @@ export default function AdminGrowthPage() {
           )}
 
           <section className="mb-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-              <p className="text-xs font-medium uppercase text-slate-500">
+            <div className="rounded-lg border border-hd-border-subtle bg-white p-4 shadow-sm">
+              <p className="text-xs font-medium uppercase text-primaryDark/50">
                 Conversión PRO / usuarios
               </p>
               <p className="mt-1 text-2xl font-semibold tabular-nums">
                 {(summary.subscriptionTotals.conversionProVsUsersApprox * 100).toFixed(2)}%
               </p>
-              <p className="mt-1 text-xs text-slate-600">
+              <p className="mt-1 text-xs text-primaryDark/70">
                 {summary.subscriptionTotals.proUsers} PRO /{" "}
                 {summary.subscriptionTotals.totalUsers} usuarios
               </p>
             </div>
-            <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-              <p className="text-xs font-medium uppercase text-slate-500">
+            <div className="rounded-lg border border-hd-border-subtle bg-white p-4 shadow-sm">
+              <p className="text-xs font-medium uppercase text-primaryDark/50">
                 Signup → pago (aprox.)
               </p>
               <p className="mt-1 text-2xl font-semibold tabular-nums">
                 {(summary.signupToPaidApprox * 100).toFixed(2)}%
               </p>
-              <p className="mt-1 text-xs text-slate-600">Ventana {summary.windowDays}d</p>
+              <p className="mt-1 text-xs text-primaryDark/70">Ventana {summary.windowDays}d</p>
             </div>
           </section>
 
-          <section className="mb-10 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-            <h2 className="mb-3 text-sm font-semibold uppercase text-slate-700">
+          <section className="mb-10 rounded-lg border border-hd-border-subtle bg-white p-4 shadow-sm">
+            <h2 className="mb-3 text-sm font-semibold uppercase text-primaryDark">
               Embudo operativo ({funnel.windowDays}d)
             </h2>
-            <p className="mb-4 text-xs text-slate-500">
+            <p className="mb-4 text-xs text-primaryDark/50">
               VISIT_MARKETING (anon permitido), SIGNUP, VIEW_PRICING, CLICK_UPGRADE_CTA,
               START_CHECKOUT, PAYMENT_SUCCESS, START_CALL.
             </p>
@@ -236,10 +236,10 @@ export default function AdminGrowthPage() {
               <Metric label="Pagos OK" value={funnel.payments} />
               <Metric label="Start call" value={funnel.calls} />
             </div>
-            <h3 className="mb-2 text-xs font-semibold uppercase text-slate-600">
+            <h3 className="mb-2 text-xs font-semibold uppercase text-primaryDark/70">
               Tasas paso a paso
             </h3>
-            <ul className="grid gap-2 text-sm text-slate-800 sm:grid-cols-2">
+            <ul className="grid gap-2 text-sm text-primaryDark sm:grid-cols-2">
               <li>Signup / visita: {pct(funnel.conversionRates.signupPerVisit)}</li>
               <li>Pricing / signup: {pct(funnel.conversionRates.pricingPerSignup)}</li>
               <li>Upgrade CTA / pricing: {pct(funnel.conversionRates.upgradePerPricing)}</li>
@@ -249,17 +249,17 @@ export default function AdminGrowthPage() {
             </ul>
           </section>
 
-          <section className="mb-10 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-            <h2 className="mb-2 text-sm font-semibold uppercase text-slate-700">
+          <section className="mb-10 rounded-lg border border-hd-border-subtle bg-white p-4 shadow-sm">
+            <h2 className="mb-2 text-sm font-semibold uppercase text-primaryDark">
               Experimento {funnel.experimentPricingUpgradeCta.experimentKey}
             </h2>
-            <p className="mb-4 text-xs text-slate-500">
+            <p className="mb-4 text-xs text-primaryDark/50">
               Requiere <code className="text-xs">properties.experimentKey</code> +{" "}
               <code className="text-xs">variant</code> en VIEW_PRICING_PAGE y CLICK_UPGRADE_CTA
               (emite desde <code className="text-xs">/pricing</code>).
             </p>
             {variantRows.length === 0 ? (
-              <p className="text-sm text-slate-600">Sin exposiciones etiquetadas aún.</p>
+              <p className="text-sm text-primaryDark/70">Sin exposiciones etiquetadas aún.</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="min-w-max text-sm">
@@ -273,7 +273,7 @@ export default function AdminGrowthPage() {
                   </thead>
                   <tbody>
                     {variantRows.map(([variant, stats]) => (
-                      <tr key={variant} className="border-b border-slate-100">
+                      <tr key={variant} className="border-b border-hd-border-subtle">
                         <td className="px-2 py-2 font-mono text-xs">{variant}</td>
                         <td className="px-2 py-2 tabular-nums">{stats.viewPricingActors}</td>
                         <td className="px-2 py-2 tabular-nums">{stats.clickUpgradeActors}</td>
@@ -286,11 +286,11 @@ export default function AdminGrowthPage() {
             )}
           </section>
 
-          <section className="mb-10 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-            <h2 className="mb-2 text-sm font-semibold uppercase text-slate-700">
+          <section className="mb-10 rounded-lg border border-hd-border-subtle bg-white p-4 shadow-sm">
+            <h2 className="mb-2 text-sm font-semibold uppercase text-primaryDark">
               Retención (post primer START_CALL)
             </h2>
-            <p className="mb-4 text-xs text-slate-500">
+            <p className="mb-4 text-xs text-primaryDark/50">
               Ventana cohorte últimos {retention.cohortLookbackDays}d · {retention.definition}
             </p>
             <div className="overflow-x-auto">
@@ -305,7 +305,7 @@ export default function AdminGrowthPage() {
                 </thead>
                 <tbody>
                   {retention.buckets.map((b) => (
-                    <tr key={b.days} className="border-b border-slate-100">
+                    <tr key={b.days} className="border-b border-hd-border-subtle">
                       <td className="px-2 py-2">D{b.days}</td>
                       <td className="px-2 py-2 tabular-nums">{b.cohortEligible}</td>
                       <td className="px-2 py-2 tabular-nums">{b.retained}</td>
@@ -317,11 +317,11 @@ export default function AdminGrowthPage() {
             </div>
           </section>
 
-          <section className="mb-10 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-            <h2 className="mb-4 text-sm font-semibold uppercase text-slate-700">
+          <section className="mb-10 rounded-lg border border-hd-border-subtle bg-white p-4 shadow-sm">
+            <h2 className="mb-4 text-sm font-semibold uppercase text-primaryDark">
               Todos los eventos (usuarios únicos · últimos {summary.windowDays} días)
             </h2>
-            <p className="mb-4 text-xs text-slate-500">{summary.signupToPaidNote}</p>
+            <p className="mb-4 text-xs text-primaryDark/50">{summary.signupToPaidNote}</p>
             <div className="overflow-x-auto">
               <table className="min-w-max text-sm">
                 <thead>
@@ -334,7 +334,7 @@ export default function AdminGrowthPage() {
                   {Object.entries(summary.funnelDistinctUsers)
                     .filter(([, c]) => c > 0)
                     .map(([name, cnt]) => (
-                      <tr key={name} className="border-b border-slate-100">
+                      <tr key={name} className="border-b border-hd-border-subtle">
                         <td className="px-2 py-2 font-mono text-xs">{name}</td>
                         <td className="px-2 py-2 tabular-nums">{cnt}</td>
                       </tr>
@@ -343,14 +343,14 @@ export default function AdminGrowthPage() {
               </table>
             </div>
             {Object.values(summary.funnelDistinctUsers).every((c) => c === 0) && (
-              <p className="text-sm text-slate-600">
+              <p className="text-sm text-primaryDark/70">
                 Aún sin eventos en <code className="text-xs">product_events</code>. Usa{" "}
                 <code className="text-xs">/pricing</code> y flujos de pago/consulta.
               </p>
             )}
           </section>
 
-          <section className="rounded-lg border border-slate-100 bg-slate-50 px-4 py-3 text-xs text-slate-600">
+          <section className="rounded-lg border border-hd-border-subtle bg-hd-surface-muted px-4 py-3 text-xs text-primaryDark/70">
             API: <code className="font-mono">GET /api/admin/growth/funnel</code>,{" "}
             <code className="font-mono">GET /api/admin/growth/retention?days=1,7,30</code>. Flags:{" "}
             <code className="font-mono">GET/PATCH /api/admin/feature-flags</code>. Experiments:{" "}
@@ -364,9 +364,9 @@ export default function AdminGrowthPage() {
 
 function Metric({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-md border border-slate-100 bg-slate-50/80 p-3">
-      <p className="text-xs font-medium uppercase text-slate-500">{label}</p>
-      <p className="mt-1 text-xl font-semibold tabular-nums text-slate-900">{value}</p>
+    <div className="rounded-md border border-hd-border-subtle bg-hd-surface-muted p-3">
+      <p className="text-xs font-medium uppercase text-primaryDark/50">{label}</p>
+      <p className="mt-1 text-xl font-semibold tabular-nums text-primaryDark">{value}</p>
     </div>
   );
 }

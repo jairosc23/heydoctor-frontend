@@ -17,8 +17,13 @@ function StoryCard({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-3xl border border-white/10 bg-white p-6 text-slate-900 shadow-xl">
-      <h2 className="text-lg font-semibold">{title}</h2>
+    <section className="rounded-2xl border border-hd-border-subtle bg-hd-surface-chrome p-6 text-primaryDark shadow-premium">
+      <h2
+        className="text-lg font-semibold text-primary"
+        style={{ fontFamily: "Montserrat, sans-serif" }}
+      >
+        {title}
+      </h2>
       <div className="mt-4">{children}</div>
     </section>
   );
@@ -41,14 +46,20 @@ export default async function InteractiveDemoPage({
         <div className="space-y-6">
           <DemoModeSelector mode={mode} />
 
-          <section className="rounded-3xl border border-white/10 bg-gradient-to-br from-indigo-500 to-slate-900 p-6 shadow-2xl sm:p-8">
-            <p className="text-sm font-semibold uppercase tracking-[0.28em] text-indigo-100">
+          <section className="rounded-2xl bg-gradient-to-br from-primaryDark via-primaryMid to-primary p-6 shadow-premium sm:p-8">
+            <p
+              className="text-sm font-semibold uppercase tracking-[0.2em] text-white/80"
+              style={{ fontFamily: "Montserrat, sans-serif" }}
+            >
               Bienvenida
             </p>
-            <h2 className="mt-4 max-w-3xl text-3xl font-semibold tracking-tight text-white md:text-4xl">
+            <h2
+              className="mt-4 max-w-3xl text-3xl font-bold tracking-tight text-white md:text-4xl"
+              style={{ fontFamily: "Montserrat, sans-serif" }}
+            >
               Una historia clínica interactiva, segura y lista para demo.
             </h2>
-            <p className="mt-4 max-w-2xl text-base leading-7 text-indigo-50">
+            <p className="mt-4 max-w-2xl text-base leading-7 text-white/90">
               {scenario.subtitle}
             </p>
           </section>
@@ -56,17 +67,17 @@ export default async function InteractiveDemoPage({
           <div className="grid gap-6 xl:grid-cols-2">
             <StoryCard title="Inicio de consulta">
               <div className="flex items-start gap-4">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-slate-900 text-lg font-bold text-white">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-primary text-lg font-bold text-white">
                   {scenario.patient.initials}
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-slate-500">
+                  <p className="text-sm font-medium text-primaryDark/60">
                     Paciente demo, {scenario.patient.age} años
                   </p>
-                  <p className="mt-1 text-base font-semibold text-slate-900">
+                  <p className="mt-1 text-base font-semibold text-primaryDark">
                     {scenario.patient.chiefComplaint}
                   </p>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">
+                  <p className="mt-2 text-sm leading-6 text-primaryDark/70">
                     {scenario.patient.context}
                   </p>
                 </div>
@@ -74,15 +85,15 @@ export default async function InteractiveDemoPage({
             </StoryCard>
 
             <StoryCard title="Workspace clínico simulado">
-              <p className="text-sm leading-6 text-slate-600">
+              <p className="text-sm leading-6 text-primaryDark/70">
                 La consulta se compone desde memoria clínica, inteligencia clínica,
                 órdenes, nota y Copilot. El workspace permanece read-only tanto en Mock
                 Mode como en Live Backend Mode.
               </p>
               <ul className="mt-4 space-y-3">
                 {scenario.consultation.timeline.map((item) => (
-                  <li key={item} className="flex gap-3 text-sm text-slate-700">
-                    <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
+                  <li key={item} className="flex gap-3 text-sm text-primaryDark">
+                    <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />
                     <span>{item}</span>
                   </li>
                 ))}
@@ -94,11 +105,14 @@ export default async function InteractiveDemoPage({
 
           <DemoEvidenceReadinessPanel scenario={scenario} />
 
-          <section className="rounded-3xl border border-dashed border-slate-300 bg-slate-100 p-6 text-slate-700">
-            <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+          <section className="rounded-2xl border border-dashed border-hd-border-default bg-hd-surface-muted p-6 text-primaryDark">
+            <p
+              className="text-sm font-semibold uppercase tracking-wide text-primaryDark/60"
+              style={{ fontFamily: "Montserrat, sans-serif" }}
+            >
               Estado Release Candidate
             </p>
-            <p className="mt-2 text-sm leading-6">
+            <p className="mt-2 text-sm leading-6 text-primaryDark/70">
               La demo queda lista para revisión: Mock Mode por defecto, Live Backend
               Mode opcional, sin autenticación obligatoria, sin acciones mutables y con
               fallback seguro a datos deterministas.

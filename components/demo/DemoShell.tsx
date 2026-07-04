@@ -1,17 +1,19 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 import type { DemoScenario, DemoSignal } from "@/lib/demo/interactive-demo-scenario";
+import { BrandLogo } from "@/components/branding";
 
 const toneClass: Record<DemoSignal["tone"], string> = {
   amber: "border-amber-200 bg-amber-50 text-amber-900",
   emerald: "border-emerald-200 bg-emerald-50 text-emerald-900",
-  indigo: "border-indigo-200 bg-indigo-50 text-indigo-900",
-  slate: "border-slate-200 bg-slate-50 text-slate-700",
+  indigo: "border-primary/20 bg-primaryLight text-primaryDark",
+  slate: "border-hd-border-subtle bg-hd-surface-muted text-primaryDark",
 };
 
 function SignalBadge({ signal }: { signal: DemoSignal }) {
   return (
     <div
-      className={`rounded-2xl border px-3 py-2 ${toneClass[signal.tone]}`}
+      className={`rounded-lg border px-3 py-2 ${toneClass[signal.tone]}`}
       aria-label={`${signal.label}: ${signal.value}`}
     >
       <p className="text-[11px] font-semibold uppercase tracking-wide opacity-75">
@@ -30,20 +32,33 @@ export function DemoShell({
   children: ReactNode;
 }) {
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100">
+    <main className="min-h-screen bg-hd-surface-base text-primaryDark">
       <a
         href="#demo-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-slate-950"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-hd-surface-chrome focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-primaryDark focus:ring-2 focus:ring-primary"
       >
         Saltar al contenido de la demo
       </a>
-      <div className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/95 backdrop-blur">
+      <div className="sticky top-0 z-40 border-b border-hd-border-subtle bg-hd-surface-chrome shadow-hd-1">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-indigo-300">
-              HeyDoctor
-            </p>
-            <h1 className="mt-1 text-xl font-semibold text-white">{scenario.title}</h1>
+          <div className="flex min-w-0 items-center gap-4">
+            <Link href="/" className="no-underline">
+              <BrandLogo variant="nav" priority />
+            </Link>
+            <div className="min-w-0 border-l border-hd-border-default pl-4">
+              <p
+                className="text-xs font-semibold uppercase tracking-[0.2em] text-primary"
+                style={{ fontFamily: "Montserrat, sans-serif" }}
+              >
+                Demo interactiva
+              </p>
+              <h1
+                className="mt-0.5 truncate text-lg font-semibold text-primaryDark"
+                style={{ fontFamily: "Montserrat, sans-serif" }}
+              >
+                {scenario.title}
+              </h1>
+            </div>
           </div>
           <div className="flex flex-wrap gap-2">
             {scenario.signals.map((signal) => (

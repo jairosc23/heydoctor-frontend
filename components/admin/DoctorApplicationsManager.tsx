@@ -7,10 +7,10 @@ import {
   type DoctorApplication,
 } from "@/lib/services/doctor-applications";
 
-const STATUS_COLORS: Record<string, string> = {
-  pending: "#f59e0b",
-  approved: "#16a34a",
-  rejected: "#dc2626",
+const STATUS_CLASS: Record<string, string> = {
+  pending: "bg-primaryMid text-white",
+  approved: "bg-primary text-white",
+  rejected: "bg-red-600 text-white",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -18,6 +18,8 @@ const STATUS_LABELS: Record<string, string> = {
   approved: "Aprobada",
   rejected: "Rechazada",
 };
+
+const FONT_HEADING = "Montserrat, sans-serif";
 
 export default function DoctorApplicationsManager() {
   const [apps, setApps] = useState<DoctorApplication[]>([]);
@@ -55,13 +57,18 @@ export default function DoctorApplicationsManager() {
   }
 
   return (
-    <div style={{ background: "white", borderRadius: 12, padding: 24, boxShadow: "0 2px 10px rgba(0,0,0,0.06)" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <h3 style={{ margin: 0, fontSize: 16, color: "#333" }}>Solicitudes de Médicos</h3>
+    <div className="rounded-2xl bg-hd-surface-chrome p-6 shadow-premium">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h3
+          className="m-0 text-base font-bold text-primaryDark"
+          style={{ fontFamily: FONT_HEADING }}
+        >
+          Solicitudes de Médicos
+        </h3>
         <select
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          style={{ padding: "6px 12px", borderRadius: 6, border: "1px solid #e2e8f0", fontSize: 13 }}
+          className="rounded-lg border border-hd-border-subtle px-3 py-1.5 text-[13px] text-primaryDark outline-none focus:border-primary focus:ring-2 focus:ring-primaryLight"
         >
           <option value="">Todas</option>
           <option value="pending">Pendientes</option>
@@ -71,78 +78,48 @@ export default function DoctorApplicationsManager() {
       </div>
 
       {loading ? (
-        <p style={{ color: "#666", fontSize: 14 }}>Cargando...</p>
+        <p className="text-sm text-primaryDark/70">Cargando...</p>
       ) : apps.length === 0 ? (
-        <p style={{ color: "#94a3b8", fontSize: 14 }}>No hay solicitudes.</p>
+        <p className="text-sm text-primaryDark/50">No hay solicitudes.</p>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div className="flex flex-col gap-3">
           {apps.map((a) => (
             <div
               key={a.id}
-              style={{
-                border: "1px solid #e2e8f0",
-                borderRadius: 10,
-                padding: 16,
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                flexWrap: "wrap",
-                gap: 12,
-              }}
+              className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-hd-border-subtle p-4"
             >
               <div>
-                <p style={{ margin: 0, fontWeight: 600, fontSize: 14 }}>{a.name}</p>
-                <p style={{ margin: "4px 0 0", fontSize: 13, color: "#475569" }}>
+                <p className="m-0 text-sm font-semibold text-primaryDark">{a.name}</p>
+                <p className="mt-1 mb-0 text-[13px] text-primaryDark/70">
                   {a.email} &middot; {a.specialty} &middot; {a.country}
                 </p>
-                <p style={{ margin: "4px 0 0", fontSize: 12, color: "#94a3b8" }}>
+                <p className="mt-1 mb-0 text-xs text-primaryDark/50">
                   {new Date(a.createdAt).toLocaleDateString("es")}
                 </p>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div className="flex flex-wrap items-center gap-2">
                 <span
-                  style={{
-                    padding: "4px 10px",
-                    borderRadius: 12,
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: "white",
-                    background: STATUS_COLORS[a.status] ?? "#94a3b8",
-                  }}
+                  className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${
+                    STATUS_CLASS[a.status] ?? "bg-primaryDark/40 text-white"
+                  }`}
                 >
                   {STATUS_LABELS[a.status] ?? a.status}
                 </span>
                 {a.status === "pending" && (
                   <>
                     <button
+                      type="button"
                       onClick={() => handleReview(a.id, "approved")}
                       disabled={reviewingId === a.id}
-                      style={{
-                        padding: "6px 14px",
-                        background: "#16a34a",
-                        color: "white",
-                        border: "none",
-                        borderRadius: 6,
-                        fontSize: 12,
-                        fontWeight: 600,
-                        cursor: "pointer",
-                      }}
+                      className="rounded-lg border-0 bg-primary px-3.5 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
                     >
                       Aprobar
                     </button>
                     <button
+                      type="button"
                       onClick={() => handleReview(a.id, "rejected")}
                       disabled={reviewingId === a.id}
-                      style={{
-                        padding: "6px 14px",
-                        background: "#dc2626",
-                        color: "white",
-                        border: "none",
-                        borderRadius: 6,
-                        fontSize: 12,
-                        fontWeight: 600,
-                        cursor: "pointer",
-                      }}
+                      className="rounded-lg border-0 bg-red-600 px-3.5 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
                     >
                       Rechazar
                     </button>

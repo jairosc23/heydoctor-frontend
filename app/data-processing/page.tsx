@@ -30,7 +30,7 @@ export default function DataProcessingPage() {
 
       <Section id="obligaciones" title="4. Obligaciones del Encargado">
         <p>SAVAC LTDA, como encargado del tratamiento, se compromete a:</p>
-        <ul style={{ paddingLeft: 20 }}>
+        <ul>
           <li>Tratar los datos únicamente conforme a las instrucciones documentadas del responsable</li>
           <li>Garantizar la confidencialidad del personal con acceso a datos</li>
           <li>Implementar medidas técnicas y organizativas adecuadas (cifrado, control de acceso, auditoría)</li>
@@ -42,7 +42,7 @@ export default function DataProcessingPage() {
       </Section>
 
       <Section id="medidas" title="5. Medidas de Seguridad Implementadas">
-        <ul style={{ paddingLeft: 20 }}>
+        <ul>
           <li>Cifrado TLS 1.2+ en tránsito</li>
           <li>Hashing bcrypt (12 rounds) para credenciales</li>
           <li>Tokens JWT de corta duración (15 min) + refresh HttpOnly</li>
@@ -57,7 +57,7 @@ export default function DataProcessingPage() {
 
       <Section id="subencargados" title="6. Sub-encargados Autorizados">
         <p>Los siguientes proveedores actúan como sub-encargados del tratamiento:</p>
-        <ul style={{ paddingLeft: 20 }}>
+        <ul>
           <li><strong>Railway</strong> &mdash; hosting de aplicación y base de datos (PostgreSQL)</li>
           <li><strong>DigitalOcean</strong> &mdash; servidor TURN para WebRTC</li>
           <li><strong>Payku</strong> &mdash; procesamiento de pagos</li>
@@ -85,7 +85,7 @@ export default function DataProcessingPage() {
       <Section id="contacto" title="9. Contacto">
         <p>
           <strong>SAVAC LTDA</strong> &middot; RUT 76.373.761-6<br />
-          Privacy Officer / DPO: <a href="mailto:privacy@heydoctor.health" style={{ color: "#078a92" }}>privacy@heydoctor.health</a>
+          Privacy Officer / DPO: <a href="mailto:privacy@heydoctor.health">privacy@heydoctor.health</a>
         </p>
       </Section>
     </LegalPageLayout>

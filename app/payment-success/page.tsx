@@ -1,12 +1,17 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
+import { Clock } from "lucide-react";
 import { useAuth } from "@/lib/context/AuthContext";
 import { fetchCurrentUser } from "@/lib/services/auth-session";
+import { BrandLogo } from "@/components/branding";
+import Card from "@/components/ui/Card";
+import Button from "@/components/ui/Button";
 
-const BRAND = "#078a92";
-const BRAND_DARK = "#05636b";
+const FONT_HEADING = "Montserrat, sans-serif";
+
+const CTA_PRIMARY =
+  "rounded-lg border-0 bg-primary shadow-none !shadow-[0_4px_12px_rgba(7,138,146,0.22)] hover:bg-primaryMid hover:scale-100 focus:outline-none focus:ring-2 focus:ring-primaryLight focus:ring-offset-2";
 
 type SyncState = "syncing" | "ready" | "pending" | "error";
 
@@ -60,42 +65,19 @@ export default function PaymentSuccessPage() {
 
   if (state === "syncing") {
     return (
-      <div
-        style={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "#f8fafb",
-          fontFamily: "Open Sans, sans-serif",
-          padding: 24,
-        }}
-      >
-        <div style={{ textAlign: "center" }}>
+      <div className="flex min-h-screen items-center justify-center bg-hd-surface-base px-4 py-12">
+        <div className="text-center">
           <div
-            className="animate-spin"
-            style={{
-              width: 40,
-              height: 40,
-              border: "3px solid #e5e7eb",
-              borderTopColor: BRAND,
-              borderRadius: "50%",
-              margin: "0 auto 20px",
-            }}
+            className="mx-auto mb-5 h-10 w-10 animate-spin rounded-full border-[3px] border-hd-border-default border-t-primary"
+            aria-hidden
           />
           <p
-            style={{
-              fontFamily: "Montserrat, sans-serif",
-              fontSize: 18,
-              fontWeight: 600,
-              color: BRAND_DARK,
-            }}
+            className="text-lg font-semibold text-primaryMid"
+            style={{ fontFamily: FONT_HEADING }}
           >
             Activando PRO…
           </p>
-          <p style={{ color: "#6b7280", fontSize: 14, marginTop: 8 }}>
-            Confirmando tu pago
-          </p>
+          <p className="mt-2 text-sm text-primaryDark/70">Confirmando tu pago</p>
         </div>
       </div>
     );
@@ -103,163 +85,51 @@ export default function PaymentSuccessPage() {
 
   if (state === "pending") {
     return (
-      <div
-        style={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "#f8fafb",
-          fontFamily: "Open Sans, sans-serif",
-          padding: 24,
-        }}
-      >
-        <div
-          style={{
-            maxWidth: 480,
-            width: "100%",
-            background: "#fff",
-            borderRadius: 20,
-            padding: "48px 40px",
-            textAlign: "center",
-            boxShadow: "0 4px 24px rgba(0,0,0,0.06)",
-            border: "1px solid #fef3c7",
-          }}
-        >
-          <div
-            style={{
-              width: 72,
-              height: 72,
-              borderRadius: "50%",
-              background: "#fffbeb",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 24px",
-              fontSize: 36,
-            }}
-          >
-            ⏳
+      <div className="flex min-h-screen items-center justify-center bg-hd-surface-base px-4 py-12">
+        <Card className="w-full max-w-md text-center shadow-premium">
+          <BrandLogo markOnly markSize={72} priority className="mx-auto mb-6" />
+          <div className="mx-auto mb-6 flex h-[72px] w-[72px] items-center justify-center rounded-full bg-primaryLight text-primary">
+            <Clock className="h-9 w-9" strokeWidth={1.75} aria-hidden />
           </div>
-
           <h1
-            style={{
-              fontFamily: "Montserrat, sans-serif",
-              fontSize: 24,
-              fontWeight: 700,
-              color: "#92400e",
-              marginBottom: 12,
-            }}
+            className="mb-3 text-2xl font-bold text-primaryDark"
+            style={{ fontFamily: FONT_HEADING }}
           >
             Pago en proceso
           </h1>
-
-          <p
-            style={{
-              color: "#6b7280",
-              fontSize: 15,
-              lineHeight: 1.7,
-              marginBottom: 24,
-            }}
-          >
+          <p className="mb-6 text-[15px] leading-relaxed text-primaryDark/70">
             Tu pago fue recibido pero la activación del plan PRO puede tardar
             unos minutos. Si no se activa en los próximos 10 minutos, contacta
             soporte.
           </p>
-
-          <Link
-            href="/dashboard"
-            style={{
-              display: "inline-block",
-              padding: "14px 36px",
-              fontSize: 16,
-              fontFamily: "Montserrat, sans-serif",
-              fontWeight: 700,
-              color: "#fff",
-              textDecoration: "none",
-              borderRadius: 10,
-              background: BRAND,
-              boxShadow: `0 4px 16px ${BRAND}40`,
-            }}
-          >
+          <Button href="/dashboard" variant="primary" className={`w-full min-h-12 ${CTA_PRIMARY}`}>
             Ir al Dashboard
-          </Link>
-        </div>
+          </Button>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "#f8fafb",
-        fontFamily: "Open Sans, sans-serif",
-        padding: 24,
-      }}
-    >
-      <div
-        style={{
-          maxWidth: 480,
-          width: "100%",
-          background: "#fff",
-          borderRadius: 20,
-          padding: "56px 40px",
-          textAlign: "center",
-          boxShadow: "0 4px 24px rgba(0,0,0,0.06)",
-          border: "1px solid #e5e7eb",
-        }}
-      >
+    <div className="flex min-h-screen items-center justify-center bg-hd-surface-base px-4 py-12">
+      <Card className="w-full max-w-md text-center shadow-premium">
+        <BrandLogo markOnly markSize={72} priority className="mx-auto mb-6" />
         <div
-          style={{
-            width: 72,
-            height: 72,
-            borderRadius: "50%",
-            background: "#dff7f8",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            margin: "0 auto 24px",
-            fontSize: 36,
-          }}
+          className="mx-auto mb-6 flex h-[72px] w-[72px] items-center justify-center rounded-full bg-primaryLight text-4xl font-bold text-primary"
+          aria-hidden
         >
           ✓
         </div>
-
         <h1
-          style={{
-            fontFamily: "Montserrat, sans-serif",
-            fontSize: 28,
-            fontWeight: 700,
-            color: BRAND_DARK,
-            marginBottom: 12,
-          }}
+          className="mb-3 text-[28px] font-bold text-primaryMid"
+          style={{ fontFamily: FONT_HEADING }}
         >
           PRO Activado
         </h1>
-
-        <p
-          style={{
-            color: "#6b7280",
-            fontSize: 16,
-            lineHeight: 1.7,
-            marginBottom: 8,
-          }}
-        >
+        <p className="mb-2 text-base leading-relaxed text-primaryDark/70">
           Tu cuenta ahora tiene acceso completo a:
         </p>
-
-        <ul
-          style={{
-            listStyle: "none",
-            padding: 0,
-            margin: "0 auto 32px",
-            maxWidth: 300,
-          }}
-        >
+        <ul className="mx-auto mb-8 max-w-[300px] list-none p-0">
           {[
             "Asistente IA Clínico",
             "Videollamadas integradas",
@@ -268,40 +138,19 @@ export default function PaymentSuccessPage() {
           ].map((item) => (
             <li
               key={item}
-              style={{
-                padding: "8px 0",
-                fontSize: 15,
-                color: "#1a1a1a",
-                borderBottom: "1px solid #f3f4f6",
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-              }}
+              className="flex items-center gap-2.5 border-b border-hd-border-subtle py-2 text-[15px] text-primaryDark"
             >
-              <span style={{ color: BRAND, fontWeight: 700 }}>✓</span>
+              <span className="font-bold text-primary" aria-hidden>
+                ✓
+              </span>
               {item}
             </li>
           ))}
         </ul>
-
-        <Link
-          href="/dashboard"
-          style={{
-            display: "inline-block",
-            padding: "14px 36px",
-            fontSize: 16,
-            fontFamily: "Montserrat, sans-serif",
-            fontWeight: 700,
-            color: "#fff",
-            textDecoration: "none",
-            borderRadius: 10,
-            background: BRAND,
-            boxShadow: `0 4px 16px ${BRAND}40`,
-          }}
-        >
+        <Button href="/dashboard" variant="primary" className={`w-full min-h-12 ${CTA_PRIMARY}`}>
           Ir al Dashboard
-        </Link>
-      </div>
+        </Button>
+      </Card>
     </div>
   );
 }

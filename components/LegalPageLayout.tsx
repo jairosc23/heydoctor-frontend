@@ -1,7 +1,13 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { BrandLogo } from "@/components/branding";
+import Container from "@/components/ui/Container";
+import { cn } from "@/lib/utils";
 import { LEGAL_EFFECTIVE_DATE, LEGAL_VERSION, PRODUCT } from "@/lib/legal-constants";
 
-const TEAL = "#078a92";
+const FONT_HEADING = "Montserrat, sans-serif";
 
 const LEGAL_NAV = [
   { href: "/terms", label: "Términos" },
@@ -18,81 +24,76 @@ export function LegalPageLayout({
   title: string;
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+
   return (
-    <div style={{ minHeight: "100vh", background: "#f8fafc" }}>
-      <nav
-        style={{
-          padding: "16px 32px",
-          borderBottom: "1px solid #e2e8f0",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: 12,
-        }}
-      >
-        <Link
-          href="/"
-          style={{
-            fontFamily: "Montserrat",
-            fontWeight: 700,
-            fontSize: 22,
-            color: TEAL,
-            textDecoration: "none",
-          }}
-        >
-          {PRODUCT.name}
-        </Link>
-        <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-          {LEGAL_NAV.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              style={{ color: "#475569", fontSize: 13, textDecoration: "none", fontWeight: 500 }}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </div>
-      </nav>
+    <div className="min-h-screen bg-hd-surface-base text-primaryDark">
+      <header className="border-b border-hd-border-subtle bg-hd-surface-chrome shadow-hd-1">
+        <Container className="flex min-h-16 flex-wrap items-center justify-between gap-3 py-3">
+          <Link href="/" className="no-underline">
+            <BrandLogo variant="nav" priority />
+          </Link>
+          <nav
+            className="flex flex-wrap items-center gap-1 sm:gap-2"
+            aria-label="Documentos legales"
+          >
+            {LEGAL_NAV.map((item) => {
+              const active = pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "rounded-lg px-3 py-1.5 text-[13px] font-medium no-underline transition-colors duration-hd-base focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+                    active
+                      ? "bg-primaryLight text-primary"
+                      : "text-primaryDark/70 hover:bg-hd-surface-muted hover:text-primary",
+                  )}
+                  style={{ fontFamily: FONT_HEADING }}
+                  aria-current={active ? "page" : undefined}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+        </Container>
+      </header>
 
-      <div style={{ maxWidth: 760, margin: "0 auto", padding: "48px 24px 96px" }}>
-        <h1
-          style={{
-            fontFamily: "Montserrat",
-            color: "#0f172a",
-            fontSize: 34,
-            fontWeight: 700,
-            marginBottom: 8,
-            letterSpacing: "-0.02em",
-          }}
-        >
-          {title}
-        </h1>
-        <p style={{ color: "#64748b", fontSize: 14, marginBottom: 36 }}>
-          Versión {LEGAL_VERSION} &middot; Vigente desde: {LEGAL_EFFECTIVE_DATE}
-        </p>
+      <main className="py-10 sm:py-12">
+        <Container className="max-w-3xl">
+          <h1
+            className="mb-2 text-[28px] font-bold tracking-tight text-primary sm:text-[34px]"
+            style={{ fontFamily: FONT_HEADING }}
+          >
+            {title}
+          </h1>
+          <p className="mb-9 text-sm text-primaryDark/60">
+            Versión {LEGAL_VERSION} · Vigente desde: {LEGAL_EFFECTIVE_DATE}
+          </p>
 
-        <div
-          style={{
-            color: "#334155",
-            fontSize: 15,
-            lineHeight: 1.85,
-          }}
-        >
-          {children}
-        </div>
-      </div>
+          <div
+            className={cn(
+              "text-[15px] leading-[1.85] text-primaryDark/90",
+              "[&_a]:font-semibold [&_a]:text-primary [&_a]:no-underline hover:[&_a]:underline",
+              "[&_p]:mb-4",
+              "[&_ul]:mb-4 [&_ul]:list-disc [&_ul]:pl-5",
+              "[&_ol]:mb-4 [&_ol]:list-decimal [&_ol]:pl-5",
+              "[&_strong]:text-primaryDark",
+              "[&_table]:mt-4 [&_table]:w-full [&_table]:border-collapse [&_table]:text-sm",
+              "[&_thead_tr]:bg-hd-surface-muted",
+              "[&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:font-semibold [&_th]:text-primaryDark",
+              "[&_td]:border-b [&_td]:border-hd-border-subtle [&_td]:px-3 [&_td]:py-2",
+            )}
+          >
+            {children}
+          </div>
+        </Container>
+      </main>
 
-      <footer
-        style={{
-          padding: "24px 32px",
-          borderTop: "1px solid #e2e8f0",
-          textAlign: "center",
-        }}
-      >
-        <p style={{ color: "#94a3b8", fontSize: 12, margin: 0 }}>
-          &copy; {new Date().getFullYear()} SAVAC LTDA &middot; RUT 76.373.761-6 &middot; {PRODUCT.name}
+      <footer className="border-t border-hd-border-subtle bg-hd-surface-chrome px-6 py-6 text-center">
+        <p className="m-0 text-xs text-primaryDark/50">
+          © {new Date().getFullYear()} SAVAC LTDA · RUT 76.373.761-6 · {PRODUCT.name}
         </p>
       </footer>
     </div>
@@ -109,14 +110,10 @@ export function Section({
   children: React.ReactNode;
 }) {
   return (
-    <div id={id} style={{ marginBottom: 28, scrollMarginTop: 80 }}>
+    <div id={id} className="mb-7 scroll-mt-20">
       <h2
-        style={{
-          fontSize: 18,
-          fontWeight: 700,
-          color: "#0f172a",
-          marginBottom: 10,
-        }}
+        className="mb-2.5 text-lg font-bold text-primaryDark"
+        style={{ fontFamily: FONT_HEADING }}
       >
         {title}
       </h2>

@@ -18,28 +18,28 @@ export default function CookiesPage() {
           analíticas de terceros ni cookies de seguimiento.</strong>
         </p>
 
-        <div style={{ overflowX: "auto", marginTop: 16 }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+        <div className="mt-4 overflow-x-auto">
+          <table>
             <thead>
-              <tr style={{ background: "#f1f5f9", textAlign: "left" }}>
-                <th style={thStyle}>Cookie</th>
-                <th style={thStyle}>Tipo</th>
-                <th style={thStyle}>Duración</th>
-                <th style={thStyle}>Propósito</th>
+              <tr>
+                <th>Cookie</th>
+                <th>Tipo</th>
+                <th>Duración</th>
+                <th>Propósito</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td style={tdStyle}><code>session</code></td>
-                <td style={tdStyle}>Esencial</td>
-                <td style={tdStyle}>Sesión</td>
-                <td style={tdStyle}>Indicador de sesión activa para protección de rutas frontend</td>
+                <td><code>session</code></td>
+                <td>Esencial</td>
+                <td>Sesión</td>
+                <td>Indicador de sesión activa para protección de rutas frontend</td>
               </tr>
               <tr>
-                <td style={tdStyle}><code>refresh_token</code></td>
-                <td style={tdStyle}>Esencial</td>
-                <td style={tdStyle}>7 días</td>
-                <td style={tdStyle}>Token de refresco seguro (HttpOnly, Secure, SameSite)</td>
+                <td><code>refresh_token</code></td>
+                <td>Esencial</td>
+                <td>7 días</td>
+                <td>Token de refresco seguro (HttpOnly, Secure, SameSite)</td>
               </tr>
             </tbody>
           </table>
@@ -81,22 +81,9 @@ export default function CookiesPage() {
       <Section id="contacto" title="7. Contacto">
         <p>
           <strong>SAVAC LTDA</strong> &middot; RUT 76.373.761-6<br />
-          Privacy Officer: <a href="mailto:privacy@heydoctor.health" style={{ color: "#078a92" }}>privacy@heydoctor.health</a>
+          Privacy Officer: <a href="mailto:privacy@heydoctor.health">privacy@heydoctor.health</a>
         </p>
       </Section>
     </LegalPageLayout>
   );
 }
-
-const thStyle: React.CSSProperties = {
-  padding: "10px 12px",
-  borderBottom: "2px solid #e2e8f0",
-  fontSize: 13,
-  fontWeight: 700,
-};
-
-const tdStyle: React.CSSProperties = {
-  padding: "10px 12px",
-  borderBottom: "1px solid #f1f5f9",
-  fontSize: 13,
-};

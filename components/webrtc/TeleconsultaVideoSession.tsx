@@ -34,8 +34,8 @@ export const teleconsultaFullscreenGateShell: React.CSSProperties = {
   position: "fixed",
   inset: 0,
   margin: 0,
-  background: "#0B0F14",
-  color: "#e2e8f0",
+  background: "#022C2C",
+  color: "#E6F7F8",
   zIndex: 2147482900,
   display: "flex",
   alignItems: "center",
@@ -44,6 +44,12 @@ export const teleconsultaFullscreenGateShell: React.CSSProperties = {
   boxSizing: "border-box",
   overflow: "hidden",
 };
+
+const gateMutedText = "m-0 text-white/60";
+const gateErrorTitle =
+  "m-0 mb-3 text-xl font-bold text-red-200";
+const gateLink =
+  "font-semibold text-primary no-underline hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-primaryDark";
 
 export type TeleconsultaPanelGate = {
   consultationId: string;
@@ -454,17 +460,14 @@ export function TeleconsultaVideoSession({
     if (inviteLoading) {
       return (
         <div style={teleconsultaFullscreenGateShell}>
-          <p style={{ margin: 0, color: "#94a3b8" }}>Verificando acceso…</p>
+          <p className={gateMutedText}>Verificando acceso…</p>
         </div>
       );
     }
     if (inviteInvalid || !inviteData) {
       return (
         <div style={teleconsultaFullscreenGateShell}>
-          <p
-            className="w-full px-6 text-center text-base text-slate-400"
-            style={{ margin: 0, lineHeight: 1.5, padding: 24 }}
-          >
+          <p className={`w-full px-6 py-6 text-center text-base leading-relaxed ${gateMutedText}`}>
             Este enlace ya no es válido o expiró
           </p>
         </div>
@@ -476,25 +479,22 @@ export function TeleconsultaVideoSession({
     if (deepLinkLoading) {
       return (
         <div style={teleconsultaFullscreenGateShell}>
-          <p style={{ margin: 0, color: "#94a3b8" }}>Verificando acceso…</p>
+          <p className={gateMutedText}>Verificando acceso…</p>
         </div>
       );
     }
     if (!deepLinkAllowed) {
       return (
         <div style={teleconsultaFullscreenGateShell}>
-          <div className="w-full px-6 text-center" style={{ padding: 24 }}>
-            <h2 style={{ color: "#fecaca", margin: "0 0 12px", fontSize: 20 }}>
+          <div className="w-full px-6 py-6 text-center">
+            <h2 className={gateErrorTitle} style={{ fontFamily: "Montserrat, sans-serif" }}>
               Acceso denegado
             </h2>
-            <p style={{ margin: "0 0 20px", color: "#94a3b8", lineHeight: 1.5 }}>
+            <p className={`mb-5 leading-relaxed ${gateMutedText}`}>
               No tienes permiso para acceder a esta teleconsulta. Inicia sesión
               e intenta de nuevo.
             </p>
-            <Link
-              href={deepLinkDeniedLoginHref}
-              style={{ color: "#5eead4", textDecoration: "none", fontWeight: 600 }}
-            >
+            <Link href={deepLinkDeniedLoginHref} className={gateLink}>
               Ir a login →
             </Link>
           </div>
@@ -529,7 +529,7 @@ export function TeleconsultaVideoSession({
   if (panelGate && panelAccessLoading) {
     return (
       <div style={teleconsultaFullscreenGateShell}>
-        <p style={{ margin: 0, color: "#94a3b8" }}>Verificando acceso…</p>
+        <p className={gateMutedText}>Verificando acceso…</p>
       </div>
     );
   }
@@ -537,17 +537,14 @@ export function TeleconsultaVideoSession({
   if (panelGate && !panelAllowed) {
     return (
       <div style={teleconsultaFullscreenGateShell}>
-        <div className="w-full px-6 text-center" style={{ padding: 24 }}>
-          <h2 style={{ color: "#fecaca", margin: "0 0 12px", fontSize: 20 }}>
+        <div className="w-full px-6 py-6 text-center">
+          <h2 className={gateErrorTitle} style={{ fontFamily: "Montserrat, sans-serif" }}>
             Acceso denegado
           </h2>
-          <p style={{ margin: "0 0 20px", color: "#94a3b8", lineHeight: 1.5 }}>
+          <p className={`mb-5 leading-relaxed ${gateMutedText}`}>
             {panelAccessMessage}
           </p>
-          <Link
-            href={panelDeniedHref}
-            style={{ color: "#5eead4", textDecoration: "none", fontWeight: 600 }}
-          >
+          <Link href={panelDeniedHref} className={gateLink}>
             ← Volver
           </Link>
         </div>
@@ -558,7 +555,7 @@ export function TeleconsultaVideoSession({
   if (!authReady) {
     return (
       <div style={teleconsultaFullscreenGateShell}>
-        <p style={{ margin: 0, color: "#94a3b8" }}>Preparando sesión…</p>
+        <p className={gateMutedText}>Preparando sesión…</p>
       </div>
     );
   }
@@ -566,7 +563,7 @@ export function TeleconsultaVideoSession({
   if (consentLoading) {
     return (
       <div style={teleconsultaFullscreenGateShell}>
-        <p style={{ margin: 0, color: "#94a3b8" }}>
+        <p className={gateMutedText}>
           Comprobando consentimiento…
         </p>
       </div>
@@ -576,8 +573,8 @@ export function TeleconsultaVideoSession({
   if (consentBootstrapError) {
     return (
       <div style={teleconsultaFullscreenGateShell}>
-        <div className="w-full px-6 text-center" style={{ padding: 24 }}>
-          <p style={{ color: "#fecaca", marginBottom: 20, lineHeight: 1.5 }}>
+        <div className="w-full px-6 py-6 text-center">
+          <p className="mb-5 leading-relaxed text-red-200">
             {consentBootstrapError}
           </p>
           <button
@@ -586,30 +583,14 @@ export function TeleconsultaVideoSession({
               setConsentBootstrapError(null);
               setConsentRetryKey((k) => k + 1);
             }}
-            style={{
-              padding: "10px 18px",
-              borderRadius: 8,
-              border: "1px solid rgba(255,255,255,0.2)",
-              background: "rgba(255,255,255,0.08)",
-              color: "#f8fafc",
-              cursor: "pointer",
-              fontWeight: 600,
-            }}
+            className="rounded-lg border border-white/20 bg-white/10 px-4 py-2.5 font-semibold text-white transition-colors hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             Reintentar
           </button>
           <button
             type="button"
             onClick={handleEndCall}
-            style={{
-              marginLeft: 12,
-              padding: "10px 18px",
-              borderRadius: 8,
-              border: "none",
-              background: "transparent",
-              color: "#94a3b8",
-              cursor: "pointer",
-            }}
+            className="ml-3 rounded-lg border-0 bg-transparent px-4 py-2.5 font-medium text-white/60 transition-colors hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             Volver
           </button>
@@ -654,7 +635,7 @@ export function TeleconsultaVideoSession({
   if (!callConsultationId) {
     return (
       <div style={teleconsultaFullscreenGateShell}>
-        <p style={{ margin: 0, color: "#94a3b8" }}>Preparando sesión…</p>
+        <p className={gateMutedText}>Preparando sesión…</p>
       </div>
     );
   }
@@ -670,7 +651,7 @@ export function TeleconsultaVideoSession({
 
   return (
     <div
-      className="fixed inset-0 bg-[#0B0F14] flex flex-col overflow-hidden"
+      className="fixed inset-0 flex flex-col overflow-hidden bg-primaryDark"
       data-teleconsulta-session="active"
     >
       <VideoCall
