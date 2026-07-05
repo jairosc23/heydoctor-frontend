@@ -48,7 +48,7 @@
 | **gl-01** | `NEXT_PUBLIC_CLINICAL_ACTION_WORKSPACE=1` scope **Preview** | ☐ PASS ☐ FAIL ☐ N/A | Captura Vercel env vars | |
 | **gl-01** | `NEXT_PUBLIC_SMART_CLINICAL_WORKSPACE=1` scope **Preview** | ☐ PASS ☐ FAIL ☐ N/A | Misma captura o segunda | Ambos deben ser PASS |
 | **gl-02** | Redeploy preview sin error build | ☐ PASS ☐ FAIL ☐ N/A | Link deployment + build log | |
-| **gl-03** | **v-layout-2col** — `[data-testid=encounter-split-layout]` con `data-columns="2"` y `data-clinical-action-workspace="true"` | ☐ PASS ☐ FAIL ☐ N/A | Captura DevTools + pantalla | |
+| **gl-03** | **v-layout-workstation** — `[data-testid=encounter-split-layout]` con `data-columns="1"` (ADR-019) y `data-clinical-action-workspace="true"` | ☐ PASS ☐ FAIL ☐ N/A | Captura DevTools + pantalla | ID histórico: v-layout-2col |
 | **gl-04** | **v-smart-soap** — sección SOAP con `data-smart-workspace="true"` | ☐ PASS ☐ FAIL ☐ N/A | Captura SOAP compacto | |
 | **gl-05** | **v-action-bar** — `ClinicalActionBar` visible con chips Recetas/Lab/Documentos/… | ☐ PASS ☐ FAIL ☐ N/A | Captura action bar | Clic Recetas → sheet lateral PASS opcional aquí |
 | **gl-06** | **v-legacy-blocked** — `/panel/consultas` con consulta activa: banner redirect, **sin** Rx/Lab inline legacy | ☐ PASS ☐ FAIL ☐ N/A | Captura listado consultas | |

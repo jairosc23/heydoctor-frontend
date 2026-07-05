@@ -46,7 +46,7 @@ export const VERCEL_STAGING_ACTIVATION_STEPS = [
   "6. Deployments → último preview → Redeploy (o push a rama preview)",
   "7. Esperar build Next.js completo (flags compile-time)",
   "8. Abrir /panel/consultas/[id] en preview URL",
-  "9. DevTools: [data-testid=encounter-split-layout] data-clinical-action-workspace=true data-columns=2",
+  "9. DevTools: [data-testid=encounter-split-layout] data-clinical-action-workspace=true data-columns=1 (ADR-019)",
   "10. DevTools: [data-smart-workspace=true] en SOAP section",
   "11. Configurar e2e/.env.e2e desde e2e/.env.e2e.example",
   "12. npm run test:e2e contra preview URL",
@@ -59,7 +59,7 @@ export const WORKSPACE_ACTIVATION_CHECKLIST = {
     "Redeploy completado sin errores build",
   ],
   postDeployValidation: [
-    "Layout 2 columnas (data-columns=2)",
+    "Layout workstation generación B (data-columns=1, ADR-019)",
     "ClinicalActionBar visible con patientId",
     "SoapStickyNav / data-smart-workspace en SOAP",
     "ClinicalModuleSheet abre desde Action Bar",
