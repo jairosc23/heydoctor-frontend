@@ -134,19 +134,21 @@ export function ConsultationWorkspace({
               {...patientContext}
               smartWorkspaceEnabled={smartWorkspaceEnabled}
             />
-            <ClinicalSurface
-              depth={3}
-              focusPrimary
-              className="soap-command-center-shell clinical-focus-primary min-w-0 p-hd-3 shadow-hd-3 ring-1 ring-primary/10"
-            >
-              <EncounterLeftPane
-                consultation={consultation}
-                consultationId={consultationId}
-                activeTab={leftPaneTab}
-                onTabChange={onLeftPaneTabChange}
-                encounterChart={encounterChart}
-              />
-            </ClinicalSurface>
+            <div data-smart-workspace={smartWorkspaceEnabled ? "true" : undefined}>
+              <ClinicalSurface
+                depth={3}
+                focusPrimary
+                className="soap-command-center-shell clinical-focus-primary min-w-0 p-hd-3 shadow-hd-3 ring-1 ring-primary/10"
+              >
+                <EncounterLeftPane
+                  consultation={consultation}
+                  consultationId={consultationId}
+                  activeTab={leftPaneTab}
+                  onTabChange={onLeftPaneTabChange}
+                  encounterChart={encounterChart}
+                />
+              </ClinicalSurface>
+            </div>
           </div>
         </div>
 
