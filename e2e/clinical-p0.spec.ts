@@ -297,8 +297,8 @@ test.describe("Clinical P0 — workspace oficial (Action WS + Smart WS ON)", () 
   });
 });
 
-test.describe("Clinical P0 — smoke layout flags", () => {
-  test("encounter grid expone data attributes workspace", async ({ page }) => {
+test.describe("Clinical P0 — ADR-019 observability smoke", () => {
+  test("encounter grid expone contrato workspace oficial", async ({ page }) => {
     test.skip(!E2E_READY, "Requiere credenciales E2E");
     test.skip(!process.env.E2E_CONSULTATION_HTA, "Requiere E2E_CONSULTATION_HTA");
 
@@ -314,12 +314,8 @@ test.describe("Clinical P0 — smoke layout flags", () => {
     const layout = page.locator('[data-testid="encounter-split-layout"]');
     await expect(layout).toBeVisible();
 
-    const actionWs = await layout.getAttribute("data-clinical-action-workspace");
-    const columns = await layout.getAttribute("data-columns");
-
-    // Documentar combinación real del entorno
-    console.log(`[E2E] Action WS=${actionWs} columns=${columns}`);
-    expect(["true", null]).toContain(actionWs);
-    expect(["1"]).toContain(columns);
+    await expect(layout).toHaveAttribute("data-clinical-action-workspace", "true");
+    await expect(layout).toHaveAttribute("data-columns", "1");
+    await expect(page.locator('[data-smart-workspace="true"]')).toBeVisible();
   });
 });
