@@ -1,20 +1,14 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /**
- * Phase 4.8.6 — Playwright config para casos P0 clínicos.
+ * Phase 19.2 — Playwright config alineado a ADR-019.
  *
- * Requiere:
- *   npm install -D @playwright/test
- *   npx playwright install chromium
+ * P0 clínicos: solo desktop 1440×900 (encounter-split-layout es xl:block).
+ * Visual audit: proyecto desktop separado.
  *
  * Variables (.env.e2e o CI):
- *   E2E_BASE_URL          — ej. https://staging.heydoctor.health
- *   E2E_DOCTOR_EMAIL
- *   E2E_DOCTOR_PASSWORD
- *   E2E_CONSULTATION_HTA    — UUID consulta HTA seed (opcional)
- *   E2E_CONSULTATION_DM2    — UUID consulta DM2 seed (opcional)
- *   E2E_CONSULTATION_ACUTE  — UUID consulta aguda seed (opcional)
- *   E2E_CONSULTATION_PAYMENT — UUID consulta signed para pago (opcional)
+ *   E2E_BASE_URL, E2E_DOCTOR_EMAIL, E2E_DOCTOR_PASSWORD
+ *   E2E_CONSULTATION_HTA | DM2 | ACUTE | PAYMENT
  *
  * Build target debe tener:
  *   NEXT_PUBLIC_CLINICAL_ACTION_WORKSPACE=1
@@ -37,16 +31,19 @@ export default defineConfig({
   },
   projects: [
     {
-      name: "chromium-desktop-official-ws",
+      name: "chromium-desktop-clinical-p0",
+      testMatch: /clinical-p0\.spec\.ts/,
       use: {
         ...devices["Desktop Chrome"],
         viewport: { width: 1440, height: 900 },
       },
     },
     {
-      name: "chromium-mobile-official-ws",
+      name: "chromium-desktop-visual-audit",
+      testMatch: /visual-encounter-audit\.spec\.ts/,
       use: {
-        ...devices["Pixel 7"],
+        ...devices["Desktop Chrome"],
+        viewport: { width: 1440, height: 900 },
       },
     },
   ],
