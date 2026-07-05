@@ -59,7 +59,7 @@ Solo tareas **operacionales** (sin desarrollo):
 | 1 | Setear `NEXT_PUBLIC_CLINICAL_ACTION_WORKSPACE=1` en Vercel **Preview** | gl-01 | Captura env vars |
 | 2 | Setear `NEXT_PUBLIC_SMART_CLINICAL_WORKSPACE=1` en Vercel **Preview** | gl-01 | Captura env vars |
 | 3 | Redeploy preview sin error build | gl-02 | Link deployment + log build |
-| 4 | Validar layout 2-col + action workspace ON | gl-03, gl-05 | Captura DevTools `data-columns="2"` |
+| 4 | Validar workstation layout + action workspace ON | gl-03, gl-05 | Captura DevTools `data-columns="1"` (ADR-019) |
 | 5 | Validar Smart SOAP compacto | gl-04 | Captura `data-smart-workspace="true"` |
 | 6 | Validar legacy listado consultas bloqueado | gl-06 | Captura banner redirect |
 | 7 | Crear `.env.e2e` con 7 variables | gl-07 | Checklist variables |
@@ -99,7 +99,7 @@ Solo tareas **operacionales** (sin desarrollo):
 
 | Flag | Layout |
 |------|--------|
-| Action OFF | `EncounterSplitLayout` → `LEGACY_GRID` (3 columnas) + `EncounterRightPane` |
+| Action OFF | Desactiva Action Bar / Module Sheet; layout generación B en `ConsultationWorkspace` (no restaura `EncounterSplitLayout`) |
 | Smart OFF | SOAP expandido, sin scroll spy / sticky nav / previews compactos |
 | Ambos OFF | Experiencia pre-4.2/4.3 completa |
 

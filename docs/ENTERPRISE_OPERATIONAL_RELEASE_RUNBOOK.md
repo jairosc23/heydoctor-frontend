@@ -269,7 +269,7 @@ Abrir `/panel/consultas/{CONSULTATION_HTA}`.
 **Verificación técnica (atributos):**
 
 - `data-clinical-action-workspace="true"`
-- `data-columns="2"`
+- `data-columns="1"` (ADR-019 — columna clínica unificada; Action WS ON)
 
 **Verificación visual obligatoria:**
 

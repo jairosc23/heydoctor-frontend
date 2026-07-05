@@ -69,7 +69,7 @@ export const VISUAL_VALIDATIONS = [
   {
     id: "v-layout-2col",
     selector: '[data-testid="encounter-split-layout"]',
-    expected: 'data-columns="2" AND data-clinical-action-workspace="true"',
+    expected: 'data-columns="1" AND data-clinical-action-workspace="true" (ADR-019)',
     failMeans: "Flags OFF en build preview — redeploy con vars Preview",
   },
   {

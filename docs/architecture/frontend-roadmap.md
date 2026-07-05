@@ -227,7 +227,7 @@ Cualquier modificación al isotipo, wordmark o flujo de resolución del logo deb
 | T1 | E2E P0 bloqueante CI | `clinical-p0.spec.ts` como gate obligatorio | Regresiones bloquean merge | Flaky sin secrets estables | GitHub secrets, QA prod | M | **Alta** |
 | T2 | Evidencia GO-LIVE E2E | gl-07–gl-11 documentados | Desbloquea GO operacional | Datos QA prod | Backend, Payku | M | **Alta** |
 | T3 | Tests componentes React | Testing Library para UI crítica | Cobertura más allá de `lib/` | Mantenimiento | Infra test runner | L | Media |
-| T4 | E2E workspace 2-col | Validar `data-columns="2"` y smart workspace ON | CI detecta flags OFF | Env-dependent | T1, env Preview | M | **Alta** |
+| T4 | E2E workspace observability | Validar `data-columns="1"` (ADR-019) y smart workspace ON | CI detecta flags OFF | Env-dependent | T1, env Preview | M | **Alta** |
 | T5 | Visual regression pipeline | Formalizar snapshots Playwright en CI | Regresiones UI encounter | Falsos positivos fonts | Storage snapshots | M | Baja |
 | T6 | Smoke test real CI | Reemplazar placeholder `ci-smoke.test.mjs` | CI smoke con valor | Bajo | — | S | Media |
 | T7 | E2E admin y auth | Specs `/admin/*` y login/refresh | Cobertura enterprise | Credenciales admin | S2, secrets CI | M | Media |
@@ -348,6 +348,8 @@ Tras el cierre, la fase queda **congelada**:
 
 | Documento | Relación |
 |---|---|
+| [`architecture/adr/`](./architecture/adr/README.md) | ADR — decisiones arquitectónicas (ADR-000, ADR-019) |
+| [`architecture/adr/019-clinical-workspace-observability-contract.md`](./architecture/adr/019-clinical-workspace-observability-contract.md) | Fase 19 — contrato observabilidad workspace |
 | [`branding-ssot.md`](./branding-ssot.md) | Fase 18 cerrada — Branding congelado |
 | [`../FRONTEND_SSOT.md`](../FRONTEND_SSOT.md) | Política repositorio SSOT (pendiente versionado: D1) |
 | [`../ENTERPRISE_OPERATIONAL_RELEASE_RUNBOOK.md`](../ENTERPRISE_OPERATIONAL_RELEASE_RUNBOOK.md) | Runbook S1, T2, D4 |

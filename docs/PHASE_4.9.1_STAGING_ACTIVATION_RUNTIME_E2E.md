@@ -23,7 +23,7 @@
 4. `NEXT_PUBLIC_SMART_CLINICAL_WORKSPACE` = `1` → **Preview**
 5. **NO** modificar Production en 4.9.1
 6. Redeploy preview
-7. Validar `data-clinical-action-workspace="true"` y `data-columns="2"`
+7. Validar `data-clinical-action-workspace="true"` y `data-columns="1"` (ADR-019)
 8. Copiar `e2e/.env.e2e.example` → `.env.e2e`
 9. `npm run test:e2e`
 

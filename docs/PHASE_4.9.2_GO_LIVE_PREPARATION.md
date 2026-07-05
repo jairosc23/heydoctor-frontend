@@ -25,7 +25,7 @@
 
 | ID | Qué ver | Esperado |
 |----|---------|----------|
-| v-layout-2col | `[data-testid=encounter-split-layout]` | `data-columns="2"`, `data-clinical-action-workspace="true"` |
+| v-layout-2col | `[data-testid=encounter-split-layout]` | `data-columns="1"` (ADR-019), `data-clinical-action-workspace="true"` |
 | v-smart-soap | SOAP section | `data-smart-workspace="true"` |
 | v-action-bar | Chrome encounter | `ClinicalActionBar` con chips Recetas/Lab/… |
 | v-module-sheet | Clic Recetas | Sheet lateral visible |

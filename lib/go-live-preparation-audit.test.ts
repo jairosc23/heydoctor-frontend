@@ -21,8 +21,10 @@ describe("go-live-preparation-audit Phase 4.9.2", () => {
     assert.match(text, /Redeploy/);
   });
 
-  it("validaciones visuales exigen layout 2-col oficial", () => {
-    assert.ok(VISUAL_VALIDATIONS.some((v) => v.id === "v-layout-2col"));
+  it("validaciones visuales exigen layout workstation oficial (ADR-019)", () => {
+    const layout = VISUAL_VALIDATIONS.find((v) => v.id === "v-layout-2col");
+    assert.ok(layout);
+    assert.match(layout!.expected, /data-columns="1"/);
     assert.ok(VISUAL_VALIDATIONS.some((v) => v.id === "v-no-3col"));
   });
 
