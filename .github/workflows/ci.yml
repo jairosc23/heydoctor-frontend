@@ -17,6 +17,14 @@ jobs:
   frontend:
     name: frontend
     runs-on: ubuntu-latest
+    env:
+      E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
+      E2E_DOCTOR_EMAIL: ${{ secrets.E2E_DOCTOR_EMAIL }}
+      E2E_DOCTOR_PASSWORD: ${{ secrets.E2E_DOCTOR_PASSWORD }}
+      E2E_CONSULTATION_HTA: ${{ secrets.E2E_CONSULTATION_HTA }}
+      E2E_CONSULTATION_DM2: ${{ secrets.E2E_CONSULTATION_DM2 }}
+      E2E_CONSULTATION_ACUTE: ${{ secrets.E2E_CONSULTATION_ACUTE }}
+      E2E_CONSULTATION_PAYMENT: ${{ secrets.E2E_CONSULTATION_PAYMENT }}
 
     steps:
       - uses: actions/checkout@v4
@@ -42,13 +50,52 @@ jobs:
       - name: Test
         run: npm test
 
+      - name: Detect E2E P0 secrets
+        id: e2e_gate
+        run: |
+          missing=()
+          for key in \
+            E2E_BASE_URL \
+            E2E_DOCTOR_EMAIL \
+            E2E_DOCTOR_PASSWORD \
+            E2E_CONSULTATION_HTA \
+            E2E_CONSULTATION_DM2 \
+            E2E_CONSULTATION_ACUTE \
+            E2E_CONSULTATION_PAYMENT
+          do
+            if [[ -z "${!key}" ]]; then
+              missing+=("$key")
+            fi
+          done
+          if [[ ${#missing[@]} -gt 0 ]]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Install Playwright Chromium
+        if: steps.e2e_gate.outputs.configured == 'true'
         run: npx playwright install --with-deps chromium
 
-      - name: E2E (staging optional)
+      - name: E2E Clinical P0 (ADR-019)
+        id: e2e_p0
+        if: steps.e2e_gate.outputs.configured == 'true'
         continue-on-error: true
-        run: npm run test:e2e
-        env:
-          E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
-          E2E_DOCTOR_EMAIL: ${{ secrets.E2E_DOCTOR_EMAIL }}
-          E2E_DOCTOR_PASSWORD: ${{ secrets.E2E_DOCTOR_PASSWORD }}
+        run: npx playwright test e2e/clinical-p0.spec.ts --config e2e/playwright.config.ts
+
+      - name: E2E gate summary
+        if: always()
+        run: |
+          echo "## E2E Clinical P0 Gate (Phase 19.3)"
+          if [[ "${{ steps.e2e_gate.outputs.configured }}" != "true" ]]; then
+            echo "Secrets: skipped"
+            echo "Result: SKIPPED"
+            exit 0
+          fi
+          echo "Secrets: configured"
+          if [[ "${{ steps.e2e_p0.outcome }}" == "success" ]]; then
+            echo "Result: PASS"
+            exit 0
+          fi
+          echo "Result: FAIL"
+          exit 1
