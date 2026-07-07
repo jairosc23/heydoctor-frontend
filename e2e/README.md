@@ -86,6 +86,29 @@ npm run test:e2e
 
 **gl-11:** P0-4 puede `skip` si Payku sandbox requiere intervención manual — documentar en `PHASE_4.9.4`.
 
+## CI Gate (Phase 19.3)
+
+GitHub Actions ejecuta **solo** `e2e/clinical-p0.spec.ts` cuando los **7 repository secrets** están configurados. No incluye `visual-encounter-audit.spec.ts` ni otras suites.
+
+| Secret | Obligatorio |
+|---|---|
+| `E2E_BASE_URL` | Sí |
+| `E2E_DOCTOR_EMAIL` | Sí |
+| `E2E_DOCTOR_PASSWORD` | Sí |
+| `E2E_CONSULTATION_HTA` | Sí |
+| `E2E_CONSULTATION_DM2` | Sí |
+| `E2E_CONSULTATION_ACUTE` | Sí |
+| `E2E_CONSULTATION_PAYMENT` | Sí |
+
+**Política:**
+
+| Secrets | Comportamiento CI | Resumen job |
+|---|---|---|
+| Los 7 presentes | E2E P0 bloqueante | `Secrets: configured` · `Result: PASS` o `FAIL` |
+| Cualquiera ausente (fork, pre-ops) | E2E omitido | `Secrets: skipped` · `Result: SKIPPED` |
+
+**Prerequisito:** `E2E_BASE_URL` debe apuntar a un Vercel Preview con `NEXT_PUBLIC_CLINICAL_ACTION_WORKSPACE=1` y `NEXT_PUBLIC_SMART_CLINICAL_WORKSPACE=1`.
+
 ## Activación Vercel Preview (pre-requisito ops)
 
 1. Settings → Environment Variables → ambos flags `=1` scope **Preview**
