@@ -51,13 +51,7 @@ import {
 } from "@/lib/session-analytics";
 import { ApiError } from "@/lib/heydoctor-api";
 import { getLogger } from "@/lib/logger";
-
-function getSafePostLoginPath(redirect: string | null): string {
-  if (redirect && redirect.startsWith("/") && !redirect.startsWith("//")) {
-    return redirect;
-  }
-  return "/panel";
-}
+import { getSafePostLoginPath } from "@/lib/auth/safe-redirect";
 
 const logAuth = getLogger("AUTH");
 const logSsr = getLogger("SSR");

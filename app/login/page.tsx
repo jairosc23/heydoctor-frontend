@@ -4,6 +4,7 @@ import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/context/AuthContext";
+import { getSafePostLoginPath } from "@/lib/auth/safe-redirect";
 import { BrandLogo } from "@/components/branding";
 import Card from "@/components/ui/Card";
 import Input from "@/components/ui/Input";
@@ -17,11 +18,7 @@ function LoginContent() {
   const searchParams = useSearchParams();
   const { login } = useAuth();
 
-  const rawRedirect = searchParams.get("redirect") || "/panel";
-  const redirect =
-    rawRedirect.startsWith("/") && !rawRedirect.startsWith("//")
-      ? rawRedirect
-      : "/panel";
+  const redirect = getSafePostLoginPath(searchParams.get("redirect"));
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

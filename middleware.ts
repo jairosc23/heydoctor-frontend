@@ -3,6 +3,7 @@ import {
   parseJwtPayload,
   type JwtPayloadClaims,
 } from "@/lib/auth/jwt-utils";
+import { getSafePostLoginPath } from "@/lib/auth/safe-redirect";
 import { buildCspWithNonce } from "@/lib/csp-nonce";
 
 const SESSION_COOKIE = "heydoctor_session";
@@ -10,6 +11,12 @@ const SESSION_COOKIE = "heydoctor_session";
 const ACCESS_TOKEN_COOKIE = "access_token";
 /** Tolerancia de reloj (cliente vs Edge): no tratar como expirado si falta < skew. */
 const SSR_SESSION_CLOCK_SKEW_MS = 5_000;
+/**
+ * GA-FIX BUG-1: one-shot marker to break login↔deep-link loops when SSR cookie
+ * is still present but the client session is unusable.
+ */
+const DEEPLINK_BOUNCE_COOKIE = "hd_deeplink_bounce";
+const DEEPLINK_BOUNCE_MAX_AGE_SEC = 20;
 
 function isSsrSessionValid(cookieValue: string | undefined): boolean {
   const token = cookieValue;
@@ -154,11 +161,53 @@ export function middleware(request: NextRequest) {
     return applySecurityHeaders(NextResponse.redirect(loginUrl), csp);
   }
 
+  // GA-FIX BUG-1: preserve ?redirect= deep-links (e.g. medical-copilot).
+  // Never bounce an authenticated /login hit to bare /panel when redirect is safe.
+  // If the same deep-link bounces twice within seconds, SSR cookie is stale for the
+  // client — clear it and render /login so re-auth can proceed without a loop.
   if (pathname === "/login" && hasSession) {
-    return applySecurityHeaders(
-      NextResponse.redirect(new URL("/panel", request.url)),
+    const target = getSafePostLoginPath(
+      request.nextUrl.searchParams.get("redirect"),
+    );
+    const priorBounce = request.cookies.get(DEEPLINK_BOUNCE_COOKIE)?.value;
+    const secure = process.env.NODE_ENV === "production";
+
+    if (priorBounce && priorBounce === target && target !== "/panel") {
+      const stayOnLogin = applySecurityHeaders(
+        NextResponse.next({ request: { headers: requestHeaders } }),
+        csp,
+      );
+      stayOnLogin.cookies.set(SESSION_COOKIE, "", {
+        httpOnly: true,
+        path: "/",
+        sameSite: "lax",
+        secure,
+        maxAge: 0,
+      });
+      stayOnLogin.cookies.set(DEEPLINK_BOUNCE_COOKIE, "", {
+        httpOnly: true,
+        path: "/",
+        sameSite: "lax",
+        secure,
+        maxAge: 0,
+      });
+      return stayOnLogin;
+    }
+
+    const redirected = applySecurityHeaders(
+      NextResponse.redirect(new URL(target, request.url)),
       csp,
     );
+    if (target !== "/panel") {
+      redirected.cookies.set(DEEPLINK_BOUNCE_COOKIE, target, {
+        httpOnly: true,
+        path: "/",
+        sameSite: "lax",
+        secure,
+        maxAge: DEEPLINK_BOUNCE_MAX_AGE_SEC,
+      });
+    }
+    return redirected;
   }
 
   return applySecurityHeaders(

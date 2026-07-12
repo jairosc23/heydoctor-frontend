@@ -54,5 +54,13 @@ export default defineConfig({
         viewport: { width: 1440, height: 900 },
       },
     },
+    {
+      name: "chromium-desktop-ga-fix-deeplink",
+      testMatch: /ga-fix-deeplink\.spec\.ts/,
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 1440, height: 900 },
+      },
+    },
   ],
 });
