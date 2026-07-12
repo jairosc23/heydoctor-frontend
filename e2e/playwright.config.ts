@@ -46,5 +46,13 @@ export default defineConfig({
         viewport: { width: 1440, height: 900 },
       },
     },
+    {
+      name: "chromium-desktop-medical-copilot-rc2",
+      testMatch: /medical-copilot-rc2\.spec\.ts/,
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 1440, height: 900 },
+      },
+    },
   ],
 });

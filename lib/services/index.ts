@@ -38,3 +38,5 @@ export * from "./consents";
 export * from "./public-consultations";
 export * from "./clinical-record";
 export * from "./consultation-actions";
+export * from "./medical-copilot";
+
