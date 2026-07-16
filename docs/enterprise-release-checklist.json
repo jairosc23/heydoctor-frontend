@@ -1,0 +1,119 @@
+{
+  "checklistId": "enterprise-release-merge-checklist-2026-07-16",
+  "purpose": "Checklist for future unified merge of Medical Copilot RC2 + Agenda Enterprise — not an authorization to execute",
+  "preMerge": [
+    {
+      "id": "PM-01",
+      "item": "Confirm remote HEADs match audited SHAs",
+      "status": "ready"
+    },
+    {
+      "id": "PM-02",
+      "item": "Optional annotated tags on both branch tips",
+      "status": "optional"
+    },
+    {
+      "id": "PM-03",
+      "item": "Human written approval to execute merge",
+      "status": "pending"
+    },
+    {
+      "id": "PM-04",
+      "item": "Working trees clean; no parallel feature work",
+      "status": "pending_at_execution"
+    }
+  ],
+  "mergeExecution": [
+    {
+      "id": "MX-BE-01",
+      "item": "Checkout release/medical-copilot-v1.0-rc2 (backend)",
+      "status": "not_executed"
+    },
+    {
+      "id": "MX-BE-02",
+      "item": "git merge --no-ff origin/feature/agenda-enterprise",
+      "status": "not_executed"
+    },
+    {
+      "id": "MX-BE-03",
+      "item": "Backend format/lint/build/tests",
+      "status": "not_executed"
+    },
+    {
+      "id": "MX-FE-01",
+      "item": "Checkout release/medical-copilot-v1.0-rc2 (frontend)",
+      "status": "not_executed"
+    },
+    {
+      "id": "MX-FE-02",
+      "item": "git merge --no-ff origin/feature/agenda-enterprise",
+      "status": "not_executed"
+    },
+    {
+      "id": "MX-FE-03",
+      "item": "Frontend lint/tsc/build/tests",
+      "status": "not_executed"
+    }
+  ],
+  "postMergeValidation": [
+    {
+      "id": "PV-01",
+      "item": "Verify RC3–RC6 commits present on unified tip",
+      "status": "not_executed"
+    },
+    {
+      "id": "PV-02",
+      "item": "Verify Agenda F1–F10 commits present on unified tip",
+      "status": "not_executed"
+    },
+    {
+      "id": "PV-03",
+      "item": "Smoke /panel/agenda",
+      "status": "not_executed"
+    },
+    {
+      "id": "PV-04",
+      "item": "Smoke /panel/consultas/[id]/medical-copilot",
+      "status": "not_executed"
+    },
+    {
+      "id": "PV-05",
+      "item": "Playwright medical-copilot-rc2 with staging .env.e2e",
+      "status": "not_executed"
+    },
+    {
+      "id": "PV-06",
+      "item": "Migration order includes 175130 then 175260–175290",
+      "status": "not_executed"
+    }
+  ],
+  "rollback": [
+    {
+      "id": "RB-01",
+      "item": "Before push: git merge --abort"
+    },
+    {
+      "id": "RB-02",
+      "item": "After push: git revert -m 1 <merge_commit>"
+    },
+    {
+      "id": "RB-03",
+      "item": "Keep original branch tips as recovery refs"
+    }
+  ],
+  "explicitNonActionsThisPhase": [
+    "merge",
+    "rebase",
+    "cherry-pick",
+    "reset",
+    "deploy",
+    "promotion",
+    "merge to main"
+  ],
+  "goNoGo": {
+    "technicalUnificationPossible": "GO",
+    "executeMergeThisPhase": "NO_GO",
+    "unifiedReleaseTag": "NO_GO_UNTIL_MERGE",
+    "productionDeploy": "NO_GO"
+  }
+}
