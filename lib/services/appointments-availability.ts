@@ -46,10 +46,7 @@ export type CreateAvailabilityRulePayload = {
   doctorId?: string;
 };
 
-/**
- * Update/delete of persisted rules are not exposed by current BE controller
- * (only GET list + POST create). Client keeps types ready for SSOT completion.
- */
+/** Partial update payload for PATCH `/appointments/availability/rules/:ruleId` (SSOT). */
 export type UpdateAvailabilityRulePayload = Partial<CreateAvailabilityRulePayload>;
 
 export async function fetchAvailabilityRules(
