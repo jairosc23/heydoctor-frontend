@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { AgendaAvailabilityPanel } from "@/components/agenda/AgendaAvailabilityPanel";
+import { AgendaAvailabilityRulesPanel } from "@/components/agenda/AgendaAvailabilityRulesPanel";
 import { AgendaDayView } from "@/components/agenda/AgendaDayView";
 import { AgendaMonthView } from "@/components/agenda/AgendaMonthView";
 import { AgendaWeekView } from "@/components/agenda/AgendaWeekView";
@@ -156,6 +157,13 @@ export default function AgendaPage() {
         isError={availability.isError}
         clinicTimezone={timeZone}
         requiresDoctorId={requiresDoctorId}
+      />
+
+      <AgendaAvailabilityRulesPanel
+        rules={availability.data?.rules}
+        isLoading={availability.isLoading}
+        isError={availability.isError}
+        canManage={!requiresDoctorId}
       />
 
       {isLoading ? (

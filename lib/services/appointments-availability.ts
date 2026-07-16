@@ -35,6 +35,23 @@ export type ListAvailabilitySlotsParams = {
   slotMinutes?: number;
 };
 
+/** Matches BE CreateAvailabilityRuleDto — SSOT create contract. */
+export type CreateAvailabilityRulePayload = {
+  dayOfWeek: number;
+  startMinutes: number;
+  endMinutes: number;
+  effectiveFrom?: string;
+  effectiveUntil?: string;
+  isActive?: boolean;
+  doctorId?: string;
+};
+
+/**
+ * Update/delete of persisted rules are not exposed by current BE controller
+ * (only GET list + POST create). Client keeps types ready for SSOT completion.
+ */
+export type UpdateAvailabilityRulePayload = Partial<CreateAvailabilityRulePayload>;
+
 export async function fetchAvailabilityRules(
   doctorId?: string,
 ): Promise<DoctorAvailabilityRule[]> {
@@ -46,6 +63,29 @@ export async function fetchAvailabilityRules(
     [],
   );
   return Array.isArray(result) ? result : [];
+}
+
+export async function createAvailabilityRule(
+  payload: CreateAvailabilityRulePayload,
+): Promise<DoctorAvailabilityRule> {
+  return heydoctorApi.post<DoctorAvailabilityRule>(
+    `${BASE}/availability/rules`,
+    payload,
+  );
+}
+
+export async function updateAvailabilityRule(
+  ruleId: string,
+  payload: UpdateAvailabilityRulePayload,
+): Promise<DoctorAvailabilityRule> {
+  return heydoctorApi.patch<DoctorAvailabilityRule>(
+    `${BASE}/availability/rules/${ruleId}`,
+    payload,
+  );
+}
+
+export async function deleteAvailabilityRule(ruleId: string): Promise<void> {
+  await heydoctorApi.delete(`${BASE}/availability/rules/${ruleId}`);
 }
 
 export async function fetchAvailabilitySlots(
