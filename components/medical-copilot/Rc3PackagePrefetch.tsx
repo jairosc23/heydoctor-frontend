@@ -6,6 +6,7 @@ import {
   getMedicalCopilotGovernedClinicalAiOrchestratorPackage,
   getMedicalCopilotGovernedClinicalWorkflowEnginePackage,
 } from "@/lib/medical-copilot/api";
+import { recordRc4PackageHydration } from "@/lib/medical-copilot/rc4-operational";
 
 /**
  * RC3 package-first: prefetch orchestrator + workflow packages once per session
@@ -20,10 +21,14 @@ export function Rc3PackagePrefetch() {
   useEffect(() => {
     if (!sessionId || done.current === sessionId) return;
     done.current = sessionId;
+    const started = typeof performance !== "undefined" ? performance.now() : Date.now();
     void Promise.allSettled([
       getMedicalCopilotGovernedClinicalAiOrchestratorPackage(sessionId),
       getMedicalCopilotGovernedClinicalWorkflowEnginePackage(sessionId),
-    ]);
+    ]).then(() => {
+      const end = typeof performance !== "undefined" ? performance.now() : Date.now();
+      recordRc4PackageHydration("orchestrator+workflow", end - started);
+    });
   }, [sessionId]);
 
   return null;

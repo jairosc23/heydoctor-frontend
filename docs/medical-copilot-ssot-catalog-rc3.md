@@ -1002,3 +1002,8 @@
 - FE lazy mounting via `MedicalCopilotDeferredPanel`
 - Request dedupe + package-first via `lib/medical-copilot/rc3-operational`
 - Internal metrics via `Rc3OperationalInterceptor` (Logger.debug only)
+
+
+## RC4 Operational Layer
+
+See `medical-copilot-rc4.md` for production hardening (cache TTL, virtualization, isolation, audit).

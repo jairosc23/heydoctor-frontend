@@ -1,7 +1,29 @@
 type CacheEntry = { packagePayload: unknown; fetchedAt: number };
 
+/** RC4 — session package cache TTL (ms). */
+export const RC4_PACKAGE_CACHE_TTL_MS = 60_000;
+const RC4_PACKAGE_CACHE_MAX_SESSIONS = 32;
+
 const orchestratorBySession = new Map<string, CacheEntry>();
 const workflowBySession = new Map<string, CacheEntry>();
+
+function isFresh(entry: CacheEntry | undefined): entry is CacheEntry {
+  if (!entry) return false;
+  return Date.now() - entry.fetchedAt <= RC4_PACKAGE_CACHE_TTL_MS;
+}
+
+function evictOldest(map: Map<string, CacheEntry>): void {
+  if (map.size < RC4_PACKAGE_CACHE_MAX_SESSIONS) return;
+  let oldestKey: string | null = null;
+  let oldest = Number.POSITIVE_INFINITY;
+  for (const [k, v] of map) {
+    if (v.fetchedAt < oldest) {
+      oldest = v.fetchedAt;
+      oldestKey = k;
+    }
+  }
+  if (oldestKey) map.delete(oldestKey);
+}
 
 const ORCH_FIELD_BY_SUFFIX: Record<string, string> = {
   "governed-clinical-orchestrator-runtime": "clinicalOrchestratorRuntime",
@@ -76,10 +98,12 @@ function envelopeFromSurface(surface: unknown, reason: string): unknown {
 }
 
 export function rememberOrchestratorPackage(sessionId: string, payload: unknown): void {
+  evictOldest(orchestratorBySession);
   orchestratorBySession.set(sessionId, { packagePayload: payload, fetchedAt: Date.now() });
 }
 
 export function rememberWorkflowPackage(sessionId: string, payload: unknown): void {
+  evictOldest(workflowBySession);
   workflowBySession.set(sessionId, { packagePayload: payload, fetchedAt: Date.now() });
 }
 
@@ -96,7 +120,10 @@ export function tryProjectGovernedPackageFirst(path: string): unknown | null {
   const orchField = ORCH_FIELD_BY_SUFFIX[suffix];
   if (orchField) {
     const entry = orchestratorBySession.get(sessionId);
-    if (!entry) return null;
+    if (!isFresh(entry)) {
+      if (entry) orchestratorBySession.delete(sessionId);
+      return null;
+    }
     const pkg = unwrapPackage(entry.packagePayload);
     if (!pkg || pkg[orchField] === undefined) return null;
     return envelopeFromSurface(pkg[orchField], `rc3_package_first_${orchField}`);
@@ -105,7 +132,10 @@ export function tryProjectGovernedPackageFirst(path: string): unknown | null {
   const wfField = WF_FIELD_BY_SUFFIX[suffix];
   if (wfField) {
     const entry = workflowBySession.get(sessionId);
-    if (!entry) return null;
+    if (!isFresh(entry)) {
+      if (entry) workflowBySession.delete(sessionId);
+      return null;
+    }
     const pkg = unwrapPackage(entry.packagePayload);
     if (!pkg || pkg[wfField] === undefined) return null;
     return envelopeFromSurface(pkg[wfField], `rc3_package_first_${wfField}`);
