@@ -32,6 +32,8 @@ export interface MyDoctorProfile {
   professionalAddress: string | null;
   signatureUrl: string | null;
   isPublic?: boolean;
+  /** IANA override; null inherits clinic timezone. */
+  timezone?: string | null;
 }
 
 export interface MyDoctorProfileResponse {
@@ -49,6 +51,8 @@ export interface UpdateMyDoctorProfileInput {
   professionalAddress?: string;
   country?: string;
   signatureUrl?: string;
+  /** IANA override; null clears override. */
+  timezone?: string | null;
 }
 
 export function getDoctorProfileErrorMessage(

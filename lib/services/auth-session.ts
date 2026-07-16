@@ -7,6 +7,8 @@ export interface CurrentUserResponse {
   role: string;
   clinicId: string;
   plan: "free" | "pro";
+  /** IANA clinic timezone SSOT (Agenda Enterprise Phase 7). */
+  clinicTimezone?: string;
 }
 
 export async function fetchCurrentUser(): Promise<CurrentUserResponse> {

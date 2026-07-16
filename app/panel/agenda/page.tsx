@@ -9,6 +9,7 @@ import { AgendaDayView } from "@/components/agenda/AgendaDayView";
 import { AgendaMonthView } from "@/components/agenda/AgendaMonthView";
 import { AgendaSlotsPanel } from "@/components/agenda/AgendaSlotsPanel";
 import { AgendaRemindersPanel } from "@/components/agenda/AgendaRemindersPanel";
+import { AgendaTimezonePanel } from "@/components/agenda/AgendaTimezonePanel";
 import { AgendaWaitlistPanel } from "@/components/agenda/AgendaWaitlistPanel";
 import { AgendaWeekView } from "@/components/agenda/AgendaWeekView";
 import { AppointmentFormModal } from "@/components/agenda/AppointmentFormModal";
@@ -20,9 +21,12 @@ import {
   getRangeForView,
   getViewTitle,
   navigateAnchor,
-  resolveClinicTimezone,
 } from "@/lib/agenda/calendar-utils";
 import { useAvailabilityEnterpriseQuery } from "@/lib/hooks/use-availability-enterprise";
+import {
+  useDoctorTimezoneQuery,
+  useResolvedClinicTimezone,
+} from "@/lib/hooks/use-clinic-timezone";
 import {
   useAppointmentsListQuery,
   useConsultationsListQuery,
@@ -46,7 +50,12 @@ const VIEWS: { id: AgendaView; label: string }[] = [
 const SLOT_MINUTES_OPTIONS = [15, 30, 45, 60] as const;
 
 export default function AgendaPage() {
-  const timeZone = resolveClinicTimezone();
+  const {
+    timeZone,
+    clinicName,
+    source: timezoneSource,
+  } = useResolvedClinicTimezone();
+  const doctorTzQuery = useDoctorTimezoneQuery();
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
   const [view, setView] = useState<AgendaView>("week");
@@ -163,6 +172,7 @@ export default function AgendaPage() {
           </h1>
           <p className="mt-1 text-sm text-primaryDark/70">
             Agenda enterprise · zona horaria {timeZone}
+            {clinicName ? ` · ${clinicName}` : ""}
             {user?.clinicId
               ? ` · clínica ${user.clinicId.slice(0, 8)}…`
               : ""}
@@ -349,6 +359,16 @@ export default function AgendaPage() {
         canManage={user?.role === "doctor" || isAdmin}
       />
 
+      <AgendaTimezonePanel
+        clinicTimezone={timeZone}
+        clinicName={clinicName}
+        doctorTimezone={doctorTzQuery.data}
+        appointments={appointments}
+        canEditClinic={isAdmin}
+        canEditDoctor={user?.role === "doctor"}
+        timezoneSource={timezoneSource}
+      />
+
       {isLoading ? (
         <p className="text-slate-500 dark:text-slate-400">Cargando agenda…</p>
       ) : (
@@ -392,6 +412,7 @@ export default function AgendaPage() {
         open={modalOpen}
         appointment={selected}
         defaultStartsAt={createAt}
+        clinicTimezone={timeZone}
         onClose={() => {
           setModalOpen(false);
           setSelected(null);

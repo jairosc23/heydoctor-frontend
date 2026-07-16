@@ -9,7 +9,6 @@ import {
   patientLabel,
 } from "@/lib/agenda/appointment-display";
 import { displayStatus } from "@/lib/agenda/appointment-display";
-import { resolveClinicTimezone } from "@/lib/agenda/calendar-utils";
 import { useAuth } from "@/lib/context/AuthContext";
 import { getApiErrorMessage } from "@/lib/heydoctor-api";
 import { APPOINTMENTS_LIST_ROOT } from "@/lib/queries/query-keys";
@@ -30,6 +29,8 @@ type Props = {
   open: boolean;
   appointment: Appointment | null;
   defaultStartsAt?: Date;
+  /** IANA clinic SSOT from Agenda Phase 7. */
+  clinicTimezone: string;
   onClose: () => void;
 };
 
@@ -46,12 +47,13 @@ export function AppointmentFormModal({
   open,
   appointment,
   defaultStartsAt,
+  clinicTimezone,
   onClose,
 }: Props) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
-  const tz = resolveClinicTimezone();
+  const tz = clinicTimezone;
   const { data: patientsData } = usePatientsListQuery({ limit: 100 });
   const patients = patientsData?.data ?? [];
   const { data: appointmentsData, isPending: appointmentsLoading } =
