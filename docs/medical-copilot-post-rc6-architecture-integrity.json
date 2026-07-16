@@ -1,0 +1,12 @@
+{
+  "generatedAt": "2026-07-16T15:42:00.893Z",
+  "fePageImportIssues": [],
+  "rc5Inventory": {
+    "packages": 18,
+    "workflows": 21,
+    "endpoints": 430,
+    "buildersForSession": 17,
+    "panels": 474
+  },
+  "note": "Full BE scan lives in backend docs."
+}
