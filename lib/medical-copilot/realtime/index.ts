@@ -51,3 +51,10 @@ export {
   createSseTransportAdapter,
   createWebSocketTransportAdapter,
 } from "./transport-adapters";
+
+export {
+  MEDICAL_COPILOT_SSE_PATH,
+  createMedicalCopilotSseClient,
+  getMedicalCopilotSsePrepStatus,
+} from "./sse-prep";
+export type { MedicalCopilotSsePrepStatus } from "./sse-prep";

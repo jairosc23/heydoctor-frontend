@@ -856,6 +856,7 @@ export default function ConsultationDetailPage() {
             onStartTeleconsultation={() => void handleStartCall()}
             onOpenPrescription={handleOpenPrescription}
             onOpenLabOrders={handleOpenLabOrders}
+            medicalCopilotHref={`/panel/consultas/${id}/medical-copilot`}
             hideModuleShortcuts={
               clinicalActionWorkspaceEnabled && !!consultation.patientId
             }

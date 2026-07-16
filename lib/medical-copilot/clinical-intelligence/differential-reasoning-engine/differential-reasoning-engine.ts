@@ -1,0 +1,11 @@
+export type AiLayerProviderId = "noop" | "openai";
+export const DIFFERENTIAL_REASONING_ENGINE_VERSION = "1.0.0" as const;
+export const DIFFERENTIAL_REASONING_ENGINE_GOVERNANCE = { requiresPhysicianReview: true as const, executesAction: false as const, autoPersistedToEmr: false as const };
+export type DifferentialReasoningEngineSlot = { id: string; sourceRefId: string | null; order: number; kind: "differential_reasoning_slot"; status: "ok" | "empty" | "rejected"; slotKey: string; };
+export type DifferentialReasoningEngineMetadata = { sessionId: string; consultationId: string; patientId: string; planId: string;
+  clinicalReasoningOrchestratorId: string;
+  differentialId: string;
+  evidenceMappingId: string;
+  generatedAt: string; builderVersion: typeof DIFFERENTIAL_REASONING_ENGINE_VERSION; status: "ok" | "empty" | "rejected"; slotCount: number; selectedProviderId: AiLayerProviderId; };
+export type DifferentialReasoningEngine = { differentialReasoningEngineId: string; providerId: AiLayerProviderId; differentialSlots: DifferentialReasoningEngineSlot[]; governance: typeof DIFFERENTIAL_REASONING_ENGINE_GOVERNANCE; metadata: DifferentialReasoningEngineMetadata; };
+export type DifferentialReasoningEngineBuilderResult = { source: "differential_reasoning_engine"; builderVersion: typeof DIFFERENTIAL_REASONING_ENGINE_VERSION; differentialReasoningEngine: DifferentialReasoningEngine; governance: typeof DIFFERENTIAL_REASONING_ENGINE_GOVERNANCE; reason: string | null; generatedAt: string; };

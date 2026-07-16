@@ -1,0 +1,10 @@
+export type AiLayerProviderId = "noop" | "openai";
+export const GOVERNED_REASONING_OUTPUT_VERSION = "1.0.0" as const;
+export const GOVERNED_REASONING_OUTPUT_GOVERNANCE = { requiresPhysicianReview: true as const, executesAction: false as const, autoPersistedToEmr: false as const };
+export type GovernedReasoningOutputSlot = { id: string; sourceRefId: string | null; order: number; kind: "reasoning_output_slot"; status: "ok" | "empty" | "rejected"; slotKey: string; };
+export type GovernedReasoningOutputMetadata = { sessionId: string; consultationId: string; patientId: string; planId: string;
+  clinicalConsistencyEngineId: string;
+  clinicalReasoningTraceId: string;
+  generatedAt: string; builderVersion: typeof GOVERNED_REASONING_OUTPUT_VERSION; status: "ok" | "empty" | "rejected"; slotCount: number; selectedProviderId: AiLayerProviderId; };
+export type GovernedReasoningOutput = { governedReasoningOutputId: string; providerId: AiLayerProviderId; outputSlots: GovernedReasoningOutputSlot[]; governance: typeof GOVERNED_REASONING_OUTPUT_GOVERNANCE; metadata: GovernedReasoningOutputMetadata; };
+export type GovernedReasoningOutputBuilderResult = { source: "governed_reasoning_output"; builderVersion: typeof GOVERNED_REASONING_OUTPUT_VERSION; governedReasoningOutput: GovernedReasoningOutput; governance: typeof GOVERNED_REASONING_OUTPUT_GOVERNANCE; reason: string | null; generatedAt: string; };

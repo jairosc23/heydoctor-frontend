@@ -1,0 +1,25 @@
+"use client";
+import { useCallback, useEffect, useState } from "react";
+import { governedPediatricsKnowledgeEngineReadAdapter, type GovernedPediatricsKnowledgeEngineReadAdapter } from "./governed-pediatrics-knowledge-engine-adapter";
+import type { GovernedPediatricsKnowledgeEngineResult } from "./governed-pediatrics-knowledge-engine";
+export type UseGovernedPediatricsKnowledgeEngineOptions = { sessionId: string | null | undefined; enabled?: boolean; adapter?: GovernedPediatricsKnowledgeEngineReadAdapter };
+export type UseGovernedPediatricsKnowledgeEngineResult = { loading: boolean; error: string | null; result: GovernedPediatricsKnowledgeEngineResult | null; refresh: () => void };
+export function useGovernedPediatricsKnowledgeEngine(options: UseGovernedPediatricsKnowledgeEngineOptions): UseGovernedPediatricsKnowledgeEngineResult {
+  const { sessionId, enabled = true, adapter = governedPediatricsKnowledgeEngineReadAdapter } = options;
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<GovernedPediatricsKnowledgeEngineResult | null>(null);
+  const [tick, setTick] = useState(0);
+  const refresh = useCallback(() => setTick((n) => n + 1), []);
+  useEffect(() => {
+    if (!enabled || !sessionId) { setResult(null); setError(null); setLoading(false); return; }
+    let cancelled = false;
+    setLoading(true); setError(null);
+    void adapter.get(sessionId)
+      .then((next) => { if (!cancelled) setResult(next); })
+      .catch((err) => { if (!cancelled) { setError(err instanceof Error ? err.message : String(err)); setResult(null); } })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [adapter, enabled, sessionId, tick]);
+  return { loading, error, result, refresh };
+}

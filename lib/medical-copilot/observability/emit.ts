@@ -1,8 +1,10 @@
 /**
  * CB-2 — Emit Clinical Copilot telemetry (PHI-safe).
  * Reuses window-hook + sanitizer patterns from auth/session telemetry.
+ * AR-1 — optionally sinks to backend `/medical-copilot/telemetry`.
  */
 
+import { postMedicalCopilotTelemetry } from "../api";
 import { buildSafeDetail } from "./phi-safe";
 import type {
   ClinicalTelemetryDetail,
@@ -17,12 +19,18 @@ declare global {
 }
 
 let extraSink: ClinicalTelemetrySink | null = null;
+let remoteSinkEnabled = true;
 
 /** Test/prod hook to capture events without network. */
 export function registerClinicalTelemetrySink(
   sink: ClinicalTelemetrySink | null,
 ): void {
   extraSink = sink;
+}
+
+/** AR-1 — Disable remote telemetry sink (tests / kill switch). */
+export function setClinicalTelemetryRemoteSinkEnabled(enabled: boolean): void {
+  remoteSinkEnabled = enabled;
 }
 
 export function emitClinicalTelemetry(
@@ -43,6 +51,15 @@ export function emitClinicalTelemetry(
     extraSink?.(event, safe);
   } catch {
     /* noop */
+  }
+
+  if (remoteSinkEnabled && typeof window !== "undefined") {
+    void postMedicalCopilotTelemetry({
+      event,
+      detail: safe as Record<string, unknown>,
+    }).catch(() => {
+      /* never block clinical UX on telemetry */
+    });
   }
 
   if (process.env.NODE_ENV === "development") {

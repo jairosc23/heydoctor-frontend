@@ -20,6 +20,7 @@ export {
 export {
   emitClinicalTelemetry,
   registerClinicalTelemetrySink,
+  setClinicalTelemetryRemoteSinkEnabled,
 } from "./emit";
 
 export {

@@ -1,0 +1,10 @@
+export type AiLayerProviderId = "noop" | "openai";
+export const REASONING_QUALITY_ENGINE_VERSION = "1.0.0" as const;
+export const REASONING_QUALITY_ENGINE_GOVERNANCE = { requiresPhysicianReview: true as const, executesAction: false as const, autoPersistedToEmr: false as const };
+export type ReasoningQualityEngineSlot = { id: string; sourceRefId: string | null; order: number; kind: "reasoning_quality_slot"; status: "ok" | "empty" | "rejected"; slotKey: string; };
+export type ReasoningQualityEngineMetadata = { sessionId: string; consultationId: string; patientId: string; planId: string;
+  evidenceRankingWorkspaceId: string;
+  completenessId: string;
+  generatedAt: string; builderVersion: typeof REASONING_QUALITY_ENGINE_VERSION; status: "ok" | "empty" | "rejected"; slotCount: number; selectedProviderId: AiLayerProviderId; };
+export type ReasoningQualityEngine = { reasoningQualityEngineId: string; providerId: AiLayerProviderId; qualitySlots: ReasoningQualityEngineSlot[]; governance: typeof REASONING_QUALITY_ENGINE_GOVERNANCE; metadata: ReasoningQualityEngineMetadata; };
+export type ReasoningQualityEngineBuilderResult = { source: "reasoning_quality_engine"; builderVersion: typeof REASONING_QUALITY_ENGINE_VERSION; reasoningQualityEngine: ReasoningQualityEngine; governance: typeof REASONING_QUALITY_ENGINE_GOVERNANCE; reason: string | null; generatedAt: string; };

@@ -1,0 +1,25 @@
+"use client";
+import { useCallback, useEffect, useState } from "react";
+import { governedPercCalculationEngineReadAdapter, type GovernedPercCalculationEngineReadAdapter } from "./governed-perc-calculation-engine-adapter";
+import type { GovernedPercCalculationEngineResult } from "./governed-perc-calculation-engine";
+export type UseGovernedPercCalculationEngineOptions = { sessionId: string | null | undefined; enabled?: boolean; adapter?: GovernedPercCalculationEngineReadAdapter };
+export type UseGovernedPercCalculationEngineResult = { loading: boolean; error: string | null; result: GovernedPercCalculationEngineResult | null; refresh: () => void };
+export function useGovernedPercCalculationEngine(options: UseGovernedPercCalculationEngineOptions): UseGovernedPercCalculationEngineResult {
+  const { sessionId, enabled = true, adapter = governedPercCalculationEngineReadAdapter } = options;
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<GovernedPercCalculationEngineResult | null>(null);
+  const [tick, setTick] = useState(0);
+  const refresh = useCallback(() => setTick((n) => n + 1), []);
+  useEffect(() => {
+    if (!enabled || !sessionId) { setResult(null); setError(null); setLoading(false); return; }
+    let cancelled = false;
+    setLoading(true); setError(null);
+    void adapter.get(sessionId)
+      .then((next) => { if (!cancelled) setResult(next); })
+      .catch((err) => { if (!cancelled) { setError(err instanceof Error ? err.message : String(err)); setResult(null); } })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [adapter, enabled, sessionId, tick]);
+  return { loading, error, result, refresh };
+}
