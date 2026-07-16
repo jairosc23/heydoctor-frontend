@@ -1,0 +1,43 @@
+{
+  "manifestVersion": "1.0.0",
+  "manifestType": "deployment",
+  "targets": {
+    "frontend": { "platform": "Vercel", "repo": "jairosc23/heydoctor-frontend" },
+    "backend": { "platform": "Railway", "repo": "SAVAC-HeyDoctor/heydoctor-backend-pro" }
+  },
+  "order": [
+    "reconcile_git_baselines",
+    "apply_migrations_backend",
+    "deploy_backend_railway",
+    "deploy_frontend_vercel",
+    "smoke_medical_copilot",
+    "smoke_agenda_enterprise",
+    "human_go_no_go"
+  ],
+  "migrationsAgendaRequired": [
+    "1749500000000-AppointmentsEnterpriseScheduling",
+    "1752600000000-ScheduleBlocksIsActive",
+    "1752700000000-WaitlistPriorityReason",
+    "1752800000000-ReminderPoliciesAndOffset",
+    "1752900000000-ClinicAndDoctorTimezone"
+  ],
+  "env": {
+    "frontend": [
+      "NEXT_PUBLIC_API_URL",
+      "NEXT_PUBLIC_WS_URL",
+      "NEXT_PUBLIC_MEDICAL_COPILOT"
+    ],
+    "backend": ["DATABASE_URL", "JWT", "REDIS_OPTIONAL_BUT_REQUIRED_FOR_SCALE", "SENTRY"]
+  },
+  "featureFlags": {
+    "medicalCopilotKillSwitch": "localStorage hd_mc_kill_switch / NEXT_PUBLIC_MEDICAL_COPILOT",
+    "agendaEnterpriseDedicatedFlag": null
+  },
+  "deployExecutedInThisAudit": false,
+  "railwayLiveQuery": "unavailable_mcp_auth_error",
+  "rollback": {
+    "frontend": "redeploy previous Vercel deployment",
+    "backend": "redeploy previous Railway deployment; migrations additive preferred",
+    "copilotIncident": "enable kill switch without touching agenda/auth"
+  }
+}

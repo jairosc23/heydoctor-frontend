@@ -1,0 +1,79 @@
+{
+  "certificationId": "heydoctor-enterprise-global-final-2026-07-16",
+  "title": "HeyDoctor Enterprise Global Final Certification (Audit)",
+  "products": {
+    "medicalCopilot": {
+      "status": "CERTIFIED",
+      "branch": "release/medical-copilot-v1.0-rc2",
+      "frontendHead": "ed2d1d38b7bf1c547a38e775547853ded3918310",
+      "backendHead": "046ac2e9e416b1cd0bf89107270a1dc56ad2be02",
+      "notes": "RC6 Production Certification + POST-RC6 Final Verification + Production Readiness"
+    },
+    "agendaEnterprise": {
+      "status": "CERTIFIED",
+      "branch": "feature/agenda-enterprise",
+      "frontendHeadBaseline": "3902bf6c031c4b590b341e14f33bcefbe40f8543",
+      "backendHeadBaseline": "82841419d6f25050808ea2aa93891180e843a56e",
+      "phases": "1-10"
+    }
+  },
+  "globalAudit": {
+    "architecture": "PASS",
+    "ssot": "PASS",
+    "boundedContexts": "PASS",
+    "securityBaseline": "PASS",
+    "performanceReviewed": "PASS_WITH_NOTES",
+    "productionDocs": "PASS",
+    "unifiedDeployAuthorization": "FAIL_NO_GO"
+  },
+  "gates": {
+    "backend": {
+      "format": "pass",
+      "lint": "pass_warnings_only",
+      "build": "pass",
+      "tests": "pass_401",
+      "minimalFix": "appointments.service.spec.ts constructor args"
+    },
+    "frontend": {
+      "lint_tsc": "pass",
+      "build": "pass",
+      "tests": "pass_460",
+      "playwrightCritical": "not_executed_missing_e2e_env"
+    }
+  },
+  "artifacts": [
+    "docs/heydoctor-enterprise-audit.md",
+    "docs/heydoctor-enterprise-architecture.md",
+    "docs/heydoctor-enterprise-production-readiness.md",
+    "docs/heydoctor-enterprise-release-manifest.json",
+    "docs/heydoctor-enterprise-deployment-manifest.json",
+    "docs/heydoctor-enterprise-operational-manifest.json",
+    "docs/heydoctor-enterprise-risk-assessment.json",
+    "docs/heydoctor-enterprise-go-no-go.json",
+    "docs/heydoctor-enterprise-final-certification.json"
+  ],
+  "gitPolicyObserved": {
+    "newBranches": false,
+    "merge": false,
+    "deploy": false,
+    "promotion": false,
+    "pushedCurrentBranchesOnly": true
+  },
+  "stopInstructions": {
+    "noNewFeatures": true,
+    "noV2": true,
+    "noNewAI": true,
+    "noAgendaV2": true,
+    "noMarketplace": true,
+    "noAnalytics": true,
+    "noNewEngines": true,
+    "noNewIntegrations": true,
+    "awaitInstructions": true
+  },
+  "finalVerdict": {
+    "enterpriseGlobalAuditComplete": true,
+    "productsIndividuallyCertified": true,
+    "unifiedProductionGO": false,
+    "halt": true
+  }
+}

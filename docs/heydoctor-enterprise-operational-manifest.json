@@ -1,0 +1,49 @@
+{
+  "manifestVersion": "1.0.0",
+  "manifestType": "operational",
+  "onCallBoundaries": {
+    "medicalCopilot": "AI/session/facade/HITL — do not hotpatch via Agenda PRs",
+    "agendaEnterprise": "scheduling SSOT — do not mix Copilot changes",
+    "shared": "auth csrf clinic consultations patients"
+  },
+  "runbooks": {
+    "platform": "docs/ENTERPRISE_OPERATIONAL_RELEASE_RUNBOOK.md",
+    "agenda": [
+      "docs/agenda-enterprise-operational-guide.md",
+      "docs/agenda-enterprise-deployment-guide.md",
+      "docs/agenda-enterprise-recovery-guide.md",
+      "docs/agenda-enterprise-maintenance-guide.md"
+    ],
+    "copilot": [
+      "docs/V6.1_RC2_Release_Candidate_Hardening.md",
+      "docs/V6.1_SR1_Source_Release_Freeze.md"
+    ],
+    "globalAudit": [
+      "docs/heydoctor-enterprise-audit.md",
+      "docs/heydoctor-enterprise-architecture.md",
+      "docs/heydoctor-enterprise-production-readiness.md"
+    ]
+  },
+  "workflows": [
+    "consulta",
+    "medical-copilot-hitl",
+    "agenda-calendar",
+    "availability-rules-slots",
+    "blocks",
+    "waitlist",
+    "reminders-admin",
+    "timezone",
+    "agenda-dashboard-readonly"
+  ],
+  "monitoring": {
+    "frontend": "Vercel + Sentry (if configured)",
+    "backend": "Railway + health/ops endpoints + Sentry",
+    "liveCheckedInAudit": false
+  },
+  "recoveryPrinciples": [
+    "Prefer FE rollback for UI aggregation defects",
+    "Use Copilot kill switch for AI UI incidents",
+    "Do not delete appointment data to fix slots",
+    "Do not involve Copilot on-call for pure Agenda incidents"
+  ]
+}
