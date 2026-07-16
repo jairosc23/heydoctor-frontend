@@ -7,6 +7,7 @@ import { AgendaAvailabilityPanel } from "@/components/agenda/AgendaAvailabilityP
 import { AgendaAvailabilityRulesPanel } from "@/components/agenda/AgendaAvailabilityRulesPanel";
 import { AgendaBlocksPanel } from "@/components/agenda/AgendaBlocksPanel";
 import { AgendaCollapsible } from "@/components/agenda/AgendaCollapsible";
+import { AgendaDashboardPanel } from "@/components/agenda/AgendaDashboardPanel";
 import { AgendaDayView } from "@/components/agenda/AgendaDayView";
 import { AgendaMonthView } from "@/components/agenda/AgendaMonthView";
 import { AgendaSkeleton } from "@/components/agenda/AgendaSkeleton";
@@ -19,6 +20,7 @@ import { AgendaWeekView } from "@/components/agenda/AgendaWeekView";
 import { AgendaWorkspaceNav } from "@/components/agenda/AgendaWorkspaceNav";
 import { AppointmentFormModal } from "@/components/agenda/AppointmentFormModal";
 import Button from "@/components/ui/Button";
+import { buildAgendaDashboardMetrics } from "@/lib/agenda/agenda-dashboard-metrics";
 import { collectClinicDoctorOptions } from "@/lib/agenda/appointment-display";
 import type { AgendaWorkspaceTab } from "@/lib/agenda/agenda-workspace";
 import {
@@ -66,7 +68,7 @@ export default function AgendaPage() {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
   const [workspaceTab, setWorkspaceTab] =
-    useState<AgendaWorkspaceTab>("calendar");
+    useState<AgendaWorkspaceTab>("dashboard");
   const [view, setView] = useState<AgendaView>("week");
   const [anchor, setAnchor] = useState(() => new Date());
   const [selected, setSelected] = useState<Appointment | null>(null);
@@ -160,6 +162,40 @@ export default function AgendaPage() {
   const slotRangeLabel = availability.data?.slotRange
     ? `${formatInClinic(availability.data.slotRange.from, timeZone, "d MMM HH:mm")} – ${formatInClinic(availability.data.slotRange.to, timeZone, "d MMM HH:mm")}`
     : undefined;
+
+  const dashboardMetrics = useMemo(
+    () =>
+      buildAgendaDashboardMetrics({
+        appointments,
+        slots: availability.data?.slots,
+        rules: availability.data?.rules,
+        summary: availability.data?.summary,
+        blocks: blocksQuery.data,
+        waitlist: waitlistQuery.data,
+        reminders: remindersQuery.data,
+        reminderPolicies: reminderPoliciesQuery.data,
+        timezone: timeZone,
+        timezoneSource,
+        requiresDoctorId,
+        hasAppointmentsError: isError,
+        hasAvailabilityError: availability.isError,
+      }),
+    [
+      appointments,
+      availability.data?.slots,
+      availability.data?.rules,
+      availability.data?.summary,
+      availability.isError,
+      blocksQuery.data,
+      waitlistQuery.data,
+      remindersQuery.data,
+      reminderPoliciesQuery.data,
+      timeZone,
+      timezoneSource,
+      requiresDoctorId,
+      isError,
+    ],
+  );
 
   const refreshing =
     isFetching ||
@@ -411,6 +447,7 @@ export default function AgendaPage() {
         active={workspaceTab}
         onChange={setWorkspaceTab}
         counts={{
+          dashboard: total,
           calendar: total,
           availability: freeSlotCount,
           operations: waitlistActiveCount + blocksActiveCount,
@@ -424,6 +461,20 @@ export default function AgendaPage() {
         aria-labelledby={`agenda-tab-${workspaceTab}`}
         className="space-y-4"
       >
+        {workspaceTab === "dashboard" ? (
+          <AgendaDashboardPanel
+            metrics={dashboardMetrics}
+            isLoading={
+              isLoading &&
+              availability.isLoading &&
+              !appointments.length &&
+              !availability.data
+            }
+            clinicTimezone={timeZone}
+            clinicName={clinicName}
+          />
+        ) : null}
+
         {workspaceTab === "calendar" ? (
           <>
             {isLoading ? (

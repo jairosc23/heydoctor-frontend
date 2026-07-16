@@ -5,11 +5,12 @@ import {
   isAgendaWorkspaceTab,
 } from "./agenda-workspace";
 
-describe("agenda-workspace (Agenda Enterprise Phase 8)", () => {
-  it("defines four workspace tabs", () => {
-    assert.equal(AGENDA_WORKSPACE_TABS.length, 4);
+describe("agenda-workspace (Agenda Enterprise Phase 8–9)", () => {
+  it("defines five workspace tabs including dashboard", () => {
+    assert.equal(AGENDA_WORKSPACE_TABS.length, 5);
+    assert.ok(isAgendaWorkspaceTab("dashboard"));
     assert.ok(isAgendaWorkspaceTab("calendar"));
     assert.ok(isAgendaWorkspaceTab("operations"));
-    assert.equal(isAgendaWorkspaceTab("dashboard"), false);
+    assert.equal(isAgendaWorkspaceTab("analytics"), false);
   });
 });

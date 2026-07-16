@@ -1,9 +1,10 @@
 /**
- * Agenda Enterprise Phase 8 — workspace navigation (presentation only).
- * No domain logic; organizes certified Phase 1–7 surfaces.
+ * Agenda Enterprise Phase 8–9 — workspace navigation (presentation only).
+ * Organizes certified Phase 1–7 surfaces + read-only dashboard.
  */
 
 export type AgendaWorkspaceTab =
+  | "dashboard"
   | "calendar"
   | "availability"
   | "operations"
@@ -14,6 +15,11 @@ export const AGENDA_WORKSPACE_TABS: {
   label: string;
   description: string;
 }[] = [
+  {
+    id: "dashboard",
+    label: "Dashboard",
+    description: "KPIs ejecutivos de solo lectura",
+  },
   {
     id: "calendar",
     label: "Calendario",
