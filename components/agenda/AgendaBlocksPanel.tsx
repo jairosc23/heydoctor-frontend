@@ -61,6 +61,9 @@ export function AgendaBlocksPanel({
     await queryClient.invalidateQueries({
       queryKey: ["appointments", "availability-enterprise"],
     });
+    await queryClient.invalidateQueries({
+      queryKey: ["appointments", "waitlist"],
+    });
   };
 
   const createMut = useMutation({

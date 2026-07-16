@@ -125,8 +125,15 @@ export function AppointmentFormModal({
     }
   }, [open, appointment, isAdmin, doctorOptions]);
 
-  const invalidate = () =>
-    queryClient.invalidateQueries({ queryKey: APPOINTMENTS_LIST_ROOT });
+  const invalidate = async () => {
+    await queryClient.invalidateQueries({ queryKey: APPOINTMENTS_LIST_ROOT });
+    await queryClient.invalidateQueries({
+      queryKey: ["appointments", "availability-enterprise"],
+    });
+    await queryClient.invalidateQueries({
+      queryKey: ["appointments", "waitlist"],
+    });
+  };
 
   const saveMutation = useMutation({
     mutationFn: async () => {

@@ -151,3 +151,102 @@ export async function transitionAppointment(
     expectedVersion,
   });
 }
+
+/** Agenda Enterprise Phase 5 — Waitlist SSOT */
+export type WaitlistEntryStatus =
+  | "active"
+  | "promoted"
+  | "expired"
+  | "cancelled";
+
+export interface WaitlistEntry {
+  id: string;
+  clinicId: string;
+  patientId: string;
+  doctorId: string;
+  preferredFrom: string;
+  preferredTo: string;
+  clinicTimezone: string;
+  priority: number;
+  reason?: string | null;
+  status: WaitlistEntryStatus;
+  promotedAppointmentId?: string | null;
+  expiresAt?: string | null;
+  createdAt: string;
+  updatedAt?: string;
+  matchingSlotAvailable?: boolean;
+  nextMatchingSlotStartsAt?: string | null;
+  patient?: {
+    id?: string;
+    name?: string;
+    firstname?: string;
+    lastname?: string;
+    firstName?: string;
+    lastName?: string;
+  };
+  doctor?: {
+    id?: string;
+    name?: string;
+    email?: string;
+  };
+}
+
+export interface WaitlistFilters {
+  from?: string;
+  to?: string;
+  doctorId?: string;
+  status?: WaitlistEntryStatus;
+}
+
+export interface CreateWaitlistEntryPayload {
+  patientId: string;
+  doctorId?: string;
+  preferredFrom: string;
+  preferredTo: string;
+  clinicTimezone: string;
+  expiresAt?: string;
+  priority?: number;
+  reason?: string;
+}
+
+export interface UpdateWaitlistEntryPayload {
+  preferredFrom?: string;
+  preferredTo?: string;
+  expiresAt?: string | null;
+  reason?: string | null;
+  priority?: number;
+  status?: "active" | "cancelled";
+}
+
+export async function fetchWaitlistEntries(
+  filters?: WaitlistFilters,
+): Promise<WaitlistEntry[]> {
+  const params = new URLSearchParams();
+  if (filters?.from) params.set("from", filters.from);
+  if (filters?.to) params.set("to", filters.to);
+  if (filters?.doctorId) params.set("doctorId", filters.doctorId);
+  if (filters?.status) params.set("status", filters.status);
+  const q = params.toString() ? `?${params}` : "";
+  const result = await heydoctorApi.getOrFallback<WaitlistEntry[]>(
+    `${BASE}/waitlist${q}`,
+    [],
+  );
+  return Array.isArray(result) ? result : [];
+}
+
+export async function createWaitlistEntry(
+  payload: CreateWaitlistEntryPayload,
+): Promise<WaitlistEntry> {
+  return heydoctorApi.post<WaitlistEntry>(`${BASE}/waitlist`, payload);
+}
+
+export async function updateWaitlistEntry(
+  id: string,
+  payload: UpdateWaitlistEntryPayload,
+): Promise<WaitlistEntry> {
+  return heydoctorApi.patch<WaitlistEntry>(`${BASE}/waitlist/${id}`, payload);
+}
+
+export async function deleteWaitlistEntry(id: string): Promise<void> {
+  await heydoctorApi.delete(`${BASE}/waitlist/${id}`);
+}

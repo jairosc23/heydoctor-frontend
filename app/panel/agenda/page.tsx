@@ -8,6 +8,7 @@ import { AgendaBlocksPanel } from "@/components/agenda/AgendaBlocksPanel";
 import { AgendaDayView } from "@/components/agenda/AgendaDayView";
 import { AgendaMonthView } from "@/components/agenda/AgendaMonthView";
 import { AgendaSlotsPanel } from "@/components/agenda/AgendaSlotsPanel";
+import { AgendaWaitlistPanel } from "@/components/agenda/AgendaWaitlistPanel";
 import { AgendaWeekView } from "@/components/agenda/AgendaWeekView";
 import { AppointmentFormModal } from "@/components/agenda/AppointmentFormModal";
 import Button from "@/components/ui/Button";
@@ -26,6 +27,7 @@ import {
   useConsultationsListQuery,
 } from "@/lib/hooks/use-panel-list-queries";
 import { useScheduleBlocksQuery } from "@/lib/hooks/use-schedule-blocks";
+import { useWaitlistEntriesQuery } from "@/lib/hooks/use-waitlist-entries";
 import { useAuth } from "@/lib/context/AuthContext";
 import type { Appointment } from "@/lib/services/appointments";
 import { cn } from "@/lib/utils";
@@ -87,6 +89,12 @@ export default function AgendaPage() {
   });
 
   const blocksQuery = useScheduleBlocksQuery({
+    from: range.from,
+    to: range.to,
+    doctorId: isAdmin ? doctorFilter || undefined : undefined,
+  });
+
+  const waitlistQuery = useWaitlistEntriesQuery({
     from: range.from,
     to: range.to,
     doctorId: isAdmin ? doctorFilter || undefined : undefined,
@@ -294,6 +302,17 @@ export default function AgendaPage() {
         blocks={blocksQuery.data}
         isLoading={blocksQuery.isLoading}
         isError={blocksQuery.isError}
+        clinicTimezone={timeZone}
+        clinicId={user?.clinicId}
+        doctorOptions={doctorOptions}
+        defaultDoctorId={doctorFilter}
+        canManage={user?.role === "doctor" || isAdmin}
+      />
+
+      <AgendaWaitlistPanel
+        entries={waitlistQuery.data}
+        isLoading={waitlistQuery.isLoading}
+        isError={waitlistQuery.isError}
         clinicTimezone={timeZone}
         clinicId={user?.clinicId}
         doctorOptions={doctorOptions}
