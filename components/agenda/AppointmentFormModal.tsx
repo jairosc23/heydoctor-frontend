@@ -133,6 +133,9 @@ export function AppointmentFormModal({
     await queryClient.invalidateQueries({
       queryKey: ["appointments", "waitlist"],
     });
+    await queryClient.invalidateQueries({
+      queryKey: ["appointments", "reminders"],
+    });
   };
 
   const saveMutation = useMutation({

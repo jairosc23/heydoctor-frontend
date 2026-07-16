@@ -8,6 +8,7 @@ import { AgendaBlocksPanel } from "@/components/agenda/AgendaBlocksPanel";
 import { AgendaDayView } from "@/components/agenda/AgendaDayView";
 import { AgendaMonthView } from "@/components/agenda/AgendaMonthView";
 import { AgendaSlotsPanel } from "@/components/agenda/AgendaSlotsPanel";
+import { AgendaRemindersPanel } from "@/components/agenda/AgendaRemindersPanel";
 import { AgendaWaitlistPanel } from "@/components/agenda/AgendaWaitlistPanel";
 import { AgendaWeekView } from "@/components/agenda/AgendaWeekView";
 import { AppointmentFormModal } from "@/components/agenda/AppointmentFormModal";
@@ -26,6 +27,10 @@ import {
   useAppointmentsListQuery,
   useConsultationsListQuery,
 } from "@/lib/hooks/use-panel-list-queries";
+import {
+  useReminderPoliciesQuery,
+  useRemindersQuery,
+} from "@/lib/hooks/use-appointment-reminders";
 import { useScheduleBlocksQuery } from "@/lib/hooks/use-schedule-blocks";
 import { useWaitlistEntriesQuery } from "@/lib/hooks/use-waitlist-entries";
 import { useAuth } from "@/lib/context/AuthContext";
@@ -95,6 +100,16 @@ export default function AgendaPage() {
   });
 
   const waitlistQuery = useWaitlistEntriesQuery({
+    from: range.from,
+    to: range.to,
+    doctorId: isAdmin ? doctorFilter || undefined : undefined,
+  });
+
+  const reminderPoliciesQuery = useReminderPoliciesQuery({
+    doctorId: isAdmin ? doctorFilter || undefined : undefined,
+  });
+
+  const remindersQuery = useRemindersQuery({
     from: range.from,
     to: range.to,
     doctorId: isAdmin ? doctorFilter || undefined : undefined,
@@ -313,6 +328,20 @@ export default function AgendaPage() {
         entries={waitlistQuery.data}
         isLoading={waitlistQuery.isLoading}
         isError={waitlistQuery.isError}
+        clinicTimezone={timeZone}
+        clinicId={user?.clinicId}
+        doctorOptions={doctorOptions}
+        defaultDoctorId={doctorFilter}
+        canManage={user?.role === "doctor" || isAdmin}
+      />
+
+      <AgendaRemindersPanel
+        policies={reminderPoliciesQuery.data}
+        reminders={remindersQuery.data}
+        isLoading={
+          reminderPoliciesQuery.isLoading || remindersQuery.isLoading
+        }
+        isError={reminderPoliciesQuery.isError || remindersQuery.isError}
         clinicTimezone={timeZone}
         clinicId={user?.clinicId}
         doctorOptions={doctorOptions}

@@ -49,6 +49,9 @@ async function invalidateWaitlistRelated(
   await queryClient.invalidateQueries({
     queryKey: ["appointments", "list"],
   });
+  await queryClient.invalidateQueries({
+    queryKey: ["appointments", "reminders"],
+  });
 }
 
 export function AgendaWaitlistPanel({
