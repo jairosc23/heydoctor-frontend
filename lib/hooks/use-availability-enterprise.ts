@@ -19,6 +19,7 @@ export function availabilityEnterpriseQueryKey(input: {
   clinicTimezone: string;
   doctorId?: string;
   view: AgendaView;
+  slotMinutes?: number;
 }) {
   return [
     "appointments",
@@ -28,21 +29,23 @@ export function availabilityEnterpriseQueryKey(input: {
     input.to,
     input.clinicTimezone,
     input.doctorId ?? "self",
+    input.slotMinutes ?? 30,
   ] as const;
 }
 
 /**
- * Phase 1 — load enterprise availability (rules + free slots) from existing BE SSOT.
+ * Load enterprise availability (rules + free slots) from BE SSOT.
  * Doctors omit doctorId (BE resolves to self). Admins require doctorId.
  */
 export function useAvailabilityEnterpriseQuery(input: {
   from: string;
   to: string;
-  /** ISO instant used to center month slot window (Phase 1 payload cap). */
+  /** ISO instant used to center month slot window (payload cap). */
   anchorIso: string;
   clinicTimezone: string;
   view: AgendaView;
   doctorId?: string;
+  slotMinutes?: number;
   enabled?: boolean;
 }) {
   const { user } = useAuth();
@@ -61,6 +64,7 @@ export function useAvailabilityEnterpriseQuery(input: {
     input.view,
     input.anchorIso,
   );
+  const slotMinutes = input.slotMinutes ?? 30;
 
   return useQuery({
     queryKey: availabilityEnterpriseQueryKey({
@@ -69,6 +73,7 @@ export function useAvailabilityEnterpriseQuery(input: {
       clinicTimezone: input.clinicTimezone,
       doctorId: doctorId ?? user?.id,
       view: input.view,
+      slotMinutes,
     }),
     enabled: canQuery,
     staleTime: 60_000,
@@ -83,6 +88,7 @@ export function useAvailabilityEnterpriseQuery(input: {
           to: slotRange.to,
           clinicTimezone: input.clinicTimezone,
           doctorId,
+          slotMinutes,
         }),
       ]);
       return {
@@ -90,6 +96,7 @@ export function useAvailabilityEnterpriseQuery(input: {
         slots,
         summary: summarizeAvailability(rules, slots),
         slotRange,
+        resolvedDoctorId: doctorId ?? user?.id,
         requiresDoctorId: isAdmin && !doctorId,
       };
     },
