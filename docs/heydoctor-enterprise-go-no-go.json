@@ -1,0 +1,67 @@
+{
+  "decisionId": "heydoctor-enterprise-go-no-go-2026-07-16",
+  "product": "HeyDoctor Enterprise (Medical Copilot + Agenda Enterprise)",
+  "decisions": [
+    {
+      "question": "Medical Copilot certified on release/medical-copilot-v1.0-rc2?",
+      "decision": "GO",
+      "scope": "product_certification"
+    },
+    {
+      "question": "Agenda Enterprise certified F1–F10 on feature/agenda-enterprise?",
+      "decision": "GO",
+      "scope": "product_certification"
+    },
+    {
+      "question": "Code coupling Copilot↔Agenda acceptable?",
+      "decision": "GO",
+      "scope": "architecture"
+    },
+    {
+      "question": "Local BE format/lint/build/tests on Agenda branch?",
+      "decision": "GO",
+      "evidence": "401 tests pass after minimal spec fix"
+    },
+    {
+      "question": "Local FE lint/tsc/build/tests on Agenda branch?",
+      "decision": "GO",
+      "evidence": "460 tests pass"
+    },
+    {
+      "question": "Playwright critical Medical Copilot RC2 in this audit?",
+      "decision": "NO_GO",
+      "reason": "Missing .env.e2e / staging credentials; runtime shell not visible"
+    },
+    {
+      "question": "Unified single release tag deploy now?",
+      "decision": "NO_GO",
+      "reason": "Git divergence + e2e gap + no human merge approval"
+    },
+    {
+      "question": "Merge executed by this audit?",
+      "decision": "NO_GO",
+      "reason": "Policy: audit only"
+    },
+    {
+      "question": "Deploy/promotion executed by this audit?",
+      "decision": "NO_GO",
+      "reason": "Policy: audit only"
+    },
+    {
+      "question": "Start v2 / AI / Marketplace / Analytics / new engines?",
+      "decision": "NO_GO",
+      "reason": "Explicit stop"
+    }
+  ],
+  "summary": {
+    "platformArchitecture": "GO",
+    "perProductCertification": "GO",
+    "unifiedProductionPromotion": "NO_GO",
+    "nextRequiredHumanActions": [
+      "Reconcile dual-branch baselines",
+      "Run Playwright RC2 on staging with secrets",
+      "Approve merge",
+      "Approve deploy"
+    ]
+  }
+}
