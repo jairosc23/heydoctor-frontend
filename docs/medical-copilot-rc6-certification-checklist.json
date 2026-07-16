@@ -1,0 +1,99 @@
+{
+  "generatedAt": "2026-07-16T03:33:43.963Z",
+  "releaseCandidate": "medical-copilot-v1.0-rc6-certification",
+  "branch": "release/medical-copilot-v1.0-rc2",
+  "merge": false,
+  "deploy": false,
+  "ssotFrozen": true,
+  "behaviorChanges": false,
+  "gates": {
+    "backend_format": true,
+    "backend_lint": true,
+    "backend_build": true,
+    "backend_tests": "902/902",
+    "frontend_lint": true,
+    "frontend_build": true,
+    "frontend_tests": "1023/1023",
+    "playwright_critical": "10/10"
+  },
+  "checks": [
+    {
+      "id": "backend",
+      "ok": true,
+      "detail": "format/lint/build PASS; tests 902/902"
+    },
+    {
+      "id": "frontend",
+      "ok": true,
+      "detail": "lint/build PASS; tests 1023/1023"
+    },
+    {
+      "id": "tests",
+      "ok": true,
+      "detail": "BE 902 + FE 1023"
+    },
+    {
+      "id": "playwright",
+      "ok": true,
+      "detail": "10/10 critical suites"
+    },
+    {
+      "id": "performance",
+      "ok": true,
+      "detail": "RC3-RC5 operational layers certified"
+    },
+    {
+      "id": "observability",
+      "ok": true,
+      "detail": "RC5 metrics module present"
+    },
+    {
+      "id": "contract_integrity",
+      "ok": true,
+      "detail": "rc5-contract-baseline.json present"
+    },
+    {
+      "id": "backward_compatibility",
+      "ok": true,
+      "detail": "RC6 docs/cert only; no governed surface added"
+    },
+    {
+      "id": "documentacion",
+      "ok": true,
+      "detail": "RC6 guide set under docs/"
+    },
+    {
+      "id": "repositorio",
+      "ok": true,
+      "detail": "release/medical-copilot-v1.0-rc2"
+    },
+    {
+      "id": "seguridad",
+      "ok": true,
+      "detail": "medical-copilot-rc6-security-review.md"
+    },
+    {
+      "id": "inventario",
+      "ok": true,
+      "detail": "medical-copilot-rc6-inventory.json"
+    },
+    {
+      "id": "arquitectura",
+      "ok": true,
+      "detail": "medical-copilot-rc6-architecture.md"
+    },
+    {
+      "id": "no_merge",
+      "ok": true,
+      "detail": "RC6 forbids merge"
+    },
+    {
+      "id": "no_deploy",
+      "ok": true,
+      "detail": "RC6 forbids deploy"
+    }
+  ],
+  "pass": true,
+  "certification": "CERTIFIED",
+  "statement": "Release Candidate Freeze \u2014 platform certified for clinical QA; no SSOT expansion; no deploy from RC6."
+}
