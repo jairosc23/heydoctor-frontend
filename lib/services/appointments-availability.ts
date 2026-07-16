@@ -105,3 +105,74 @@ export async function fetchAvailabilitySlots(
   );
   return Array.isArray(result) ? result : [];
 }
+
+/** Matches BE ScheduleBlock entity. */
+export type ScheduleBlock = {
+  id: string;
+  clinicId: string;
+  doctorId: string | null;
+  startsAt: string;
+  endsAt: string;
+  reason: string | null;
+  isRecurring: boolean;
+  isActive: boolean;
+  recurrenceRule: Record<string, unknown> | null;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type CreateScheduleBlockPayload = {
+  startsAt: string;
+  endsAt: string;
+  reason?: string;
+  doctorId?: string;
+  isRecurring?: boolean;
+  recurrenceRule?: Record<string, unknown>;
+  isActive?: boolean;
+};
+
+export type UpdateScheduleBlockPayload = {
+  startsAt?: string;
+  endsAt?: string;
+  reason?: string | null;
+  doctorId?: string | null;
+  isRecurring?: boolean;
+  recurrenceRule?: Record<string, unknown> | null;
+  isActive?: boolean;
+};
+
+export async function fetchScheduleBlocks(params: {
+  from: string;
+  to: string;
+  doctorId?: string;
+}): Promise<ScheduleBlock[]> {
+  const qs = new URLSearchParams();
+  qs.set("from", params.from);
+  qs.set("to", params.to);
+  if (params.doctorId) qs.set("doctorId", params.doctorId);
+  const result = await heydoctorApi.getOrFallback<ScheduleBlock[]>(
+    `${BASE}/blocks?${qs}`,
+    [],
+  );
+  return Array.isArray(result) ? result : [];
+}
+
+export async function createScheduleBlock(
+  payload: CreateScheduleBlockPayload,
+): Promise<ScheduleBlock> {
+  return heydoctorApi.post<ScheduleBlock>(`${BASE}/blocks`, payload);
+}
+
+export async function updateScheduleBlock(
+  blockId: string,
+  payload: UpdateScheduleBlockPayload,
+): Promise<ScheduleBlock> {
+  return heydoctorApi.patch<ScheduleBlock>(
+    `${BASE}/blocks/${blockId}`,
+    payload,
+  );
+}
+
+export async function deleteScheduleBlock(blockId: string): Promise<void> {
+  await heydoctorApi.delete(`${BASE}/blocks/${blockId}`);
+}

@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { AgendaAvailabilityPanel } from "@/components/agenda/AgendaAvailabilityPanel";
 import { AgendaAvailabilityRulesPanel } from "@/components/agenda/AgendaAvailabilityRulesPanel";
+import { AgendaBlocksPanel } from "@/components/agenda/AgendaBlocksPanel";
 import { AgendaDayView } from "@/components/agenda/AgendaDayView";
 import { AgendaMonthView } from "@/components/agenda/AgendaMonthView";
 import { AgendaSlotsPanel } from "@/components/agenda/AgendaSlotsPanel";
@@ -24,6 +25,7 @@ import {
   useAppointmentsListQuery,
   useConsultationsListQuery,
 } from "@/lib/hooks/use-panel-list-queries";
+import { useScheduleBlocksQuery } from "@/lib/hooks/use-schedule-blocks";
 import { useAuth } from "@/lib/context/AuthContext";
 import type { Appointment } from "@/lib/services/appointments";
 import { cn } from "@/lib/utils";
@@ -82,6 +84,12 @@ export default function AgendaPage() {
     view,
     doctorId: isAdmin ? doctorFilter || undefined : undefined,
     slotMinutes,
+  });
+
+  const blocksQuery = useScheduleBlocksQuery({
+    from: range.from,
+    to: range.to,
+    doctorId: isAdmin ? doctorFilter || undefined : undefined,
   });
 
   const appointments = data?.data ?? [];
@@ -280,6 +288,17 @@ export default function AgendaPage() {
         slotRangeLabel={slotRangeLabel}
         onSelectFreeSlot={(startsAt) => openCreate(startsAt)}
         onSelectOccupied={openOccupied}
+      />
+
+      <AgendaBlocksPanel
+        blocks={blocksQuery.data}
+        isLoading={blocksQuery.isLoading}
+        isError={blocksQuery.isError}
+        clinicTimezone={timeZone}
+        clinicId={user?.clinicId}
+        doctorOptions={doctorOptions}
+        defaultDoctorId={doctorFilter}
+        canManage={user?.role === "doctor" || isAdmin}
       />
 
       {isLoading ? (
