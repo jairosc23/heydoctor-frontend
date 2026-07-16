@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { AgendaAvailabilityPanel } from "@/components/agenda/AgendaAvailabilityPanel";
 import { AgendaDayView } from "@/components/agenda/AgendaDayView";
 import { AgendaMonthView } from "@/components/agenda/AgendaMonthView";
 import { AgendaWeekView } from "@/components/agenda/AgendaWeekView";
@@ -14,7 +15,9 @@ import {
   navigateAnchor,
   resolveClinicTimezone,
 } from "@/lib/agenda/calendar-utils";
+import { useAvailabilityEnterpriseQuery } from "@/lib/hooks/use-availability-enterprise";
 import { useAppointmentsListQuery } from "@/lib/hooks/use-panel-list-queries";
+import { useAuth } from "@/lib/context/AuthContext";
 import type { Appointment } from "@/lib/services/appointments";
 import { cn } from "@/lib/utils";
 
@@ -26,6 +29,7 @@ const VIEWS: { id: AgendaView; label: string }[] = [
 
 export default function AgendaPage() {
   const timeZone = resolveClinicTimezone();
+  const { user } = useAuth();
   const [view, setView] = useState<AgendaView>("week");
   const [anchor, setAnchor] = useState(() => new Date());
   const [selected, setSelected] = useState<Appointment | null>(null);
@@ -39,8 +43,17 @@ export default function AgendaPage() {
     limit: 500,
   });
 
+  const availability = useAvailabilityEnterpriseQuery({
+    from: range.from,
+    to: range.to,
+    anchorIso: anchor.toISOString(),
+    clinicTimezone: timeZone,
+    view,
+  });
+
   const appointments = data?.data ?? [];
   const total = data?.total ?? 0;
+  const requiresDoctorId = user?.role === "admin";
 
   const openCreate = (day?: Date) => {
     setSelected(null);
@@ -65,7 +78,7 @@ export default function AgendaPage() {
             Agenda médica
           </h1>
           <p className="mt-1 text-sm text-primaryDark/70">
-            Calendario profesional · zona horaria {timeZone}
+            Agenda enterprise · zona horaria {timeZone}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -136,6 +149,14 @@ export default function AgendaPage() {
           ))}
         </div>
       </div>
+
+      <AgendaAvailabilityPanel
+        summary={availability.data?.summary}
+        isLoading={availability.isLoading}
+        isError={availability.isError}
+        clinicTimezone={timeZone}
+        requiresDoctorId={requiresDoctorId}
+      />
 
       {isLoading ? (
         <p className="text-slate-500 dark:text-slate-400">Cargando agenda…</p>
