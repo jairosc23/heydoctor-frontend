@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { recordRc4LazyLoad, recordRc4Render } from "@/lib/medical-copilot/rc4-operational/performance-metrics";
+import { recordRc5LazyHydration } from "@/lib/medical-copilot/rc5-operational/observability";
 
 export type MedicalCopilotDeferredPanelProps = {
   title: string;
@@ -60,6 +61,7 @@ export function MedicalCopilotDeferredPanel({
     if (mounted && mountedAt.current == null) {
       mountedAt.current = typeof performance !== "undefined" ? performance.now() : Date.now();
       recordRc4LazyLoad(title, 0);
+      recordRc5LazyHydration(0);
     }
   }, [mounted, title]);
 
