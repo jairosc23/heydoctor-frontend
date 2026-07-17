@@ -7,6 +7,12 @@ import {
 } from './webrtc-observability';
 import { captureWebrtcBrowserDiagnostic } from './webrtc-browser-diagnostics';
 import { logger } from './logger';
+import { computeWebrtcReconnectDelay } from './webrtc-backoff';
+
+export {
+  computeWebrtcReconnectDelay,
+  jitterWebrtcDelay,
+} from './webrtc-backoff';
 
 type MaybePromise<T> = T | Promise<T>;
 
@@ -66,13 +72,8 @@ const DEFAULT_MAX_ICE_RESTARTS = 10;
 const VISIBILITY_RECOVERY_DEBOUNCE_MS = 400;
 const NETWORK_CHANGE_DEBOUNCE_MS = 800;
 
-function jitter(ms: number): number {
-  return Math.round(ms * (0.8 + Math.random() * 0.4));
-}
-
 function backoffDelay(attempt: number, baseMs: number, maxMs: number): number {
-  const cappedAttempt = Math.max(0, Math.min(attempt, 8));
-  return jitter(Math.min(maxMs, baseMs * 2 ** cappedAttempt));
+  return computeWebrtcReconnectDelay(attempt, baseMs, maxMs);
 }
 
 function stopStream(stream: MediaStream | null): void {

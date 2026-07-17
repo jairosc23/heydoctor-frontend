@@ -20,6 +20,7 @@ import {
   reportWebrtcResilienceMetric,
   reportWebrtcState,
 } from '@/lib/webrtc-observability';
+import { computeWebrtcReconnectDelay } from '@/lib/webrtc-backoff';
 import { mergeRemoteTrackEvent } from '@/lib/webrtc-remote-stream';
 import { shouldInitiatorCreateOffer } from '@/lib/webrtc-negotiation-offer';
 
@@ -501,6 +502,9 @@ export function useTelemedicineCall(
   const activeMicDeviceIdRef = useRef<string | null>(null);
   /** T0 para trazas temporales de join-consultation (PHI-safe). */
   const joinConsultationEmitAtMsRef = useRef<number | null>(null);
+  /** TraceId del ACK join-consultation (correlación métricas / Sentry). */
+  const joinTraceIdRef = useRef<string | null>(null);
+  const lastIceStateEmittedRef = useRef<string | null>(null);
 
   useEffect(() => {
     videoTierRef.current = videoTier;
@@ -673,6 +677,7 @@ export function useTelemedicineCall(
           backendOrigin,
           consultationId,
           state: s,
+          requestId: joinTraceIdRef.current,
         });
         if (s === 'failed') {
           lastIceFailureReasonRef.current = 'connection_failed';
@@ -689,13 +694,29 @@ export function useTelemedicineCall(
           backendOrigin,
           consultationId,
           state: s,
+          requestId: joinTraceIdRef.current,
         });
+
+        // F2-07: señalizar degradación al path Socket.IO ya cableado (ops metric + peer notify).
+        if (
+          (s === 'failed' || s === 'disconnected') &&
+          lastIceStateEmittedRef.current !== s
+        ) {
+          lastIceStateEmittedRef.current = s;
+          socketRef.current?.emit('ice-state', {
+            consultationId,
+            state: s,
+          });
+        } else if (s === 'connected' || s === 'completed') {
+          lastIceStateEmittedRef.current = s;
+        }
 
         if (s === 'connected' || s === 'completed') {
           reconnectingIceRef.current = false;
           void reportWebrtcResilienceMetric('reconnect_success', {
             backendOrigin,
             consultationId,
+            requestId: joinTraceIdRef.current,
             reason: lastIceFailureReasonRef.current ?? 'connected',
             count: 1,
           });
@@ -1348,78 +1369,105 @@ export function useTelemedicineCall(
 
       attachSignalingHandlers(socket, pc);
 
-      const joinEmitAtMs = Date.now();
-      joinConsultationEmitAtMsRef.current = joinEmitAtMs;
-      logVideo.info('join_consultation_emit', {
-        event: 'join_consultation_emit',
-        consultationId,
-        socketId: socket.id ?? null,
-        socketConnected: socket.connected,
-        emitAtMs: joinEmitAtMs,
-      });
+      const emitJoinConsultation = (attempt: number) =>
+        new Promise<void>((resolve, reject) => {
+          const joinEmitAtMs = Date.now();
+          joinConsultationEmitAtMsRef.current = joinEmitAtMs;
+          logVideo.info('join_consultation_emit', {
+            event: 'join_consultation_emit',
+            consultationId,
+            socketId: socket.id ?? null,
+            socketConnected: socket.connected,
+            emitAtMs: joinEmitAtMs,
+            attempt,
+          });
 
-      await new Promise<void>((resolve, reject) => {
-        socket
-          .timeout(20_000)
-          .emit(
-            'join-consultation',
-            { consultationId },
-            (err: Error | null, ack: unknown) => {
-              const ackAtMs = Date.now();
-              const ackLatencyMs = ackAtMs - joinEmitAtMs;
-              const traceId =
-                ack &&
-                typeof ack === 'object' &&
-                'traceId' in ack &&
-                typeof (ack as { traceId?: unknown }).traceId === 'string'
-                  ? (ack as { traceId: string }).traceId
-                  : null;
+          socket
+            .timeout(20_000)
+            .emit(
+              'join-consultation',
+              { consultationId },
+              (err: Error | null, ack: unknown) => {
+                const ackAtMs = Date.now();
+                const ackLatencyMs = ackAtMs - joinEmitAtMs;
+                const traceId =
+                  ack &&
+                  typeof ack === 'object' &&
+                  'traceId' in ack &&
+                  typeof (ack as { traceId?: unknown }).traceId === 'string'
+                    ? (ack as { traceId: string }).traceId
+                    : null;
 
-              if (err) {
-                logVideo.warn('join_consultation_ack', {
+                if (err) {
+                  logVideo.warn('join_consultation_ack', {
+                    event: 'join_consultation_ack',
+                    success: false,
+                    consultationId,
+                    socketId: socket.id ?? null,
+                    emitAtMs: joinEmitAtMs,
+                    ackAtMs,
+                    ackLatencyMs,
+                    attempt,
+                    timedOut: err.message
+                      .toLowerCase()
+                      .includes('timed out'),
+                    errorName: err.name,
+                    errorMessage: err.message,
+                  });
+                  reject(err);
+                  return;
+                }
+                if (traceId) {
+                  joinTraceIdRef.current = traceId;
+                }
+                logVideo.info('join_consultation_ack', {
                   event: 'join_consultation_ack',
-                  success: false,
+                  success: true,
                   consultationId,
                   socketId: socket.id ?? null,
                   emitAtMs: joinEmitAtMs,
                   ackAtMs,
                   ackLatencyMs,
-                  timedOut: err.message
-                    .toLowerCase()
-                    .includes('timed out'),
-                  errorName: err.name,
-                  errorMessage: err.message,
+                  attempt,
+                  traceId,
                 });
-                reject(err);
-                return;
-              }
-              logVideo.info('join_consultation_ack', {
-                event: 'join_consultation_ack',
-                success: true,
-                consultationId,
-                socketId: socket.id ?? null,
-                emitAtMs: joinEmitAtMs,
-                ackAtMs,
-                ackLatencyMs,
-                traceId,
-              });
-              if (
-                ack &&
-                typeof ack === 'object' &&
-                'ok' in ack &&
-                (ack as { ok?: boolean }).ok !== true
-              ) {
-                reject(
-                  new Error(
-                    'No se pudo unir a la sala de videollamada (rechazado por el servidor).',
-                  ),
-                );
-                return;
-              }
-              resolve();
-            },
-          );
-      });
+                if (
+                  ack &&
+                  typeof ack === 'object' &&
+                  'ok' in ack &&
+                  (ack as { ok?: boolean }).ok !== true
+                ) {
+                  reject(
+                    new Error(
+                      'No se pudo unir a la sala de videollamada (rechazado por el servidor).',
+                    ),
+                  );
+                  return;
+                }
+                resolve();
+              },
+            );
+        });
+
+      // F2-07: un reintento con backoff ante timeout de ACK (sin UX nueva).
+      try {
+        await emitJoinConsultation(0);
+      } catch (firstErr) {
+        const timedOut =
+          firstErr instanceof Error &&
+          firstErr.message.toLowerCase().includes('timed out');
+        if (!timedOut || !socket.connected) {
+          throw firstErr;
+        }
+        const delayMs = computeWebrtcReconnectDelay(0, 1_500, 8_000);
+        logVideo.warn('join_consultation_retry', {
+          event: 'join_consultation_retry',
+          consultationId,
+          delayMs,
+        });
+        await new Promise((r) => setTimeout(r, delayMs));
+        await emitJoinConsultation(1);
+      }
 
       stopStatsRef.current = createAdaptiveVideoMonitor(
         pc,
