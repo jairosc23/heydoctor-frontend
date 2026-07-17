@@ -2,6 +2,7 @@
 
 import { MagicLinkSessionBootstrap } from "@/components/MagicLinkSessionBootstrap";
 import { DevSessionDiagnosticsPanel } from "@/components/DevSessionDiagnosticsPanel";
+import { OpsTelemetryBootstrap } from "@/components/OpsTelemetryBootstrap";
 import { AuthProvider } from "@/lib/context/AuthContext";
 import { shouldRetryFailedQuery } from "@/lib/queries/query-retry";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -27,6 +28,7 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <OpsTelemetryBootstrap />
         <MagicLinkSessionBootstrap>{children}</MagicLinkSessionBootstrap>
       </AuthProvider>
       {process.env.NODE_ENV !== "production" && <DevSessionDiagnosticsPanel />}
