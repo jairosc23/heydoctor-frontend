@@ -19,3 +19,11 @@ test-results/
 
 # Monorepo sibling (cuando el clon standalone vive junto al backend en el mismo disco)
 heydoctor-backend-pro/
+
+# Vercel CLI local project link
+.vercel
+
+# Local env files (precise; avoid .env* which hides *.example templates)
+.env
+.env.local
+.env.*.local
