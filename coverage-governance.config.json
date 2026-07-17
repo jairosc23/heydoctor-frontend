@@ -1,0 +1,58 @@
+{
+  "$schemaComment": "PQ-03 — Frontend coverage governance (soft). See backend docs/pq-03-coverage-governance.md",
+  "repo": "heydoctor-frontend",
+  "mode": "report_only",
+  "layers": {
+    "component": {
+      "summaryPath": "coverage/component/coverage-summary.json",
+      "scope": "components/ui/** (PQ-02 foundation surface)",
+      "softFloors": {
+        "lines": 0,
+        "statements": 0,
+        "functions": 0,
+        "branches": 0
+      }
+    },
+    "unit_lib": {
+      "note": "node:test suite (lib/**/*.test.ts) — volume tracked via test count; line coverage optional via future c8. Not merged into component report.",
+      "metric": "test_pass_count"
+    },
+    "e2e_playwright": {
+      "note": "Playwright P0 is a gate (pass/fail), not line-coverage. See PQ-01 / PQ-09.",
+      "metric": "p0_gate_result"
+    }
+  },
+  "reportOutputPath": "coverage/governance-report.json",
+  "proposedProgressiveFloors": {
+    "note": "Activate only after baseline + auth. Phase 2 soft floor targets UI primitives only.",
+    "phase2_component_soft_lines": 60,
+    "phase3_expand_scope": "components/branding + selected non-clinical shells",
+    "ratchet": "component UI lines must not drop >2pp without waiver"
+  },
+  "exclusions": [
+    {
+      "pattern": "app/**",
+      "reason": "Next.js routes/pages — covered by Playwright P0 + manual QA"
+    },
+    {
+      "pattern": "components/medical-copilot/**",
+      "reason": "Product domain; excluded from PQ-02/03 foundation scope"
+    },
+    {
+      "pattern": "components/agenda/**",
+      "reason": "Product domain; E2E/unit domain tests elsewhere"
+    },
+    {
+      "pattern": "components/clinical/**",
+      "reason": "Clinical UI — not in foundation surface"
+    },
+    {
+      "pattern": "e2e/**",
+      "reason": "Test harness, not product code"
+    },
+    {
+      "pattern": "lib/medical-copilot/**",
+      "reason": "Heavy unit coverage via node:test; separate from component coverage"
+    }
+  ]
+}
