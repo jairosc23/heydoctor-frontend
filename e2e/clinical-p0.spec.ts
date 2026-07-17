@@ -1,40 +1,28 @@
 /**
  * Phase 4.8.6 — Clinical E2E P0 executable specification.
+ * PQ-01 — Hardened infrastructure (fixtures/helpers); same functional coverage.
  *
- * Sin mocks clínicos irreales: requiere staging real + credenciales médico.
- * Se omite automáticamente si faltan variables de entorno.
+ * Sin mocks clínicos irreales: requiere staging/preview real + credenciales médico.
+ * Se omite automáticamente si faltan variables de entorno (local).
+ * En CI / E2E_STRICT faltan UUIDs → error explícito (no skip silencioso).
  */
-import { test, expect } from "@playwright/test";
-
-const E2E_READY =
-  Boolean(process.env.E2E_BASE_URL) &&
-  Boolean(process.env.E2E_DOCTOR_EMAIL) &&
-  Boolean(process.env.E2E_DOCTOR_PASSWORD);
-
-function visibleEncounterSection(page: import("@playwright/test").Page, id: string) {
-  return page.locator(`[data-testid="${id}"]:visible`).first();
-}
+import { test, expect, configureP0Suite } from "./fixtures/p0";
+import { getConsultationId } from "./helpers/env";
+import {
+  gotoConsultation,
+  visibleEncounterSection,
+} from "./helpers/encounter";
 
 test.describe("Clinical P0 — workspace oficial (Action WS + Smart WS ON)", () => {
-  test.beforeEach(async ({ page }) => {
-    test.skip(!E2E_READY, "Requiere E2E_BASE_URL, E2E_DOCTOR_EMAIL, E2E_DOCTOR_PASSWORD");
-
-    await page.goto("/login");
-    await page.getByLabel(/correo|email/i).fill(process.env.E2E_DOCTOR_EMAIL!);
-    await page.getByLabel(/contraseña|password/i).fill(
-      process.env.E2E_DOCTOR_PASSWORD!,
-    );
-    await page.getByRole("button", { name: /iniciar|entrar|login/i }).click();
-    await expect(page).not.toHaveURL(/\/login/);
-  });
+  configureP0Suite();
 
   test("P0-0 Patient Context Bar — sticky persistente en scroll profundo", async ({
-    page,
+    doctorPage: page,
   }) => {
-    const consultationId = process.env.E2E_CONSULTATION_HTA;
+    const consultationId = getConsultationId("E2E_CONSULTATION_HTA");
     test.skip(!consultationId, "Requiere E2E_CONSULTATION_HTA");
 
-    await page.goto(`/panel/consultas/${consultationId}`);
+    await gotoConsultation(page, consultationId!);
 
     const scrollContainer = page.locator("main").first();
     const chrome = page.getByTestId("encounter-chrome-shell");
@@ -137,12 +125,12 @@ test.describe("Clinical P0 — workspace oficial (Action WS + Smart WS ON)", () 
   });
 
   test("P0-1 HTA seguimiento — Memory → SOAP → Receta → Firma → PDF", async ({
-    page,
+    doctorPage: page,
   }) => {
-    const consultationId = process.env.E2E_CONSULTATION_HTA;
+    const consultationId = getConsultationId("E2E_CONSULTATION_HTA");
     test.skip(!consultationId, "Requiere E2E_CONSULTATION_HTA");
 
-    await page.goto(`/panel/consultas/${consultationId}`);
+    await gotoConsultation(page, consultationId!);
 
     // Layout oficial: contexto horizontal + ficha clínica prioritaria
     await expect(
@@ -199,11 +187,11 @@ test.describe("Clinical P0 — workspace oficial (Action WS + Smart WS ON)", () 
     await expect(visibleEncounterSection(page, "encounter-section-22")).toBeVisible();
   });
 
-  test("P0-2 DM2 — Lab order → plan → firma", async ({ page }) => {
-    const consultationId = process.env.E2E_CONSULTATION_DM2;
+  test("P0-2 DM2 — Lab order → plan → firma", async ({ doctorPage: page }) => {
+    const consultationId = getConsultationId("E2E_CONSULTATION_DM2");
     test.skip(!consultationId, "Requiere E2E_CONSULTATION_DM2");
 
-    await page.goto(`/panel/consultas/${consultationId}`);
+    await gotoConsultation(page, consultationId!);
 
     await page.getByTestId("clinical-action-bar").getByRole("button", {
       name: /laboratorio|lab/i,
@@ -227,11 +215,13 @@ test.describe("Clinical P0 — workspace oficial (Action WS + Smart WS ON)", () 
     });
   });
 
-  test("P0-3 Consulta aguda — SOAP → documento → cierre", async ({ page }) => {
-    const consultationId = process.env.E2E_CONSULTATION_ACUTE;
+  test("P0-3 Consulta aguda — SOAP → documento → cierre", async ({
+    doctorPage: page,
+  }) => {
+    const consultationId = getConsultationId("E2E_CONSULTATION_ACUTE");
     test.skip(!consultationId, "Requiere E2E_CONSULTATION_ACUTE");
 
-    await page.goto(`/panel/consultas/${consultationId}`);
+    await gotoConsultation(page, consultationId!);
 
     await expect(page.locator('[data-smart-workspace="true"]')).toBeVisible();
 
@@ -259,11 +249,11 @@ test.describe("Clinical P0 — workspace oficial (Action WS + Smart WS ON)", () 
     await expect(page.getByTestId("clinical-module-sheet")).toBeVisible();
   });
 
-  test("P0-4 Pago — firma → Payku → lock", async ({ page }) => {
-    const consultationId = process.env.E2E_CONSULTATION_PAYMENT;
+  test("P0-4 Pago — firma → Payku → lock", async ({ doctorPage: page }) => {
+    const consultationId = getConsultationId("E2E_CONSULTATION_PAYMENT");
     test.skip(!consultationId, "Requiere E2E_CONSULTATION_PAYMENT");
 
-    await page.goto(`/panel/consultas/${consultationId}`);
+    await gotoConsultation(page, consultationId!);
 
     // Debe estar signed antes de pagar (canPay ambiguo en completed — validar signed)
     await expect(page.getByText(/firmada|signed/i)).toBeVisible();
@@ -281,7 +271,7 @@ test.describe("Clinical P0 — workspace oficial (Action WS + Smart WS ON)", () 
     // Payku redirect — en sandbox completar manualmente o usar mock en dev
     await page.waitForURL(/payku|payment|consultas/, { timeout: 60_000 });
 
-    // Retorno success
+    // Retorno success — limitación documentada PQ-01 (sandbox manual)
     if (!page.url().includes("payment=success")) {
       test.skip(true, "Completar pago Payku sandbox manualmente en CI");
     }
@@ -298,18 +288,15 @@ test.describe("Clinical P0 — workspace oficial (Action WS + Smart WS ON)", () 
 });
 
 test.describe("Clinical P0 — ADR-019 observability smoke", () => {
-  test("encounter grid expone contrato workspace oficial", async ({ page }) => {
-    test.skip(!E2E_READY, "Requiere credenciales E2E");
-    test.skip(!process.env.E2E_CONSULTATION_HTA, "Requiere E2E_CONSULTATION_HTA");
+  configureP0Suite();
 
-    await page.goto("/login");
-    await page.getByLabel(/correo|email/i).fill(process.env.E2E_DOCTOR_EMAIL!);
-    await page.getByLabel(/contraseña|password/i).fill(
-      process.env.E2E_DOCTOR_PASSWORD!,
-    );
-    await page.getByRole("button", { name: /iniciar|entrar|login/i }).click();
+  test("encounter grid expone contrato workspace oficial", async ({
+    doctorPage: page,
+  }) => {
+    const consultationId = getConsultationId("E2E_CONSULTATION_HTA");
+    test.skip(!consultationId, "Requiere E2E_CONSULTATION_HTA");
 
-    await page.goto(`/panel/consultas/${process.env.E2E_CONSULTATION_HTA}`);
+    await gotoConsultation(page, consultationId!);
 
     const layout = page.locator('[data-testid="encounter-split-layout"]');
     await expect(layout).toBeVisible();

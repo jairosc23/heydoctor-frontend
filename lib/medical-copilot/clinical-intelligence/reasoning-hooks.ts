@@ -10,6 +10,7 @@ import {
   type ClinicalReasoningReadAdapter,
 } from "./reasoning-adapter";
 import type { ClinicalReasoningResult } from "./reasoning";
+import { assertMedicalCopilotSessionId } from "../session-id";
 
 export type UseClinicalReasoningOptions = {
   sessionId: string | null | undefined;
@@ -40,7 +41,8 @@ export function useClinicalReasoning(
   const refresh = useCallback(() => setTick((n) => n + 1), []);
 
   useEffect(() => {
-    if (!enabled || !sessionId) {
+    const resolvedSessionId = assertMedicalCopilotSessionId(sessionId);
+    if (!enabled || !resolvedSessionId) {
       setResult(null);
       setError(null);
       setLoading(false);
@@ -50,7 +52,7 @@ export function useClinicalReasoning(
     setLoading(true);
     setError(null);
     void adapter
-      .getGovernedClinicalReasoning(sessionId)
+      .getGovernedClinicalReasoning(resolvedSessionId)
       .then((next) => {
         if (cancelled) return;
         setResult(next);

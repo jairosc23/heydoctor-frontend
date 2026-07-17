@@ -50,9 +50,23 @@ export function AgendaAvailabilityRulesPanel({
   );
   const [formErrors, setFormErrors] = useState<string[]>([]);
 
-  const { data: appointmentsData } = useAppointmentsListQuery(
+  /** F2-09: select reduce re-renders — solo campos usados por doctor selector. */
+  const { data: appointmentDoctorRows } = useAppointmentsListQuery(
     { limit: 200 },
-    { enabled: isAdmin },
+    {
+      enabled: isAdmin,
+      select: (res) =>
+        (res?.data ?? []).map((a) => ({
+          doctorId: a.doctorId,
+          doctor: a.doctor
+            ? {
+                id: a.doctor.id,
+                name: a.doctor.name,
+                email: a.doctor.email,
+              }
+            : undefined,
+        })),
+    },
   );
   const { data: consultationsData } = useConsultationsListQuery(
     { limit: 100 },
@@ -61,12 +75,14 @@ export function AgendaAvailabilityRulesPanel({
   const doctorOptions = useMemo(
     () =>
       collectClinicDoctorOptions(
-        appointmentsData?.data ?? [],
+        (appointmentDoctorRows ?? []) as Parameters<
+          typeof collectClinicDoctorOptions
+        >[0],
         (consultationsData?.data ?? [])
           .filter((c) => Boolean(c.doctorId))
           .map((c) => ({ id: c.doctorId as string, label: undefined })),
       ),
-    [appointmentsData?.data, consultationsData?.data],
+    [appointmentDoctorRows, consultationsData?.data],
   );
 
   const invalidate = async () => {

@@ -68,6 +68,36 @@ type OpsScaling = {
   errorRate: number;
 };
 
+/** F2-11 — foundation payload from GET /admin/ops/dashboard (existing SSOT). */
+type OpsDashboardFoundation = {
+  generatedAt: string;
+  source: string;
+  architecture: {
+    metricsSsot: string;
+    alertsCatalog: string;
+    correlation: string;
+  };
+  metricsStatus: {
+    storage?: string;
+    exporter?: string;
+    multiInstanceSafe?: boolean;
+    redisConfigured?: boolean;
+  };
+  alertCatalog: {
+    criticalAlertsEnabled: boolean;
+    count: number;
+    alerts: {
+      id: string;
+      level: string;
+      signal: string;
+      threshold: number;
+      runbook: string;
+      purpose: string;
+    }[];
+  };
+  throttler: { mode?: string; distributed?: boolean };
+};
+
 async function fetchOpsScaling(): Promise<OpsScaling | null> {
   const res = await fetchWithAuth("/api/admin/ops/scaling", { method: "GET" });
   if (!res.ok) return null;
@@ -83,6 +113,14 @@ async function fetchOpsOverview(): Promise<OpsOverview> {
   return (await res.json()) as OpsOverview;
 }
 
+async function fetchOpsDashboard(): Promise<OpsDashboardFoundation | null> {
+  const res = await fetchWithAuth("/api/admin/ops/dashboard", {
+    method: "GET",
+  });
+  if (!res.ok) return null;
+  return (await res.json()) as OpsDashboardFoundation;
+}
+
 function formatUptime(seconds: number): string {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
@@ -95,6 +133,9 @@ function formatUptime(seconds: number): string {
 export default function AdminOpsPage() {
   const [data, setData] = useState<OpsOverview | null>(null);
   const [scaling, setScaling] = useState<OpsScaling | null>(null);
+  const [dashboard, setDashboard] = useState<OpsDashboardFoundation | null>(
+    null,
+  );
   const [traceId, setTraceId] = useState("");
   const [traceHit, setTraceHit] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
@@ -104,13 +145,19 @@ export default function AdminOpsPage() {
     setError(null);
     setLoading(true);
     try {
-      const [o, s] = await Promise.all([fetchOpsOverview(), fetchOpsScaling()]);
+      const [o, s, d] = await Promise.all([
+        fetchOpsOverview(),
+        fetchOpsScaling(),
+        fetchOpsDashboard(),
+      ]);
       setData(o);
       setScaling(s);
+      setDashboard(d);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error");
       setData(null);
       setScaling(null);
+      setDashboard(null);
     } finally {
       setLoading(false);
     }
@@ -148,9 +195,9 @@ export default function AdminOpsPage() {
         <div>
           <h1 className="text-xl font-bold text-primary">Operations</h1>
           <p className="text-sm text-primaryDark/70">
-            RPM/latencia/errores (Redis si aplica). CPU load y señales de scaling
-            en tarjeta dedicada. Trazas: índice por réplica. Documentación de escalado en el
-            repositorio backend:{" "}
+            Foundation F2-11: métricas PQ-05 + catálogo alertas F2-03 + correlación
+            PQ-10 (sin segunda fuente). RPM/latencia/errores, scaling y trazas por
+            réplica. Backend:{" "}
             <code className="text-xs">docs/RAILWAY-SCALING.md</code>.
           </p>
         </div>
@@ -196,6 +243,76 @@ export default function AdminOpsPage() {
           <strong>Revenue hoy (UTC):</strong> $0 CLP según eventos PAYMENT_SUCCEEDED. Comprueba
           webhooks Payku o si el día UTC recién comenzó.
         </div>
+      )}
+
+      {dashboard && !loading && (
+        <section
+          className="mb-6 rounded-lg border border-hd-border-subtle bg-white p-4 shadow-sm"
+          data-testid="ops-dashboard-foundation"
+        >
+          <h2 className="mb-2 text-sm font-semibold text-primaryDark">
+            Operations foundation (F2-11)
+          </h2>
+          <p className="mb-3 text-xs text-primaryDark/60">
+            SSOT: {dashboard.architecture.metricsSsot} · Alertas:{" "}
+            {dashboard.architecture.alertsCatalog} · Correlación:{" "}
+            {dashboard.architecture.correlation}
+          </p>
+          <div className="mb-3 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <p className="text-xs uppercase text-primaryDark/50">Metrics storage</p>
+              <p className="font-semibold tabular-nums">
+                {dashboard.metricsStatus.storage ?? "—"}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs uppercase text-primaryDark/50">Exporter</p>
+              <p className="font-semibold tabular-nums">
+                {dashboard.metricsStatus.exporter ?? "—"}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs uppercase text-primaryDark/50">Throttler</p>
+              <p className="font-semibold tabular-nums">
+                {dashboard.throttler.mode ?? "—"}
+                {dashboard.throttler.distributed ? " (redis)" : ""}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs uppercase text-primaryDark/50">Critical alerts</p>
+              <p className="font-semibold tabular-nums">
+                {dashboard.alertCatalog.criticalAlertsEnabled
+                  ? "enabled"
+                  : "disabled"}{" "}
+                · {dashboard.alertCatalog.count} defs
+              </p>
+            </div>
+          </div>
+          <div className="overflow-x-auto rounded border border-hd-border-subtle">
+            <table className="min-w-full text-left text-xs">
+              <thead className="bg-hd-surface-muted uppercase text-primaryDark/70">
+                <tr>
+                  <th className="px-2 py-1.5">Alert</th>
+                  <th className="px-2 py-1.5">Level</th>
+                  <th className="px-2 py-1.5">Signal</th>
+                  <th className="px-2 py-1.5">Threshold</th>
+                  <th className="px-2 py-1.5">Runbook</th>
+                </tr>
+              </thead>
+              <tbody>
+                {dashboard.alertCatalog.alerts.map((a) => (
+                  <tr key={a.id} className="border-t border-hd-border-subtle">
+                    <td className="px-2 py-1.5 font-mono">{a.id}</td>
+                    <td className="px-2 py-1.5">{a.level}</td>
+                    <td className="px-2 py-1.5 font-mono">{a.signal}</td>
+                    <td className="px-2 py-1.5 tabular-nums">{a.threshold}</td>
+                    <td className="px-2 py-1.5 font-mono">{a.runbook}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
       )}
 
       {data && !loading && scaling !== null && (

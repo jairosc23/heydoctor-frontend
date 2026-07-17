@@ -18,6 +18,9 @@ import {
   rememberMedicalCopilotSessionOwnership,
   clearMedicalCopilotSessionOwnership,
 } from "./session-ownership";
+import { assertMedicalCopilotSessionId } from "./session-id";
+import { emitClinicalTelemetry } from "./observability/emit";
+import { truncateRef } from "./observability/phi-safe";
 import type {
   MedicalCopilotActionSummary,
   MedicalCopilotMemorySummary,
@@ -108,10 +111,11 @@ export async function bootstrapMedicalCopilotSession(
   },
   deps: BootstrapDeps = defaultDeps,
 ): Promise<BootstrapResult> {
-  const owned = getOwnedMedicalCopilotSessionId(
+  const ownedRaw = getOwnedMedicalCopilotSessionId(
     input.consultationId,
     deps.storage,
   );
+  const owned = assertMedicalCopilotSessionId(ownedRaw);
 
   try {
     if (owned) {
@@ -128,6 +132,19 @@ export async function bootstrapMedicalCopilotSession(
           input.consultationId,
           ownership.sessionId,
           deps.storage,
+        );
+        emitClinicalTelemetry(
+          ownership.duplicateAttempt
+            ? "restart_preserve_session"
+            : "workflow_started",
+          {
+            phase: "bootstrap",
+            status: "restored",
+            consultationRef: truncateRef(input.consultationId),
+            sessionRef: truncateRef(ownership.sessionId),
+            hasSession: true,
+            preserveSession: true,
+          },
         );
         return {
           ok: true,
@@ -180,6 +197,20 @@ export async function bootstrapMedicalCopilotSession(
       deps.storage,
     );
 
+    emitClinicalTelemetry(
+      ownership.duplicateAttempt
+        ? "restart_preserve_session"
+        : "workflow_started",
+      {
+        phase: "bootstrap",
+        status: "created",
+        consultationRef: truncateRef(input.consultationId),
+        sessionRef: truncateRef(sessionId),
+        hasSession: true,
+        preserveSession: ownership.duplicateAttempt,
+      },
+    );
+
     return {
       ok: true,
       session: { ...session, sessionId },
@@ -193,10 +224,33 @@ export async function bootstrapMedicalCopilotSession(
       duplicateAttempt: ownership.duplicateAttempt,
     };
   } catch (err) {
+    const authRequired = isAuthError(err);
+    emitClinicalTelemetry(
+      authRequired ? "recoverable_error" : "non_recoverable_error",
+      {
+        phase: "bootstrap",
+        status: "failed",
+        consultationRef: truncateRef(input.consultationId),
+        sessionRef: truncateRef(
+          getOwnedMedicalCopilotSessionId(
+            input.consultationId,
+            deps.storage,
+          ),
+        ),
+        hasSession: Boolean(
+          getOwnedMedicalCopilotSessionId(
+            input.consultationId,
+            deps.storage,
+          ),
+        ),
+        recoverable: authRequired,
+        errorCode: authRequired ? "auth_required" : "bootstrap_failed",
+      },
+    );
     return {
       ok: false,
       error: err instanceof Error ? err.message : String(err),
-      authRequired: isAuthError(err),
+      authRequired,
       ownedSessionId: getOwnedMedicalCopilotSessionId(
         input.consultationId,
         deps.storage,

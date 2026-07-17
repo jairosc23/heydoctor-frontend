@@ -99,10 +99,13 @@ export default function AgendaPage() {
   const { data, isLoading, isFetching, isError, refetch } =
     useAppointmentsListQuery(appointmentFilters);
 
-  /** Unfiltered list (same range) to populate admin doctor selector. */
+  /**
+   * F2-09: second list only when admin filtered by doctor — otherwise the
+   * primary list already covers the clinic range (avoids duplicate GET).
+   */
   const { data: clinicAppointmentsData } = useAppointmentsListQuery(
     { from: range.from, to: range.to, limit: 500 },
-    { enabled: isAdmin },
+    { enabled: isAdmin && Boolean(doctorFilter) },
   );
 
   const availability = useAvailabilityEnterpriseQuery({

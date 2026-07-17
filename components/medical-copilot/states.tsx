@@ -63,6 +63,44 @@ export function MedicalCopilotSkeleton({ rows = 3 }: { rows?: number }) {
   );
 }
 
+/** Compact loading/error for clinical intelligence panels (F2-08). */
+export function MedicalCopilotInlineStatus({
+  loading,
+  error,
+  loadingLabel = "Cargando…",
+  onRetry,
+}: {
+  loading?: boolean;
+  error?: string | null;
+  loadingLabel?: string;
+  onRetry?: () => void;
+}) {
+  if (loading) {
+    return (
+      <p className="text-sm text-slate-500" role="status" aria-live="polite">
+        {loadingLabel}
+      </p>
+    );
+  }
+  if (error) {
+    return (
+      <div role="alert" className="space-y-1">
+        <p className="text-sm text-red-600">{error}</p>
+        {onRetry ? (
+          <button
+            type="button"
+            onClick={onRetry}
+            className="text-xs font-medium text-rose-800 underline"
+          >
+            Reintentar
+          </button>
+        ) : null}
+      </div>
+    );
+  }
+  return null;
+}
+
 export function MedicalCopilotErrorState({
   title = "No se pudo cargar el Medical Copilot",
   message,

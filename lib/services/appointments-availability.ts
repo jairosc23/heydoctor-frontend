@@ -138,18 +138,25 @@ export type UpdateScheduleBlockPayload = {
   isActive?: boolean;
 };
 
+/**
+ * F2-04 — Blocks require from/to. Do not swallow 400 via getOrFallback.
+ */
 export async function fetchScheduleBlocks(params: {
   from: string;
   to: string;
   doctorId?: string;
 }): Promise<ScheduleBlock[]> {
+  if (!params.from?.trim() || !params.to?.trim()) {
+    throw new Error(
+      "[agenda-contract] fetchScheduleBlocks requires from and to ISO window",
+    );
+  }
   const qs = new URLSearchParams();
   qs.set("from", params.from);
   qs.set("to", params.to);
   if (params.doctorId) qs.set("doctorId", params.doctorId);
-  const result = await heydoctorApi.getOrFallback<ScheduleBlock[]>(
+  const result = await heydoctorApi.get<ScheduleBlock[]>(
     `${BASE}/blocks?${qs}`,
-    [],
   );
   return Array.isArray(result) ? result : [];
 }

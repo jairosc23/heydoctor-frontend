@@ -1,5 +1,6 @@
 "use client";
 import { ClinicalPanel, ClinicalSection } from "@/components/clinical/design";
+import { MedicalCopilotInlineStatus } from "@/components/medical-copilot/states";
 import { useReasoningValidationEngine } from "@/lib/medical-copilot/clinical-intelligence/reasoning-validation-engine";
 import { useMedicalCopilot } from "@/context/MedicalCopilotContext";
 export function ReasoningValidationEnginePanel() {
@@ -13,8 +14,7 @@ export function ReasoningValidationEnginePanel() {
         <ClinicalSection title="Reasoning Validation Engine (AI-68)">
           <p className="mb-3 text-xs text-slate-500">Validación estructural de contratos. Sin validar medicina · HITL obligatorio.</p>
           {!sessionId ? <p className="text-sm text-slate-500">Esperando sesión Medical Copilot…</p> : null}
-          {loading ? <p className="text-sm text-slate-500">Cargando…</p> : null}
-          {error ? <p className="text-sm text-red-600" role="alert">{error}</p> : null}
+          <MedicalCopilotInlineStatus loading={loading} error={error} onRetry={refresh} />
           {model ? (
             <div className="space-y-3" data-testid="reasoning-validation-engine">
               <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">

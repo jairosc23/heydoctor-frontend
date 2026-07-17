@@ -1,8 +1,11 @@
-# Clinical E2E P0 — Phase 19.2
+# Clinical E2E P0 — Phase 19.2 / PQ-01
 
 Especificación ejecutable Playwright para validar flujos clínicos P0 con **workspace oficial** (Action WS + Smart WS ON), alineada al contrato **ADR-019**.
 
-**Referencia normativa:** [`docs/architecture/adr/019-clinical-workspace-observability-contract.md`](../docs/architecture/adr/019-clinical-workspace-observability-contract.md)
+**Hardening PQ-01:** fixtures/helpers de auth y navegación, suite serial, retries CI, traces/artefactos, example sin secretos, script `test:e2e:p0`.
+
+**Referencia normativa:** [`docs/architecture/adr/019-clinical-workspace-observability-contract.md`](../docs/architecture/adr/019-clinical-workspace-observability-contract.md)  
+**Informe PQ-01:** [`docs/pq-01-playwright-hardening.md`](../docs/pq-01-playwright-hardening.md)
 
 ## Contrato ADR-019 (workspace oficial ON)
 
@@ -21,7 +24,7 @@ El término visual «layout 2-col» en runbooks describe nav rail + columna clí
 ## Instalación
 
 ```bash
-npm install -D @playwright/test
+npm ci
 npx playwright install chromium
 ```
 
@@ -33,7 +36,7 @@ Copiar plantilla a la **raíz del repo** (ignorada por git):
 cp e2e/.env.e2e.example .env.e2e
 ```
 
-Editar `.env.e2e` — **7 variables obligatorias** para ejecución completa (no commitear credenciales):
+Editar `.env.e2e` — **7 variables obligatorias** (placeholders en el example; no commitear credenciales):
 
 ```env
 E2E_BASE_URL=https://your-preview-url.vercel.app
@@ -54,23 +57,38 @@ NEXT_PUBLIC_SMART_CLINICAL_WORKSPACE=1
 NEXT_PUBLIC_HEYDOCTOR_API_URL=https://pro-api.heydoctor.health
 ```
 
-## Ejecución contra Vercel Preview
+## Ejecución local / Preview
 
 ```bash
 cp e2e/.env.e2e.example .env.e2e
-# Editar .env.e2e (7 variables)
+# Editar .env.e2e (7 variables reales del entorno target)
 chmod +x e2e/run-e2e.sh
 ./e2e/run-e2e.sh
 ```
 
-Alternativa:
+Alternativas:
 
 ```bash
 set -a && source .env.e2e && set +a
-npm run test:e2e
+npm run test:e2e:p0          # solo Clinical P0 (recomendado)
+npm run test:e2e             # todos los proyectos Playwright
 ```
 
-**Viewport:** los casos P0 ADR-019 ejecutan en proyecto desktop **1440×900** (`encounter-split-layout` requiere xl+).
+**Viewport P0:** desktop **1440×900**.  
+**Aislamiento:** cada test limpia cookies y re-autentica (`loginAsDoctor`). Suite en modo `serial`.
+
+## Infraestructura PQ-01
+
+| Pieza | Path |
+|---|---|
+| Config | `e2e/playwright.config.ts` |
+| Fixtures | `e2e/fixtures/p0.ts` |
+| Auth helper | `e2e/helpers/auth.ts` |
+| Env helper | `e2e/helpers/env.ts` |
+| Encounter helper | `e2e/helpers/encounter.ts` |
+| Spec P0 | `e2e/clinical-p0.spec.ts` |
+
+**CI retries:** 2 · **trace/screenshot/video:** retain-on-failure · **reporter:** list + html + junit (CI).
 
 ## Matriz test ↔ GO-LIVE (gl-07..gl-11)
 
@@ -84,43 +102,31 @@ npm run test:e2e
 | P0-4 | Firma → Pago Payku → Lock | pago post-firma | **gl-11** | `E2E_CONSULTATION_PAYMENT` |
 | Smoke | Atributos `data-*` workspace | contrato completo | gl-03 | `E2E_CONSULTATION_HTA` |
 
-**gl-11:** P0-4 puede `skip` si Payku sandbox requiere intervención manual — documentar en `PHASE_4.9.4`.
+**gl-11 / P0-4:** puede `skip` si Payku sandbox requiere intervención manual — limitación remanente PQ-01.
 
-## CI Gate (Phase 19.3)
+## CI Gate (Phase 19.3 / PQ-01)
 
-GitHub Actions ejecuta **solo** `e2e/clinical-p0.spec.ts` cuando los **7 repository secrets** están configurados. No incluye `visual-encounter-audit.spec.ts` ni otras suites.
-
-| Secret | Obligatorio |
-|---|---|
-| `E2E_BASE_URL` | Sí |
-| `E2E_DOCTOR_EMAIL` | Sí |
-| `E2E_DOCTOR_PASSWORD` | Sí |
-| `E2E_CONSULTATION_HTA` | Sí |
-| `E2E_CONSULTATION_DM2` | Sí |
-| `E2E_CONSULTATION_ACUTE` | Sí |
-| `E2E_CONSULTATION_PAYMENT` | Sí |
-
-**Política:**
+GitHub Actions ejecuta **solo** `npm run test:e2e:p0` cuando los **7 repository secrets** están configurados.
 
 | Secrets | Comportamiento CI | Resumen job |
 |---|---|---|
-| Los 7 presentes | E2E P0 bloqueante | `Secrets: configured` · `Result: PASS` o `FAIL` |
-| Cualquiera ausente (fork, pre-ops) | E2E omitido | `Secrets: skipped` · `Result: SKIPPED` |
+| Los 7 presentes | E2E P0 bloqueante + upload artefactos | `Secrets: configured` · `PASS`/`FAIL` |
+| Cualquiera ausente | E2E omitido | `Secrets: skipped` · `SKIPPED` |
 
-**Prerequisito:** `E2E_BASE_URL` debe apuntar a un Vercel Preview con `NEXT_PUBLIC_CLINICAL_ACTION_WORKSPACE=1` y `NEXT_PUBLIC_SMART_CLINICAL_WORKSPACE=1`.
+Artefactos: `playwright-report/` + `test-results/` (retention 14 días).
+
+**Política gate obligatorio:** ver `docs/pq-01-playwright-hardening.md` (GO CONDICIONAL — P0-4 Payku + secrets opcionales en forks).
 
 ## Activación Vercel Preview (pre-requisito ops)
 
-1. Settings → Environment Variables → ambos flags `=1` scope **Preview**
+1. Settings → Environment Variables → flags workspace `=1` scope **Preview**
 2. Configurar `NEXT_PUBLIC_HEYDOCTOR_API_URL`
 3. NO modificar Production hasta GO operacional
-4. Redeploy preview → validar ADR-019 en DevTools (`data-columns="1"`, `data-smart-workspace="true"`)
-5. Ejecutar `./e2e/run-e2e.sh` con `.env.e2e`
+4. Redeploy preview → validar ADR-019 en DevTools
+5. Ejecutar `./e2e/run-e2e.sh` con `.env.e2e` real
 
 ## Referencia
 
-- `e2e/clinical-p0.spec.ts` — spec P0-0..P0-4 + smoke
-- `e2e/playwright.config.ts` — desktop 1440×900 para P0
+- `docs/pq-01-playwright-hardening.md`
 - `lib/go-live-preparation-audit.ts`
 - `docs/PHASE_4.9.2_GO_LIVE_PREPARATION.md`
-- `docs/PHASE_4.9.4_GO_LIVE_OPERATIONAL_EXECUTION.md`

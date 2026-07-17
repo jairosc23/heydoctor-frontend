@@ -10,6 +10,7 @@ import {
   type ClinicalCopilotSnapshotReadAdapter,
 } from "./snapshot-adapter";
 import type { ClinicalCopilotSnapshotResult } from "./snapshot";
+import { assertMedicalCopilotSessionId } from "../session-id";
 
 export type UseClinicalCopilotSnapshotOptions = {
   sessionId: string | null | undefined;
@@ -42,7 +43,8 @@ export function useClinicalCopilotSnapshot(
   const refresh = useCallback(() => setTick((n) => n + 1), []);
 
   useEffect(() => {
-    if (!enabled || !sessionId) {
+    const resolvedSessionId = assertMedicalCopilotSessionId(sessionId);
+    if (!enabled || !resolvedSessionId) {
       setResult(null);
       setError(null);
       setLoading(false);
@@ -52,7 +54,7 @@ export function useClinicalCopilotSnapshot(
     setLoading(true);
     setError(null);
     void adapter
-      .getClinicalCopilotSnapshot(sessionId)
+      .getClinicalCopilotSnapshot(resolvedSessionId)
       .then((next) => {
         if (cancelled) return;
         setResult(next);
