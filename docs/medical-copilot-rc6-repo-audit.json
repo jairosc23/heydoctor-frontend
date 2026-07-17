@@ -1,0 +1,33 @@
+{
+  "generatedAt": "2026-07-16T03:21:41.306Z",
+  "frontend": {
+    "branch": "release/medical-copilot-v1.0-rc2",
+    "headAtAuditStart": "4d5e760d65d6be48146ed6f84b4b63c6a83a8307",
+    "tags": [
+      "medical-copilot-v1.0-ga-fix",
+      "medical-copilot-v1.0-rc2"
+    ],
+    "panelFilesMatchingPanel": 553,
+    "certifiedPanelCountRc3": 474,
+    "e2eSpecs": [
+      "ar2-foundation.spec.ts",
+      "clinical-p0.spec.ts",
+      "ga-fix-deeplink.spec.ts",
+      "medical-copilot-rc2.spec.ts",
+      "visual-encounter-audit.spec.ts"
+    ],
+    "unitTestFiles": 634,
+    "operationalLayers": [
+      "rc3-operational",
+      "rc4-operational",
+      "rc5-operational"
+    ],
+    "untrackedAtAudit": [
+      "docs/V6.1_PR1_Production_Promotion_Execution.md"
+    ],
+    "notes": "Panel glob *Panel*.tsx may exceed certified 474 (includes non-governed helpers). Certified inventory remains RC3/RC5 counts."
+  },
+  "branch": "release/medical-copilot-v1.0-rc2",
+  "frozenSsot": true,
+  "behaviorChanges": false
+}

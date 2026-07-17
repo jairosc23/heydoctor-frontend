@@ -1,0 +1,26 @@
+{
+  "decisionId": "enterprise-go-no-go-final-phase-4",
+  "date": "2026-07-16",
+  "branch": "release/medical-copilot-v1.0-rc2",
+  "decisions": {
+    "mergeToMainTechnical": {
+      "verdict": "GO",
+      "reason": "main is ancestor of RC2 tip on FE and BE; merge-tree clean; FF possible; phase3 gates pass; no P0 blockers"
+    },
+    "railway": {
+      "verdict": "GO_CONDITIONAL",
+      "reason": "unified BE tip valid; requires deploy auth + migrations + health; not authorized now"
+    },
+    "vercelPreview": {
+      "verdict": "GO_CONDITIONAL",
+      "reason": "unified FE tip valid; requires correct API env + preview smoke; not authorized now"
+    },
+    "production": {
+      "verdict": "NO_GO",
+      "reason": "playwright skipped; runtime smoke pending; main not yet updated; no promote auth"
+    }
+  },
+  "p0BlockersMainMerge": [],
+  "openRisks": ["P1_playwright", "P1_staging_smoke", "P2_eslint_warnings", "P2_tag_drift"],
+  "phase5RequiresExplicitAuthorization": true
+}

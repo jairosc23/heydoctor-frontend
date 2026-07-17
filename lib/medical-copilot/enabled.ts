@@ -1,16 +1,20 @@
 /**
- * RC-2 P0-1 — Medical Copilot kill switch / feature flag.
+ * RC-2 P0-1 / AR-1 — Medical Copilot kill switch / feature flag.
  * Disables only Medical Copilot UI entry — never consultation, EMR, or auth.
  *
  * Priority:
  * 1) Runtime localStorage `hd_mc_kill_switch` (reversible without redeploy)
- * 2) Env `NEXT_PUBLIC_MEDICAL_COPILOT` (0/false/off → disabled; unset → enabled)
+ * 2) Server runtime (`GET /medical-copilot/runtime`) when known
+ * 3) Env `NEXT_PUBLIC_MEDICAL_COPILOT` (0/false/off → disabled; unset → enabled)
  */
 
 const TRUTHY = new Set(["1", "true", "yes", "on"]);
 const FALSY = new Set(["0", "false", "no", "off"]);
 
 export const MEDICAL_COPILOT_KILL_SWITCH_STORAGE_KEY = "hd_mc_kill_switch";
+
+/** Cached server kill-switch: null = unknown, true = killed, false = enabled. */
+let serverKillSwitch: boolean | null = null;
 
 export function parseMedicalCopilotEnvFlag(
   raw: string | undefined,
@@ -57,14 +61,48 @@ export function setMedicalCopilotRuntimeKillSwitch(
   }
 }
 
+/**
+ * AR-1 — Apply server-side kill switch result (from `/medical-copilot/runtime`).
+ * `killSwitch=true` or `enabled=false` disables Copilot entry.
+ */
+export function applyMedicalCopilotServerRuntime(input: {
+  enabled?: boolean;
+  killSwitch?: boolean;
+} | null): void {
+  if (!input) {
+    serverKillSwitch = null;
+    return;
+  }
+  if (typeof input.killSwitch === "boolean") {
+    serverKillSwitch = input.killSwitch;
+    return;
+  }
+  if (typeof input.enabled === "boolean") {
+    serverKillSwitch = !input.enabled;
+    return;
+  }
+  serverKillSwitch = null;
+}
+
+export function getMedicalCopilotServerKillSwitch(): boolean | null {
+  return serverKillSwitch;
+}
+
+/** AR-2 — Reset cached server runtime (tests / hot reload). */
+export function resetMedicalCopilotServerRuntimeCache(): void {
+  serverKillSwitch = null;
+}
+
 export type MedicalCopilotEnabledOptions = {
   env?: string | undefined;
   storage?: Pick<Storage, "getItem"> | null;
+  /** When provided, overrides cached server kill switch for this call. */
+  serverKillSwitch?: boolean | null;
 };
 
 /**
  * Returns true when Medical Copilot surfaces may render.
- * Default: enabled. Kill switch / env off → disabled.
+ * Default: enabled. Kill switch / env / server off → disabled.
  */
 export function isMedicalCopilotEnabled(
   options: MedicalCopilotEnabledOptions = {},
@@ -78,6 +116,12 @@ export function isMedicalCopilotEnabled(
   const runtime = readMedicalCopilotRuntimeKillSwitch(storage);
   if (runtime === true) return false;
   if (runtime === false) return true;
+
+  const server =
+    options.serverKillSwitch !== undefined
+      ? options.serverKillSwitch
+      : serverKillSwitch;
+  if (server === true) return false;
 
   return parseMedicalCopilotEnvFlag(
     options.env !== undefined

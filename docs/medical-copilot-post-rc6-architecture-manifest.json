@@ -1,0 +1,30 @@
+{
+  "manifest": "Architecture Manifest",
+  "generatedAt": "2026-07-16T15:42:00.893Z",
+  "integrity": {
+    "requiredSsotMissing": [],
+    "barrelIssuesCount": 0,
+    "brokenImportsCoreCount": 0,
+    "emptyDirsUnderAi": [],
+    "fePageImportIssues": [],
+    "bidirectionalGovernedPairCount": 0,
+    "governedPackages": 18,
+    "operationalLayers": [
+      "rc3-operational",
+      "rc4-operational",
+      "rc5-operational"
+    ]
+  },
+  "verdict": "PASS",
+  "findings": [
+    "No new dependency cycles detected among governed package roots.",
+    "No broken imports in facade/application/ai.module.",
+    "No missing barrels (index.ts) in governed packages.",
+    "No empty orphan dirs under src/ai.",
+    "FE medical-copilot page imports resolve."
+  ],
+  "documentedNonBlockers": [
+    "FE untracked docs/V6.1_PR1_Production_Promotion_Execution.md (out of scope).",
+    "Jest worker force-exit teardown warning on full suite (non-blocking)."
+  ]
+}

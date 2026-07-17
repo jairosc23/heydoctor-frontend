@@ -62,5 +62,13 @@ export default defineConfig({
         viewport: { width: 1440, height: 900 },
       },
     },
+    {
+      name: "chromium-desktop-ar2-foundation",
+      testMatch: /ar2-foundation\.spec\.ts/,
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 1440, height: 900 },
+      },
+    },
   ],
 });

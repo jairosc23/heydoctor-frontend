@@ -1,0 +1,10 @@
+export type AiLayerProviderId = "noop" | "openai";
+export const PHYSICIAN_REASONING_REVIEW_VERSION = "1.0.0" as const;
+export const PHYSICIAN_REASONING_REVIEW_GOVERNANCE = { requiresPhysicianReview: true as const, executesAction: false as const, autoPersistedToEmr: false as const };
+export type PhysicianReasoningReviewSlot = { id: string; sourceRefId: string | null; order: number; kind: "physician_reasoning_review_slot"; status: "ok" | "empty" | "rejected"; slotKey: string; };
+export type PhysicianReasoningReviewMetadata = { sessionId: string; consultationId: string; patientId: string; planId: string;
+  reasoningQualityEngineId: string;
+  reviewSessionId: string;
+  generatedAt: string; builderVersion: typeof PHYSICIAN_REASONING_REVIEW_VERSION; status: "ok" | "empty" | "rejected"; slotCount: number; selectedProviderId: AiLayerProviderId; };
+export type PhysicianReasoningReview = { physicianReasoningReviewId: string; providerId: AiLayerProviderId; reviewSlots: PhysicianReasoningReviewSlot[]; governance: typeof PHYSICIAN_REASONING_REVIEW_GOVERNANCE; metadata: PhysicianReasoningReviewMetadata; };
+export type PhysicianReasoningReviewBuilderResult = { source: "physician_reasoning_review"; builderVersion: typeof PHYSICIAN_REASONING_REVIEW_VERSION; physicianReasoningReview: PhysicianReasoningReview; governance: typeof PHYSICIAN_REASONING_REVIEW_GOVERNANCE; reason: string | null; generatedAt: string; };

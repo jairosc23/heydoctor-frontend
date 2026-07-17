@@ -1,0 +1,75 @@
+{
+  "readinessId": "enterprise-merge-readiness-2026-07-16",
+  "question": "Can Agenda Enterprise be incorporated onto release/medical-copilot-v1.0-rc2 without code loss?",
+  "answer": "YES",
+  "technicalMergeReady": true,
+  "executeMergeNow": false,
+  "evidence": {
+    "frontendMergeTree": "clean",
+    "backendMergeTree": "clean",
+    "frontendReverseMergeTree": "clean",
+    "backendReverseMergeTree": "clean",
+    "conflictMarkers": 0
+  },
+  "baselines": {
+    "frontend": {
+      "mergeBase": "82de5585d33024f421f6a75c84f8622e05755fdc",
+      "medicalCopilot": "a4cb67e2da9b9f564a37be991e15d930f8ea6937",
+      "agendaEnterprise": "f1a4bfa214e8671d379d5509725a0dae87cf7669",
+      "agendaAhead": 11,
+      "copilotAhead": 6
+    },
+    "backend": {
+      "mergeBase": "356e97f586bdb94b8a2f5901333cb39ee4e742d1",
+      "medicalCopilot": "1e253dfbd1e5f65e8b517ae315f291701c7bd9f0",
+      "agendaEnterprise": "6424adcaae96a118bc589ac6635dfe36f9283fd2",
+      "agendaAhead": 6,
+      "copilotAhead": 7
+    }
+  },
+  "strategy": {
+    "baseBranch": "release/medical-copilot-v1.0-rc2",
+    "incomingBranch": "feature/agenda-enterprise",
+    "mergeStyle": "no-ff",
+    "order": ["backend", "frontend"],
+    "squash": false,
+    "rebase": false
+  },
+  "packageManagers": {
+    "pnpmLock": "absent",
+    "packageLockConflictsExpected": false,
+    "packageJsonBothSidesChanged": false
+  },
+  "migrations": {
+    "collision": false,
+    "ordered": [
+      "1751300000000-MedicalCopilotFoundation.ts",
+      "1752600000000-ScheduleBlocksIsActive.ts",
+      "1752700000000-WaitlistPriorityReason.ts",
+      "1752800000000-ReminderPoliciesAndOffset.ts",
+      "1752900000000-ClinicAndDoctorTimezone.ts"
+    ]
+  },
+  "blockers": [
+    {
+      "id": "B1",
+      "type": "process",
+      "summary": "Merge execution not authorized in this phase"
+    },
+    {
+      "id": "B2",
+      "type": "qa",
+      "summary": "Playwright RC2 staging credentials not available in prior audit"
+    },
+    {
+      "id": "B3",
+      "type": "governance",
+      "summary": "Human approval required before merge push"
+    }
+  ],
+  "decision": {
+    "unifyBranchesTechnically": "GO",
+    "executeMerge": "NO_GO",
+    "deploy": "NO_GO"
+  }
+}

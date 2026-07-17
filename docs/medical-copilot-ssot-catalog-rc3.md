@@ -1,0 +1,1009 @@
+# Medical Copilot SSOT Catalog (RC3)
+
+> Auto-generated documentation. Does not modify certified runtime code.
+> Branch: `release/medical-copilot-v1.0-rc2`
+> Generated: 2026-07-16T02:27:47.732Z
+
+## Summary
+
+| Surface | Count |
+|---|---:|
+| Governed GET endpoints | 430 |
+| Application builders (*ForSession) | 17 |
+| Governed packages (dirs) | 18 |
+| Governed FE panels | 474 |
+| Workflow endpoints | 21 |
+| Orchestrator-related endpoints | 3 |
+
+## Packages (Backend dirs)
+
+- `src/ai/governed-clinical-ai-orchestrator-enterprise`
+- `src/ai/governed-clinical-calculation-system-enterprise`
+- `src/ai/governed-clinical-decision-system-enterprise`
+- `src/ai/governed-clinical-evidence`
+- `src/ai/governed-clinical-evidence-engine-enterprise`
+- `src/ai/governed-clinical-functional-intelligence`
+- `src/ai/governed-clinical-guidelines-engine-enterprise`
+- `src/ai/governed-clinical-knowledge`
+- `src/ai/governed-clinical-longitudinal-intelligence`
+- `src/ai/governed-clinical-persistence`
+- `src/ai/governed-clinical-reasoning-pipeline`
+- `src/ai/governed-clinical-suggestions`
+- `src/ai/governed-clinical-workflow-engine-enterprise`
+- `src/ai/governed-deterministic-clinical-rules`
+- `src/ai/governed-diagnostic-intelligence`
+- `src/ai/governed-population-health`
+- `src/ai/governed-specialized-clinical-intelligence`
+- `src/ai/governed-therapeutic-intelligence`
+
+## Builders (Application Service)
+
+- `buildGovernedClinicalSuggestionPackageForSession`
+- `buildGovernedClinicalDecisionPackageForSession`
+- `buildGovernedClinicalFunctionalIntelligencePackageForSession`
+- `buildGovernedSpecializedClinicalIntelligencePackageForSession`
+- `buildGovernedDeterministicClinicalRulesPackageForSession`
+- `buildGovernedClinicalReasoningPipelineForSession`
+- `buildGovernedClinicalKnowledgePackageForSession`
+- `buildGovernedClinicalEvidenceEnginePackageForSession`
+- `buildGovernedClinicalGuidelinesEnginePackageForSession`
+- `buildGovernedClinicalDecisionSystemPackageForSession`
+- `buildGovernedClinicalCalculationSystemPackageForSession`
+- `buildGovernedClinicalLongitudinalIntelligencePackageForSession`
+- `buildGovernedTherapeuticIntelligencePackageForSession`
+- `buildGovernedDiagnosticIntelligencePackageForSession`
+- `buildGovernedPopulationHealthPackageForSession`
+- `buildGovernedClinicalAiOrchestratorPackageForSession`
+- `buildGovernedClinicalWorkflowEnginePackageForSession`
+
+## Endpoints (Facade GET)
+
+- `GET /medical-copilot/session/:sessionId/governed-clinical-reasoning`
+- `GET /medical-copilot/session/:sessionId/governed-ai-request`
+- `GET /medical-copilot/session/:sessionId/governed-ai-gateway`
+- `GET /medical-copilot/session/:sessionId/governed-ai-execution`
+- `GET /medical-copilot/session/:sessionId/governed-ai-clinical-response`
+- `GET /medical-copilot/session/:sessionId/governed-ai-prompt`
+- `GET /medical-copilot/session/:sessionId/governed-prompt-template`
+- `GET /medical-copilot/session/:sessionId/governed-prompt-composer`
+- `GET /medical-copilot/session/:sessionId/governed-provider-payload`
+- `GET /medical-copilot/session/:sessionId/governed-ai-invocation`
+- `GET /medical-copilot/session/:sessionId/governed-ai-response-normalizer`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-ai-output`
+- `GET /medical-copilot/session/:sessionId/governed-physician-review-prep`
+- `GET /medical-copilot/session/:sessionId/governed-workflow-integration`
+- `GET /medical-copilot/session/:sessionId/governed-prompt-assembly`
+- `GET /medical-copilot/session/:sessionId/governed-provider-payload-translation`
+- `GET /medical-copilot/session/:sessionId/governed-provider-execution`
+- `GET /medical-copilot/session/:sessionId/governed-ai-response-processing`
+- `GET /medical-copilot/session/:sessionId/governed-physician-review-experience`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-session-package`
+- `GET /medical-copilot/session/:sessionId/governed-physician-review-package`
+- `GET /medical-copilot/session/:sessionId/governed-review-session`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-assessment-package`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-reasoning-package`
+- `GET /medical-copilot/session/:sessionId/governed-reasoning-workspace`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-reasoning-dataset`
+- `GET /medical-copilot/session/:sessionId/governed-reasoning-preparation`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-reasoning-input-package`
+- `GET /medical-copilot/session/:sessionId/governed-reasoning-runtime`
+- `GET /medical-copilot/session/:sessionId/governed-reasoning-session`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-reasoning-session`
+- `GET /medical-copilot/session/:sessionId/governed-reasoning-output`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-intelligence-package`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-intelligence-session`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-intelligence-foundation`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-intelligence-runtime`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-assistance`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-draft`
+- `GET /medical-copilot/session/:sessionId/governed-soap-draft`
+- `GET /medical-copilot/session/:sessionId/governed-prescription-draft`
+- `GET /medical-copilot/session/:sessionId/governed-orders-draft`
+- `GET /medical-copilot/session/:sessionId/governed-referral-draft`
+- `GET /medical-copilot/session/:sessionId/governed-medical-certificate-draft`
+- `GET /medical-copilot/session/:sessionId/governed-medical-leave-draft`
+- `GET /medical-copilot/session/:sessionId/governed-patient-instructions-draft`
+- `GET /medical-copilot/session/:sessionId/governed-follow-up-draft`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-visit-summary-draft`
+- `GET /medical-copilot/session/:sessionId/governed-care-plan-draft`
+- `GET /medical-copilot/session/:sessionId/governed-patient-education-draft`
+- `GET /medical-copilot/session/:sessionId/governed-discharge-draft`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-documentation-package`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-encounter`
+- `GET /medical-copilot/session/:sessionId/governed-physician-workspace`
+- `GET /medical-copilot/session/:sessionId/governed-consultation-runtime`
+- `GET /medical-copilot/session/:sessionId/governed-consultation-snapshot`
+- `GET /medical-copilot/session/:sessionId/governed-consultation-review`
+- `GET /medical-copilot/session/:sessionId/governed-consultation-workspace`
+- `GET /medical-copilot/session/:sessionId/governed-encounter-workspace`
+- `GET /medical-copilot/session/:sessionId/governed-encounter-review`
+- `GET /medical-copilot/session/:sessionId/governed-encounter-snapshot`
+- `GET /medical-copilot/session/:sessionId/governed-encounter-consolidation`
+- `GET /medical-copilot/session/:sessionId/governed-consultation-package`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-workspace`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-workspace-review`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-workspace-snapshot`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-workspace-consolidation`
+- `GET /medical-copilot/session/:sessionId/governed-consultation-dashboard`
+- `GET /medical-copilot/session/:sessionId/governed-physician-dashboard`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-dashboard`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-session-dashboard`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-overview`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-workspace-package`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-home`
+- `GET /medical-copilot/session/:sessionId/governed-physician-home`
+- `GET /medical-copilot/session/:sessionId/governed-consultation-home`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-timeline`
+- `GET /medical-copilot/session/:sessionId/governed-encounter-timeline`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-navigation`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-experience`
+- `GET /medical-copilot/session/:sessionId/governed-physician-experience`
+- `GET /medical-copilot/session/:sessionId/governed-consultation-experience`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-experience-package`
+- `GET /medical-copilot/session/:sessionId/governed-physician-interaction-workspace`
+- `GET /medical-copilot/session/:sessionId/governed-draft-review-workspace`
+- `GET /medical-copilot/session/:sessionId/governed-draft-comparison-workspace`
+- `GET /medical-copilot/session/:sessionId/governed-validation-workspace`
+- `GET /medical-copilot/session/:sessionId/governed-approval-preview`
+- `GET /medical-copilot/session/:sessionId/governed-approval-queue`
+- `GET /medical-copilot/session/:sessionId/governed-pending-actions`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-review-package`
+- `GET /medical-copilot/session/:sessionId/governed-physician-session`
+- `GET /medical-copilot/session/:sessionId/governed-physician-runtime-package`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-activation-workspace`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-activation-review`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-activation-timeline`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-activation-navigation`
+- `GET /medical-copilot/session/:sessionId/governed-physician-activation-workspace`
+- `GET /medical-copilot/session/:sessionId/governed-consultation-activation-workspace`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-activation-dashboard`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-activation-session`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-activation-runtime`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-activation-package`
+- `GET /medical-copilot/session/:sessionId/governed-persistence-preparation-workspace`
+- `GET /medical-copilot/session/:sessionId/governed-persistence-review`
+- `GET /medical-copilot/session/:sessionId/governed-persistence-timeline`
+- `GET /medical-copilot/session/:sessionId/governed-persistence-navigation`
+- `GET /medical-copilot/session/:sessionId/governed-persistence-dashboard`
+- `GET /medical-copilot/session/:sessionId/governed-persistence-session`
+- `GET /medical-copilot/session/:sessionId/governed-persistence-runtime`
+- `GET /medical-copilot/session/:sessionId/governed-persistence-preview`
+- `GET /medical-copilot/session/:sessionId/governed-persistence-validation`
+- `GET /medical-copilot/session/:sessionId/governed-persistence-package`
+- `GET /medical-copilot/session/:sessionId/governed-persistence-readiness-workspace`
+- `GET /medical-copilot/session/:sessionId/governed-persistence-readiness-review`
+- `GET /medical-copilot/session/:sessionId/governed-persistence-readiness-timeline`
+- `GET /medical-copilot/session/:sessionId/governed-persistence-readiness-dashboard`
+- `GET /medical-copilot/session/:sessionId/governed-persistence-readiness-session`
+- `GET /medical-copilot/session/:sessionId/governed-persistence-readiness-runtime`
+- `GET /medical-copilot/session/:sessionId/governed-persistence-readiness-preview`
+- `GET /medical-copilot/session/:sessionId/governed-persistence-readiness-validation`
+- `GET /medical-copilot/session/:sessionId/governed-persistence-readiness-consolidation`
+- `GET /medical-copilot/session/:sessionId/governed-persistence-readiness-package`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-persistence-infrastructure`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-persistence-runtime-state`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-repository-runtime`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-repository-wiring`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-validation-package`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-execution-package`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-repository-discovery`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-mapping-package`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-orchestration-package`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-final-readiness-package`
+- `GET /medical-copilot/session/:sessionId/governed-consultation-persistence-bridge`
+- `GET /medical-copilot/session/:sessionId/governed-soap-persistence-bridge`
+- `GET /medical-copilot/session/:sessionId/governed-prescription-persistence-bridge`
+- `GET /medical-copilot/session/:sessionId/governed-orders-persistence-bridge`
+- `GET /medical-copilot/session/:sessionId/governed-referral-persistence-bridge`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-documents-persistence-bridge`
+- `GET /medical-copilot/session/:sessionId/governed-consultation-persistence-execution`
+- `GET /medical-copilot/session/:sessionId/governed-soap-persistence-execution`
+- `GET /medical-copilot/session/:sessionId/governed-prescription-persistence-execution`
+- `GET /medical-copilot/session/:sessionId/governed-orders-persistence-execution`
+- `GET /medical-copilot/session/:sessionId/governed-referral-persistence-execution`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-documents-persistence-execution`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-suggestion-runtime`
+- `GET /medical-copilot/session/:sessionId/governed-differential-diagnosis-suggestion`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-assessment-suggestion`
+- `GET /medical-copilot/session/:sessionId/governed-treatment-suggestion`
+- `GET /medical-copilot/session/:sessionId/governed-medication-suggestion`
+- `GET /medical-copilot/session/:sessionId/governed-orders-suggestion`
+- `GET /medical-copilot/session/:sessionId/governed-referral-suggestion`
+- `GET /medical-copilot/session/:sessionId/governed-follow-up-suggestion`
+- `GET /medical-copilot/session/:sessionId/governed-patient-education-suggestion`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-suggestion-package`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-evidence-runtime`
+- `GET /medical-copilot/session/:sessionId/governed-evidence-mapping`
+- `GET /medical-copilot/session/:sessionId/governed-evidence-trace`
+- `GET /medical-copilot/session/:sessionId/governed-evidence-confidence`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-explainability`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-justification`
+- `GET /medical-copilot/session/:sessionId/governed-physician-decision-support`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-safety-checks`
+- `GET /medical-copilot/session/:sessionId/governed-recommendation-validation`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-decision-package`
+- `GET /medical-copilot/session/:sessionId/governed-drug-interaction-analysis`
+- `GET /medical-copilot/session/:sessionId/governed-allergy-cross-check`
+- `GET /medical-copilot/session/:sessionId/governed-contraindication-analysis`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-risk-detection`
+- `GET /medical-copilot/session/:sessionId/governed-preventive-care-suggestions`
+- `GET /medical-copilot/session/:sessionId/governed-preventive-screening-suggestions`
+- `GET /medical-copilot/session/:sessionId/governed-vaccination-review`
+- `GET /medical-copilot/session/:sessionId/governed-chronic-disease-follow-up-analysis`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-alert-center`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-functional-intelligence-package`
+- `GET /medical-copilot/session/:sessionId/governed-cardiovascular-risk-engine`
+- `GET /medical-copilot/session/:sessionId/governed-diabetes-care-engine`
+- `GET /medical-copilot/session/:sessionId/governed-hypertension-management-engine`
+- `GET /medical-copilot/session/:sessionId/governed-renal-risk-engine`
+- `GET /medical-copilot/session/:sessionId/governed-polypharmacy-analysis-engine`
+- `GET /medical-copilot/session/:sessionId/governed-preventive-health-engine`
+- `GET /medical-copilot/session/:sessionId/governed-geriatric-assessment-engine`
+- `GET /medical-copilot/session/:sessionId/governed-pediatric-safety-engine`
+- `GET /medical-copilot/session/:sessionId/governed-womens-health-review-engine`
+- `GET /medical-copilot/session/:sessionId/governed-specialized-clinical-intelligence-package`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-rule-engine-runtime`
+- `GET /medical-copilot/session/:sessionId/governed-drug-interaction-rule-engine`
+- `GET /medical-copilot/session/:sessionId/governed-allergy-rule-engine`
+- `GET /medical-copilot/session/:sessionId/governed-contraindication-rule-engine`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-risk-rule-engine`
+- `GET /medical-copilot/session/:sessionId/governed-preventive-care-rule-engine`
+- `GET /medical-copilot/session/:sessionId/governed-vaccination-rule-engine`
+- `GET /medical-copilot/session/:sessionId/governed-chronic-disease-rule-engine`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-alert-rule-engine`
+- `GET /medical-copilot/session/:sessionId/governed-deterministic-clinical-rules-package`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-intake-stage`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-context-stage`
+- `GET /medical-copilot/session/:sessionId/governed-evidence-aggregation-stage`
+- `GET /medical-copilot/session/:sessionId/governed-rules-evaluation-stage`
+- `GET /medical-copilot/session/:sessionId/governed-suggestions-aggregation-stage`
+- `GET /medical-copilot/session/:sessionId/governed-decision-support-stage`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-intelligence-stage`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-summary-stage`
+- `GET /medical-copilot/session/:sessionId/governed-physician-review-stage`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-reasoning-pipeline`
+- `GET /medical-copilot/session/:sessionId/governed-disease-knowledge-engine`
+- `GET /medical-copilot/session/:sessionId/governed-medication-knowledge-engine`
+- `GET /medical-copilot/session/:sessionId/governed-laboratory-knowledge-engine`
+- `GET /medical-copilot/session/:sessionId/governed-imaging-knowledge-engine`
+- `GET /medical-copilot/session/:sessionId/governed-procedure-knowledge-engine`
+- `GET /medical-copilot/session/:sessionId/governed-vaccine-knowledge-engine`
+- `GET /medical-copilot/session/:sessionId/governed-preventive-medicine-knowledge-engine`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-guidelines-knowledge-engine`
+- `GET /medical-copilot/session/:sessionId/governed-diagnostic-criteria-knowledge-engine`
+- `GET /medical-copilot/session/:sessionId/governed-differential-diagnosis-knowledge-engine`
+- `GET /medical-copilot/session/:sessionId/governed-drug-monograph-knowledge-engine`
+- `GET /medical-copilot/session/:sessionId/governed-drug-interaction-knowledge-engine`
+- `GET /medical-copilot/session/:sessionId/governed-contraindication-knowledge-engine`
+- `GET /medical-copilot/session/:sessionId/governed-allergy-knowledge-engine`
+- `GET /medical-copilot/session/:sessionId/governed-red-flag-knowledge-engine`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-scale-knowledge-engine`
+- `GET /medical-copilot/session/:sessionId/governed-risk-score-knowledge-engine`
+- `GET /medical-copilot/session/:sessionId/governed-chronic-disease-knowledge-engine`
+- `GET /medical-copilot/session/:sessionId/governed-womens-health-knowledge-engine`
+- `GET /medical-copilot/session/:sessionId/governed-pediatrics-knowledge-engine`
+- `GET /medical-copilot/session/:sessionId/governed-geriatrics-knowledge-engine`
+- `GET /medical-copilot/session/:sessionId/governed-mental-health-knowledge-engine`
+- `GET /medical-copilot/session/:sessionId/governed-emergency-medicine-knowledge-engine`
+- `GET /medical-copilot/session/:sessionId/governed-public-health-knowledge-engine`
+- `GET /medical-copilot/session/:sessionId/governed-preventive-screening-knowledge-engine`
+- `GET /medical-copilot/session/:sessionId/governed-lifestyle-medicine-knowledge-engine`
+- `GET /medical-copilot/session/:sessionId/governed-nutrition-knowledge-engine`
+- `GET /medical-copilot/session/:sessionId/governed-follow-up-knowledge-engine`
+- `GET /medical-copilot/session/:sessionId/governed-care-pathway-knowledge-engine`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-knowledge-package`
+- `GET /medical-copilot/session/:sessionId/governed-evidence-source-engine`
+- `GET /medical-copilot/session/:sessionId/governed-evidence-hierarchy-engine`
+- `GET /medical-copilot/session/:sessionId/governed-evidence-level-engine`
+- `GET /medical-copilot/session/:sessionId/governed-evidence-quality-engine`
+- `GET /medical-copilot/session/:sessionId/governed-evidence-confidence-engine`
+- `GET /medical-copilot/session/:sessionId/governed-evidence-recommendation-strength-engine`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-guideline-evidence-engine`
+- `GET /medical-copilot/session/:sessionId/governed-systematic-review-evidence-engine`
+- `GET /medical-copilot/session/:sessionId/governed-meta-analysis-evidence-engine`
+- `GET /medical-copilot/session/:sessionId/governed-randomized-trial-evidence-engine`
+- `GET /medical-copilot/session/:sessionId/governed-observational-study-evidence-engine`
+- `GET /medical-copilot/session/:sessionId/governed-case-series-evidence-engine`
+- `GET /medical-copilot/session/:sessionId/governed-expert-consensus-evidence-engine`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-protocol-evidence-engine`
+- `GET /medical-copilot/session/:sessionId/governed-society-recommendation-engine`
+- `GET /medical-copilot/session/:sessionId/governed-uspstf-evidence-engine`
+- `GET /medical-copilot/session/:sessionId/governed-nice-evidence-engine`
+- `GET /medical-copilot/session/:sessionId/governed-aha-evidence-engine`
+- `GET /medical-copilot/session/:sessionId/governed-esc-evidence-engine`
+- `GET /medical-copilot/session/:sessionId/governed-ada-evidence-engine`
+- `GET /medical-copilot/session/:sessionId/governed-kdigo-evidence-engine`
+- `GET /medical-copilot/session/:sessionId/governed-gina-evidence-engine`
+- `GET /medical-copilot/session/:sessionId/governed-gold-evidence-engine`
+- `GET /medical-copilot/session/:sessionId/governed-who-evidence-engine`
+- `GET /medical-copilot/session/:sessionId/governed-cdc-evidence-engine`
+- `GET /medical-copilot/session/:sessionId/governed-evidence-traceability-engine`
+- `GET /medical-copilot/session/:sessionId/governed-evidence-versioning-engine`
+- `GET /medical-copilot/session/:sessionId/governed-evidence-provenance-engine`
+- `GET /medical-copilot/session/:sessionId/governed-evidence-consistency-engine`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-evidence-engine-package`
+- `GET /medical-copilot/session/:sessionId/governed-guideline-runtime-engine`
+- `GET /medical-copilot/session/:sessionId/governed-ada-guideline-engine`
+- `GET /medical-copilot/session/:sessionId/governed-aha-guideline-engine`
+- `GET /medical-copilot/session/:sessionId/governed-acc-guideline-engine`
+- `GET /medical-copilot/session/:sessionId/governed-esc-guideline-engine`
+- `GET /medical-copilot/session/:sessionId/governed-kdigo-guideline-engine`
+- `GET /medical-copilot/session/:sessionId/governed-gina-guideline-engine`
+- `GET /medical-copilot/session/:sessionId/governed-gold-guideline-engine`
+- `GET /medical-copilot/session/:sessionId/governed-who-guideline-engine`
+- `GET /medical-copilot/session/:sessionId/governed-cdc-guideline-engine`
+- `GET /medical-copilot/session/:sessionId/governed-uspstf-guideline-engine`
+- `GET /medical-copilot/session/:sessionId/governed-nice-guideline-engine`
+- `GET /medical-copilot/session/:sessionId/governed-aap-guideline-engine`
+- `GET /medical-copilot/session/:sessionId/governed-acog-guideline-engine`
+- `GET /medical-copilot/session/:sessionId/governed-idsa-guideline-engine`
+- `GET /medical-copilot/session/:sessionId/governed-asco-guideline-engine`
+- `GET /medical-copilot/session/:sessionId/governed-surviving-sepsis-guideline-engine`
+- `GET /medical-copilot/session/:sessionId/governed-hypertension-guideline-engine`
+- `GET /medical-copilot/session/:sessionId/governed-diabetes-guideline-engine`
+- `GET /medical-copilot/session/:sessionId/governed-heart-failure-guideline-engine`
+- `GET /medical-copilot/session/:sessionId/governed-copd-guideline-engine`
+- `GET /medical-copilot/session/:sessionId/governed-asthma-guideline-engine`
+- `GET /medical-copilot/session/:sessionId/governed-ckd-guideline-engine`
+- `GET /medical-copilot/session/:sessionId/governed-preventive-guideline-engine`
+- `GET /medical-copilot/session/:sessionId/governed-vaccination-guideline-engine`
+- `GET /medical-copilot/session/:sessionId/governed-guideline-version-engine`
+- `GET /medical-copilot/session/:sessionId/governed-guideline-traceability-engine`
+- `GET /medical-copilot/session/:sessionId/governed-guideline-conflict-resolution-engine`
+- `GET /medical-copilot/session/:sessionId/governed-guideline-recommendation-engine`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-guidelines-engine-package`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-decision-runtime-engine`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-hypothesis-decision-engine`
+- `GET /medical-copilot/session/:sessionId/governed-hypothesis-validation-decision-engine`
+- `GET /medical-copilot/session/:sessionId/governed-diagnostic-confidence-decision-engine`
+- `GET /medical-copilot/session/:sessionId/governed-evidence-correlation-decision-engine`
+- `GET /medical-copilot/session/:sessionId/governed-knowledge-correlation-decision-engine`
+- `GET /medical-copilot/session/:sessionId/governed-guideline-correlation-decision-engine`
+- `GET /medical-copilot/session/:sessionId/governed-recommendation-ranking-decision-engine`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-recommendation-decision-engine`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-action-candidate-decision-engine`
+- `GET /medical-copilot/session/:sessionId/governed-diagnostic-gap-detection-decision-engine`
+- `GET /medical-copilot/session/:sessionId/governed-missing-imaging-detection-decision-engine`
+- `GET /medical-copilot/session/:sessionId/governed-missing-history-detection-decision-engine`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-consistency-decision-engine`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-coherence-decision-engine`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-explainability-decision-engine`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-transparency-decision-engine`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-traceability-decision-engine`
+- `GET /medical-copilot/session/:sessionId/governed-decision-confidence-aggregation-engine`
+- `GET /medical-copilot/session/:sessionId/governed-decision-safety-engine`
+- `GET /medical-copilot/session/:sessionId/governed-decision-quality-engine`
+- `GET /medical-copilot/session/:sessionId/governed-decision-governance-engine`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-decision-system-package`
+- `GET /medical-copilot/session/:sessionId/governed-calculation-runtime-engine`
+- `GET /medical-copilot/session/:sessionId/governed-bmi-calculation-engine`
+- `GET /medical-copilot/session/:sessionId/governed-bsa-calculation-engine`
+- `GET /medical-copilot/session/:sessionId/governed-cockcroft-gault-calculation-engine`
+- `GET /medical-copilot/session/:sessionId/governed-ckd-epi-calculation-engine`
+- `GET /medical-copilot/session/:sessionId/governed-egfr-calculation-engine`
+- `GET /medical-copilot/session/:sessionId/governed-cha2ds2-vasc-calculation-engine`
+- `GET /medical-copilot/session/:sessionId/governed-has-bled-calculation-engine`
+- `GET /medical-copilot/session/:sessionId/governed-ascvd-calculation-engine`
+- `GET /medical-copilot/session/:sessionId/governed-news2-calculation-engine`
+- `GET /medical-copilot/session/:sessionId/governed-curb65-calculation-engine`
+- `GET /medical-copilot/session/:sessionId/governed-qsofa-calculation-engine`
+- `GET /medical-copilot/session/:sessionId/governed-wells-dvt-calculation-engine`
+- `GET /medical-copilot/session/:sessionId/governed-wells-pe-calculation-engine`
+- `GET /medical-copilot/session/:sessionId/governed-perc-calculation-engine`
+- `GET /medical-copilot/session/:sessionId/governed-centor-calculation-engine`
+- `GET /medical-copilot/session/:sessionId/governed-glasgow-calculation-engine`
+- `GET /medical-copilot/session/:sessionId/governed-nihss-calculation-engine`
+- `GET /medical-copilot/session/:sessionId/governed-child-pugh-calculation-engine`
+- `GET /medical-copilot/session/:sessionId/governed-meld-calculation-engine`
+- `GET /medical-copilot/session/:sessionId/governed-fib4-calculation-engine`
+- `GET /medical-copilot/session/:sessionId/governed-nafld-score-calculation-engine`
+- `GET /medical-copilot/session/:sessionId/governed-apgar-calculation-engine`
+- `GET /medical-copilot/session/:sessionId/governed-framingham-calculation-engine`
+- `GET /medical-copilot/session/:sessionId/governed-timi-calculation-engine`
+- `GET /medical-copilot/session/:sessionId/governed-heart-score-calculation-engine`
+- `GET /medical-copilot/session/:sessionId/governed-ottawa-ankle-rules-calculation-engine`
+- `GET /medical-copilot/session/:sessionId/governed-ottawa-knee-rules-calculation-engine`
+- `GET /medical-copilot/session/:sessionId/governed-calculation-validation-engine`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-calculation-system-package`
+- `GET /medical-copilot/session/:sessionId/governed-imaging-trend-engine-longitudinal-engine`
+- `GET /medical-copilot/session/:sessionId/governed-risk-evolution-engine-longitudinal-engine`
+- `GET /medical-copilot/session/:sessionId/governed-procedure-timeline-longitudinal-engine`
+- `GET /medical-copilot/session/:sessionId/governed-vaccination-timeline-longitudinal-engine`
+- `GET /medical-copilot/session/:sessionId/governed-consultation-timeline-longitudinal-engine`
+- `GET /medical-copilot/session/:sessionId/governed-care-gap-timeline-longitudinal-engine`
+- `GET /medical-copilot/session/:sessionId/governed-outcome-tracking-longitudinal-engine`
+- `GET /medical-copilot/session/:sessionId/governed-patient-journey-engine-longitudinal-engine`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-longitudinal-intelligence-package`
+- `GET /medical-copilot/session/:sessionId/governed-medication-optimization-therapeutic-engine`
+- `GET /medical-copilot/session/:sessionId/governed-dose-optimization-therapeutic-engine`
+- `GET /medical-copilot/session/:sessionId/governed-therapeutic-escalation-therapeutic-engine`
+- `GET /medical-copilot/session/:sessionId/governed-deprescribing-therapeutic-engine`
+- `GET /medical-copilot/session/:sessionId/governed-adherence-analysis-therapeutic-engine`
+- `GET /medical-copilot/session/:sessionId/governed-drug-monitoring-therapeutic-engine`
+- `GET /medical-copilot/session/:sessionId/governed-drug-safety-therapeutic-engine`
+- `GET /medical-copilot/session/:sessionId/governed-treatment-response-therapeutic-engine`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-monitoring-therapeutic-engine`
+- `GET /medical-copilot/session/:sessionId/governed-follow-up-optimization-therapeutic-engine`
+- `GET /medical-copilot/session/:sessionId/governed-therapeutic-intelligence-package`
+- `GET /medical-copilot/session/:sessionId/governed-diagnostic-runtime-diagnostic-intel-engine`
+- `GET /medical-copilot/session/:sessionId/governed-diagnostic-alerts-diagnostic-intel-engine`
+- `GET /medical-copilot/session/:sessionId/governed-diagnostic-review-diagnostic-intel-engine`
+- `GET /medical-copilot/session/:sessionId/governed-diagnostic-intelligence-package`
+- `GET /medical-copilot/session/:sessionId/governed-population-runtime-population-engine`
+- `GET /medical-copilot/session/:sessionId/governed-risk-stratification-population-engine`
+- `GET /medical-copilot/session/:sessionId/governed-population-screening-population-engine`
+- `GET /medical-copilot/session/:sessionId/governed-preventive-coverage-population-engine`
+- `GET /medical-copilot/session/:sessionId/governed-vaccination-coverage-population-engine`
+- `GET /medical-copilot/session/:sessionId/governed-quality-indicators-population-engine`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-kpis-population-engine`
+- `GET /medical-copilot/session/:sessionId/governed-population-trends-population-engine`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-outcomes-population-engine`
+- `GET /medical-copilot/session/:sessionId/governed-resource-utilization-population-engine`
+- `GET /medical-copilot/session/:sessionId/governed-disease-burden-population-engine`
+- `GET /medical-copilot/session/:sessionId/governed-readmission-risk-population-engine`
+- `GET /medical-copilot/session/:sessionId/governed-preventive-opportunities-population-engine`
+- `GET /medical-copilot/session/:sessionId/governed-chronic-disease-registry-population-engine`
+- `GET /medical-copilot/session/:sessionId/governed-population-dashboard-population-engine`
+- `GET /medical-copilot/session/:sessionId/governed-quality-dashboard-population-engine`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-benchmark-population-engine`
+- `GET /medical-copilot/session/:sessionId/governed-population-governance-population-engine`
+- `GET /medical-copilot/session/:sessionId/governed-population-health-package`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-orchestrator-runtime`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-context-aggregator`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-intelligence-aggregator`
+- `GET /medical-copilot/session/:sessionId/governed-knowledge-aggregator`
+- `GET /medical-copilot/session/:sessionId/governed-evidence-aggregator`
+- `GET /medical-copilot/session/:sessionId/governed-guideline-aggregator`
+- `GET /medical-copilot/session/:sessionId/governed-decision-aggregator`
+- `GET /medical-copilot/session/:sessionId/governed-calculation-aggregator`
+- `GET /medical-copilot/session/:sessionId/governed-longitudinal-aggregator`
+- `GET /medical-copilot/session/:sessionId/governed-therapeutic-aggregator`
+- `GET /medical-copilot/session/:sessionId/governed-diagnostic-aggregator`
+- `GET /medical-copilot/session/:sessionId/governed-population-aggregator`
+- `GET /medical-copilot/session/:sessionId/governed-persistence-aggregator`
+- `GET /medical-copilot/session/:sessionId/governed-reasoning-aggregator`
+- `GET /medical-copilot/session/:sessionId/governed-suggestion-aggregator`
+- `GET /medical-copilot/session/:sessionId/governed-rule-aggregator`
+- `GET /medical-copilot/session/:sessionId/governed-safety-aggregator`
+- `GET /medical-copilot/session/:sessionId/governed-governance-aggregator`
+- `GET /medical-copilot/session/:sessionId/governed-audit-aggregator`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-ai-orchestrator-package`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-consultation-workflow`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-documentation-workflow`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-reasoning-workflow`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-decision-workflow`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-intelligence-workflow`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-knowledge-workflow`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-evidence-workflow`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-guidelines-workflow`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-calculation-workflow`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-safety-workflow`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-validation-workflow`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-physician-review-workflow`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-persistence-workflow`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-audit-workflow`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-analytics-workflow`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-population-workflow`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-marketplace-workflow`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-dashboard-workflow`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-session-workflow`
+- `GET /medical-copilot/session/:sessionId/governed-clinical-workflow-engine-package`
+
+## Workflows
+
+- `governed-workflow-integration`
+- `governed-clinical-consultation-workflow`
+- `governed-clinical-documentation-workflow`
+- `governed-clinical-reasoning-workflow`
+- `governed-clinical-decision-workflow`
+- `governed-clinical-intelligence-workflow`
+- `governed-clinical-knowledge-workflow`
+- `governed-clinical-evidence-workflow`
+- `governed-clinical-guidelines-workflow`
+- `governed-clinical-calculation-workflow`
+- `governed-clinical-safety-workflow`
+- `governed-clinical-validation-workflow`
+- `governed-clinical-physician-review-workflow`
+- `governed-clinical-persistence-workflow`
+- `governed-clinical-audit-workflow`
+- `governed-clinical-analytics-workflow`
+- `governed-clinical-population-workflow`
+- `governed-clinical-marketplace-workflow`
+- `governed-clinical-dashboard-workflow`
+- `governed-clinical-session-workflow`
+- `governed-clinical-workflow-engine-package`
+
+## Orchestrator
+
+- `governed-clinical-orchestration-package`
+- `governed-clinical-orchestrator-runtime`
+- `governed-clinical-ai-orchestrator-package`
+
+## Panels (Frontend)
+
+- `GovernedAIClinicalResponsePanel`
+- `GovernedAIExecutionPanel`
+- `GovernedAIGatewayPanel`
+- `GovernedAIInvocationPanel`
+- `GovernedAIPromptPanel`
+- `GovernedAIRequestPanel`
+- `GovernedAIResponseNormalizerPanel`
+- `GovernedAIResponseProcessingPanel`
+- `GovernedAapGuidelineEnginePanel`
+- `GovernedAccGuidelineEnginePanel`
+- `GovernedAcogGuidelineEnginePanel`
+- `GovernedAdaEvidenceEnginePanel`
+- `GovernedAdaGuidelineEnginePanel`
+- `GovernedAdherenceAnalysisTherapeuticEnginePanel`
+- `GovernedAhaEvidenceEnginePanel`
+- `GovernedAhaGuidelineEnginePanel`
+- `GovernedAllergyCrossCheckPanel`
+- `GovernedAllergyKnowledgeEnginePanel`
+- `GovernedAllergyRuleEnginePanel`
+- `GovernedApgarCalculationEnginePanel`
+- `GovernedApprovalPreviewPanel`
+- `GovernedApprovalQueuePanel`
+- `GovernedAscoGuidelineEnginePanel`
+- `GovernedAscvdCalculationEnginePanel`
+- `GovernedAsthmaGuidelineEnginePanel`
+- `GovernedAuditAggregatorPanel`
+- `GovernedBmiCalculationEnginePanel`
+- `GovernedBsaCalculationEnginePanel`
+- `GovernedCalculationAggregatorPanel`
+- `GovernedCalculationRuntimeEnginePanel`
+- `GovernedCalculationValidationEnginePanel`
+- `GovernedCardiovascularRiskEnginePanel`
+- `GovernedCareGapTimelineLongitudinalEnginePanel`
+- `GovernedCarePathwayKnowledgeEnginePanel`
+- `GovernedCarePathwayOptimizationTherapeuticEnginePanel`
+- `GovernedCarePlanDraftPanel`
+- `GovernedCaseSeriesEvidenceEnginePanel`
+- `GovernedCdcEvidenceEnginePanel`
+- `GovernedCdcGuidelineEnginePanel`
+- `GovernedCentorCalculationEnginePanel`
+- `GovernedCha2ds2VascCalculationEnginePanel`
+- `GovernedChildPughCalculationEnginePanel`
+- `GovernedChronicDiseaseFollowUpAnalysisPanel`
+- `GovernedChronicDiseaseKnowledgeEnginePanel`
+- `GovernedChronicDiseaseRegistryPopulationEnginePanel`
+- `GovernedChronicDiseaseRuleEnginePanel`
+- `GovernedChronicDiseaseTimelineLongitudinalEnginePanel`
+- `GovernedCkdEpiCalculationEnginePanel`
+- `GovernedCkdGuidelineEnginePanel`
+- `GovernedClinicalAIOutputPanel`
+- `GovernedClinicalActionCandidateEnginePanel`
+- `GovernedClinicalActivationDashboardPanel`
+- `GovernedClinicalActivationNavigationPanel`
+- `GovernedClinicalActivationPackagePanel`
+- `GovernedClinicalActivationReviewPanel`
+- `GovernedClinicalActivationRuntimePanel`
+- `GovernedClinicalActivationSessionPanel`
+- `GovernedClinicalActivationTimelinePanel`
+- `GovernedClinicalActivationWorkspacePanel`
+- `GovernedClinicalAiOrchestratorPackagePanel`
+- `GovernedClinicalAlertCenterPanel`
+- `GovernedClinicalAlertRuleEnginePanel`
+- `GovernedClinicalAnalyticsWorkflowPanel`
+- `GovernedClinicalAssessmentPackagePanel`
+- `GovernedClinicalAssessmentSuggestionPanel`
+- `GovernedClinicalAssistancePanel`
+- `GovernedClinicalAuditWorkflowPanel`
+- `GovernedClinicalBenchmarkPopulationEnginePanel`
+- `GovernedClinicalCalculationSystemPackagePanel`
+- `GovernedClinicalCalculationWorkflowPanel`
+- `GovernedClinicalClusteringDiagnosticIntelEnginePanel`
+- `GovernedClinicalCoherenceEnginePanel`
+- `GovernedClinicalConflictDetectionEnginePanel`
+- `GovernedClinicalConsistencyEnginePanel`
+- `GovernedClinicalConsultationWorkflowPanel`
+- `GovernedClinicalContextAggregatorPanel`
+- `GovernedClinicalContextStagePanel`
+- `GovernedClinicalDashboardPanel`
+- `GovernedClinicalDashboardWorkflowPanel`
+- `GovernedClinicalDecisionPackagePanel`
+- `GovernedClinicalDecisionRuntimeEnginePanel`
+- `GovernedClinicalDecisionSystemPackagePanel`
+- `GovernedClinicalDecisionWorkflowPanel`
+- `GovernedClinicalDocumentationPackagePanel`
+- `GovernedClinicalDocumentationWorkflowPanel`
+- `GovernedClinicalDocumentsPersistenceBridgePanel`
+- `GovernedClinicalDocumentsPersistenceExecutionPanel`
+- `GovernedClinicalDraftPanel`
+- `GovernedClinicalEncounterPanel`
+- `GovernedClinicalEntityMappingPanel`
+- `GovernedClinicalEventTimelineLongitudinalEnginePanel`
+- `GovernedClinicalEvidenceEnginePackagePanel`
+- `GovernedClinicalEvidenceRuntimePanel`
+- `GovernedClinicalEvidenceWorkflowPanel`
+- `GovernedClinicalEvolutionEngineLongitudinalEnginePanel`
+- `GovernedClinicalExecutionPreparationPanel`
+- `GovernedClinicalExperiencePackagePanel`
+- `GovernedClinicalExperiencePanel`
+- `GovernedClinicalExplainabilityEnginePanel`
+- `GovernedClinicalExplainabilityPanel`
+- `GovernedClinicalFunctionalIntelligencePackagePanel`
+- `GovernedClinicalGuidelineEvidenceEnginePanel`
+- `GovernedClinicalGuidelinesEnginePackagePanel`
+- `GovernedClinicalGuidelinesKnowledgeEnginePanel`
+- `GovernedClinicalGuidelinesWorkflowPanel`
+- `GovernedClinicalHomePanel`
+- `GovernedClinicalHypothesisEnginePanel`
+- `GovernedClinicalIntakeStagePanel`
+- `GovernedClinicalIntelligenceAggregatorPanel`
+- `GovernedClinicalIntelligenceFlowPanel`
+- `GovernedClinicalIntelligenceFoundationPanel`
+- `GovernedClinicalIntelligencePackagePanel`
+- `GovernedClinicalIntelligenceRuntimePanel`
+- `GovernedClinicalIntelligenceSessionPanel`
+- `GovernedClinicalIntelligenceStagePanel`
+- `GovernedClinicalIntelligenceWorkflowPanel`
+- `GovernedClinicalInterventionPlanningTherapeuticEnginePanel`
+- `GovernedClinicalJustificationPanel`
+- `GovernedClinicalKnowledgePackagePanel`
+- `GovernedClinicalKnowledgeWorkflowPanel`
+- `GovernedClinicalKpisPopulationEnginePanel`
+- `GovernedClinicalLongitudinalIntelligencePackagePanel`
+- `GovernedClinicalMarketplaceWorkflowPanel`
+- `GovernedClinicalMilestoneEngineLongitudinalEnginePanel`
+- `GovernedClinicalMonitoringTherapeuticEnginePanel`
+- `GovernedClinicalNavigationPanel`
+- `GovernedClinicalOrchestratorRuntimePanel`
+- `GovernedClinicalOutcomesPopulationEnginePanel`
+- `GovernedClinicalOverviewPanel`
+- `GovernedClinicalPersistenceInfrastructurePanel`
+- `GovernedClinicalPersistenceOrchestratorPanel`
+- `GovernedClinicalPersistenceReadinessPanel`
+- `GovernedClinicalPersistenceRuntimeStatePanel`
+- `GovernedClinicalPersistenceWorkflowPanel`
+- `GovernedClinicalPhysicianReviewWorkflowPanel`
+- `GovernedClinicalPopulationWorkflowPanel`
+- `GovernedClinicalProtocolEvidenceEnginePanel`
+- `GovernedClinicalReasoningDatasetPanel`
+- `GovernedClinicalReasoningInputPackagePanel`
+- `GovernedClinicalReasoningPackagePanel`
+- `GovernedClinicalReasoningPipelinePanel`
+- `GovernedClinicalReasoningSessionPanel`
+- `GovernedClinicalReasoningWorkflowPanel`
+- `GovernedClinicalRecommendationEnginePanel`
+- `GovernedClinicalRecommendationPackagePanel`
+- `GovernedClinicalRepositoryDiscoveryPanel`
+- `GovernedClinicalRepositoryRuntimePanel`
+- `GovernedClinicalRepositoryWiringPanel`
+- `GovernedClinicalReviewPackagePanel`
+- `GovernedClinicalRiskDetectionPanel`
+- `GovernedClinicalRiskRuleEnginePanel`
+- `GovernedClinicalRuleEngineRuntimePanel`
+- `GovernedClinicalSafetyChecksPanel`
+- `GovernedClinicalSafetyWorkflowPanel`
+- `GovernedClinicalScaleKnowledgeEnginePanel`
+- `GovernedClinicalSessionDashboardPanel`
+- `GovernedClinicalSessionPackagePanel`
+- `GovernedClinicalSessionWorkflowPanel`
+- `GovernedClinicalSuggestionRuntimePanel`
+- `GovernedClinicalSummaryStagePanel`
+- `GovernedClinicalTimelinePanel`
+- `GovernedClinicalTraceabilityEnginePanel`
+- `GovernedClinicalTransparencyEnginePanel`
+- `GovernedClinicalValidationPanel`
+- `GovernedClinicalValidationWorkflowPanel`
+- `GovernedClinicalVisitSummaryDraftPanel`
+- `GovernedClinicalWorkflowEnginePackagePanel`
+- `GovernedClinicalWorkspaceConsolidationPanel`
+- `GovernedClinicalWorkspacePackagePanel`
+- `GovernedClinicalWorkspacePanel`
+- `GovernedClinicalWorkspaceReviewPanel`
+- `GovernedClinicalWorkspaceSnapshotPanel`
+- `GovernedCockcroftGaultCalculationEnginePanel`
+- `GovernedConsultationActivationWorkspacePanel`
+- `GovernedConsultationDashboardPanel`
+- `GovernedConsultationExperiencePanel`
+- `GovernedConsultationHomePanel`
+- `GovernedConsultationPackagePanel`
+- `GovernedConsultationPersistenceBridgePanel`
+- `GovernedConsultationPersistenceExecutionPanel`
+- `GovernedConsultationReviewPanel`
+- `GovernedConsultationRuntimePanel`
+- `GovernedConsultationSnapshotPanel`
+- `GovernedConsultationTimelineLongitudinalEnginePanel`
+- `GovernedConsultationWorkspacePanel`
+- `GovernedContinuityOfCareEngineLongitudinalEnginePanel`
+- `GovernedContraindicationAnalysisPanel`
+- `GovernedContraindicationKnowledgeEnginePanel`
+- `GovernedContraindicationRuleEnginePanel`
+- `GovernedCopdGuidelineEnginePanel`
+- `GovernedCurb65CalculationEnginePanel`
+- `GovernedDecisionAggregatorPanel`
+- `GovernedDecisionConfidenceAggregationEnginePanel`
+- `GovernedDecisionGovernanceEnginePanel`
+- `GovernedDecisionQualityEnginePanel`
+- `GovernedDecisionSafetyEnginePanel`
+- `GovernedDecisionSupportStagePanel`
+- `GovernedDeprescribingTherapeuticEnginePanel`
+- `GovernedDeterministicClinicalRulesPackagePanel`
+- `GovernedDiabetesCareEnginePanel`
+- `GovernedDiabetesGuidelineEnginePanel`
+- `GovernedDiagnosticAggregatorPanel`
+- `GovernedDiagnosticAlertsDiagnosticIntelEnginePanel`
+- `GovernedDiagnosticConfidenceDiagnosticIntelEnginePanel`
+- `GovernedDiagnosticConfidenceEnginePanel`
+- `GovernedDiagnosticConsistencyDiagnosticIntelEnginePanel`
+- `GovernedDiagnosticCorrelationDiagnosticIntelEnginePanel`
+- `GovernedDiagnosticCriteriaKnowledgeEnginePanel`
+- `GovernedDiagnosticEvidenceDiagnosticIntelEnginePanel`
+- `GovernedDiagnosticExplainabilityDiagnosticIntelEnginePanel`
+- `GovernedDiagnosticGapDetectionEnginePanel`
+- `GovernedDiagnosticGovernanceDiagnosticIntelEnginePanel`
+- `GovernedDiagnosticIntelligencePackagePanel`
+- `GovernedDiagnosticLearningDiagnosticIntelEnginePanel`
+- `GovernedDiagnosticPatternRecognitionDiagnosticIntelEnginePanel`
+- `GovernedDiagnosticPrioritizationDiagnosticIntelEnginePanel`
+- `GovernedDiagnosticReviewDiagnosticIntelEnginePanel`
+- `GovernedDiagnosticRuntimeDiagnosticIntelEnginePanel`
+- `GovernedDiagnosticTimelineDiagnosticIntelEnginePanel`
+- `GovernedDiagnosticValidationDiagnosticIntelEnginePanel`
+- `GovernedDifferentialDiagnosisKnowledgeEnginePanel`
+- `GovernedDifferentialDiagnosisRankingEnginePanel`
+- `GovernedDifferentialDiagnosisSuggestionPanel`
+- `GovernedDifferentialEvolutionDiagnosticIntelEnginePanel`
+- `GovernedDifferentialPrioritizationEnginePanel`
+- `GovernedDischargeDraftPanel`
+- `GovernedDiseaseBurdenPopulationEnginePanel`
+- `GovernedDiseaseKnowledgeEnginePanel`
+- `GovernedDiseaseProgressionEngineLongitudinalEnginePanel`
+- `GovernedDoseOptimizationTherapeuticEnginePanel`
+- `GovernedDraftComparisonWorkspacePanel`
+- `GovernedDraftReviewWorkspacePanel`
+- `GovernedDrugInteractionAnalysisPanel`
+- `GovernedDrugInteractionKnowledgeEnginePanel`
+- `GovernedDrugInteractionRuleEnginePanel`
+- `GovernedDrugMonitoringTherapeuticEnginePanel`
+- `GovernedDrugMonographKnowledgeEnginePanel`
+- `GovernedDrugSafetyTherapeuticEnginePanel`
+- `GovernedEgfrCalculationEnginePanel`
+- `GovernedEmergencyMedicineKnowledgeEnginePanel`
+- `GovernedEncounterConsolidationPanel`
+- `GovernedEncounterReviewPanel`
+- `GovernedEncounterSnapshotPanel`
+- `GovernedEncounterTimelinePanel`
+- `GovernedEncounterWorkspacePanel`
+- `GovernedEscEvidenceEnginePanel`
+- `GovernedEscGuidelineEnginePanel`
+- `GovernedEvidenceAggregationStagePanel`
+- `GovernedEvidenceAggregatorPanel`
+- `GovernedEvidenceConfidenceEnginePanel`
+- `GovernedEvidenceConfidencePanel`
+- `GovernedEvidenceConsistencyEnginePanel`
+- `GovernedEvidenceCorrelationEnginePanel`
+- `GovernedEvidenceHierarchyEnginePanel`
+- `GovernedEvidenceLevelEnginePanel`
+- `GovernedEvidenceMappingPanel`
+- `GovernedEvidenceProvenanceEnginePanel`
+- `GovernedEvidenceQualityEnginePanel`
+- `GovernedEvidenceRecommendationStrengthEnginePanel`
+- `GovernedEvidenceSourceEnginePanel`
+- `GovernedEvidenceTracePanel`
+- `GovernedEvidenceTraceabilityEnginePanel`
+- `GovernedEvidenceVersioningEnginePanel`
+- `GovernedExpertConsensusEvidenceEnginePanel`
+- `GovernedFib4CalculationEnginePanel`
+- `GovernedFollowUpDraftPanel`
+- `GovernedFollowUpKnowledgeEnginePanel`
+- `GovernedFollowUpOptimizationTherapeuticEnginePanel`
+- `GovernedFollowUpSuggestionPanel`
+- `GovernedFraminghamCalculationEnginePanel`
+- `GovernedGeriatricAssessmentEnginePanel`
+- `GovernedGeriatricsKnowledgeEnginePanel`
+- `GovernedGinaEvidenceEnginePanel`
+- `GovernedGinaGuidelineEnginePanel`
+- `GovernedGlasgowCalculationEnginePanel`
+- `GovernedGoldEvidenceEnginePanel`
+- `GovernedGoldGuidelineEnginePanel`
+- `GovernedGovernanceAggregatorPanel`
+- `GovernedGuidelineAggregatorPanel`
+- `GovernedGuidelineConflictResolutionEnginePanel`
+- `GovernedGuidelineCorrelationEnginePanel`
+- `GovernedGuidelineRecommendationEnginePanel`
+- `GovernedGuidelineRuntimeEnginePanel`
+- `GovernedGuidelineTraceabilityEnginePanel`
+- `GovernedGuidelineVersionEnginePanel`
+- `GovernedHasBledCalculationEnginePanel`
+- `GovernedHeartFailureGuidelineEnginePanel`
+- `GovernedHeartScoreCalculationEnginePanel`
+- `GovernedHospitalizationTimelineLongitudinalEnginePanel`
+- `GovernedHypertensionGuidelineEnginePanel`
+- `GovernedHypertensionManagementEnginePanel`
+- `GovernedHypothesisValidationEnginePanel`
+- `GovernedIdsaGuidelineEnginePanel`
+- `GovernedImagingKnowledgeEnginePanel`
+- `GovernedImagingTrendEngineLongitudinalEnginePanel`
+- `GovernedKdigoEvidenceEnginePanel`
+- `GovernedKdigoGuidelineEnginePanel`
+- `GovernedKnowledgeAggregatorPanel`
+- `GovernedKnowledgeCorrelationEnginePanel`
+- `GovernedLaboratoryKnowledgeEnginePanel`
+- `GovernedLaboratoryTrendEngineLongitudinalEnginePanel`
+- `GovernedLifestyleMedicineKnowledgeEnginePanel`
+- `GovernedLongitudinalAggregatorPanel`
+- `GovernedMedicalCertificateDraftPanel`
+- `GovernedMedicalLeaveDraftPanel`
+- `GovernedMedicationKnowledgeEnginePanel`
+- `GovernedMedicationOptimizationTherapeuticEnginePanel`
+- `GovernedMedicationReconciliationTherapeuticEnginePanel`
+- `GovernedMedicationSuggestionPanel`
+- `GovernedMedicationTimelineEngineLongitudinalEnginePanel`
+- `GovernedMeldCalculationEnginePanel`
+- `GovernedMentalHealthKnowledgeEnginePanel`
+- `GovernedMetaAnalysisEvidenceEnginePanel`
+- `GovernedMissingDiagnosisDetectionDiagnosticIntelEnginePanel`
+- `GovernedMissingHistoryDetectionEnginePanel`
+- `GovernedMissingImagingDetectionEnginePanel`
+- `GovernedMissingInformationDetectionEnginePanel`
+- `GovernedMissingLaboratoryDetectionEnginePanel`
+- `GovernedNafldScoreCalculationEnginePanel`
+- `GovernedNews2CalculationEnginePanel`
+- `GovernedNiceEvidenceEnginePanel`
+- `GovernedNiceGuidelineEnginePanel`
+- `GovernedNihssCalculationEnginePanel`
+- `GovernedNutritionKnowledgeEnginePanel`
+- `GovernedObservationalStudyEvidenceEnginePanel`
+- `GovernedOrdersDraftPanel`
+- `GovernedOrdersPersistenceBridgePanel`
+- `GovernedOrdersPersistenceExecutionPanel`
+- `GovernedOrdersSuggestionPanel`
+- `GovernedOttawaAnkleRulesCalculationEnginePanel`
+- `GovernedOttawaKneeRulesCalculationEnginePanel`
+- `GovernedOutcomeTrackingLongitudinalEnginePanel`
+- `GovernedPatientEducationDraftPanel`
+- `GovernedPatientEducationSuggestionPanel`
+- `GovernedPatientInstructionsDraftPanel`
+- `GovernedPatientJourneyEngineLongitudinalEnginePanel`
+- `GovernedPatientTimelineEngineLongitudinalEnginePanel`
+- `GovernedPediatricSafetyEnginePanel`
+- `GovernedPediatricsKnowledgeEnginePanel`
+- `GovernedPendingActionsPanel`
+- `GovernedPercCalculationEnginePanel`
+- `GovernedPersistenceAggregatorPanel`
+- `GovernedPersistenceDashboardPanel`
+- `GovernedPersistenceNavigationPanel`
+- `GovernedPersistencePackagePanel`
+- `GovernedPersistencePreparationWorkspacePanel`
+- `GovernedPersistencePreviewPanel`
+- `GovernedPersistenceReadinessConsolidationPanel`
+- `GovernedPersistenceReadinessDashboardPanel`
+- `GovernedPersistenceReadinessPackagePanel`
+- `GovernedPersistenceReadinessPreviewPanel`
+- `GovernedPersistenceReadinessReviewPanel`
+- `GovernedPersistenceReadinessRuntimePanel`
+- `GovernedPersistenceReadinessSessionPanel`
+- `GovernedPersistenceReadinessTimelinePanel`
+- `GovernedPersistenceReadinessValidationPanel`
+- `GovernedPersistenceReadinessWorkspacePanel`
+- `GovernedPersistenceReviewPanel`
+- `GovernedPersistenceRuntimePanel`
+- `GovernedPersistenceSessionPanel`
+- `GovernedPersistenceTimelinePanel`
+- `GovernedPersistenceValidationPanel`
+- `GovernedPhysicianActivationWorkspacePanel`
+- `GovernedPhysicianDashboardPanel`
+- `GovernedPhysicianDecisionSupportPanel`
+- `GovernedPhysicianExperiencePanel`
+- `GovernedPhysicianHomePanel`
+- `GovernedPhysicianInteractionWorkspacePanel`
+- `GovernedPhysicianReviewExperiencePanel`
+- `GovernedPhysicianReviewPackagePanel`
+- `GovernedPhysicianReviewPrepPanel`
+- `GovernedPhysicianReviewPreparationEnginePanel`
+- `GovernedPhysicianReviewStagePanel`
+- `GovernedPhysicianRuntimePackagePanel`
+- `GovernedPhysicianSessionPanel`
+- `GovernedPhysicianWorkspacePanel`
+- `GovernedPolypharmacyAnalysisEnginePanel`
+- `GovernedPolypharmacyOptimizationTherapeuticEnginePanel`
+- `GovernedPopulationAggregatorPanel`
+- `GovernedPopulationDashboardPopulationEnginePanel`
+- `GovernedPopulationExplainabilityPopulationEnginePanel`
+- `GovernedPopulationGovernancePopulationEnginePanel`
+- `GovernedPopulationHealthPackagePanel`
+- `GovernedPopulationRuntimePopulationEnginePanel`
+- `GovernedPopulationScreeningPopulationEnginePanel`
+- `GovernedPopulationTrendsPopulationEnginePanel`
+- `GovernedPrescriptionDraftPanel`
+- `GovernedPrescriptionPersistenceBridgePanel`
+- `GovernedPrescriptionPersistenceExecutionPanel`
+- `GovernedPreventiveCareRuleEnginePanel`
+- `GovernedPreventiveCareSuggestionsPanel`
+- `GovernedPreventiveCoveragePopulationEnginePanel`
+- `GovernedPreventiveGuidelineEnginePanel`
+- `GovernedPreventiveHealthEnginePanel`
+- `GovernedPreventiveMedicineKnowledgeEnginePanel`
+- `GovernedPreventiveOpportunitiesPopulationEnginePanel`
+- `GovernedPreventiveScreeningKnowledgeEnginePanel`
+- `GovernedPreventiveScreeningSuggestionsPanel`
+- `GovernedProcedureKnowledgeEnginePanel`
+- `GovernedProcedureTimelineLongitudinalEnginePanel`
+- `GovernedPromptAssemblyPanel`
+- `GovernedPromptComposerPanel`
+- `GovernedPromptTemplatePanel`
+- `GovernedProviderExecutionPanel`
+- `GovernedProviderPayloadPanel`
+- `GovernedProviderPayloadTranslationPanel`
+- `GovernedPublicHealthKnowledgeEnginePanel`
+- `GovernedQsofaCalculationEnginePanel`
+- `GovernedQualityDashboardPopulationEnginePanel`
+- `GovernedQualityIndicatorsPopulationEnginePanel`
+- `GovernedRandomizedTrialEvidenceEnginePanel`
+- `GovernedRareDiseaseAwarenessDiagnosticIntelEnginePanel`
+- `GovernedReadmissionRiskPopulationEnginePanel`
+- `GovernedReasoningAggregatorPanel`
+- `GovernedReasoningOutputPanel`
+- `GovernedReasoningPreparationPanel`
+- `GovernedReasoningRuntimePanel`
+- `GovernedReasoningSessionPanel`
+- `GovernedReasoningWorkspacePanel`
+- `GovernedRecommendationPrioritizationEnginePanel`
+- `GovernedRecommendationRankingEnginePanel`
+- `GovernedRecommendationValidationPanel`
+- `GovernedRedFlagKnowledgeEnginePanel`
+- `GovernedReferralDraftPanel`
+- `GovernedReferralPersistenceBridgePanel`
+- `GovernedReferralPersistenceExecutionPanel`
+- `GovernedReferralSuggestionPanel`
+- `GovernedRenalRiskEnginePanel`
+- `GovernedResourceUtilizationPopulationEnginePanel`
+- `GovernedReviewSessionPanel`
+- `GovernedRiskEvolutionEngineLongitudinalEnginePanel`
+- `GovernedRiskScoreKnowledgeEnginePanel`
+- `GovernedRiskStratificationPopulationEnginePanel`
+- `GovernedRuleAggregatorPanel`
+- `GovernedRulesEvaluationStagePanel`
+- `GovernedSafetyAggregatorPanel`
+- `GovernedSideEffectSurveillanceTherapeuticEnginePanel`
+- `GovernedSoapDraftPanel`
+- `GovernedSoapPersistenceBridgePanel`
+- `GovernedSoapPersistenceExecutionPanel`
+- `GovernedSocietyRecommendationEnginePanel`
+- `GovernedSpecializedClinicalIntelligencePackagePanel`
+- `GovernedSuggestionAggregatorPanel`
+- `GovernedSuggestionsAggregationStagePanel`
+- `GovernedSurvivingSepsisGuidelineEnginePanel`
+- `GovernedSyndromicRecognitionDiagnosticIntelEnginePanel`
+- `GovernedSystematicReviewEvidenceEnginePanel`
+- `GovernedTherapeuticAggregatorPanel`
+- `GovernedTherapeuticDeEscalationTherapeuticEnginePanel`
+- `GovernedTherapeuticEscalationTherapeuticEnginePanel`
+- `GovernedTherapeuticGoalTrackingTherapeuticEnginePanel`
+- `GovernedTherapeuticIntelligencePackagePanel`
+- `GovernedTherapeuticRecommendationsTherapeuticEnginePanel`
+- `GovernedTimiCalculationEnginePanel`
+- `GovernedTreatmentPrioritizationTherapeuticEnginePanel`
+- `GovernedTreatmentResponseTherapeuticEnginePanel`
+- `GovernedTreatmentSuggestionPanel`
+- `GovernedUspstfEvidenceEnginePanel`
+- `GovernedUspstfGuidelineEnginePanel`
+- `GovernedVaccinationCoveragePopulationEnginePanel`
+- `GovernedVaccinationGuidelineEnginePanel`
+- `GovernedVaccinationReviewPanel`
+- `GovernedVaccinationRuleEnginePanel`
+- `GovernedVaccinationTimelineLongitudinalEnginePanel`
+- `GovernedVaccineKnowledgeEnginePanel`
+- `GovernedValidationWorkspacePanel`
+- `GovernedVitalSignsTrendEngineLongitudinalEnginePanel`
+- `GovernedWellsDvtCalculationEnginePanel`
+- `GovernedWellsPeCalculationEnginePanel`
+- `GovernedWhoEvidenceEnginePanel`
+- `GovernedWhoGuidelineEnginePanel`
+- `GovernedWomensHealthKnowledgeEnginePanel`
+- `GovernedWomensHealthReviewEnginePanel`
+- `GovernedWorkflowIntegrationPanel`
+
+## RC3 Operational Notes
+
+- Request-scoped memoization via `memoInRequest` / `memoInRequestSync`
+- FE lazy mounting via `MedicalCopilotDeferredPanel`
+- Request dedupe + package-first via `lib/medical-copilot/rc3-operational`
+- Internal metrics via `Rc3OperationalInterceptor` (Logger.debug only)
+
+
+## RC4 Operational Layer
+
+See `medical-copilot-rc4.md` for production hardening (cache TTL, virtualization, isolation, audit).

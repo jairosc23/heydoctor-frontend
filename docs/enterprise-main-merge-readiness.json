@@ -1,0 +1,53 @@
+{
+  "readinessId": "enterprise-main-merge-readiness-phase-4",
+  "date": "2026-07-16",
+  "branch": "release/medical-copilot-v1.0-rc2",
+  "question": "Is release/medical-copilot-v1.0-rc2 ready to merge into main?",
+  "technicalAnswer": "YES",
+  "mergeExecuted": false,
+  "deployExecuted": false,
+  "frontend": {
+    "head": "62b51dbf804da475dff0ea8e37cd9385a1d768d8",
+    "unifiedMergeCommit": "61c78131722a22106c1908ed1bbb2b59d68a63e4",
+    "main": "82de5585d33024f421f6a75c84f8622e05755fdc",
+    "aheadOfMain": 25,
+    "behindMain": 0,
+    "fastForwardPossible": true,
+    "mergeTreeVsMain": "clean",
+    "realConflicts": 0,
+    "workingTreeTrackedClean": true
+  },
+  "backend": {
+    "head": "2870e4de527610f4f1fee5abec756c0f6af64612",
+    "unifiedMergeCommit": "0112945caa216211367ce02112ea1d2abd79ac68",
+    "main": "356e97f586bdb94b8a2f5901333cb39ee4e742d1",
+    "aheadOfMain": 21,
+    "behindMain": 0,
+    "fastForwardPossible": true,
+    "mergeTreeVsMain": "clean",
+    "realConflicts": 0,
+    "workingTreeClean": true
+  },
+  "releaseContents": {
+    "medicalCopilotRc3toRc6": true,
+    "agendaEnterpriseF1toF10": true
+  },
+  "phase3Gates": {
+    "frontendTests": 1050,
+    "backendTests": 922,
+    "playwright": "SKIPPED"
+  },
+  "risksOpen": [
+    { "id": "R-P1-E2E", "priority": "P1", "blocksMainMerge": false, "blocksProduction": true },
+    { "id": "R-P1-SMOKE", "priority": "P1", "blocksMainMerge": false, "blocksProduction": true },
+    { "id": "R-P2-LINT", "priority": "P2", "blocksMainMerge": false },
+    { "id": "R-P2-TAG", "priority": "P2", "blocksMainMerge": false }
+  ],
+  "p0BlockersForMainMerge": [],
+  "goNoGo": {
+    "mergeToMainTechnical": "GO",
+    "railway": "GO_CONDITIONAL",
+    "vercelPreview": "GO_CONDITIONAL",
+    "production": "NO_GO"
+  }
+}

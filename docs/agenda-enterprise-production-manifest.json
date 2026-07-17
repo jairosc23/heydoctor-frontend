@@ -1,0 +1,86 @@
+{
+  "manifestVersion": "1.0.0",
+  "product": "Agenda Enterprise",
+  "phase": 10,
+  "branch": "feature/agenda-enterprise",
+  "release": {
+    "name": "agenda-enterprise-f1-f9",
+    "status": "ready_for_controlled_promotion",
+    "frontendRepo": "jairosc23/heydoctor-frontend",
+    "backendRepo": "SAVAC-HeyDoctor/heydoctor-backend-pro",
+    "frontendBaseline": "99f694f8e57d9b2a31fa3a46b80e58c161f5c780",
+    "backendBaseline": "82841419d6f25050808ea2aa93891180e843a56e",
+    "includesPhase10Docs": true,
+    "mergeExecuted": false,
+    "deployExecuted": false
+  },
+  "deployment": {
+    "order": ["migrate_backend", "deploy_backend", "deploy_frontend", "smoke_staging"],
+    "env": {
+      "frontend": ["NEXT_PUBLIC_API_URL", "NEXT_PUBLIC_WS_URL"],
+      "backend": ["DATABASE_URL", "JWT secrets per environment"]
+    },
+    "migrationsRequired": [
+      "1749500000000-AppointmentsEnterpriseScheduling",
+      "1752600000000-ScheduleBlocksIsActive",
+      "1752700000000-WaitlistPriorityReason",
+      "1752800000000-ReminderPoliciesAndOffset",
+      "1752900000000-ClinicAndDoctorTimezone"
+    ],
+    "featureFlags": [],
+    "deployExecutedInPhase10": false
+  },
+  "qa": {
+    "document": "docs/agenda-enterprise-qa.md",
+    "phases1to9Matrix": "pass",
+    "gates": ["tsc", "unit_tests", "build"],
+    "manualStagingRequiredBeforeProd": true
+  },
+  "production": {
+    "surface": "/panel/agenda",
+    "readOnlySurfaces": ["dashboard"],
+    "mutatingSurfaces": [
+      "calendar_appointments",
+      "availability_rules",
+      "blocks",
+      "waitlist",
+      "reminders_admin",
+      "timezone"
+    ],
+    "excluded": [
+      "google_calendar",
+      "outlook",
+      "ics",
+      "analytics",
+      "ai_agenda",
+      "marketplace"
+    ]
+  },
+  "repository": {
+    "audit": "docs/agenda-enterprise-repository-audit.json",
+    "inventory": "docs/agenda-enterprise-inventory.json",
+    "phaseDocs": "docs/agenda-enterprise-phase-1.md … phase-10.md"
+  },
+  "architecture": {
+    "ssot": "backend",
+    "presentation": "frontend",
+    "state": "react-query",
+    "noParallelEngines": true
+  },
+  "operational": {
+    "guides": [
+      "docs/agenda-enterprise-operational-guide.md",
+      "docs/agenda-enterprise-deployment-guide.md",
+      "docs/agenda-enterprise-recovery-guide.md",
+      "docs/agenda-enterprise-maintenance-guide.md",
+      "docs/agenda-enterprise-developer-guide.md"
+    ],
+    "onCallBoundary": "agenda-only; exclude medical-copilot"
+  },
+  "goNoGo": {
+    "featureCompleteOnBranch": "GO",
+    "documentationComplete": "GO",
+    "merge": "PENDING_HUMAN",
+    "productionDeploy": "NO_GO_UNTIL_CHECKLIST"
+  }
+}

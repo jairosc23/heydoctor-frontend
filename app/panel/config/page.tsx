@@ -81,8 +81,12 @@ export default function ConfigPage() {
             Centro Médico
           </h3>
           <p className="m-0 text-[13px] leading-relaxed text-primaryDark/60">
-            La configuración del centro médico (nombre, dirección, horarios,
-            especialidades) estará disponible próximamente.
+            La zona horaria IANA de la clínica (SSOT Agenda Enterprise) se
+            administra en{" "}
+            <a href="/panel/agenda" className="font-semibold text-primary">
+              Agenda → Zonas horarias
+            </a>
+            . Nombre, dirección y especialidades llegarán en fases posteriores.
           </p>
         </Card>
       </div>

@@ -26,6 +26,7 @@ import {
   type ValidationQuestionnaire,
   type ValidationSession,
 } from "@/lib/medical-copilot/validation";
+import { postMedicalCopilotFeedback } from "@/lib/medical-copilot/api";
 
 export type ClinicalValidationContextValue = {
   session: ValidationSession;
@@ -86,7 +87,23 @@ export function ClinicalValidationProvider({
   }, [service]);
 
   const submit = useCallback(() => {
-    service.submit();
+    const next = service.submit();
+    void postMedicalCopilotFeedback({
+      questionnaireVersion: next.questionnaireVersion,
+      incidentCategory: next.answers.incidentCategory,
+      cohortTag: next.cohortTag ?? undefined,
+      likert: {
+        perceived_utility: next.answers.perceived_utility,
+        suggestion_clarity: next.answers.suggestion_clarity,
+        dictation_ease: next.answers.dictation_ease,
+        copilot_trust: next.answers.copilot_trust,
+        overall_satisfaction: next.answers.overall_satisfaction,
+        perceived_response_time: next.answers.perceived_response_time,
+        willingness_to_reuse: next.answers.willingness_to_reuse,
+      },
+    }).catch(() => {
+      /* never block clinical UX on feedback transport */
+    });
   }, [service]);
 
   const reset = useCallback(() => {

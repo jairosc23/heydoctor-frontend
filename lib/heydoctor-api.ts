@@ -27,6 +27,7 @@ import {
   rememberServerRequestId,
 } from "./observability/correlation";
 import { getLogger } from "./logger";
+import { medicalCopilotGet } from "./medical-copilot/rc3-operational";
 
 const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 const logApi = getLogger("API");
@@ -368,6 +369,11 @@ export async function apiGet<T = unknown>(
   path: string,
   auth?: ApiAuthOptions,
 ): Promise<T> {
+  if (path.includes("/medical-copilot/")) {
+    return medicalCopilotGet(path, () =>
+      apiFetch<T>(path, { method: "GET" }, auth),
+    );
+  }
   return apiFetch<T>(path, { method: "GET" }, auth);
 }
 

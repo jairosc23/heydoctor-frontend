@@ -81,6 +81,26 @@ describe("RC-2 P0-1 Kill Switch", () => {
     assert.equal(isMedicalCopilotEnabled({ env: "1", storage }), true);
     assert.ok(MEDICAL_COPILOT_KILL_SWITCH_STORAGE_KEY);
   });
+
+  it("AR-1 server kill switch desactiva Copilot cuando runtime lo indica", () => {
+    const storage = memoryStorage();
+    assert.equal(
+      isMedicalCopilotEnabled({
+        env: "1",
+        storage,
+        serverKillSwitch: true,
+      }),
+      false,
+    );
+    assert.equal(
+      isMedicalCopilotEnabled({
+        env: "1",
+        storage,
+        serverKillSwitch: false,
+      }),
+      true,
+    );
+  });
 });
 
 describe("RC-2 P0-2 Session Ownership", () => {

@@ -22,6 +22,8 @@ export type AuthUser = {
   role: string;
   clinicId: string;
   plan: "free" | "pro";
+  /** IANA clinic timezone SSOT (Agenda Enterprise Phase 7). */
+  clinicTimezone?: string;
 };
 
 export type LoginResultUser = {

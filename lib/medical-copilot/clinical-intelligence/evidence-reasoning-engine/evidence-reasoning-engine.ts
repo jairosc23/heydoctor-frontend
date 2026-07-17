@@ -1,0 +1,11 @@
+export type AiLayerProviderId = "noop" | "openai";
+export const EVIDENCE_REASONING_ENGINE_VERSION = "1.0.0" as const;
+export const EVIDENCE_REASONING_ENGINE_GOVERNANCE = { requiresPhysicianReview: true as const, executesAction: false as const, autoPersistedToEmr: false as const };
+export type EvidenceReasoningEngineSlot = { id: string; sourceRefId: string | null; order: number; kind: "evidence_reasoning_slot"; status: "ok" | "empty" | "rejected"; slotKey: string; };
+export type EvidenceReasoningEngineMetadata = { sessionId: string; consultationId: string; patientId: string; planId: string;
+  differentialReasoningEngineId: string;
+  evidenceGraphWorkspaceId: string;
+  confidenceId: string;
+  generatedAt: string; builderVersion: typeof EVIDENCE_REASONING_ENGINE_VERSION; status: "ok" | "empty" | "rejected"; slotCount: number; selectedProviderId: AiLayerProviderId; };
+export type EvidenceReasoningEngine = { evidenceReasoningEngineId: string; providerId: AiLayerProviderId; evidenceReasoningSlots: EvidenceReasoningEngineSlot[]; governance: typeof EVIDENCE_REASONING_ENGINE_GOVERNANCE; metadata: EvidenceReasoningEngineMetadata; };
+export type EvidenceReasoningEngineBuilderResult = { source: "evidence_reasoning_engine"; builderVersion: typeof EVIDENCE_REASONING_ENGINE_VERSION; evidenceReasoningEngine: EvidenceReasoningEngine; governance: typeof EVIDENCE_REASONING_ENGINE_GOVERNANCE; reason: string | null; generatedAt: string; };
