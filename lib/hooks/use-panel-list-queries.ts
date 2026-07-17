@@ -61,9 +61,15 @@ export function useConsultationsListQuery(
   });
 }
 
-export function useAppointmentsListQuery(
+export function useAppointmentsListQuery<TData = Awaited<
+  ReturnType<typeof fetchAppointments>
+>>(
   filters?: AppointmentFilters,
-  options?: { enabled?: boolean },
+  options?: {
+    enabled?: boolean;
+    /** F2-09: narrow render payload without changing cache key / network shape. */
+    select?: (data: Awaited<ReturnType<typeof fetchAppointments>>) => TData;
+  },
 ) {
   const panelEnabled = usePanelQueriesEnabled();
   const enabled = (options?.enabled ?? true) && panelEnabled;
@@ -72,6 +78,7 @@ export function useAppointmentsListQuery(
     queryKey: appointmentsListQueryKey(filters),
     queryFn: () => fetchAppointments(filters),
     enabled,
+    select: options?.select,
     ...LIST_QUERY_OPTIONS,
   });
 }
