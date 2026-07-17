@@ -1,0 +1,97 @@
+{
+  "reportId": "enterprise-pre-merge-validation-2026-07-16",
+  "mode": "validation_only",
+  "mergeExecuted": false,
+  "deployExecuted": false,
+  "codeFixesApplied": false,
+  "git": {
+    "frontend": {
+      "agendaHead": "b503e67060b9dcd6d26de64c7ee03ddeaf502c6e",
+      "copilotHead": "a4ed650b4a19a6c34d39ba8e846d86bb6d7b4753",
+      "mergeBase": "82de5585d33024f421f6a75c84f8622e05755fdc",
+      "agendaAhead": 12,
+      "copilotAhead": 7,
+      "mergeTree": "clean",
+      "conflictMarkers": 0,
+      "overlappingPaths": 13,
+      "overlappingBlobsIdentical": true,
+      "packageLockChanged": false,
+      "deletes": 0,
+      "renames": 0
+    },
+    "backend": {
+      "agendaHead": "c4e81b418eeb8a20795ce67e730729f8bdd3d0d2",
+      "copilotHead": "e2433887581fa18bd031b5c40b510a615d58f090",
+      "mergeBase": "356e97f586bdb94b8a2f5901333cb39ee4e742d1",
+      "agendaAhead": 7,
+      "copilotAhead": 8,
+      "mergeTree": "clean",
+      "conflictMarkers": 0,
+      "overlappingPaths": 13,
+      "packageLockChanged": false,
+      "tsconfigEslintChanged": false,
+      "deletes": 0,
+      "renames": 0,
+      "migrations": [
+        "1751300000000-MedicalCopilotFoundation.ts",
+        "1752600000000-ScheduleBlocksIsActive.ts",
+        "1752700000000-WaitlistPriorityReason.ts",
+        "1752800000000-ReminderPoliciesAndOffset.ts",
+        "1752900000000-ClinicAndDoctorTimezone.ts"
+      ],
+      "migrationCollision": false
+    }
+  },
+  "gates": {
+    "frontend": {
+      "medicalCopilotRc2": {
+        "lint": "PASS",
+        "tests": "PASS_1023",
+        "build": "PASS"
+      },
+      "agendaEnterprise": {
+        "lint": "PASS",
+        "tests": "PASS_460",
+        "build": "PASS"
+      }
+    },
+    "backend": {
+      "medicalCopilotRc2": {
+        "format": "PASS",
+        "lint": "PASS_0_errors_55_warnings",
+        "build": "PASS",
+        "tests": "PASS_259_suites_902_tests"
+      },
+      "agendaEnterprise": {
+        "format": "PASS",
+        "lint": "PASS_0_errors_47_warnings",
+        "build": "PASS",
+        "tests": "PASS_115_suites_401_tests"
+      }
+    },
+    "playwrightCritical": {
+      "status": "SKIPPED",
+      "reason": "env_not_prepared_no_dotenv_e2e"
+    }
+  },
+  "checklist": {
+    "gitCleanMergeTree": true,
+    "gatesBothBranches": true,
+    "playwrightStaging": false,
+    "humanMergeAuthorization": false,
+    "mergeExecuted": false,
+    "deployExecuted": false
+  },
+  "risks": [
+    "playwright_not_revalidated",
+    "rc2_tag_not_at_branch_tip",
+    "test_count_differs_across_divergent_branches",
+    "awaiting_explicit_merge_authorization"
+  ],
+  "goNoGo": {
+    "preMergeValidation": "GO",
+    "technicalMergeReady": "GO",
+    "executeMerge": "NO_GO",
+    "deploy": "NO_GO"
+  }
+}
