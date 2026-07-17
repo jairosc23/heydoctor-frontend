@@ -5,13 +5,30 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "start:dev": "next dev",
     "build": "next build",
     "start": "next start",
     "preview": "next build && next start",
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
+    "dx:check": "npm run typecheck && npm test && npm run test:component",
+    "dx:check:full": "npm run dx:check && npm run build",
+    "dx:test": "npm test && npm run test:component",
+    "dx:test:e2e": "npm run test:e2e:f2-01",
+    "dx:coverage": "npm run test:component:cov && npm run coverage:report",
+    "dx:doctor": "node scripts/dx-doctor.mjs",
     "test": "node --import tsx --test 'lib/**/*.test.ts' ci-smoke.test.mjs",
-    "test:e2e": "playwright test --config e2e/playwright.config.ts"
+    "test:copilot:ci": "node --import tsx --test lib/medical-copilot/rc2-hardening.test.ts lib/medical-copilot/session-id.test.ts lib/medical-copilot/observability/observability.test.ts lib/medical-copilot/testing/fixtures.test.ts",
+    "test:component": "vitest run",
+    "test:component:watch": "vitest",
+    "test:component:cov": "vitest run --coverage",
+    "coverage:report": "node scripts/coverage-governance.mjs",
+    "test:e2e": "playwright test --config e2e/playwright.config.ts",
+    "test:e2e:p0": "playwright test e2e/clinical-p0.spec.ts --config e2e/playwright.config.ts --project=chromium-desktop-clinical-p0",
+    "test:e2e:f2-01": "playwright test e2e/agenda-auth-reliability.spec.ts --config e2e/playwright.config.ts --project=chromium-desktop-agenda-auth",
+    "test:e2e:agenda-auth": "npm run test:e2e:f2-01",
+    "test:e2e:smoke": "playwright test e2e/post-deploy-smoke.spec.ts --config e2e/playwright.config.ts --project=chromium-desktop-post-deploy-smoke",
+    "smoke:post-deploy": "npm run test:e2e:smoke"
   },
   "repository": {
     "type": "git",
@@ -35,14 +52,21 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.60.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^20.19.0",
     "@types/qrcode": "^1.5.6",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.2.0",
+    "@vitejs/plugin-react": "^6.0.3",
+    "@vitest/coverage-v8": "^4.1.10",
     "autoprefixer": "^10.5.0",
+    "jsdom": "^29.1.1",
     "postcss": "^8.5.15",
     "tailwindcss": "^3.4.19",
     "tsx": "^4.22.4",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.10"
   }
 }

@@ -1,5 +1,14 @@
-# CI del repositorio frontend: validación Vercel/Next sin Postgres ni backend checkout.
-# Bloqueo de merge: Settings → Branches → proteger `main` → requerir "frontend".
+# HeyDoctor Frontend CI — PQ-09 Quality Gates
+#
+# Required check (branch protection): job name «frontend» (aggregate).
+# Levels: see docs/pq-09-quality-gates.md
+#   L1 quality  — always (PR)
+#   L2 e2e-p0     — when 7 E2E secrets present; controlled skip otherwise
+#   L2 e2e-f2-01  — Agenda+Auth reliability when auth triad present (F2-01)
+#   L3 release    — documented (tag workflow + checklist); not enforced here
+#
+# PQ-01: Playwright hardening (retries, artifacts, test:e2e:p0).
+# F2-01: Agenda & Auth E2E reliability (auth triad only).
 
 name: CI
 
@@ -8,37 +17,31 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  frontend:
-    name: frontend
+  # ── Nivel 1 — obligatorias en cada PR ─────────────────────────
+  quality:
+    name: quality
     runs-on: ubuntu-latest
-    env:
-      E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
-      E2E_DOCTOR_EMAIL: ${{ secrets.E2E_DOCTOR_EMAIL }}
-      E2E_DOCTOR_PASSWORD: ${{ secrets.E2E_DOCTOR_PASSWORD }}
-      E2E_CONSULTATION_HTA: ${{ secrets.E2E_CONSULTATION_HTA }}
-      E2E_CONSULTATION_DM2: ${{ secrets.E2E_CONSULTATION_DM2 }}
-      E2E_CONSULTATION_ACUTE: ${{ secrets.E2E_CONSULTATION_ACUTE }}
-      E2E_CONSULTATION_PAYMENT: ${{ secrets.E2E_CONSULTATION_PAYMENT }}
-
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
           cache: npm
           cache-dependency-path: package-lock.json
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Lint
+      - name: Lint (tsc)
         run: npm run lint
 
       - name: Typecheck
@@ -47,11 +50,50 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Test
+      - name: Unit tests
         run: npm test
 
+      - name: Medical Copilot CI foundation pack (F2-14)
+        run: npm run test:copilot:ci
+
+      - name: Component tests + coverage (PQ-02 / PQ-03)
+        run: npm run test:component:cov
+
+      - name: Coverage governance report (PQ-03)
+        if: always()
+        run: npm run coverage:report
+
+      - name: Upload coverage artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-frontend-${{ github.run_id }}
+          path: |
+            coverage/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  # ── Nivel 2 — E2E P0 (degradación controlada sin secrets) ─────
+  e2e-p0:
+    name: e2e-p0
+    needs: [quality]
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
+      E2E_DOCTOR_EMAIL: ${{ secrets.E2E_DOCTOR_EMAIL }}
+      E2E_DOCTOR_PASSWORD: ${{ secrets.E2E_DOCTOR_PASSWORD }}
+      E2E_CONSULTATION_HTA: ${{ secrets.E2E_CONSULTATION_HTA }}
+      E2E_CONSULTATION_DM2: ${{ secrets.E2E_CONSULTATION_DM2 }}
+      E2E_CONSULTATION_ACUTE: ${{ secrets.E2E_CONSULTATION_ACUTE }}
+      E2E_CONSULTATION_PAYMENT: ${{ secrets.E2E_CONSULTATION_PAYMENT }}
+      E2E_STRICT: "1"
+    outputs:
+      mode: ${{ steps.detect.outputs.mode }}
+      result: ${{ steps.outcome.outputs.result }}
+    steps:
       - name: Detect E2E P0 secrets
-        id: e2e_gate
+        id: detect
         run: |
           missing=()
           for key in \
@@ -68,34 +110,210 @@ jobs:
             fi
           done
           if [[ ${#missing[@]} -gt 0 ]]; then
-            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "mode=skipped" >> "$GITHUB_OUTPUT"
+            echo "::notice::E2E P0 skipped — missing secrets: ${missing[*]} (controlled degradation; L1 still required)"
           else
-            echo "configured=true" >> "$GITHUB_OUTPUT"
+            echo "mode=run" >> "$GITHUB_OUTPUT"
+            echo "E2E P0 secrets configured — gate is blocking for this job"
           fi
+
+      - uses: actions/checkout@v4
+        if: steps.detect.outputs.mode == 'run'
+
+      - uses: actions/setup-node@v4
+        if: steps.detect.outputs.mode == 'run'
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        if: steps.detect.outputs.mode == 'run'
+        run: npm ci
 
       - name: Install Playwright Chromium
-        if: steps.e2e_gate.outputs.configured == 'true'
+        if: steps.detect.outputs.mode == 'run'
         run: npx playwright install --with-deps chromium
 
-      - name: E2E Clinical P0 (ADR-019)
-        id: e2e_p0
-        if: steps.e2e_gate.outputs.configured == 'true'
+      - name: E2E Clinical P0 (ADR-019 / PQ-01)
+        id: e2e_run
+        if: steps.detect.outputs.mode == 'run'
         continue-on-error: true
-        run: npx playwright test e2e/clinical-p0.spec.ts --config e2e/playwright.config.ts
+        run: npm run test:e2e:p0
 
-      - name: E2E gate summary
+      - name: Upload Playwright artifacts
+        if: always() && steps.detect.outputs.mode == 'run'
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-p0-${{ github.run_id }}
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Record E2E outcome
+        id: outcome
         if: always()
         run: |
-          echo "## E2E Clinical P0 Gate (Phase 19.3)"
-          if [[ "${{ steps.e2e_gate.outputs.configured }}" != "true" ]]; then
-            echo "Secrets: skipped"
-            echo "Result: SKIPPED"
+          mode="${{ steps.detect.outputs.mode }}"
+          if [[ "$mode" == "skipped" ]]; then
+            echo "result=skipped" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          echo "Secrets: configured"
-          if [[ "${{ steps.e2e_p0.outcome }}" == "success" ]]; then
-            echo "Result: PASS"
+          if [[ "${{ steps.e2e_run.outcome }}" == "success" ]]; then
+            echo "result=pass" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          echo "Result: FAIL"
+          echo "result=fail" >> "$GITHUB_OUTPUT"
           exit 1
+
+  # ── Nivel 2 — F2-01 Agenda + Auth (triad auth; degradación controlada) ─
+  e2e-f2-01:
+    name: e2e-f2-01
+    needs: [quality]
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
+      E2E_DOCTOR_EMAIL: ${{ secrets.E2E_DOCTOR_EMAIL }}
+      E2E_DOCTOR_PASSWORD: ${{ secrets.E2E_DOCTOR_PASSWORD }}
+    outputs:
+      mode: ${{ steps.detect.outputs.mode }}
+      result: ${{ steps.outcome.outputs.result }}
+    steps:
+      - name: Detect F2-01 auth triad
+        id: detect
+        run: |
+          missing=()
+          for key in E2E_BASE_URL E2E_DOCTOR_EMAIL E2E_DOCTOR_PASSWORD; do
+            if [[ -z "${!key}" ]]; then
+              missing+=("$key")
+            fi
+          done
+          if [[ ${#missing[@]} -gt 0 ]]; then
+            echo "mode=skipped" >> "$GITHUB_OUTPUT"
+            echo "::notice::F2-01 E2E skipped — missing auth secrets: ${missing[*]}"
+          else
+            echo "mode=run" >> "$GITHUB_OUTPUT"
+            echo "F2-01 auth triad configured — Agenda/Auth gate blocking for this job"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.detect.outputs.mode == 'run'
+
+      - uses: actions/setup-node@v4
+        if: steps.detect.outputs.mode == 'run'
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        if: steps.detect.outputs.mode == 'run'
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        if: steps.detect.outputs.mode == 'run'
+        run: npx playwright install --with-deps chromium
+
+      - name: E2E F2-01 Agenda + Auth reliability
+        id: e2e_run
+        if: steps.detect.outputs.mode == 'run'
+        continue-on-error: true
+        run: npm run test:e2e:f2-01
+
+      - name: Upload Playwright artifacts (F2-01)
+        if: always() && steps.detect.outputs.mode == 'run'
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-f2-01-${{ github.run_id }}
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Record F2-01 outcome
+        id: outcome
+        if: always()
+        run: |
+          mode="${{ steps.detect.outputs.mode }}"
+          if [[ "$mode" == "skipped" ]]; then
+            echo "result=skipped" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [[ "${{ steps.e2e_run.outcome }}" == "success" ]]; then
+            echo "result=pass" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "result=fail" >> "$GITHUB_OUTPUT"
+          exit 1
+
+  # ── Aggregate — required check name «frontend» ────────────────
+  frontend:
+    name: frontend
+    needs: [quality, e2e-p0, e2e-f2-01]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Evaluate Quality Gates (PQ-09 + F2-01)
+        env:
+          QUALITY: ${{ needs.quality.result }}
+          E2E_JOB: ${{ needs.e2e-p0.result }}
+          E2E_MODE: ${{ needs.e2e-p0.outputs.mode }}
+          E2E_RESULT: ${{ needs.e2e-p0.outputs.result }}
+          F201_JOB: ${{ needs.e2e-f2-01.result }}
+          F201_MODE: ${{ needs.e2e-f2-01.outputs.mode }}
+          F201_RESULT: ${{ needs.e2e-f2-01.outputs.result }}
+        run: |
+          echo "## Frontend Quality Gates (PQ-09 + F2-01)"
+          echo "L1 quality: ${QUALITY}"
+          echo "L2 e2e-p0 job: ${E2E_JOB} (mode=${E2E_MODE} result=${E2E_RESULT})"
+          echo "L2 e2e-f2-01 job: ${F201_JOB} (mode=${F201_MODE} result=${F201_RESULT})"
+          echo ""
+          echo "Policy:"
+          echo "  - L1 must pass on every PR"
+          echo "  - L2 e2e-p0 blocks when 7 secrets configured; skipped otherwise"
+          echo "  - L2 e2e-f2-01 blocks when auth triad configured; skipped otherwise"
+          echo "  - L3 release checklist: docs/pq-09-quality-gates.md"
+
+          if [[ "$QUALITY" != "success" ]]; then
+            echo "::error::L1 quality failed"
+            exit 1
+          fi
+
+          if [[ "$E2E_MODE" == "run" && "$E2E_RESULT" == "fail" ]]; then
+            echo "::error::L2 E2E P0 failed (secrets present — blocking)"
+            exit 1
+          fi
+
+          if [[ "$E2E_MODE" == "run" && "$E2E_JOB" != "success" && "$E2E_RESULT" != "pass" ]]; then
+            echo "::error::L2 E2E P0 job did not succeed"
+            exit 1
+          fi
+
+          if [[ "$F201_MODE" == "run" && "$F201_RESULT" == "fail" ]]; then
+            echo "::error::L2 F2-01 Agenda/Auth E2E failed (auth secrets present — blocking)"
+            exit 1
+          fi
+
+          if [[ "$F201_MODE" == "run" && "$F201_JOB" != "success" && "$F201_RESULT" != "pass" ]]; then
+            echo "::error::L2 F2-01 job did not succeed"
+            exit 1
+          fi
+
+          if [[ "$E2E_MODE" == "skipped" ]]; then
+            echo "::notice::L2 E2E P0 skipped (secrets unavailable) — aggregate PASS with degradation"
+          else
+            echo "L2 E2E P0: PASS"
+          fi
+
+          if [[ "$F201_MODE" == "skipped" ]]; then
+            echo "::notice::L2 F2-01 skipped (auth triad unavailable) — aggregate PASS with degradation"
+          else
+            echo "L2 F2-01 Agenda/Auth: PASS"
+          fi
+
+          echo "Aggregate frontend: PASS"
+          exit 0

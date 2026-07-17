@@ -1,0 +1,78 @@
+# F2-02 — Post-deploy UI smoke (manual / ops). Does not deploy.
+# Secrets: E2E_BASE_URL, E2E_DOCTOR_EMAIL, E2E_DOCTOR_PASSWORD
+
+name: Smoke Post-Deploy UI
+
+on:
+  workflow_dispatch:
+    inputs:
+      e2e_base_url:
+        description: Frontend tip URL (overrides secret when set)
+        required: false
+        type: string
+      environment:
+        description: F2-13 target label (preview | production) — parity notice only
+        required: false
+        type: choice
+        options:
+          - preview
+          - production
+        default: preview
+
+permissions:
+  contents: read
+
+jobs:
+  smoke-ui:
+    name: smoke-ui
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      E2E_BASE_URL: ${{ inputs.e2e_base_url || secrets.E2E_BASE_URL }}
+      E2E_DOCTOR_EMAIL: ${{ secrets.E2E_DOCTOR_EMAIL }}
+      E2E_DOCTOR_PASSWORD: ${{ secrets.E2E_DOCTOR_PASSWORD }}
+      PARITY_ENVIRONMENT: ${{ inputs.environment }}
+    steps:
+      - name: Detect smoke target
+        id: detect
+        run: |
+          if [[ -z "$E2E_BASE_URL" ]]; then
+            echo "mode=skipped" >> "$GITHUB_OUTPUT"
+            echo "::notice::F2-02 UI smoke skipped — set e2e_base_url or E2E_BASE_URL secret"
+          else
+            echo "mode=run" >> "$GITHUB_OUTPUT"
+            echo "::notice::F2-13 UI parity target=${PARITY_ENVIRONMENT} tip=${E2E_BASE_URL} — reuse F2-02 smoke suite"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.detect.outputs.mode == 'run'
+
+      - uses: actions/setup-node@v4
+        if: steps.detect.outputs.mode == 'run'
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        if: steps.detect.outputs.mode == 'run'
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        if: steps.detect.outputs.mode == 'run'
+        run: npx playwright install --with-deps chromium
+
+      - name: Run post-deploy UI smoke
+        if: steps.detect.outputs.mode == 'run'
+        run: npm run smoke:post-deploy
+
+      - name: Upload artifacts
+        if: always() && steps.detect.outputs.mode == 'run'
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-smoke-${{ github.run_id }}
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 14

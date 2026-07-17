@@ -1,17 +1,37 @@
 # GitHub Release al publicar tag v* (anotado recomendado).
+# PQ-09 Nivel 3: checklist de release (no despliega; no altera Vercel).
 
 name: Release
 
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 permissions:
   contents: write
 
 jobs:
+  release-gates:
+    name: release-gates
+    runs-on: ubuntu-latest
+    steps:
+      - name: Level 3 release checklist (PQ-09)
+        run: |
+          echo "## L3 Release Quality Gates (documentation)"
+          echo "Before treating ${{ github.ref_name }} as a production release, confirm:"
+          echo "  [ ] CI aggregate check «frontend» green on the tagged commit"
+          echo "  [ ] L1 quality passed (lint/typecheck/build/unit)"
+          echo "  [ ] L2 E2E P0 passed with secrets configured (not skipped)"
+          echo "  [ ] Preview/ADR-019 flags validated if UI release"
+          echo "  [ ] No open Sev-1/Sev-2 on Auth / Agenda / Copilot"
+          echo "  [ ] F2-02 npm run smoke:post-deploy (UI) against Preview/Production tip"
+          echo "See docs/pq-09-quality-gates.md"
+          echo "This job does not deploy and does not call production APIs."
+
   release:
+    name: release
+    needs: [release-gates]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -23,3 +43,4 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
+          name: HeyDoctor Frontend ${{ github.ref_name }}

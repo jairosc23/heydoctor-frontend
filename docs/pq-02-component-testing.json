@@ -1,0 +1,90 @@
+{
+  "initiative": "PQ-02",
+  "title": "Frontend Component Testing Foundation",
+  "epic": "EPIC-1D",
+  "generatedAt": "2026-07-17",
+  "repo": "jairosc23/heydoctor-frontend",
+  "branch": "feature/v1.1-platform-evolution",
+  "dependsOn": ["PQ-01", "PQ-09"],
+  "stack": {
+    "runner": "vitest",
+    "environment": "jsdom",
+    "library": "@testing-library/react",
+    "domMatchers": "@testing-library/jest-dom",
+    "interactions": "@testing-library/user-event"
+  },
+  "scripts": {
+    "test:component": "vitest run",
+    "test:component:watch": "vitest",
+    "unitUnchanged": "npm test (node:test lib/**/*.test.ts)"
+  },
+  "filesCreated": [
+    "vitest.config.ts",
+    "test/setup.ts",
+    "test/utils/render.tsx",
+    "test/mocks/next-link.tsx",
+    "test/components/ui/Button.test.tsx",
+    "test/components/ui/Input.test.tsx",
+    "test/components/ui/Card.test.tsx",
+    "docs/pq-02-component-testing.md",
+    "docs/pq-02-component-testing.json"
+  ],
+  "filesModified": [
+    "package.json",
+    "package-lock.json",
+    ".github/workflows/ci.yml"
+  ],
+  "componentsCovered": [
+    {
+      "name": "Button",
+      "path": "components/ui/Button.tsx",
+      "tests": 3
+    },
+    {
+      "name": "Input",
+      "path": "components/ui/Input.tsx",
+      "tests": 2
+    },
+    {
+      "name": "Card",
+      "path": "components/ui/Card.tsx",
+      "tests": 1
+    }
+  ],
+  "validations": {
+    "testComponent": {
+      "files": 3,
+      "tests": 6,
+      "result": "pass"
+    },
+    "ciIntegration": "quality job step Component tests (PQ-02)",
+    "clinicalModulesTouched": false
+  },
+  "conventions": {
+    "specLocation": "test/components/**/*.test.tsx",
+    "renderHelper": "test/utils/render.tsx#renderWithProviders",
+    "excludeInitially": ["medical-copilot", "agenda", "clinical encounter"]
+  },
+  "risks": [
+    {
+      "id": "R1",
+      "summary": "Script confusion test vs test:component",
+      "severity": "low"
+    },
+    {
+      "id": "R2",
+      "summary": "Scope creep into clinical modules",
+      "severity": "medium"
+    }
+  ],
+  "goNoGoExpand": {
+    "decision": "GO_CONDITIONAL",
+    "expandTo": "non-clinical reusable UI primitives",
+    "doNotMassMigrate": ["medical-copilot", "agenda", "encounter"]
+  },
+  "certification": {
+    "result": "PASS",
+    "title": "PQ-02 Frontend Component Testing Foundation",
+    "awaiting": "explicit authorization for next Platform Quality initiative"
+  }
+}
