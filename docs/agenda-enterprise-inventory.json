@@ -1,0 +1,136 @@
+{
+  "product": "Agenda Enterprise",
+  "phase": 10,
+  "branch": "feature/agenda-enterprise",
+  "generatedAt": "2026-07-16",
+  "heads": {
+    "frontendPhase9": "99f694f8e57d9b2a31fa3a46b80e58c161f5c780",
+    "backendSsot": "82841419d6f25050808ea2aa93891180e843a56e",
+    "repositories": {
+      "frontend": "jairosc23/heydoctor-frontend",
+      "backend": "SAVAC-HeyDoctor/heydoctor-backend-pro"
+    }
+  },
+  "phases": [
+    { "id": 1, "name": "Availability", "status": "certified" },
+    { "id": 2, "name": "Rules", "status": "certified" },
+    { "id": 3, "name": "Slots", "status": "certified" },
+    { "id": 4, "name": "Blocks", "status": "certified" },
+    { "id": 5, "name": "Waitlist", "status": "certified" },
+    { "id": 6, "name": "Reminders", "status": "certified" },
+    { "id": 7, "name": "Timezone", "status": "certified" },
+    { "id": 8, "name": "UX Enterprise", "status": "certified" },
+    { "id": 9, "name": "Dashboard Enterprise", "status": "certified" },
+    { "id": 10, "name": "QA + Production Readiness", "status": "certified_docs" }
+  ],
+  "frontend": {
+    "route": "/panel/agenda",
+    "orchestrator": "app/panel/agenda/page.tsx",
+    "components": [
+      "components/agenda/AgendaDashboardPanel.tsx",
+      "components/agenda/AgendaDashboardKpiCard.tsx",
+      "components/agenda/AgendaWorkspaceNav.tsx",
+      "components/agenda/AgendaCollapsible.tsx",
+      "components/agenda/AgendaStatusBadge.tsx",
+      "components/agenda/AgendaSkeleton.tsx",
+      "components/agenda/AgendaAvailabilityPanel.tsx",
+      "components/agenda/AgendaAvailabilityRulesPanel.tsx",
+      "components/agenda/AgendaSlotsPanel.tsx",
+      "components/agenda/AgendaBlocksPanel.tsx",
+      "components/agenda/AgendaWaitlistPanel.tsx",
+      "components/agenda/AgendaRemindersPanel.tsx",
+      "components/agenda/AgendaTimezonePanel.tsx",
+      "components/agenda/AgendaMonthView.tsx",
+      "components/agenda/AgendaWeekView.tsx",
+      "components/agenda/AgendaDayView.tsx",
+      "components/agenda/AppointmentEventCard.tsx",
+      "components/agenda/AppointmentFormModal.tsx"
+    ],
+    "lib": [
+      "lib/agenda/agenda-workspace.ts",
+      "lib/agenda/agenda-dashboard-metrics.ts",
+      "lib/agenda/availability-summary.ts",
+      "lib/agenda/availability-rule-form.ts",
+      "lib/agenda/slots-view-model.ts",
+      "lib/agenda/schedule-block-form.ts",
+      "lib/agenda/waitlist-entry-form.ts",
+      "lib/agenda/reminder-policy-form.ts",
+      "lib/agenda/calendar-utils.ts",
+      "lib/agenda/appointment-display.ts",
+      "lib/agenda/timezone-preview.ts",
+      "lib/agenda/iana-timezones.ts"
+    ],
+    "hooks": [
+      "lib/hooks/use-availability-enterprise.ts",
+      "lib/hooks/use-schedule-blocks.ts",
+      "lib/hooks/use-waitlist-entries.ts",
+      "lib/hooks/use-appointment-reminders.ts",
+      "lib/hooks/use-clinic-timezone.ts",
+      "lib/hooks/use-panel-list-queries.ts"
+    ],
+    "services": [
+      "lib/services/appointments.ts",
+      "lib/services/appointments-availability.ts",
+      "lib/services/clinic.ts",
+      "lib/services/my-doctor-profile.ts"
+    ],
+    "workspaceTabs": ["dashboard", "calendar", "availability", "operations", "settings"]
+  },
+  "backend": {
+    "modules": ["appointments", "appointments-enterprise", "clinic", "doctor-profiles"],
+    "entities": [
+      "appointments",
+      "doctor_availability_rules",
+      "schedule_blocks",
+      "appointment_waitlist_entries",
+      "appointment_reminders",
+      "appointment_reminder_policies",
+      "clinics.timezone",
+      "doctor_profiles.timezone"
+    ],
+    "endpoints": [
+      { "method": "GET", "path": "/api/appointments/availability/rules" },
+      { "method": "POST", "path": "/api/appointments/availability/rules" },
+      { "method": "PATCH", "path": "/api/appointments/availability/rules/:ruleId" },
+      { "method": "DELETE", "path": "/api/appointments/availability/rules/:ruleId" },
+      { "method": "GET", "path": "/api/appointments/availability/slots" },
+      { "method": "GET", "path": "/api/appointments/blocks" },
+      { "method": "POST", "path": "/api/appointments/blocks" },
+      { "method": "PATCH", "path": "/api/appointments/blocks/:blockId" },
+      { "method": "DELETE", "path": "/api/appointments/blocks/:blockId" },
+      { "method": "GET", "path": "/api/appointments/waitlist" },
+      { "method": "POST", "path": "/api/appointments/waitlist" },
+      { "method": "PATCH", "path": "/api/appointments/waitlist/:entryId" },
+      { "method": "DELETE", "path": "/api/appointments/waitlist/:entryId" },
+      { "method": "GET", "path": "/api/appointments/reminders/policies" },
+      { "method": "POST", "path": "/api/appointments/reminders/policies" },
+      { "method": "PATCH", "path": "/api/appointments/reminders/policies/:policyId" },
+      { "method": "DELETE", "path": "/api/appointments/reminders/policies/:policyId" },
+      { "method": "GET", "path": "/api/appointments/reminders" },
+      { "method": "POST", "path": "/api/appointments/reminders" },
+      { "method": "PATCH", "path": "/api/appointments/reminders/:reminderId" },
+      { "method": "DELETE", "path": "/api/appointments/reminders/:reminderId" },
+      { "method": "GET", "path": "/api/appointments" },
+      { "method": "POST", "path": "/api/appointments" },
+      { "method": "GET", "path": "/api/appointments/:id" },
+      { "method": "PATCH", "path": "/api/appointments/:id" },
+      { "method": "DELETE", "path": "/api/appointments/:id" },
+      { "method": "POST", "path": "/api/appointments/:id/transition" },
+      { "method": "GET", "path": "/api/clinic/me" },
+      { "method": "PATCH", "path": "/api/clinic/me" },
+      { "method": "GET", "path": "/api/doctor-profile/me" },
+      { "method": "PUT", "path": "/api/doctor-profile/me" }
+    ]
+  },
+  "outOfScope": [
+    "Medical Copilot",
+    "AI-1..95",
+    "Google Calendar",
+    "Outlook",
+    "ICS",
+    "Analytics",
+    "IA Agenda",
+    "Marketplace Agenda",
+    "Agenda Enterprise v2"
+  ]
+}

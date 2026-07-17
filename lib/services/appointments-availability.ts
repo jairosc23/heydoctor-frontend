@@ -1,0 +1,175 @@
+/**
+ * Agenda Enterprise — availability client (SSOT: backend AppointmentsAvailabilityService).
+ * Reuses existing `/appointments/availability/*` endpoints. No parallel APIs.
+ */
+import { heydoctorApi } from "../heydoctor-api";
+
+const BASE = "/appointments";
+
+/** 0 = Sunday … 6 = Saturday (matches BE DoctorAvailabilityRule). */
+export type DoctorAvailabilityRule = {
+  id: string;
+  clinicId: string;
+  doctorId: string;
+  dayOfWeek: number;
+  startMinutes: number;
+  endMinutes: number;
+  effectiveFrom: string | null;
+  effectiveUntil: string | null;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type AvailabilitySlot = {
+  startsAt: string;
+  endsAt: string;
+  doctorId: string;
+};
+
+export type ListAvailabilitySlotsParams = {
+  from: string;
+  to: string;
+  clinicTimezone: string;
+  doctorId?: string;
+  slotMinutes?: number;
+};
+
+/** Matches BE CreateAvailabilityRuleDto — SSOT create contract. */
+export type CreateAvailabilityRulePayload = {
+  dayOfWeek: number;
+  startMinutes: number;
+  endMinutes: number;
+  effectiveFrom?: string;
+  effectiveUntil?: string;
+  isActive?: boolean;
+  doctorId?: string;
+};
+
+/** Partial update payload for PATCH `/appointments/availability/rules/:ruleId` (SSOT). */
+export type UpdateAvailabilityRulePayload = Partial<CreateAvailabilityRulePayload>;
+
+export async function fetchAvailabilityRules(
+  doctorId?: string,
+): Promise<DoctorAvailabilityRule[]> {
+  const params = new URLSearchParams();
+  if (doctorId) params.set("doctorId", doctorId);
+  const q = params.toString() ? `?${params}` : "";
+  const result = await heydoctorApi.getOrFallback<DoctorAvailabilityRule[]>(
+    `${BASE}/availability/rules${q}`,
+    [],
+  );
+  return Array.isArray(result) ? result : [];
+}
+
+export async function createAvailabilityRule(
+  payload: CreateAvailabilityRulePayload,
+): Promise<DoctorAvailabilityRule> {
+  return heydoctorApi.post<DoctorAvailabilityRule>(
+    `${BASE}/availability/rules`,
+    payload,
+  );
+}
+
+export async function updateAvailabilityRule(
+  ruleId: string,
+  payload: UpdateAvailabilityRulePayload,
+): Promise<DoctorAvailabilityRule> {
+  return heydoctorApi.patch<DoctorAvailabilityRule>(
+    `${BASE}/availability/rules/${ruleId}`,
+    payload,
+  );
+}
+
+export async function deleteAvailabilityRule(ruleId: string): Promise<void> {
+  await heydoctorApi.delete(`${BASE}/availability/rules/${ruleId}`);
+}
+
+export async function fetchAvailabilitySlots(
+  params: ListAvailabilitySlotsParams,
+): Promise<AvailabilitySlot[]> {
+  const qs = new URLSearchParams();
+  qs.set("from", params.from);
+  qs.set("to", params.to);
+  qs.set("clinicTimezone", params.clinicTimezone);
+  if (params.doctorId) qs.set("doctorId", params.doctorId);
+  if (params.slotMinutes != null) {
+    qs.set("slotMinutes", String(params.slotMinutes));
+  }
+  const result = await heydoctorApi.getOrFallback<AvailabilitySlot[]>(
+    `${BASE}/availability/slots?${qs}`,
+    [],
+  );
+  return Array.isArray(result) ? result : [];
+}
+
+/** Matches BE ScheduleBlock entity. */
+export type ScheduleBlock = {
+  id: string;
+  clinicId: string;
+  doctorId: string | null;
+  startsAt: string;
+  endsAt: string;
+  reason: string | null;
+  isRecurring: boolean;
+  isActive: boolean;
+  recurrenceRule: Record<string, unknown> | null;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type CreateScheduleBlockPayload = {
+  startsAt: string;
+  endsAt: string;
+  reason?: string;
+  doctorId?: string;
+  isRecurring?: boolean;
+  recurrenceRule?: Record<string, unknown>;
+  isActive?: boolean;
+};
+
+export type UpdateScheduleBlockPayload = {
+  startsAt?: string;
+  endsAt?: string;
+  reason?: string | null;
+  doctorId?: string | null;
+  isRecurring?: boolean;
+  recurrenceRule?: Record<string, unknown> | null;
+  isActive?: boolean;
+};
+
+export async function fetchScheduleBlocks(params: {
+  from: string;
+  to: string;
+  doctorId?: string;
+}): Promise<ScheduleBlock[]> {
+  const qs = new URLSearchParams();
+  qs.set("from", params.from);
+  qs.set("to", params.to);
+  if (params.doctorId) qs.set("doctorId", params.doctorId);
+  const result = await heydoctorApi.getOrFallback<ScheduleBlock[]>(
+    `${BASE}/blocks?${qs}`,
+    [],
+  );
+  return Array.isArray(result) ? result : [];
+}
+
+export async function createScheduleBlock(
+  payload: CreateScheduleBlockPayload,
+): Promise<ScheduleBlock> {
+  return heydoctorApi.post<ScheduleBlock>(`${BASE}/blocks`, payload);
+}
+
+export async function updateScheduleBlock(
+  blockId: string,
+  payload: UpdateScheduleBlockPayload,
+): Promise<ScheduleBlock> {
+  return heydoctorApi.patch<ScheduleBlock>(
+    `${BASE}/blocks/${blockId}`,
+    payload,
+  );
+}
+
+export async function deleteScheduleBlock(blockId: string): Promise<void> {
+  await heydoctorApi.delete(`${BASE}/blocks/${blockId}`);
+}

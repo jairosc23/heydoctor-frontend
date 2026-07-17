@@ -1,0 +1,78 @@
+{
+  "auditId": "agenda-enterprise-repository-audit-phase-10",
+  "branch": "feature/agenda-enterprise",
+  "date": "2026-07-16",
+  "scope": "Agenda Enterprise F1-9 consistency + SSOT reuse",
+  "frozenSurfaces": [
+    "Medical Copilot",
+    "AI-1..95",
+    "RC3",
+    "RC4",
+    "RC5",
+    "RC6",
+    "Workflow Engine",
+    "Clinical AI Orchestrator",
+    "Enterprise Engines (clinical)"
+  ],
+  "architecture": {
+    "pattern": "Backend SSOT + Frontend React Query consumer",
+    "ssotModules": ["appointments", "appointments-enterprise", "clinic"],
+    "feOrchestrator": "app/panel/agenda/page.tsx",
+    "duplicationRisk": "low",
+    "parallelBusinessLogic": false,
+    "newApisInPhase10": false,
+    "newTablesInPhase10": false
+  },
+  "integrity": {
+    "phases1to9Consistent": true,
+    "allPanelsWiredFromPage": true,
+    "orphanAgendaComponents": [],
+    "deadCodeFindings": [
+      {
+        "id": "DOC-1",
+        "severity": "low",
+        "item": "Stale comment on UpdateAvailabilityRulePayload",
+        "resolution": "Corrected in Phase 10 (comment only)"
+      },
+      {
+        "id": "INFO-1",
+        "severity": "info",
+        "item": "isAgendaWorkspaceTab primarily used in tests",
+        "resolution": "Keep for type-guard reuse"
+      }
+    ],
+    "barrels": {
+      "status": "acceptable",
+      "notes": "No new agenda barrels required in Phase 10"
+    },
+    "naming": {
+      "componentsPrefix": "Agenda*",
+      "hooksPrefix": "use*",
+      "status": "consistent"
+    },
+    "reactQuery": {
+      "domainKeysPresent": true,
+      "crossInvalidationPresent": true,
+      "notes": [
+        "refreshAll uses refetch for appointments + availability",
+        "timezone panel invalidates broad appointment prefixes"
+      ]
+    },
+    "typescript": {
+      "strictExpected": true,
+      "gate": "npm run lint (tsc --noEmit)"
+    }
+  },
+  "permissions": {
+    "roles": ["DOCTOR", "ADMIN"],
+    "clinicScope": true,
+    "doctorScope": true,
+    "clinicTimezoneAdminOnly": true
+  },
+  "compatibility": {
+    "backendHeadRequired": "82841419d6f25050808ea2aa93891180e843a56e",
+    "backwardCompatibleConsumers": true,
+    "medicalCopilotUntouched": true
+  },
+  "verdict": "PASS_ARCHITECTURE_AUDIT"
+}

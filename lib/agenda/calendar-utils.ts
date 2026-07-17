@@ -16,9 +16,25 @@ import { formatInTimeZone, toZonedTime } from "date-fns-tz";
 
 export type AgendaView = "month" | "week" | "day";
 
-export function resolveClinicTimezone(): string {
+/**
+ * Resolve clinic IANA timezone.
+ * Prefer SSOT from backend (`clinicTimezone` / `/clinic/me`); browser only as last resort.
+ */
+export function resolveClinicTimezone(ssot?: string | null): string {
+  if (ssot && typeof ssot === "string" && ssot.trim()) {
+    try {
+      new Intl.DateTimeFormat("en-US", { timeZone: ssot.trim() }).format(
+        new Date(),
+      );
+      return ssot.trim();
+    } catch {
+      /* fall through */
+    }
+  }
   try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Santiago";
+    return (
+      Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Santiago"
+    );
   } catch {
     return "America/Santiago";
   }
