@@ -23,7 +23,9 @@ import {
   API_XRW_XMLHTTPREQUEST,
 } from "./api-csrf";
 import {
+  createHttpRequestId,
   getOrCreateClientCorrelationId,
+  OPS_CORRELATION_HEADERS,
   rememberServerRequestId,
 } from "./observability/correlation";
 import { getLogger } from "./logger";
@@ -152,9 +154,19 @@ export async function fetchWithAuth(
     if (unsafe && csrf && !headers.has(API_CSRF_HEADER)) {
       headers.set(API_CSRF_HEADER, csrf);
     }
-    const correlationId = getOrCreateClientCorrelationId();
-    if (correlationId && !headers.has("X-Request-Id")) {
-      headers.set("X-Request-Id", correlationId);
+    // PQ-10: per-request X-Request-Id + session X-Client-Correlation-Id
+    if (!headers.has(OPS_CORRELATION_HEADERS.requestId)) {
+      headers.set(OPS_CORRELATION_HEADERS.requestId, createHttpRequestId());
+    }
+    const clientCorrelationId = getOrCreateClientCorrelationId();
+    if (
+      clientCorrelationId &&
+      !headers.has(OPS_CORRELATION_HEADERS.clientCorrelationId)
+    ) {
+      headers.set(
+        OPS_CORRELATION_HEADERS.clientCorrelationId,
+        clientCorrelationId,
+      );
     }
     if (
       process.env.NODE_ENV === "development" &&
