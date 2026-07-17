@@ -1,6 +1,6 @@
 {
   "name": "heydoctor-frontend",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Frontend oficial del ecosistema clínico y de telemedicina **HeyDoctor**, desarrollado por   **Dr. Jairo Santana – SAVAC MedTech LLC**.",
   "private": true,
   "scripts": {
