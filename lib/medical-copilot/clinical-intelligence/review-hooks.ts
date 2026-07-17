@@ -10,6 +10,7 @@ import {
   type ClinicalReviewReadAdapter,
 } from "./review-adapter";
 import type { ClinicalReviewResult } from "./review";
+import { assertMedicalCopilotSessionId } from "../session-id";
 
 export type UseClinicalReviewOptions = {
   sessionId: string | null | undefined;
@@ -40,7 +41,8 @@ export function useClinicalReview(
   const refresh = useCallback(() => setTick((n) => n + 1), []);
 
   useEffect(() => {
-    if (!enabled || !sessionId) {
+    const resolvedSessionId = assertMedicalCopilotSessionId(sessionId);
+    if (!enabled || !resolvedSessionId) {
       setResult(null);
       setError(null);
       setLoading(false);
@@ -50,7 +52,7 @@ export function useClinicalReview(
     setLoading(true);
     setError(null);
     void adapter
-      .getClinicalReview(sessionId)
+      .getClinicalReview(resolvedSessionId)
       .then((next) => {
         if (cancelled) return;
         setResult(next);

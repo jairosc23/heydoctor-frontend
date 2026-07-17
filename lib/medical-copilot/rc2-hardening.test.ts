@@ -14,49 +14,18 @@ import {
   rememberMedicalCopilotSessionOwnership,
 } from "./session-ownership";
 import { bootstrapMedicalCopilotSession } from "./bootstrap-session";
+import { MEDICAL_COPILOT_GOVERNANCE } from "./types";
 import {
-  MEDICAL_COPILOT_API_VERSION,
-  MEDICAL_COPILOT_GOVERNANCE,
-} from "./types";
-import type { MedicalCopilotApiEnvelope } from "./types";
+  buildMedicalCopilotEnvelopeFixture,
+  createMemoryStorage,
+} from "./testing/fixtures";
 
 function memoryStorage(): Storage {
-  const map = new Map<string, string>();
-  return {
-    get length() {
-      return map.size;
-    },
-    clear() {
-      map.clear();
-    },
-    getItem(key: string) {
-      return map.has(key) ? map.get(key)! : null;
-    },
-    setItem(key: string, value: string) {
-      map.set(key, String(value));
-    },
-    removeItem(key: string) {
-      map.delete(key);
-    },
-    key() {
-      return null;
-    },
-  } as Storage;
+  return createMemoryStorage();
 }
 
-function envelope<T>(
-  data: T,
-  status: "ok" | "not_found" = "ok",
-): MedicalCopilotApiEnvelope<T> {
-  return {
-    source: "medical_copilot_facade",
-    apiVersion: MEDICAL_COPILOT_API_VERSION,
-    status,
-    data,
-    governance: { ...MEDICAL_COPILOT_GOVERNANCE },
-    reason: null,
-    generatedAt: "2026-07-11T00:00:00.000Z",
-  };
+function envelope<T>(data: T, status: "ok" | "not_found" = "ok") {
+  return buildMedicalCopilotEnvelopeFixture(data, status);
 }
 
 describe("RC-2 P0-1 Kill Switch", () => {

@@ -33,6 +33,7 @@ export { MedicalCopilotErrorBoundary } from "./MedicalCopilotErrorBoundary";
 export {
   MedicalCopilotEmptyState,
   MedicalCopilotErrorState,
+  MedicalCopilotInlineStatus,
   MedicalCopilotLoadingState,
   MedicalCopilotSkeleton,
 } from "./states";
