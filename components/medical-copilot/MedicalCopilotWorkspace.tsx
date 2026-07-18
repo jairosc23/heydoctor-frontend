@@ -12,6 +12,7 @@ import { ClinicalActionsPanel } from "./ClinicalActionsPanel";
 import { ClinicalTimelinePanel } from "./ClinicalTimelinePanel";
 import { ClinicalWorkspacePanel } from "./ClinicalWorkspacePanel";
 import { ConversationMemoryPanel } from "./ConversationMemoryPanel";
+import { CopilotHitlFeedbackPanel } from "./CopilotHitlFeedbackPanel";
 import { MedicalCopilotErrorBoundary } from "./MedicalCopilotErrorBoundary";
 import { MedicalCopilotHeader } from "./MedicalCopilotHeader";
 import { MedicalCopilotSessionCard } from "./MedicalCopilotSessionCard";
@@ -98,6 +99,7 @@ export function MedicalCopilotWorkspace({
                 onReject={(actionId) => void rejectAction(actionId)}
               />
             </div>
+            <CopilotHitlFeedbackPanel sessionId={session?.sessionId} />
             {actionError ? (
               <MedicalCopilotErrorState
                 title="Acción no completada"
