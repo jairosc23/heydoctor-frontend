@@ -11,6 +11,7 @@ export { ClinicalWorkflowBanner } from "./ClinicalWorkflowBanner";
 export { ClinicalWorkflowStatus } from "./ClinicalWorkflowStatus";
 export { ClinicalWorkflowTelemetryBridge } from "./ClinicalWorkflowTelemetryBridge";
 export { ClinicalFeedbackPanel } from "./ClinicalFeedbackPanel";
+export { CopilotHitlFeedbackPanel } from "./CopilotHitlFeedbackPanel";
 export { ClinicalFindingsPanel } from "./ClinicalFindingsPanel";
 export { ClinicalInsightsPanel } from "./ClinicalInsightsPanel";
 export { ClinicalRecommendationsPanel } from "./ClinicalRecommendationsPanel";
