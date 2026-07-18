@@ -12,7 +12,7 @@ const FONT_HEADING = "Montserrat, sans-serif";
 const ADMIN_NAV = [
   { href: "/admin/analytics", label: "Analytics" },
   { href: "/admin/subscriptions", label: "Suscripciones" },
-  { href: "/admin/ops", label: "Ops" },
+  { href: "/admin/ops", label: "Ops / Signal" },
   { href: "/admin/growth", label: "Growth" },
 ] as const;
 

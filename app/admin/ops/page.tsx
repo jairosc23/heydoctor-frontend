@@ -4,6 +4,12 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useState } from "react";
 import { fetchWithAuth } from "@/lib/heydoctor-api";
+import {
+  fetchEnterpriseSignalPack,
+  type EnterpriseSignalPack,
+} from "@/lib/admin/enterprise-signal";
+import { EnterpriseSignalPackPanel } from "./EnterpriseSignalPack";
+import { AuditExportPanel } from "./AuditExportPanel";
 
 const OpsRequestsChart = dynamic(
   () => import("./OpsRequestsChart").then((mod) => mod.OpsRequestsChart),
@@ -136,6 +142,9 @@ export default function AdminOpsPage() {
   const [dashboard, setDashboard] = useState<OpsDashboardFoundation | null>(
     null,
   );
+  const [signalPack, setSignalPack] = useState<EnterpriseSignalPack | null>(
+    null,
+  );
   const [traceId, setTraceId] = useState("");
   const [traceHit, setTraceHit] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
@@ -145,19 +154,22 @@ export default function AdminOpsPage() {
     setError(null);
     setLoading(true);
     try {
-      const [o, s, d] = await Promise.all([
+      const [o, s, d, pack] = await Promise.all([
         fetchOpsOverview(),
         fetchOpsScaling(),
         fetchOpsDashboard(),
+        fetchEnterpriseSignalPack().catch(() => null),
       ]);
       setData(o);
       setScaling(s);
       setDashboard(d);
+      setSignalPack(pack);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error");
       setData(null);
       setScaling(null);
       setDashboard(null);
+      setSignalPack(null);
     } finally {
       setLoading(false);
     }
@@ -195,13 +207,25 @@ export default function AdminOpsPage() {
         <div>
           <h1 className="text-xl font-bold text-primary">Operations</h1>
           <p className="text-sm text-primaryDark/70">
-            Foundation F2-11: métricas PQ-05 + catálogo alertas F2-03 + correlación
-            PQ-10 (sin segunda fuente). RPM/latencia/errores, scaling y trazas por
-            réplica. Backend:{" "}
+            W5 Enterprise Signal + Foundation F2-11: readiness honesta, alertas /
+            runbooks, async reliability, audit export. Métricas PQ-05 + correlación
+            PQ-10 (sin segunda fuente). Backend:{" "}
             <code className="text-xs">docs/RAILWAY-SCALING.md</code>.
           </p>
         </div>
         <nav className="flex flex-wrap gap-3 text-sm" aria-label="Navegación de operaciones">
+          <a
+            href="#enterprise-signal"
+            className="rounded text-primaryDark/70 underline hover:text-primaryDark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+          >
+            Signal Pack
+          </a>
+          <a
+            href="#audit-export"
+            className="rounded text-primaryDark/70 underline hover:text-primaryDark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+          >
+            Audit Export
+          </a>
           <Link
             href="/admin/growth"
             className="rounded text-primaryDark/70 underline hover:text-primaryDark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
@@ -223,6 +247,14 @@ export default function AdminOpsPage() {
           </button>
         </nav>
       </div>
+
+      <div id="enterprise-signal">
+        {signalPack && !loading ? (
+          <EnterpriseSignalPackPanel pack={signalPack} />
+        ) : null}
+      </div>
+
+      <AuditExportPanel />
 
       {highError && (
         <div
