@@ -29,6 +29,12 @@ test.describe("F2-02 — Post-deploy UI smoke", () => {
   });
 
   test("SMOKE-02 login + panel autenticado", async ({ page }) => {
+    // W1 — E2E_REQUIRE_AUTH=1 fails the suite instead of soft-skipping auth
+    if (process.env.E2E_REQUIRE_AUTH === "1" && !isE2EAuthReady()) {
+      throw new Error(
+        "E2E_REQUIRE_AUTH=1 but E2E_BASE_URL / E2E_DOCTOR_EMAIL / E2E_DOCTOR_PASSWORD missing",
+      );
+    }
     test.skip(!isE2EAuthReady(), "Requiere triad E2E auth");
     await loginAsDoctor(page);
     await assertAuthenticatedPanel(page);
