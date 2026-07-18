@@ -86,11 +86,12 @@ export default function AgendaPage() {
     { enabled: isAdmin },
   );
 
+  // W3 — BE @Max(100); align FE to contract (was 500 → validation 400).
   const appointmentFilters = useMemo(
     () => ({
       from: range.from,
       to: range.to,
-      limit: 500,
+      limit: 100,
       ...(isAdmin && doctorFilter ? { doctorId: doctorFilter } : {}),
     }),
     [range.from, range.to, isAdmin, doctorFilter],
@@ -104,9 +105,21 @@ export default function AgendaPage() {
    * primary list already covers the clinic range (avoids duplicate GET).
    */
   const { data: clinicAppointmentsData } = useAppointmentsListQuery(
-    { from: range.from, to: range.to, limit: 500 },
+    { from: range.from, to: range.to, limit: 100 },
     { enabled: isAdmin && Boolean(doctorFilter) },
   );
+
+  // W3 — gate heavy panels by workspace tab (calendar = appointments-only).
+  const needAvailability =
+    workspaceTab === "dashboard" || workspaceTab === "availability";
+  const needBlocks =
+    workspaceTab === "dashboard" ||
+    workspaceTab === "availability" ||
+    workspaceTab === "operations";
+  const needWaitlist =
+    workspaceTab === "dashboard" || workspaceTab === "operations";
+  const needReminders =
+    workspaceTab === "dashboard" || workspaceTab === "operations";
 
   const availability = useAvailabilityEnterpriseQuery({
     from: range.from,
@@ -116,28 +129,35 @@ export default function AgendaPage() {
     view,
     doctorId: isAdmin ? doctorFilter || undefined : undefined,
     slotMinutes,
+    enabled: needAvailability,
   });
 
   const blocksQuery = useScheduleBlocksQuery({
     from: range.from,
     to: range.to,
     doctorId: isAdmin ? doctorFilter || undefined : undefined,
+    enabled: needBlocks,
   });
 
   const waitlistQuery = useWaitlistEntriesQuery({
     from: range.from,
     to: range.to,
     doctorId: isAdmin ? doctorFilter || undefined : undefined,
+    enabled: needWaitlist,
+    // Dashboard only needs counts; operations tab needs slot enrich.
+    includeMatchingSlots: workspaceTab === "operations",
   });
 
   const reminderPoliciesQuery = useReminderPoliciesQuery({
     doctorId: isAdmin ? doctorFilter || undefined : undefined,
+    enabled: needReminders,
   });
 
   const remindersQuery = useRemindersQuery({
     from: range.from,
     to: range.to,
     doctorId: isAdmin ? doctorFilter || undefined : undefined,
+    enabled: needReminders,
   });
 
   const appointments = data?.data ?? [];
@@ -150,6 +170,15 @@ export default function AgendaPage() {
     remindersQuery.data?.filter((r) => r.status === "scheduled").length ?? 0;
   const blocksActiveCount =
     blocksQuery.data?.filter((b) => b.isActive !== false).length ?? 0;
+  // W3 — header KPIs show em-dash when the tab has not loaded that panel yet.
+  const slotsBadge = needAvailability
+    ? requiresDoctorId
+      ? "—"
+      : freeSlotCount
+    : "—";
+  const blocksBadge = needBlocks ? blocksActiveCount : "—";
+  const waitlistBadge = needWaitlist ? waitlistActiveCount : "—";
+  const remindersBadge = needReminders ? reminderPendingCount : "—";
 
   const doctorOptions = useMemo(
     () =>
@@ -233,7 +262,9 @@ export default function AgendaPage() {
         queryKey: ["appointments", "schedule-blocks"],
       }),
       queryClient.invalidateQueries({ queryKey: ["appointments", "waitlist"] }),
-      queryClient.invalidateQueries({ queryKey: ["appointments", "reminders"] }),
+      queryClient.invalidateQueries({
+        queryKey: ["appointments", "reminders"],
+      }),
       queryClient.invalidateQueries({
         queryKey: ["appointments", "reminder-policies"],
       }),
@@ -256,9 +287,7 @@ export default function AgendaPage() {
           <p className="mt-1 text-sm text-primaryDark/70">
             Workspace enterprise · {timeZone}
             {clinicName ? ` · ${clinicName}` : ""}
-            {user?.clinicId
-              ? ` · clínica ${user.clinicId.slice(0, 8)}…`
-              : ""}
+            {user?.clinicId ? ` · clínica ${user.clinicId.slice(0, 8)}…` : ""}
           </p>
           <div
             className="mt-3 flex flex-wrap gap-2"
@@ -272,26 +301,42 @@ export default function AgendaPage() {
             />
             <AgendaStatusBadge
               label="Slots libres"
-              value={requiresDoctorId ? "—" : freeSlotCount}
-              tone={freeSlotCount > 0 ? "success" : "neutral"}
+              value={slotsBadge}
+              tone={
+                typeof slotsBadge === "number" && slotsBadge > 0
+                  ? "success"
+                  : "neutral"
+              }
               title="Huecos libres del motor de disponibilidad"
             />
             <AgendaStatusBadge
               label="Bloques"
-              value={blocksActiveCount}
-              tone={blocksActiveCount > 0 ? "warning" : "neutral"}
+              value={blocksBadge}
+              tone={
+                typeof blocksBadge === "number" && blocksBadge > 0
+                  ? "warning"
+                  : "neutral"
+              }
               title="Bloqueos activos"
             />
             <AgendaStatusBadge
               label="Espera"
-              value={waitlistActiveCount}
-              tone={waitlistActiveCount > 0 ? "warning" : "neutral"}
+              value={waitlistBadge}
+              tone={
+                typeof waitlistBadge === "number" && waitlistBadge > 0
+                  ? "warning"
+                  : "neutral"
+              }
               title="Entradas activas en lista de espera"
             />
             <AgendaStatusBadge
               label="Reminders"
-              value={reminderPendingCount}
-              tone={reminderPendingCount > 0 ? "info" : "neutral"}
+              value={remindersBadge}
+              tone={
+                typeof remindersBadge === "number" && remindersBadge > 0
+                  ? "info"
+                  : "neutral"
+              }
               title="Recordatorios pendientes (scheduled)"
             />
             {requiresDoctorId ? (
@@ -428,7 +473,9 @@ export default function AgendaPage() {
               value={slotMinutes}
               onChange={(e) =>
                 setSlotMinutes(
-                  Number(e.target.value) as (typeof SLOT_MINUTES_OPTIONS)[number],
+                  Number(
+                    e.target.value,
+                  ) as (typeof SLOT_MINUTES_OPTIONS)[number],
                 )
               }
             >

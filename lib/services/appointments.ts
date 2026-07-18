@@ -154,10 +154,7 @@ export async function transitionAppointment(
 
 /** Agenda Enterprise Phase 5 — Waitlist SSOT */
 export type WaitlistEntryStatus =
-  | "active"
-  | "promoted"
-  | "expired"
-  | "cancelled";
+  "active" | "promoted" | "expired" | "cancelled";
 
 export interface WaitlistEntry {
   id: string;
@@ -196,6 +193,8 @@ export interface WaitlistFilters {
   to?: string;
   doctorId?: string;
   status?: WaitlistEntryStatus;
+  /** W3 — false skips BE slot-engine enrich (dashboard counts). Default true. */
+  includeMatchingSlots?: boolean;
 }
 
 export interface CreateWaitlistEntryPayload {
@@ -226,6 +225,9 @@ export async function fetchWaitlistEntries(
   if (filters?.to) params.set("to", filters.to);
   if (filters?.doctorId) params.set("doctorId", filters.doctorId);
   if (filters?.status) params.set("status", filters.status);
+  if (filters?.includeMatchingSlots === false) {
+    params.set("includeMatchingSlots", "false");
+  }
   const q = params.toString() ? `?${params}` : "";
   const result = await heydoctorApi.getOrFallback<WaitlistEntry[]>(
     `${BASE}/waitlist${q}`,
@@ -253,10 +255,7 @@ export async function deleteWaitlistEntry(id: string): Promise<void> {
 
 /** Agenda Enterprise Phase 6 — Reminders SSOT (admin/visualize; no real send) */
 export type ReminderType =
-  | "confirmation"
-  | "upcoming"
-  | "no_show_risk"
-  | "follow_up";
+  "confirmation" | "upcoming" | "no_show_risk" | "follow_up";
 
 export type ReminderChannel = "email" | "sms" | "push" | "whatsapp";
 
@@ -335,7 +334,9 @@ export interface UpdateReminderPayload {
   status?: "scheduled" | "skipped";
 }
 
-export async function fetchReminderPolicies(doctorId?: string): Promise<ReminderPolicy[]> {
+export async function fetchReminderPolicies(
+  doctorId?: string,
+): Promise<ReminderPolicy[]> {
   const params = new URLSearchParams();
   if (doctorId) params.set("doctorId", doctorId);
   const q = params.toString() ? `?${params}` : "";
@@ -349,7 +350,10 @@ export async function fetchReminderPolicies(doctorId?: string): Promise<Reminder
 export async function createReminderPolicy(
   payload: CreateReminderPolicyPayload,
 ): Promise<ReminderPolicy> {
-  return heydoctorApi.post<ReminderPolicy>(`${BASE}/reminders/policies`, payload);
+  return heydoctorApi.post<ReminderPolicy>(
+    `${BASE}/reminders/policies`,
+    payload,
+  );
 }
 
 export async function updateReminderPolicy(
@@ -373,7 +377,8 @@ export async function fetchReminders(
   if (filters?.from) params.set("from", filters.from);
   if (filters?.to) params.set("to", filters.to);
   if (filters?.doctorId) params.set("doctorId", filters.doctorId);
-  if (filters?.appointmentId) params.set("appointmentId", filters.appointmentId);
+  if (filters?.appointmentId)
+    params.set("appointmentId", filters.appointmentId);
   if (filters?.status) params.set("status", filters.status);
   if (filters?.type) params.set("type", filters.type);
   if (filters?.channel) params.set("channel", filters.channel);
@@ -395,7 +400,10 @@ export async function updateReminder(
   id: string,
   payload: UpdateReminderPayload,
 ): Promise<AppointmentReminder> {
-  return heydoctorApi.patch<AppointmentReminder>(`${BASE}/reminders/${id}`, payload);
+  return heydoctorApi.patch<AppointmentReminder>(
+    `${BASE}/reminders/${id}`,
+    payload,
+  );
 }
 
 export async function deleteReminder(id: string): Promise<void> {

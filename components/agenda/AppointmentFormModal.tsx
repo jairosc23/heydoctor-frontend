@@ -57,7 +57,7 @@ export function AppointmentFormModal({
   const { data: patientsData } = usePatientsListQuery({ limit: 100 });
   const patients = patientsData?.data ?? [];
   const { data: appointmentsData, isPending: appointmentsLoading } =
-    useAppointmentsListQuery({ limit: 500 });
+    useAppointmentsListQuery({ limit: 100 });
   const { data: consultationsData, isPending: consultationsLoading } =
     useConsultationsListQuery({ limit: 200 }, { enabled: isAdmin });
   const doctorOptions = useMemo(
@@ -84,7 +84,8 @@ export function AppointmentFormModal({
   const [error, setError] = useState<string | null>(null);
 
   const isNewAdminAppointment = !appointment && isAdmin;
-  const doctorsLoading = appointmentsLoading || (isAdmin && consultationsLoading);
+  const doctorsLoading =
+    appointmentsLoading || (isAdmin && consultationsLoading);
   const adminHasNoDoctors =
     isNewAdminAppointment && !doctorsLoading && doctorOptions.length === 0;
   const adminNeedsDoctorSelection =
@@ -154,9 +155,7 @@ export function AppointmentFormModal({
         });
       }
       if (!patientId) throw new Error("Seleccione un paciente");
-      const resolvedDoctorId = isAdmin
-        ? doctorId
-        : user?.id;
+      const resolvedDoctorId = isAdmin ? doctorId : user?.id;
       if (isAdmin && !resolvedDoctorId) {
         throw new Error("Seleccione un médico");
       }
@@ -167,7 +166,8 @@ export function AppointmentFormModal({
         clinicTimezone: tz,
         patientTimezone: tz,
         reason: reason || undefined,
-        status: calendarStatus === "CONFIRMED" ? "CONFIRMED" : "PENDING_CONFIRMATION",
+        status:
+          calendarStatus === "CONFIRMED" ? "CONFIRMED" : "PENDING_CONFIRMATION",
         ...(resolvedDoctorId ? { doctorId: resolvedDoctorId } : {}),
       });
     },
