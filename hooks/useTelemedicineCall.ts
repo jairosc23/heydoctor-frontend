@@ -12,6 +12,10 @@ import {
 } from "@/lib/webrtc-recording-api";
 import { sendCallMetrics } from "@/lib/send-webrtc-metrics";
 import { ensureAccessToken, getAccessToken } from "@/lib/auth-client";
+import {
+  clearGuestSignalingToken,
+  getGuestSignalingToken,
+} from "@/lib/guest-signaling-memory";
 import { getLogger } from "@/lib/logger";
 import { logLocalGetUserMediaOk } from "@/lib/video-playback-diagnostics";
 import type { Socket } from "socket.io-client";
@@ -1244,7 +1248,10 @@ export function useTelemedicineCall(
     setIceConnectionState(null);
     setVideoTier(0);
     videoTierRef.current = 0;
-  }, [consultationId, detachMonitor]);
+    if (guestCall) {
+      clearGuestSignalingToken();
+    }
+  }, [consultationId, detachMonitor, guestCall]);
 
   const stopScreenShare = useCallback(async () => {
     const st = screenShareTrackRef.current;
@@ -1357,14 +1364,31 @@ export function useTelemedicineCall(
         }
       }
       const origin = backendOrigin.replace(/\/$/, "");
-      const mem = getAccessToken()?.trim();
-      socket = io(`${origin}/webrtc`, {
-        path: socketPath,
-        transports: ["websocket", "polling"],
-        withCredentials: true,
-        autoConnect: true,
-        auth: mem ? { token: mem } : {},
-      });
+      // ARCH-REM-01: Guest channel never sends Staff cookies; Staff unchanged.
+      if (guestCall) {
+        const guestToken = getGuestSignalingToken()?.trim();
+        if (!guestToken) {
+          const msg = "Enlace de invitado inválido o expirado.";
+          onError?.(msg);
+          throw new Error(msg);
+        }
+        socket = io(`${origin}/webrtc`, {
+          path: socketPath,
+          transports: ["websocket", "polling"],
+          withCredentials: false,
+          autoConnect: true,
+          auth: { channel: "guest", token: guestToken },
+        });
+      } else {
+        const mem = getAccessToken()?.trim();
+        socket = io(`${origin}/webrtc`, {
+          path: socketPath,
+          transports: ["websocket", "polling"],
+          withCredentials: true,
+          autoConnect: true,
+          auth: mem ? { token: mem } : {},
+        });
+      }
       ownSocketRef.current = true;
     } else {
       socket = externalSocket;
@@ -1386,6 +1410,7 @@ export function useTelemedicineCall(
       const iceConfig = await fetchWebrtcIceServers({
         backendOrigin,
         consultationId,
+        guestChannel: guestCall,
       });
       if (iceConfig.turnHygiene?.warnings?.length) {
         logVideo.warn("webrtc_turn_hygiene_client", {
@@ -1651,6 +1676,7 @@ export function useTelemedicineCall(
                 void sendCallMetrics({
                   backendOrigin,
                   consultationId,
+                  guestChannel: guestCall,
                   rtt: snap.roundTripTime,
                   packetsLost: snap.packetsLost,
                   bitrate: snap.outboundBitrateBps,

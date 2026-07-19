@@ -574,6 +574,7 @@ export async function authLogout(options?: AuthLogoutOptions): Promise<void> {
     /* noop */
   }
 
+  // Staff channel only — Guest store is isolated (ARCH-REM-01 logout isolation).
   setAccessToken(null);
   setApiCsrfToken(null);
   _lastHardRefreshFailAt = 0;

@@ -23,6 +23,10 @@ import {
   GuestConsultationError,
 } from "@/lib/services/public-consultations";
 import {
+  clearGuestSignalingToken,
+  setGuestSignalingToken,
+} from "@/lib/guest-signaling-memory";
+import {
   getTelemedicineConsentStatus,
   postTelemedicineConsent,
   setTelemedicineConsent,
@@ -161,6 +165,9 @@ export function TeleconsultaVideoSession({
   const effectiveIsGuest = effectiveMode === "guest";
 
   const handleEndCall = useCallback(() => {
+    if (effectiveIsGuest) {
+      clearGuestSignalingToken();
+    }
     if (onEndCall) {
       onEndCall();
       return;
@@ -212,8 +219,13 @@ export function TeleconsultaVideoSession({
     void fetchPublicTeleconsultationByToken(t)
       .then((res) => {
         if (cancelled) return;
-        if (!res) setInviteInvalid(true);
-        else setInviteData(res);
+        if (!res?.signalingToken) {
+          setInviteInvalid(true);
+          return;
+        }
+        // Guest Credential Channel (ARCH-REM-01) — never Staff access-token store.
+        setGuestSignalingToken(res.signalingToken, res.consultationId);
+        setInviteData(res);
       })
       .catch((e) => {
         if (cancelled) return;

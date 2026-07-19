@@ -29,7 +29,8 @@ export interface PublicConsultationStatus {
 export interface PublicTeleconsultationInvite {
   consultationId: string;
   roomId: string;
-  patientName?: string;
+  /** JWT de corta vida (purpose=webrtc_guest) para signaling + ICE. */
+  signalingToken: string;
 }
 
 export class GuestConsultationError extends Error {
@@ -170,11 +171,10 @@ export async function fetchPublicTeleconsultationByToken(
   }
 
   const data = (await res.json()) as Partial<PublicTeleconsultationInvite>;
-  if (!data.consultationId || !data.roomId) return null;
+  if (!data.consultationId || !data.roomId || !data.signalingToken) return null;
   return {
     consultationId: data.consultationId,
     roomId: data.roomId,
-    patientName:
-      typeof data.patientName === "string" ? data.patientName : undefined,
+    signalingToken: data.signalingToken,
   };
 }

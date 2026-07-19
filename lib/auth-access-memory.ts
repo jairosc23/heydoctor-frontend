@@ -1,6 +1,10 @@
 /**
- * JWT de acceso solo en RAM (fallback cuando las cookies HttpOnly cross-site están bloqueadas).
+ * Staff Credential Channel — JWT de acceso solo en RAM
+ * (fallback cuando las cookies HttpOnly cross-site están bloqueadas).
  * Sin localStorage/sessionStorage persistente.
+ *
+ * Guest telemedicine MUST use {@link ./guest-signaling-memory} (ARCH-REM-01).
+ * Never store purpose=webrtc_guest tokens here.
  */
 
 import { invalidateJwtPayloadCache } from "./auth-token";

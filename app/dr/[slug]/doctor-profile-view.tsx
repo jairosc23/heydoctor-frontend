@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import type { DoctorProfile, RatingsResponse } from "@/lib/services/doctor-profiles";
 import { BrandLogo } from "@/components/branding";
+import { PublicDoctorBooking } from "@/components/public/public-doctor-booking";
 import Container from "@/components/ui/Container";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
@@ -80,16 +81,32 @@ export function DoctorProfileView({
               </p>
             ) : null}
 
-            <Button
-              href="/consultar"
-              variant="primary"
-              className={`min-h-12 px-8 ${CTA_PRIMARY}`}
-            >
-              Hablar con médico ahora
-            </Button>
+            <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+              <Button
+                href="#reservar-cita"
+                variant="primary"
+                className={`min-h-12 px-8 ${CTA_PRIMARY}`}
+              >
+                Reservar cita
+              </Button>
+              <Button
+                href="/consultar"
+                variant="secondary"
+                className="min-h-12 px-8"
+              >
+                Hablar con médico ahora
+              </Button>
+            </div>
           </Card>
 
-          <Card className="p-6 shadow-premium">
+          <div id="reservar-cita">
+            <PublicDoctorBooking
+              doctorSlug={doctor.slug}
+              doctorName={doctor.name}
+            />
+          </div>
+
+          <Card className="mt-6 p-6 shadow-premium">
             <h2
               className="mb-4 text-lg font-bold text-primaryDark"
               style={{ fontFamily: FONT_HEADING }}
