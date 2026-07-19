@@ -375,8 +375,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     const params = new URLSearchParams(window.location.search);
+    // EPIC-2: role is required — omitting it defaults patients to Staff /panel.
     const target = getSafePostLoginPath(
-      params.has("redirect") ? params.get("redirect") : "/panel",
+      params.has("redirect") ? params.get("redirect") : null,
+      user.role,
     );
 
     let cancelled = false;

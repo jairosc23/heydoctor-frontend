@@ -16,7 +16,6 @@ export type PatientPortalAppointment = {
   doctorId: string;
   doctorName: string | null;
   clinicId: string;
-  telemedicineAccessToken: string | null;
   telemedicineReady: boolean;
   consultationId: string | null;
   canCancel: boolean;
@@ -36,22 +35,17 @@ export type PatientPortalDashboard = {
 };
 
 export type PatientTelemedicinePrep = {
-  consultationId: string;
-  roomId: string;
   joinUrl: string;
-  signalingToken: string;
-  consentRequired: boolean;
-  consentVersion: string;
-  appointmentStatus: string;
-  paymentStatus: string;
+  telemedicineReady: true;
 };
 
 export async function registerPatient(input: {
   email: string;
   password: string;
-  clinicId: string;
   name: string;
-  bookingToken?: string;
+  bookingToken: string;
+  inviteToken: string;
+  clinicId?: string;
 }) {
   return heydoctorApi.post<{
     user: { id: string; email: string; role: string; clinicId: string };
@@ -98,9 +92,9 @@ export async function fetchPortalTelemedicine(id: string) {
   );
 }
 
-export async function claimPortalBooking(token: string) {
+export async function claimPortalBooking(token: string, inviteToken: string) {
   return heydoctorApi.post<PatientPortalAppointment>(
     `/portal/bookings/${token}/claim`,
-    {},
+    { inviteToken },
   );
 }

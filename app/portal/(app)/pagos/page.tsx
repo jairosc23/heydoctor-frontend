@@ -58,14 +58,6 @@ export default function PortalPaymentsPage() {
                   <p className="text-xs text-primaryDark/60">pending</p>
                 </div>
                 <div className="flex gap-2">
-                  {a.telemedicineAccessToken ? (
-                    <Button
-                      href={`/dr/booking/${a.telemedicineAccessToken}`}
-                      className="px-4 py-2 text-sm"
-                    >
-                      Ir a checkout
-                    </Button>
-                  ) : null}
                   <Button
                     href={`/portal/citas/${a.id}`}
                     variant="secondary"

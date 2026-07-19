@@ -14,6 +14,7 @@ import {
   type PublicTelemedicinePrep,
   PublicBookingError,
 } from "@/lib/services/public-booking";
+import { readPortalInvite } from "@/lib/services/portal-invite-storage";
 
 const FONT_HEADING = "Montserrat, sans-serif";
 
@@ -171,14 +172,26 @@ export function PublicBookingStatusView({
                   Actualizar estado
                 </Button>
 
-                {status.clinicId ? (
-                  <Button
-                    href={`/portal/register?clinicId=${encodeURIComponent(status.clinicId)}&bookingToken=${encodeURIComponent(token)}`}
-                    variant="secondary"
-                  >
-                    Crear cuenta paciente y guardar esta cita
-                  </Button>
-                ) : null}
+                {(() => {
+                  const inviteToken = readPortalInvite(token);
+                  if (!inviteToken) {
+                    return (
+                      <p className="text-xs text-primaryDark/60">
+                        Para crear tu cuenta paciente, completa la reserva en este
+                        navegador (el comprobante de invitación no está disponible
+                        en el estado público).
+                      </p>
+                    );
+                  }
+                  return (
+                    <Button
+                      href={`/portal/register?bookingToken=${encodeURIComponent(token)}&inviteToken=${encodeURIComponent(inviteToken)}`}
+                      variant="secondary"
+                    >
+                      Crear cuenta paciente y guardar esta cita
+                    </Button>
+                  );
+                })()}
               </div>
             </div>
           ) : null}

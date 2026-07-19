@@ -120,8 +120,20 @@ export default function PanelLayout({
           : "/login";
       trackRedirectToLogin(path);
       router.push(dest);
+      return;
     }
-  }, [authLoading, panelSessionChecked, isAuthenticated, router, pathname]);
+    // EPIC-2: Patient Portal accounts must never remain on Staff shell.
+    if (panelSessionChecked && isAuthenticated && user?.role === "patient") {
+      router.replace("/portal");
+    }
+  }, [
+    authLoading,
+    panelSessionChecked,
+    isAuthenticated,
+    user?.role,
+    router,
+    pathname,
+  ]);
 
   function toggleTheme() {
     setDark((d) => !d);

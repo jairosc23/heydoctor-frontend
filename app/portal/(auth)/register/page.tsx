@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { BrandLogo } from "@/components/branding";
@@ -8,27 +8,40 @@ import Card from "@/components/ui/Card";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { registerPatient } from "@/lib/services/patient-portal";
+import { readPortalInvite } from "@/lib/services/portal-invite-storage";
 import { ensureMiddlewareSessionForSsr } from "@/lib/services/auth";
 import { setAccessToken, bootstrapApiCsrf } from "@/lib/auth-client";
 
 function RegisterPatientForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const bookingToken = searchParams.get("bookingToken") ?? undefined;
-  const clinicIdFromQuery = searchParams.get("clinicId") ?? "";
+  const bookingToken = searchParams.get("bookingToken") ?? "";
+  const inviteFromQuery = searchParams.get("inviteToken") ?? "";
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [clinicId, setClinicId] = useState(clinicIdFromQuery);
+  const [inviteToken, setInviteToken] = useState(inviteFromQuery);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (inviteFromQuery || !bookingToken) return;
+    const stored = readPortalInvite(bookingToken);
+    if (stored) setInviteToken(stored);
+  }, [bookingToken, inviteFromQuery]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    if (!name.trim() || !email.trim() || !password.trim() || !clinicId.trim()) {
-      setError("Completa nombre, email, contraseña y clinicId");
+    if (!bookingToken.trim() || !inviteToken.trim()) {
+      setError(
+        "El registro requiere una reserva pública válida (booking + invitación). Completa una reserva y usa el enlace «Crear cuenta».",
+      );
+      return;
+    }
+    if (!name.trim() || !email.trim() || !password.trim()) {
+      setError("Completa nombre, email y contraseña");
       return;
     }
     setLoading(true);
@@ -38,8 +51,8 @@ function RegisterPatientForm() {
         name: name.trim(),
         email: email.trim(),
         password,
-        clinicId: clinicId.trim(),
-        bookingToken,
+        bookingToken: bookingToken.trim(),
+        inviteToken: inviteToken.trim(),
       });
       if (result.access_token) {
         setAccessToken(result.access_token);
@@ -65,9 +78,15 @@ function RegisterPatientForm() {
           Crear cuenta paciente
         </h2>
         <p className="mb-5 text-sm text-primaryDark/70">
-          Accede a tus citas, pagos y teleconsulta.
-          {bookingToken ? " Se vinculará tu reserva actual." : ""}
+          Accede a tus citas y teleconsulta. El alta queda vinculada a tu reserva
+          pública.
         </p>
+        {!bookingToken || !inviteToken ? (
+          <p className="mb-4 rounded-lg bg-amber-50 px-3 py-2 text-left text-sm text-amber-900">
+            Falta el comprobante de reserva. Reserva una cita pública y abre
+            «Crear cuenta paciente» desde el estado de la reserva.
+          </p>
+        ) : null}
         <form onSubmit={handleSubmit} className="space-y-3 text-left">
           <Input
             placeholder="Nombre completo"
@@ -77,7 +96,7 @@ function RegisterPatientForm() {
           />
           <Input
             type="email"
-            placeholder="Email"
+            placeholder="Email (el mismo de la reserva)"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             disabled={loading}
@@ -91,14 +110,12 @@ function RegisterPatientForm() {
             disabled={loading}
             autoComplete="new-password"
           />
-          <Input
-            placeholder="Clinic ID (UUID)"
-            value={clinicId}
-            onChange={(e) => setClinicId(e.target.value)}
-            disabled={loading}
-          />
           {error ? <p className="text-sm text-red-600">{error}</p> : null}
-          <Button type="submit" disabled={loading} className="w-full">
+          <Button
+            type="submit"
+            disabled={loading || !bookingToken || !inviteToken}
+            className="w-full"
+          >
             {loading ? "Creando…" : "Crear cuenta"}
           </Button>
         </form>

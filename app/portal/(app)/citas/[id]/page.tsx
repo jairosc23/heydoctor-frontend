@@ -175,17 +175,6 @@ export default function PortalAppointmentDetailPage() {
             </div>
           ) : null}
 
-          {appointment.telemedicineAccessToken ? (
-            <p className="text-xs text-primaryDark/50">
-              Estado de reserva pública:{" "}
-              <a
-                className="text-primary underline"
-                href={`/dr/booking/${appointment.telemedicineAccessToken}`}
-              >
-                abrir enlace de reserva
-              </a>
-            </p>
-          ) : null}
         </div>
       ) : null}
     </div>

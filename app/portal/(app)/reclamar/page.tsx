@@ -11,6 +11,7 @@ const FONT = "Montserrat, sans-serif";
 export default function PortalClaimBookingPage() {
   const router = useRouter();
   const [token, setToken] = useState("");
+  const [inviteToken, setInviteToken] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -19,13 +20,16 @@ export default function PortalClaimBookingPage() {
     setBusy(true);
     setError(null);
     try {
-      const appointment = await claimPortalBooking(token.trim());
+      const appointment = await claimPortalBooking(
+        token.trim(),
+        inviteToken.trim(),
+      );
       router.push(`/portal/citas/${appointment.id}`);
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
-          : "No se pudo vincular la reserva (email/clínica deben coincidir)",
+          : "No se pudo vincular (se requieren booking + invitación + email coincidente)",
       );
     } finally {
       setBusy(false);
@@ -38,8 +42,8 @@ export default function PortalClaimBookingPage() {
         Vincular reserva
       </h1>
       <p className="mb-6 text-sm text-primaryDark/70">
-        Pega el token UUID de tu reserva pública (EPIC-1) para asociarla a esta
-        cuenta. El email de la reserva debe coincidir con el de tu login.
+        Necesitas el token de reserva y el comprobante de invitación generados al
+        crear la reserva pública. El email debe coincidir con tu cuenta.
       </p>
       <form onSubmit={onSubmit} className="space-y-3">
         <Input
@@ -48,8 +52,17 @@ export default function PortalClaimBookingPage() {
           placeholder="Token de reserva (UUID)"
           disabled={busy}
         />
+        <Input
+          value={inviteToken}
+          onChange={(e) => setInviteToken(e.target.value)}
+          placeholder="Invitación portal (UUID)"
+          disabled={busy}
+        />
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
-        <Button type="submit" disabled={busy || !token.trim()}>
+        <Button
+          type="submit"
+          disabled={busy || !token.trim() || !inviteToken.trim()}
+        >
           Vincular
         </Button>
       </form>
