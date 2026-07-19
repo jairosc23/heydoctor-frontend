@@ -1,4 +1,5 @@
 import { fetchWithAuth } from "./heydoctor-api";
+import { fetchWithGuestAuth } from "./fetch-with-guest-auth";
 
 export type WebrtcResilienceEventType =
   | "reconnect_attempts"
@@ -9,6 +10,8 @@ export type WebrtcResilienceEventType =
 export type SendCallMetricsInput = {
   backendOrigin: string;
   consultationId: string;
+  /** Guest Credential Channel — omit Staff cookies / refresh. */
+  guestChannel?: boolean;
   rtt?: number;
   packetsLost?: number;
   bitrate?: number;
@@ -33,6 +36,7 @@ export async function sendCallMetrics(
   const {
     backendOrigin,
     consultationId,
+    guestChannel = false,
     rtt,
     packetsLost,
     bitrate,
@@ -68,10 +72,16 @@ export async function sendCallMetrics(
     body.resilienceReason = resilienceReason.slice(0, 64);
   }
 
-  const res = await fetchWithAuth(url, {
-    method: "POST",
-    body: JSON.stringify(body),
-  });
+  const res = guestChannel
+    ? await fetchWithGuestAuth(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      })
+    : await fetchWithAuth(url, {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
