@@ -18,7 +18,7 @@ function LoginContent() {
   const searchParams = useSearchParams();
   const { login } = useAuth();
 
-  const redirect = getSafePostLoginPath(searchParams.get("redirect"));
+  const rawRedirect = searchParams.get("redirect");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -32,7 +32,8 @@ function LoginContent() {
     setLoading(true);
 
     try {
-      await login(email.trim(), password);
+      const me = await login(email.trim(), password);
+      const redirect = getSafePostLoginPath(rawRedirect, me.role);
       /** Navegación completa: el middleware SSR debe recibir `heydoctor_session` (no solo RSC client). */
       window.location.assign(redirect);
     } catch (err) {
@@ -80,8 +81,11 @@ function LoginContent() {
           className="mb-5 text-[28px] font-bold text-primary"
           style={{ fontFamily: "Montserrat, sans-serif" }}
         >
-          Acceso Médico
+          Acceso HeyDoctor
         </h2>
+        <p className="mb-4 text-sm text-primaryDark/70">
+          Médicos y pacientes — el destino se elige según tu rol.
+        </p>
         <form onSubmit={handleSubmit} className="text-left">
           <label htmlFor="login-email" className="sr-only">
             Email

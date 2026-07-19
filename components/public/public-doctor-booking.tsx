@@ -123,6 +123,12 @@ export function PublicDoctorBooking({
             ? crypto.randomUUID()
             : undefined,
       });
+      const { storePortalInvite } = await import(
+        "@/lib/services/portal-invite-storage"
+      );
+      if (booking.portalInviteToken) {
+        storePortalInvite(booking.bookingToken, booking.portalInviteToken);
+      }
       const checkout = await startPublicBookingCheckout(booking.bookingToken);
       if (checkout.paymentUrl) {
         window.location.href = checkout.paymentUrl;

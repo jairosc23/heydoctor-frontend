@@ -76,7 +76,7 @@ type AuthContextValue = {
   isAuthenticated: boolean;
   loading: boolean;
   sessionRevalidating: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<AuthUser>;
   logout: () => Promise<void>;
   /** Recarga perfil: refresh por cookies y GET /auth/me. */
   refreshUser: () => Promise<void>;
@@ -375,8 +375,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     const params = new URLSearchParams(window.location.search);
+    // EPIC-2: role is required — omitting it defaults patients to Staff /panel.
     const target = getSafePostLoginPath(
-      params.has("redirect") ? params.get("redirect") : "/panel",
+      params.has("redirect") ? params.get("redirect") : null,
+      user.role,
     );
 
     let cancelled = false;
@@ -399,7 +401,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, pathname]);
 
   const login = useCallback(async (email: string, password: string) => {
-    await withTimeout(
+    return withTimeout(
       (async () => {
         bumpSessionGen();
         try {
@@ -415,6 +417,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           authBootstrappedRef.current = true;
           setUser(me);
           setLoading(false);
+          return me;
         } catch (e) {
           await clearMiddlewareSession();
           setAccessToken(null);

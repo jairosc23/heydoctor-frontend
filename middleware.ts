@@ -18,19 +18,21 @@ const SSR_SESSION_CLOCK_SKEW_MS = 5_000;
 const DEEPLINK_BOUNCE_COOKIE = "hd_deeplink_bounce";
 const DEEPLINK_BOUNCE_MAX_AGE_SEC = 20;
 
-function isSsrSessionValid(cookieValue: string | undefined): boolean {
-  const token = cookieValue;
-
-  if (!token) {
-    return false;
+function readSessionPayload(
+  cookieValue: string | undefined,
+): JwtPayloadClaims | null {
+  if (!cookieValue) {
+    return null;
   }
-
-  let payload: JwtPayloadClaims | null;
   try {
-    payload = parseJwtPayload(token);
+    return parseJwtPayload(cookieValue);
   } catch {
-    return false;
+    return null;
   }
+}
+
+function isSsrSessionValid(cookieValue: string | undefined): boolean {
+  const payload = readSessionPayload(cookieValue);
 
   if (payload == null || payload.exp == null || typeof payload.exp !== "number") {
     return false;
@@ -45,9 +47,16 @@ function isSsrSessionValid(cookieValue: string | undefined): boolean {
   return true;
 }
 
+function sessionRole(cookieValue: string | undefined): string | null {
+  const payload = readSessionPayload(cookieValue);
+  const role = payload?.role;
+  return typeof role === "string" ? role : null;
+}
+
 const PROTECTED_PATHS = [
   "/dashboard",
   "/panel",
+  "/portal",
   "/consultas",
   "/patients",
   "/payment-success",
@@ -84,6 +93,7 @@ function isPublicPath(pathname: string): boolean {
   if (PUBLIC_EXACT_PATHS.has(pathname)) return true;
   if (pathname.startsWith("/login")) return true;
   if (pathname.startsWith("/register")) return true;
+  if (pathname.startsWith("/portal/register")) return true;
   if (pathname.startsWith("/teleconsulta/invitado/")) return true;
   if (pathname.startsWith("/dr/")) return true;
   return false;
@@ -161,6 +171,36 @@ export function middleware(request: NextRequest) {
     return applySecurityHeaders(NextResponse.redirect(loginUrl), csp);
   }
 
+  const role = hasSession ? sessionRole(sessionCookie) : null;
+
+  // EPIC-2: keep patient sessions out of Staff UI surfaces (APIs already RBAC).
+  if (
+    hasSession &&
+    role === "patient" &&
+    (pathname.startsWith("/panel") ||
+      pathname === "/dashboard" ||
+      pathname.startsWith("/dashboard/"))
+  ) {
+    return applySecurityHeaders(
+      NextResponse.redirect(new URL("/portal", request.url)),
+      csp,
+    );
+  }
+
+  // Staff must not use Patient Portal app routes (register remains public).
+  if (
+    hasSession &&
+    role &&
+    role !== "patient" &&
+    pathname.startsWith("/portal") &&
+    !pathname.startsWith("/portal/register")
+  ) {
+    return applySecurityHeaders(
+      NextResponse.redirect(new URL("/panel", request.url)),
+      csp,
+    );
+  }
+
   // GA-FIX BUG-1: preserve ?redirect= deep-links (e.g. medical-copilot).
   // Never bounce an authenticated /login hit to bare /panel when redirect is safe.
   // If the same deep-link bounces twice within seconds, SSR cookie is stale for the
@@ -168,6 +208,7 @@ export function middleware(request: NextRequest) {
   if (pathname === "/login" && hasSession) {
     const target = getSafePostLoginPath(
       request.nextUrl.searchParams.get("redirect"),
+      role,
     );
     const priorBounce = request.cookies.get(DEEPLINK_BOUNCE_COOKIE)?.value;
     const secure = process.env.NODE_ENV === "production";

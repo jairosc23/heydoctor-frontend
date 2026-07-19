@@ -24,6 +24,8 @@ export type PublicBookingCreated = {
   startsAt: string;
   endsAt: string;
   bookingToken: string;
+  /** Portal register/claim proof — only at create, not on status. */
+  portalInviteToken: string;
   checkoutPath: string;
 };
 
@@ -34,6 +36,8 @@ export type PublicBookingStatus = {
   startsAt: string;
   endsAt: string;
   telemedicineReady: boolean;
+  clinicId?: string;
+  bookingToken?: string;
 };
 
 export type PublicTelemedicinePrep = {
