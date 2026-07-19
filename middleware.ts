@@ -48,6 +48,7 @@ function isSsrSessionValid(cookieValue: string | undefined): boolean {
 const PROTECTED_PATHS = [
   "/dashboard",
   "/panel",
+  "/portal",
   "/consultas",
   "/patients",
   "/payment-success",
@@ -84,6 +85,7 @@ function isPublicPath(pathname: string): boolean {
   if (PUBLIC_EXACT_PATHS.has(pathname)) return true;
   if (pathname.startsWith("/login")) return true;
   if (pathname.startsWith("/register")) return true;
+  if (pathname.startsWith("/portal/register")) return true;
   if (pathname.startsWith("/teleconsulta/invitado/")) return true;
   if (pathname.startsWith("/dr/")) return true;
   return false;

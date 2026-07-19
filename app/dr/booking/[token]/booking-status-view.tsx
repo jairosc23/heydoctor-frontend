@@ -170,6 +170,15 @@ export function PublicBookingStatusView({
                 >
                   Actualizar estado
                 </Button>
+
+                {status.clinicId ? (
+                  <Button
+                    href={`/portal/register?clinicId=${encodeURIComponent(status.clinicId)}&bookingToken=${encodeURIComponent(token)}`}
+                    variant="secondary"
+                  >
+                    Crear cuenta paciente y guardar esta cita
+                  </Button>
+                ) : null}
               </div>
             </div>
           ) : null}

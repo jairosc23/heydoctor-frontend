@@ -34,6 +34,8 @@ export type PublicBookingStatus = {
   startsAt: string;
   endsAt: string;
   telemedicineReady: boolean;
+  clinicId?: string;
+  bookingToken?: string;
 };
 
 export type PublicTelemedicinePrep = {

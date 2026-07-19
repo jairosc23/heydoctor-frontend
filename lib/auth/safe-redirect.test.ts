@@ -17,6 +17,11 @@ describe("getSafePostLoginPath (GA-FIX BUG-1)", () => {
     assert.equal(getSafePostLoginPath("https://evil.example"), "/panel");
   });
 
+  it("defaults patients to /portal and blocks staff panel for patients", () => {
+    assert.equal(getSafePostLoginPath(null, "patient"), "/portal");
+    assert.equal(getSafePostLoginPath("/panel/agenda", "patient"), "/portal");
+  });
+
   it("never collapses a safe redirect to bare /panel", () => {
     assert.notEqual(
       getSafePostLoginPath("/panel/consultas/abc/medical-copilot"),
