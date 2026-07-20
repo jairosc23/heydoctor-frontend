@@ -572,10 +572,18 @@ import { fetchConsultation } from "@/lib/services/consultations";
 import { getApiErrorMessage } from "@/lib/heydoctor-api";
 import { MedicalCopilotDeferredPanel } from "@/components/medical-copilot/MedicalCopilotDeferredPanel";
 import { Rc3PackagePrefetch } from "@/components/medical-copilot/Rc3PackagePrefetch";
+import { isMedicalCopilotLabSurfaceEnabled } from "@/lib/epic3/architecture-contract";
 
 /**
  * GA / AR-1 — Kill switch (local + server) + Session Ownership entry.
  * CB-1/CB-2/CB-3 surfaces mount only when Medical Copilot is enabled.
+ *
+ * EPIC-3 Architecture Contract (E3-0c):
+ * This route is an optional LAB surface — NOT the Clinical Copilot Daily Hub.
+ * Daily Hub = ClinicalCopilotDrawer on `/panel/consultas/[id]`.
+ * Depth Governed* panels are outside the Daily Hub API allowlist.
+ * Lab dump can be disabled with NEXT_PUBLIC_MEDICAL_COPILOT_LAB_SURFACE=0
+ * (default ON — no UX change for existing visitors).
  */
 export default function MedicalCopilotPage() {
   const params = useParams();
@@ -590,6 +598,7 @@ export default function MedicalCopilotPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [copilotEnabled, setCopilotEnabled] = useState(true);
+  const labSurfaceEnabled = isMedicalCopilotLabSurfaceEnabled();
 
   useEffect(() => {
     let cancelled = false;
@@ -711,1632 +720,1636 @@ export default function MedicalCopilotPage() {
                     className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8"
                     data-testid="medical-copilot-active-shell"
                   >
-                    <Rc3PackagePrefetch />
-                    <ClinicalWorkflowBanner />
-                    <ClinicalDictationPanel />
-                    <ClinicalVoiceSuggestionsPanel />
-                    <ClinicalFindingsPanel />
-                    <ClinicalInsightsPanel />
-                    <ClinicalRecommendationsPanel />
-                    <ClinicalDecisionSupportPanel />
-                    <ClinicalReasoningPanel />
-                    <ClinicalCopilotSnapshotPanel />
-                    <ClinicalReviewPanel />
-                    <MedicalCopilotDeferredPanel title="Clinical Case Representation">
-                      <ClinicalCaseRepresentationPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Clinical Context">
-                      <ClinicalContextPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Clinical Planning">
-                      <ClinicalPlanningPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed A I Request">
-                      <GovernedAIRequestPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="A I Provider">
-                      <AIProviderPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed A I Gateway">
-                      <GovernedAIGatewayPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Open A I Provider">
-                      <OpenAIProviderPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed A I Execution">
-                      <GovernedAIExecutionPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed A I Clinical Response">
-                      <GovernedAIClinicalResponsePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed A I Prompt">
-                      <GovernedAIPromptPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Prompt Template">
-                      <GovernedPromptTemplatePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Prompt Composer">
-                      <GovernedPromptComposerPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Provider Payload">
-                      <GovernedProviderPayloadPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed A I Invocation">
-                      <GovernedAIInvocationPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed A I Response Normalizer">
-                      <GovernedAIResponseNormalizerPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical A I Output">
-                      <GovernedClinicalAIOutputPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Physician Review Prep">
-                      <GovernedPhysicianReviewPrepPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Workflow Integration">
-                      <GovernedWorkflowIntegrationPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Prompt Assembly">
-                      <GovernedPromptAssemblyPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Provider Payload Translation">
-                      <GovernedProviderPayloadTranslationPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Provider Execution">
-                      <GovernedProviderExecutionPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed A I Response Processing">
-                      <GovernedAIResponseProcessingPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Physician Review Experience">
-                      <GovernedPhysicianReviewExperiencePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Clinical Differential Foundation">
-                      <ClinicalDifferentialFoundationPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Evidence Mapping Foundation">
-                      <EvidenceMappingFoundationPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Clinical Confidence Foundation">
-                      <ClinicalConfidenceFoundationPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Missing Information Engine">
-                      <MissingInformationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Physician Decision Workspace">
-                      <PhysicianDecisionWorkspacePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Diagnostic Evidence Workspace">
-                      <DiagnosticEvidenceWorkspacePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Diagnostic Gap Analyzer">
-                      <DiagnosticGapAnalyzerPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Clinical Priority Workspace">
-                      <ClinicalPriorityWorkspacePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Physician Review Workspace V2">
-                      <PhysicianReviewWorkspaceV2Panel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Session Package">
-                      <GovernedClinicalSessionPackagePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Clinical Review Dataset Foundation">
-                      <ClinicalReviewDatasetFoundationPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Review Checklist Foundation">
-                      <ReviewChecklistFoundationPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Clinical Validation Workspace">
-                      <ClinicalValidationWorkspacePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Physician Review Summary">
-                      <PhysicianReviewSummaryPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Physician Review Package">
-                      <GovernedPhysicianReviewPackagePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Physician Review Checklist Workspace">
-                      <PhysicianReviewChecklistWorkspacePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Clinical Review Timeline">
-                      <ClinicalReviewTimelinePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Clinical Review Navigation">
-                      <ClinicalReviewNavigationPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Physician Review Dashboard">
-                      <PhysicianReviewDashboardPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Review Session">
-                      <GovernedReviewSessionPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Clinical Question Generator">
-                      <ClinicalQuestionGeneratorPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Physician Interview Workspace">
-                      <PhysicianInterviewWorkspacePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Clinical Completeness Analyzer">
-                      <ClinicalCompletenessAnalyzerPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Clinical Readiness Workspace">
-                      <ClinicalReadinessWorkspacePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Assessment Package">
-                      <GovernedClinicalAssessmentPackagePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Clinical Reasoning Workspace">
-                      <ClinicalReasoningWorkspacePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Differential Review Workspace">
-                      <DifferentialReviewWorkspacePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Evidence Completeness Workspace">
-                      <EvidenceCompletenessWorkspacePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Physician Reasoning Preparation">
-                      <PhysicianReasoningPreparationPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Reasoning Package">
-                      <GovernedClinicalReasoningPackagePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Clinical Reasoning Dataset">
-                      <ClinicalReasoningDatasetPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Evidence Correlation Workspace">
-                      <EvidenceCorrelationWorkspacePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Clinical Pattern Workspace">
-                      <ClinicalPatternWorkspacePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Reasoning Workspace">
-                      <GovernedReasoningWorkspacePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Reasoning Dataset">
-                      <GovernedClinicalReasoningDatasetPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Clinical Reasoning Context">
-                      <ClinicalReasoningContextPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Evidence Graph Workspace">
-                      <EvidenceGraphWorkspacePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Clinical Reasoning Inputs">
-                      <ClinicalReasoningInputsPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Reasoning Preparation">
-                      <GovernedReasoningPreparationPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Reasoning Input Package">
-                      <GovernedClinicalReasoningInputPackagePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Clinical Reasoning Engine Core">
-                      <ClinicalReasoningEngineCorePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Reasoning Rule Pipeline">
-                      <ReasoningRulePipelinePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Reasoning Execution Context">
-                      <ReasoningExecutionContextPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Reasoning Runtime">
-                      <GovernedReasoningRuntimePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Clinical Reasoning Engine Foundation">
-                      <ClinicalReasoningEngineFoundationPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Reasoning Stage Manager">
-                      <ReasoningStageManagerPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Reasoning State Machine">
-                      <ReasoningStateMachinePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Reasoning Validation Engine">
-                      <ReasoningValidationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Reasoning Session">
-                      <GovernedReasoningSessionPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Clinical Reasoning Runtime Foundation">
-                      <ClinicalReasoningRuntimeFoundationPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Clinical Reasoning Pipeline">
-                      <ClinicalReasoningPipelinePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Clinical Reasoning Graph">
-                      <ClinicalReasoningGraphPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Clinical Reasoning Trace">
-                      <ClinicalReasoningTracePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Reasoning Session">
-                      <GovernedClinicalReasoningSessionPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Clinical Reasoning Package">
-                      <ClinicalReasoningPackagePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Clinical Reasoning Orchestrator">
-                      <ClinicalReasoningOrchestratorPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Differential Reasoning Engine">
-                      <DifferentialReasoningEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Evidence Reasoning Engine">
-                      <EvidenceReasoningEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Clinical Consistency Engine">
-                      <ClinicalConsistencyEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Reasoning Output">
-                      <GovernedReasoningOutputPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Clinical Hypothesis Workspace">
-                      <ClinicalHypothesisWorkspacePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Evidence Ranking Workspace">
-                      <EvidenceRankingWorkspacePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Reasoning Quality Engine">
-                      <ReasoningQualityEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Physician Reasoning Review">
-                      <PhysicianReasoningReviewPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Intelligence Package">
-                      <GovernedClinicalIntelligencePackagePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Clinical Intelligence Orchestrator">
-                      <ClinicalIntelligenceOrchestratorPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Clinical Intelligence Context">
-                      <ClinicalIntelligenceContextPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Clinical Intelligence Graph">
-                      <ClinicalIntelligenceGraphPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Clinical Intelligence Trace">
-                      <ClinicalIntelligenceTracePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Clinical Intelligence Runtime">
-                      <ClinicalIntelligenceRuntimePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Physician Intelligence Workspace">
-                      <PhysicianIntelligenceWorkspacePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Clinical Intelligence Validation">
-                      <ClinicalIntelligenceValidationPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Intelligence Session">
-                      <GovernedClinicalIntelligenceSessionPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Clinical Intelligence Output">
-                      <ClinicalIntelligenceOutputPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Intelligence Foundation">
-                      <GovernedClinicalIntelligenceFoundationPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Intelligence Flow">
-                      <GovernedClinicalIntelligenceFlowPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Intelligence Runtime">
-                      <GovernedClinicalIntelligenceRuntimePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Assistance">
-                      <GovernedClinicalAssistancePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Draft">
-                      <GovernedClinicalDraftPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Soap Draft">
-                      <GovernedSoapDraftPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Prescription Draft">
-                      <GovernedPrescriptionDraftPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Orders Draft">
-                      <GovernedOrdersDraftPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Referral Draft">
-                      <GovernedReferralDraftPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Medical Certificate Draft">
-                      <GovernedMedicalCertificateDraftPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Medical Leave Draft">
-                      <GovernedMedicalLeaveDraftPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Patient Instructions Draft">
-                      <GovernedPatientInstructionsDraftPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Follow Up Draft">
-                      <GovernedFollowUpDraftPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Visit Summary Draft">
-                      <GovernedClinicalVisitSummaryDraftPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Care Plan Draft">
-                      <GovernedCarePlanDraftPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Patient Education Draft">
-                      <GovernedPatientEducationDraftPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Discharge Draft">
-                      <GovernedDischargeDraftPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Documentation Package">
-                      <GovernedClinicalDocumentationPackagePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Encounter">
-                      <GovernedClinicalEncounterPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Physician Workspace">
-                      <GovernedPhysicianWorkspacePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Consultation Runtime">
-                      <GovernedConsultationRuntimePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Consultation Snapshot">
-                      <GovernedConsultationSnapshotPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Consultation Review">
-                      <GovernedConsultationReviewPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Consultation Workspace">
-                      <GovernedConsultationWorkspacePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Encounter Workspace">
-                      <GovernedEncounterWorkspacePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Encounter Review">
-                      <GovernedEncounterReviewPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Encounter Snapshot">
-                      <GovernedEncounterSnapshotPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Encounter Consolidation">
-                      <GovernedEncounterConsolidationPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Consultation Package">
-                      <GovernedConsultationPackagePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Workspace">
-                      <GovernedClinicalWorkspacePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Workspace Review">
-                      <GovernedClinicalWorkspaceReviewPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Workspace Snapshot">
-                      <GovernedClinicalWorkspaceSnapshotPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Workspace Consolidation">
-                      <GovernedClinicalWorkspaceConsolidationPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Consultation Dashboard">
-                      <GovernedConsultationDashboardPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Physician Dashboard">
-                      <GovernedPhysicianDashboardPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Dashboard">
-                      <GovernedClinicalDashboardPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Session Dashboard">
-                      <GovernedClinicalSessionDashboardPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Overview">
-                      <GovernedClinicalOverviewPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Workspace Package">
-                      <GovernedClinicalWorkspacePackagePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Home">
-                      <GovernedClinicalHomePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Physician Home">
-                      <GovernedPhysicianHomePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Consultation Home">
-                      <GovernedConsultationHomePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Timeline">
-                      <GovernedClinicalTimelinePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Encounter Timeline">
-                      <GovernedEncounterTimelinePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Navigation">
-                      <GovernedClinicalNavigationPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Experience">
-                      <GovernedClinicalExperiencePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Physician Experience">
-                      <GovernedPhysicianExperiencePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Consultation Experience">
-                      <GovernedConsultationExperiencePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Experience Package">
-                      <GovernedClinicalExperiencePackagePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Physician Interaction Workspace">
-                      <GovernedPhysicianInteractionWorkspacePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Draft Review Workspace">
-                      <GovernedDraftReviewWorkspacePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Draft Comparison Workspace">
-                      <GovernedDraftComparisonWorkspacePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Validation Workspace">
-                      <GovernedValidationWorkspacePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Approval Preview">
-                      <GovernedApprovalPreviewPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Approval Queue">
-                      <GovernedApprovalQueuePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Pending Actions">
-                      <GovernedPendingActionsPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Review Package">
-                      <GovernedClinicalReviewPackagePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Physician Session">
-                      <GovernedPhysicianSessionPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Physician Runtime Package">
-                      <GovernedPhysicianRuntimePackagePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Activation Workspace">
-                      <GovernedClinicalActivationWorkspacePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Activation Review">
-                      <GovernedClinicalActivationReviewPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Activation Timeline">
-                      <GovernedClinicalActivationTimelinePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Activation Navigation">
-                      <GovernedClinicalActivationNavigationPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Physician Activation Workspace">
-                      <GovernedPhysicianActivationWorkspacePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Consultation Activation Workspace">
-                      <GovernedConsultationActivationWorkspacePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Activation Dashboard">
-                      <GovernedClinicalActivationDashboardPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Activation Session">
-                      <GovernedClinicalActivationSessionPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Activation Runtime">
-                      <GovernedClinicalActivationRuntimePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Activation Package">
-                      <GovernedClinicalActivationPackagePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Persistence Preparation Workspace">
-                      <GovernedPersistencePreparationWorkspacePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Persistence Review">
-                      <GovernedPersistenceReviewPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Persistence Timeline">
-                      <GovernedPersistenceTimelinePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Persistence Navigation">
-                      <GovernedPersistenceNavigationPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Persistence Dashboard">
-                      <GovernedPersistenceDashboardPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Persistence Session">
-                      <GovernedPersistenceSessionPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Persistence Runtime">
-                      <GovernedPersistenceRuntimePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Persistence Preview">
-                      <GovernedPersistencePreviewPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Persistence Validation">
-                      <GovernedPersistenceValidationPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Persistence Package">
-                      <GovernedPersistencePackagePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Persistence Readiness Workspace">
-                      <GovernedPersistenceReadinessWorkspacePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Persistence Readiness Review">
-                      <GovernedPersistenceReadinessReviewPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Persistence Readiness Timeline">
-                      <GovernedPersistenceReadinessTimelinePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Persistence Readiness Dashboard">
-                      <GovernedPersistenceReadinessDashboardPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Persistence Readiness Session">
-                      <GovernedPersistenceReadinessSessionPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Persistence Readiness Runtime">
-                      <GovernedPersistenceReadinessRuntimePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Persistence Readiness Preview">
-                      <GovernedPersistenceReadinessPreviewPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Persistence Readiness Validation">
-                      <GovernedPersistenceReadinessValidationPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Persistence Readiness Consolidation">
-                      <GovernedPersistenceReadinessConsolidationPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Persistence Readiness Package">
-                      <GovernedPersistenceReadinessPackagePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Persistence Infrastructure">
-                      <GovernedClinicalPersistenceInfrastructurePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Persistence Runtime State">
-                      <GovernedClinicalPersistenceRuntimeStatePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Repository Runtime">
-                      <GovernedClinicalRepositoryRuntimePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Repository Wiring">
-                      <GovernedClinicalRepositoryWiringPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Validation">
-                      <GovernedClinicalValidationPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Execution Preparation">
-                      <GovernedClinicalExecutionPreparationPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Repository Discovery">
-                      <GovernedClinicalRepositoryDiscoveryPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Entity Mapping">
-                      <GovernedClinicalEntityMappingPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Persistence Orchestrator">
-                      <GovernedClinicalPersistenceOrchestratorPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Persistence Readiness">
-                      <GovernedClinicalPersistenceReadinessPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Consultation Persistence Bridge">
-                      <GovernedConsultationPersistenceBridgePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Soap Persistence Bridge">
-                      <GovernedSoapPersistenceBridgePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Prescription Persistence Bridge">
-                      <GovernedPrescriptionPersistenceBridgePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Orders Persistence Bridge">
-                      <GovernedOrdersPersistenceBridgePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Referral Persistence Bridge">
-                      <GovernedReferralPersistenceBridgePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Documents Persistence Bridge">
-                      <GovernedClinicalDocumentsPersistenceBridgePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Consultation Persistence Execution">
-                      <GovernedConsultationPersistenceExecutionPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Soap Persistence Execution">
-                      <GovernedSoapPersistenceExecutionPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Prescription Persistence Execution">
-                      <GovernedPrescriptionPersistenceExecutionPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Orders Persistence Execution">
-                      <GovernedOrdersPersistenceExecutionPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Referral Persistence Execution">
-                      <GovernedReferralPersistenceExecutionPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Documents Persistence Execution">
-                      <GovernedClinicalDocumentsPersistenceExecutionPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Suggestion Runtime">
-                      <GovernedClinicalSuggestionRuntimePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Differential Diagnosis Suggestion">
-                      <GovernedDifferentialDiagnosisSuggestionPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Assessment Suggestion">
-                      <GovernedClinicalAssessmentSuggestionPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Treatment Suggestion">
-                      <GovernedTreatmentSuggestionPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Medication Suggestion">
-                      <GovernedMedicationSuggestionPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Orders Suggestion">
-                      <GovernedOrdersSuggestionPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Referral Suggestion">
-                      <GovernedReferralSuggestionPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Follow Up Suggestion">
-                      <GovernedFollowUpSuggestionPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Patient Education Suggestion">
-                      <GovernedPatientEducationSuggestionPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Recommendation Package">
-                      <GovernedClinicalRecommendationPackagePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Evidence Runtime">
-                      <GovernedClinicalEvidenceRuntimePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Evidence Mapping">
-                      <GovernedEvidenceMappingPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Evidence Trace">
-                      <GovernedEvidenceTracePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Evidence Confidence">
-                      <GovernedEvidenceConfidencePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Explainability">
-                      <GovernedClinicalExplainabilityPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Justification">
-                      <GovernedClinicalJustificationPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Physician Decision Support">
-                      <GovernedPhysicianDecisionSupportPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Safety Checks">
-                      <GovernedClinicalSafetyChecksPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Recommendation Validation">
-                      <GovernedRecommendationValidationPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Decision Package">
-                      <GovernedClinicalDecisionPackagePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Drug Interaction Analysis">
-                      <GovernedDrugInteractionAnalysisPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Allergy Cross Check">
-                      <GovernedAllergyCrossCheckPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Contraindication Analysis">
-                      <GovernedContraindicationAnalysisPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Risk Detection">
-                      <GovernedClinicalRiskDetectionPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Preventive Care Suggestions">
-                      <GovernedPreventiveCareSuggestionsPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Preventive Screening Suggestions">
-                      <GovernedPreventiveScreeningSuggestionsPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Vaccination Review">
-                      <GovernedVaccinationReviewPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Chronic Disease Follow Up Analysis">
-                      <GovernedChronicDiseaseFollowUpAnalysisPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Alert Center">
-                      <GovernedClinicalAlertCenterPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Functional Intelligence Package">
-                      <GovernedClinicalFunctionalIntelligencePackagePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Cardiovascular Risk Engine">
-                      <GovernedCardiovascularRiskEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Diabetes Care Engine">
-                      <GovernedDiabetesCareEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Hypertension Management Engine">
-                      <GovernedHypertensionManagementEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Renal Risk Engine">
-                      <GovernedRenalRiskEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Polypharmacy Analysis Engine">
-                      <GovernedPolypharmacyAnalysisEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Preventive Health Engine">
-                      <GovernedPreventiveHealthEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Geriatric Assessment Engine">
-                      <GovernedGeriatricAssessmentEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Pediatric Safety Engine">
-                      <GovernedPediatricSafetyEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Womens Health Review Engine">
-                      <GovernedWomensHealthReviewEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Specialized Clinical Intelligence Package">
-                      <GovernedSpecializedClinicalIntelligencePackagePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Rule Engine Runtime">
-                      <GovernedClinicalRuleEngineRuntimePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Drug Interaction Rule Engine">
-                      <GovernedDrugInteractionRuleEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Allergy Rule Engine">
-                      <GovernedAllergyRuleEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Contraindication Rule Engine">
-                      <GovernedContraindicationRuleEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Risk Rule Engine">
-                      <GovernedClinicalRiskRuleEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Preventive Care Rule Engine">
-                      <GovernedPreventiveCareRuleEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Vaccination Rule Engine">
-                      <GovernedVaccinationRuleEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Chronic Disease Rule Engine">
-                      <GovernedChronicDiseaseRuleEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Alert Rule Engine">
-                      <GovernedClinicalAlertRuleEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Deterministic Clinical Rules Package">
-                      <GovernedDeterministicClinicalRulesPackagePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Intake Stage">
-                      <GovernedClinicalIntakeStagePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Context Stage">
-                      <GovernedClinicalContextStagePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Evidence Aggregation Stage">
-                      <GovernedEvidenceAggregationStagePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Rules Evaluation Stage">
-                      <GovernedRulesEvaluationStagePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Suggestions Aggregation Stage">
-                      <GovernedSuggestionsAggregationStagePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Decision Support Stage">
-                      <GovernedDecisionSupportStagePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Intelligence Stage">
-                      <GovernedClinicalIntelligenceStagePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Summary Stage">
-                      <GovernedClinicalSummaryStagePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Physician Review Stage">
-                      <GovernedPhysicianReviewStagePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Reasoning Pipeline">
-                      <GovernedClinicalReasoningPipelinePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Disease Knowledge Engine">
-                      <GovernedDiseaseKnowledgeEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Medication Knowledge Engine">
-                      <GovernedMedicationKnowledgeEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Laboratory Knowledge Engine">
-                      <GovernedLaboratoryKnowledgeEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Imaging Knowledge Engine">
-                      <GovernedImagingKnowledgeEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Procedure Knowledge Engine">
-                      <GovernedProcedureKnowledgeEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Vaccine Knowledge Engine">
-                      <GovernedVaccineKnowledgeEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Preventive Medicine Knowledge Engine">
-                      <GovernedPreventiveMedicineKnowledgeEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Guidelines Knowledge Engine">
-                      <GovernedClinicalGuidelinesKnowledgeEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Diagnostic Criteria Knowledge Engine">
-                      <GovernedDiagnosticCriteriaKnowledgeEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Differential Diagnosis Knowledge Engine">
-                      <GovernedDifferentialDiagnosisKnowledgeEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Drug Monograph Knowledge Engine">
-                      <GovernedDrugMonographKnowledgeEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Drug Interaction Knowledge Engine">
-                      <GovernedDrugInteractionKnowledgeEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Contraindication Knowledge Engine">
-                      <GovernedContraindicationKnowledgeEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Allergy Knowledge Engine">
-                      <GovernedAllergyKnowledgeEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Red Flag Knowledge Engine">
-                      <GovernedRedFlagKnowledgeEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Scale Knowledge Engine">
-                      <GovernedClinicalScaleKnowledgeEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Risk Score Knowledge Engine">
-                      <GovernedRiskScoreKnowledgeEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Chronic Disease Knowledge Engine">
-                      <GovernedChronicDiseaseKnowledgeEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Womens Health Knowledge Engine">
-                      <GovernedWomensHealthKnowledgeEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Pediatrics Knowledge Engine">
-                      <GovernedPediatricsKnowledgeEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Geriatrics Knowledge Engine">
-                      <GovernedGeriatricsKnowledgeEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Mental Health Knowledge Engine">
-                      <GovernedMentalHealthKnowledgeEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Emergency Medicine Knowledge Engine">
-                      <GovernedEmergencyMedicineKnowledgeEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Public Health Knowledge Engine">
-                      <GovernedPublicHealthKnowledgeEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Preventive Screening Knowledge Engine">
-                      <GovernedPreventiveScreeningKnowledgeEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Lifestyle Medicine Knowledge Engine">
-                      <GovernedLifestyleMedicineKnowledgeEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Nutrition Knowledge Engine">
-                      <GovernedNutritionKnowledgeEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Follow Up Knowledge Engine">
-                      <GovernedFollowUpKnowledgeEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Care Pathway Knowledge Engine">
-                      <GovernedCarePathwayKnowledgeEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Knowledge Package">
-                      <GovernedClinicalKnowledgePackagePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Evidence Source Engine">
-                      <GovernedEvidenceSourceEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Evidence Hierarchy Engine">
-                      <GovernedEvidenceHierarchyEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Evidence Level Engine">
-                      <GovernedEvidenceLevelEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Evidence Quality Engine">
-                      <GovernedEvidenceQualityEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Evidence Confidence Engine">
-                      <GovernedEvidenceConfidenceEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Evidence Recommendation Strength Engine">
-                      <GovernedEvidenceRecommendationStrengthEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Guideline Evidence Engine">
-                      <GovernedClinicalGuidelineEvidenceEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Systematic Review Evidence Engine">
-                      <GovernedSystematicReviewEvidenceEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Meta Analysis Evidence Engine">
-                      <GovernedMetaAnalysisEvidenceEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Randomized Trial Evidence Engine">
-                      <GovernedRandomizedTrialEvidenceEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Observational Study Evidence Engine">
-                      <GovernedObservationalStudyEvidenceEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Case Series Evidence Engine">
-                      <GovernedCaseSeriesEvidenceEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Expert Consensus Evidence Engine">
-                      <GovernedExpertConsensusEvidenceEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Protocol Evidence Engine">
-                      <GovernedClinicalProtocolEvidenceEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Society Recommendation Engine">
-                      <GovernedSocietyRecommendationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Uspstf Evidence Engine">
-                      <GovernedUspstfEvidenceEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Nice Evidence Engine">
-                      <GovernedNiceEvidenceEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Aha Evidence Engine">
-                      <GovernedAhaEvidenceEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Esc Evidence Engine">
-                      <GovernedEscEvidenceEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Ada Evidence Engine">
-                      <GovernedAdaEvidenceEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Kdigo Evidence Engine">
-                      <GovernedKdigoEvidenceEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Gina Evidence Engine">
-                      <GovernedGinaEvidenceEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Gold Evidence Engine">
-                      <GovernedGoldEvidenceEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Who Evidence Engine">
-                      <GovernedWhoEvidenceEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Cdc Evidence Engine">
-                      <GovernedCdcEvidenceEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Evidence Traceability Engine">
-                      <GovernedEvidenceTraceabilityEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Evidence Versioning Engine">
-                      <GovernedEvidenceVersioningEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Evidence Provenance Engine">
-                      <GovernedEvidenceProvenanceEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Evidence Consistency Engine">
-                      <GovernedEvidenceConsistencyEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Evidence Engine Package">
-                      <GovernedClinicalEvidenceEnginePackagePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Guideline Runtime Engine">
-                      <GovernedGuidelineRuntimeEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Ada Guideline Engine">
-                      <GovernedAdaGuidelineEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Aha Guideline Engine">
-                      <GovernedAhaGuidelineEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Acc Guideline Engine">
-                      <GovernedAccGuidelineEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Esc Guideline Engine">
-                      <GovernedEscGuidelineEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Kdigo Guideline Engine">
-                      <GovernedKdigoGuidelineEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Gina Guideline Engine">
-                      <GovernedGinaGuidelineEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Gold Guideline Engine">
-                      <GovernedGoldGuidelineEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Who Guideline Engine">
-                      <GovernedWhoGuidelineEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Cdc Guideline Engine">
-                      <GovernedCdcGuidelineEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Uspstf Guideline Engine">
-                      <GovernedUspstfGuidelineEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Nice Guideline Engine">
-                      <GovernedNiceGuidelineEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Aap Guideline Engine">
-                      <GovernedAapGuidelineEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Acog Guideline Engine">
-                      <GovernedAcogGuidelineEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Idsa Guideline Engine">
-                      <GovernedIdsaGuidelineEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Asco Guideline Engine">
-                      <GovernedAscoGuidelineEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Surviving Sepsis Guideline Engine">
-                      <GovernedSurvivingSepsisGuidelineEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Hypertension Guideline Engine">
-                      <GovernedHypertensionGuidelineEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Diabetes Guideline Engine">
-                      <GovernedDiabetesGuidelineEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Heart Failure Guideline Engine">
-                      <GovernedHeartFailureGuidelineEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Copd Guideline Engine">
-                      <GovernedCopdGuidelineEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Asthma Guideline Engine">
-                      <GovernedAsthmaGuidelineEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Ckd Guideline Engine">
-                      <GovernedCkdGuidelineEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Preventive Guideline Engine">
-                      <GovernedPreventiveGuidelineEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Vaccination Guideline Engine">
-                      <GovernedVaccinationGuidelineEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Guideline Version Engine">
-                      <GovernedGuidelineVersionEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Guideline Traceability Engine">
-                      <GovernedGuidelineTraceabilityEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Guideline Conflict Resolution Engine">
-                      <GovernedGuidelineConflictResolutionEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Guideline Recommendation Engine">
-                      <GovernedGuidelineRecommendationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Guidelines Engine Package">
-                      <GovernedClinicalGuidelinesEnginePackagePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Decision Runtime Engine">
-                      <GovernedClinicalDecisionRuntimeEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Differential Diagnosis Ranking Engine">
-                      <GovernedDifferentialDiagnosisRankingEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Differential Prioritization Engine">
-                      <GovernedDifferentialPrioritizationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Hypothesis Engine">
-                      <GovernedClinicalHypothesisEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Hypothesis Validation Engine">
-                      <GovernedHypothesisValidationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Diagnostic Confidence Engine">
-                      <GovernedDiagnosticConfidenceEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Evidence Correlation Engine">
-                      <GovernedEvidenceCorrelationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Knowledge Correlation Engine">
-                      <GovernedKnowledgeCorrelationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Guideline Correlation Engine">
-                      <GovernedGuidelineCorrelationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Conflict Detection Engine">
-                      <GovernedClinicalConflictDetectionEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Recommendation Prioritization Engine">
-                      <GovernedRecommendationPrioritizationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Recommendation Ranking Engine">
-                      <GovernedRecommendationRankingEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Recommendation Engine">
-                      <GovernedClinicalRecommendationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Action Candidate Engine">
-                      <GovernedClinicalActionCandidateEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Diagnostic Gap Detection Engine">
-                      <GovernedDiagnosticGapDetectionEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Missing Information Detection Engine">
-                      <GovernedMissingInformationDetectionEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Missing Laboratory Detection Engine">
-                      <GovernedMissingLaboratoryDetectionEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Missing Imaging Detection Engine">
-                      <GovernedMissingImagingDetectionEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Missing History Detection Engine">
-                      <GovernedMissingHistoryDetectionEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Consistency Engine">
-                      <GovernedClinicalConsistencyEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Coherence Engine">
-                      <GovernedClinicalCoherenceEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Explainability Engine">
-                      <GovernedClinicalExplainabilityEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Transparency Engine">
-                      <GovernedClinicalTransparencyEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Traceability Engine">
-                      <GovernedClinicalTraceabilityEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Physician Review Preparation Engine">
-                      <GovernedPhysicianReviewPreparationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Decision Confidence Aggregation Engine">
-                      <GovernedDecisionConfidenceAggregationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Decision Safety Engine">
-                      <GovernedDecisionSafetyEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Decision Quality Engine">
-                      <GovernedDecisionQualityEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Decision Governance Engine">
-                      <GovernedDecisionGovernanceEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Decision System Package">
-                      <GovernedClinicalDecisionSystemPackagePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Calculation Runtime Engine">
-                      <GovernedCalculationRuntimeEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Bmi Calculation Engine">
-                      <GovernedBmiCalculationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Bsa Calculation Engine">
-                      <GovernedBsaCalculationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Cockcroft Gault Calculation Engine">
-                      <GovernedCockcroftGaultCalculationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Ckd Epi Calculation Engine">
-                      <GovernedCkdEpiCalculationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Egfr Calculation Engine">
-                      <GovernedEgfrCalculationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Cha2ds2 Vasc Calculation Engine">
-                      <GovernedCha2ds2VascCalculationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Has Bled Calculation Engine">
-                      <GovernedHasBledCalculationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Ascvd Calculation Engine">
-                      <GovernedAscvdCalculationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed News2 Calculation Engine">
-                      <GovernedNews2CalculationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Curb65 Calculation Engine">
-                      <GovernedCurb65CalculationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Qsofa Calculation Engine">
-                      <GovernedQsofaCalculationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Wells Dvt Calculation Engine">
-                      <GovernedWellsDvtCalculationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Wells Pe Calculation Engine">
-                      <GovernedWellsPeCalculationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Perc Calculation Engine">
-                      <GovernedPercCalculationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Centor Calculation Engine">
-                      <GovernedCentorCalculationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Glasgow Calculation Engine">
-                      <GovernedGlasgowCalculationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Nihss Calculation Engine">
-                      <GovernedNihssCalculationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Child Pugh Calculation Engine">
-                      <GovernedChildPughCalculationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Meld Calculation Engine">
-                      <GovernedMeldCalculationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Fib4 Calculation Engine">
-                      <GovernedFib4CalculationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Nafld Score Calculation Engine">
-                      <GovernedNafldScoreCalculationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Apgar Calculation Engine">
-                      <GovernedApgarCalculationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Framingham Calculation Engine">
-                      <GovernedFraminghamCalculationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Timi Calculation Engine">
-                      <GovernedTimiCalculationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Heart Score Calculation Engine">
-                      <GovernedHeartScoreCalculationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Ottawa Ankle Rules Calculation Engine">
-                      <GovernedOttawaAnkleRulesCalculationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Ottawa Knee Rules Calculation Engine">
-                      <GovernedOttawaKneeRulesCalculationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Calculation Validation Engine">
-                      <GovernedCalculationValidationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Calculation System Package">
-                      <GovernedClinicalCalculationSystemPackagePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Patient Timeline Engine Longitudinal Engine">
-                      <GovernedPatientTimelineEngineLongitudinalEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Evolution Engine Longitudinal Engine">
-                      <GovernedClinicalEvolutionEngineLongitudinalEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Disease Progression Engine Longitudinal Engine">
-                      <GovernedDiseaseProgressionEngineLongitudinalEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Medication Timeline Engine Longitudinal Engine">
-                      <GovernedMedicationTimelineEngineLongitudinalEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Laboratory Trend Engine Longitudinal Engine">
-                      <GovernedLaboratoryTrendEngineLongitudinalEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Imaging Trend Engine Longitudinal Engine">
-                      <GovernedImagingTrendEngineLongitudinalEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Vital Signs Trend Engine Longitudinal Engine">
-                      <GovernedVitalSignsTrendEngineLongitudinalEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Risk Evolution Engine Longitudinal Engine">
-                      <GovernedRiskEvolutionEngineLongitudinalEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Milestone Engine Longitudinal Engine">
-                      <GovernedClinicalMilestoneEngineLongitudinalEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Chronic Disease Timeline Longitudinal Engine">
-                      <GovernedChronicDiseaseTimelineLongitudinalEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Hospitalization Timeline Longitudinal Engine">
-                      <GovernedHospitalizationTimelineLongitudinalEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Procedure Timeline Longitudinal Engine">
-                      <GovernedProcedureTimelineLongitudinalEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Vaccination Timeline Longitudinal Engine">
-                      <GovernedVaccinationTimelineLongitudinalEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Consultation Timeline Longitudinal Engine">
-                      <GovernedConsultationTimelineLongitudinalEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Care Gap Timeline Longitudinal Engine">
-                      <GovernedCareGapTimelineLongitudinalEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Outcome Tracking Longitudinal Engine">
-                      <GovernedOutcomeTrackingLongitudinalEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Event Timeline Longitudinal Engine">
-                      <GovernedClinicalEventTimelineLongitudinalEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Patient Journey Engine Longitudinal Engine">
-                      <GovernedPatientJourneyEngineLongitudinalEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Continuity Of Care Engine Longitudinal Engine">
-                      <GovernedContinuityOfCareEngineLongitudinalEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Longitudinal Intelligence Package">
-                      <GovernedClinicalLongitudinalIntelligencePackagePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Medication Optimization Therapeutic Engine">
-                      <GovernedMedicationOptimizationTherapeuticEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Dose Optimization Therapeutic Engine">
-                      <GovernedDoseOptimizationTherapeuticEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Therapeutic Escalation Therapeutic Engine">
-                      <GovernedTherapeuticEscalationTherapeuticEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Therapeutic De Escalation Therapeutic Engine">
-                      <GovernedTherapeuticDeEscalationTherapeuticEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Deprescribing Therapeutic Engine">
-                      <GovernedDeprescribingTherapeuticEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Medication Reconciliation Therapeutic Engine">
-                      <GovernedMedicationReconciliationTherapeuticEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Adherence Analysis Therapeutic Engine">
-                      <GovernedAdherenceAnalysisTherapeuticEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Drug Monitoring Therapeutic Engine">
-                      <GovernedDrugMonitoringTherapeuticEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Therapeutic Goal Tracking Therapeutic Engine">
-                      <GovernedTherapeuticGoalTrackingTherapeuticEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Side Effect Surveillance Therapeutic Engine">
-                      <GovernedSideEffectSurveillanceTherapeuticEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Drug Safety Therapeutic Engine">
-                      <GovernedDrugSafetyTherapeuticEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Polypharmacy Optimization Therapeutic Engine">
-                      <GovernedPolypharmacyOptimizationTherapeuticEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Treatment Response Therapeutic Engine">
-                      <GovernedTreatmentResponseTherapeuticEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Monitoring Therapeutic Engine">
-                      <GovernedClinicalMonitoringTherapeuticEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Follow Up Optimization Therapeutic Engine">
-                      <GovernedFollowUpOptimizationTherapeuticEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Care Pathway Optimization Therapeutic Engine">
-                      <GovernedCarePathwayOptimizationTherapeuticEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Therapeutic Recommendations Therapeutic Engine">
-                      <GovernedTherapeuticRecommendationsTherapeuticEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Treatment Prioritization Therapeutic Engine">
-                      <GovernedTreatmentPrioritizationTherapeuticEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Intervention Planning Therapeutic Engine">
-                      <GovernedClinicalInterventionPlanningTherapeuticEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Therapeutic Intelligence Package">
-                      <GovernedTherapeuticIntelligencePackagePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Diagnostic Runtime Diagnostic Intel Engine">
-                      <GovernedDiagnosticRuntimeDiagnosticIntelEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Differential Evolution Diagnostic Intel Engine">
-                      <GovernedDifferentialEvolutionDiagnosticIntelEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Diagnostic Correlation Diagnostic Intel Engine">
-                      <GovernedDiagnosticCorrelationDiagnosticIntelEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Diagnostic Pattern Recognition Diagnostic Intel Engine">
-                      <GovernedDiagnosticPatternRecognitionDiagnosticIntelEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Syndromic Recognition Diagnostic Intel Engine">
-                      <GovernedSyndromicRecognitionDiagnosticIntelEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Clustering Diagnostic Intel Engine">
-                      <GovernedClinicalClusteringDiagnosticIntelEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Missing Diagnosis Detection Diagnostic Intel Engine">
-                      <GovernedMissingDiagnosisDetectionDiagnosticIntelEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Diagnostic Consistency Diagnostic Intel Engine">
-                      <GovernedDiagnosticConsistencyDiagnosticIntelEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Diagnostic Prioritization Diagnostic Intel Engine">
-                      <GovernedDiagnosticPrioritizationDiagnosticIntelEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Diagnostic Confidence Diagnostic Intel Engine">
-                      <GovernedDiagnosticConfidenceDiagnosticIntelEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Diagnostic Evidence Diagnostic Intel Engine">
-                      <GovernedDiagnosticEvidenceDiagnosticIntelEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Diagnostic Explainability Diagnostic Intel Engine">
-                      <GovernedDiagnosticExplainabilityDiagnosticIntelEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Rare Disease Awareness Diagnostic Intel Engine">
-                      <GovernedRareDiseaseAwarenessDiagnosticIntelEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Diagnostic Validation Diagnostic Intel Engine">
-                      <GovernedDiagnosticValidationDiagnosticIntelEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Diagnostic Timeline Diagnostic Intel Engine">
-                      <GovernedDiagnosticTimelineDiagnosticIntelEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Diagnostic Learning Diagnostic Intel Engine">
-                      <GovernedDiagnosticLearningDiagnosticIntelEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Diagnostic Alerts Diagnostic Intel Engine">
-                      <GovernedDiagnosticAlertsDiagnosticIntelEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Diagnostic Review Diagnostic Intel Engine">
-                      <GovernedDiagnosticReviewDiagnosticIntelEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Diagnostic Governance Diagnostic Intel Engine">
-                      <GovernedDiagnosticGovernanceDiagnosticIntelEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Diagnostic Intelligence Package">
-                      <GovernedDiagnosticIntelligencePackagePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Population Runtime Population Engine">
-                      <GovernedPopulationRuntimePopulationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Risk Stratification Population Engine">
-                      <GovernedRiskStratificationPopulationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Population Screening Population Engine">
-                      <GovernedPopulationScreeningPopulationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Preventive Coverage Population Engine">
-                      <GovernedPreventiveCoveragePopulationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Vaccination Coverage Population Engine">
-                      <GovernedVaccinationCoveragePopulationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Quality Indicators Population Engine">
-                      <GovernedQualityIndicatorsPopulationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Kpis Population Engine">
-                      <GovernedClinicalKpisPopulationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Population Trends Population Engine">
-                      <GovernedPopulationTrendsPopulationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Outcomes Population Engine">
-                      <GovernedClinicalOutcomesPopulationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Resource Utilization Population Engine">
-                      <GovernedResourceUtilizationPopulationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Disease Burden Population Engine">
-                      <GovernedDiseaseBurdenPopulationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Readmission Risk Population Engine">
-                      <GovernedReadmissionRiskPopulationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Preventive Opportunities Population Engine">
-                      <GovernedPreventiveOpportunitiesPopulationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Chronic Disease Registry Population Engine">
-                      <GovernedChronicDiseaseRegistryPopulationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Population Dashboard Population Engine">
-                      <GovernedPopulationDashboardPopulationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Quality Dashboard Population Engine">
-                      <GovernedQualityDashboardPopulationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Benchmark Population Engine">
-                      <GovernedClinicalBenchmarkPopulationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Population Explainability Population Engine">
-                      <GovernedPopulationExplainabilityPopulationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Population Governance Population Engine">
-                      <GovernedPopulationGovernancePopulationEnginePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Population Health Package">
-                      <GovernedPopulationHealthPackagePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Orchestrator Runtime">
-                      <GovernedClinicalOrchestratorRuntimePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Context Aggregator">
-                      <GovernedClinicalContextAggregatorPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Intelligence Aggregator">
-                      <GovernedClinicalIntelligenceAggregatorPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Knowledge Aggregator">
-                      <GovernedKnowledgeAggregatorPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Evidence Aggregator">
-                      <GovernedEvidenceAggregatorPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Guideline Aggregator">
-                      <GovernedGuidelineAggregatorPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Decision Aggregator">
-                      <GovernedDecisionAggregatorPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Calculation Aggregator">
-                      <GovernedCalculationAggregatorPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Longitudinal Aggregator">
-                      <GovernedLongitudinalAggregatorPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Therapeutic Aggregator">
-                      <GovernedTherapeuticAggregatorPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Diagnostic Aggregator">
-                      <GovernedDiagnosticAggregatorPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Population Aggregator">
-                      <GovernedPopulationAggregatorPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Persistence Aggregator">
-                      <GovernedPersistenceAggregatorPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Reasoning Aggregator">
-                      <GovernedReasoningAggregatorPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Suggestion Aggregator">
-                      <GovernedSuggestionAggregatorPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Rule Aggregator">
-                      <GovernedRuleAggregatorPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Safety Aggregator">
-                      <GovernedSafetyAggregatorPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Governance Aggregator">
-                      <GovernedGovernanceAggregatorPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Audit Aggregator">
-                      <GovernedAuditAggregatorPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Ai Orchestrator Package">
-                      <GovernedClinicalAiOrchestratorPackagePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Consultation Workflow">
-                      <GovernedClinicalConsultationWorkflowPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Documentation Workflow">
-                      <GovernedClinicalDocumentationWorkflowPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Reasoning Workflow">
-                      <GovernedClinicalReasoningWorkflowPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Decision Workflow">
-                      <GovernedClinicalDecisionWorkflowPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Intelligence Workflow">
-                      <GovernedClinicalIntelligenceWorkflowPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Knowledge Workflow">
-                      <GovernedClinicalKnowledgeWorkflowPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Evidence Workflow">
-                      <GovernedClinicalEvidenceWorkflowPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Guidelines Workflow">
-                      <GovernedClinicalGuidelinesWorkflowPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Calculation Workflow">
-                      <GovernedClinicalCalculationWorkflowPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Safety Workflow">
-                      <GovernedClinicalSafetyWorkflowPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Validation Workflow">
-                      <GovernedClinicalValidationWorkflowPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Physician Review Workflow">
-                      <GovernedClinicalPhysicianReviewWorkflowPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Persistence Workflow">
-                      <GovernedClinicalPersistenceWorkflowPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Audit Workflow">
-                      <GovernedClinicalAuditWorkflowPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Analytics Workflow">
-                      <GovernedClinicalAnalyticsWorkflowPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Population Workflow">
-                      <GovernedClinicalPopulationWorkflowPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Marketplace Workflow">
-                      <GovernedClinicalMarketplaceWorkflowPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Dashboard Workflow">
-                      <GovernedClinicalDashboardWorkflowPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Session Workflow">
-                      <GovernedClinicalSessionWorkflowPanel />
-                    </MedicalCopilotDeferredPanel>
-                    <MedicalCopilotDeferredPanel title="Governed Clinical Workflow Engine Package">
-                      <GovernedClinicalWorkflowEnginePackagePanel />
-                    </MedicalCopilotDeferredPanel>
-                    <ClinicalFeedbackPanel />
+                    {labSurfaceEnabled ? (
+                      <>
+                      <Rc3PackagePrefetch />
+                      <ClinicalWorkflowBanner />
+                      <ClinicalDictationPanel />
+                      <ClinicalVoiceSuggestionsPanel />
+                      <ClinicalFindingsPanel />
+                      <ClinicalInsightsPanel />
+                      <ClinicalRecommendationsPanel />
+                      <ClinicalDecisionSupportPanel />
+                      <ClinicalReasoningPanel />
+                      <ClinicalCopilotSnapshotPanel />
+                      <ClinicalReviewPanel />
+                      <MedicalCopilotDeferredPanel title="Clinical Case Representation">
+                        <ClinicalCaseRepresentationPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Clinical Context">
+                        <ClinicalContextPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Clinical Planning">
+                        <ClinicalPlanningPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed A I Request">
+                        <GovernedAIRequestPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="A I Provider">
+                        <AIProviderPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed A I Gateway">
+                        <GovernedAIGatewayPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Open A I Provider">
+                        <OpenAIProviderPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed A I Execution">
+                        <GovernedAIExecutionPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed A I Clinical Response">
+                        <GovernedAIClinicalResponsePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed A I Prompt">
+                        <GovernedAIPromptPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Prompt Template">
+                        <GovernedPromptTemplatePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Prompt Composer">
+                        <GovernedPromptComposerPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Provider Payload">
+                        <GovernedProviderPayloadPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed A I Invocation">
+                        <GovernedAIInvocationPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed A I Response Normalizer">
+                        <GovernedAIResponseNormalizerPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical A I Output">
+                        <GovernedClinicalAIOutputPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Physician Review Prep">
+                        <GovernedPhysicianReviewPrepPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Workflow Integration">
+                        <GovernedWorkflowIntegrationPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Prompt Assembly">
+                        <GovernedPromptAssemblyPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Provider Payload Translation">
+                        <GovernedProviderPayloadTranslationPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Provider Execution">
+                        <GovernedProviderExecutionPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed A I Response Processing">
+                        <GovernedAIResponseProcessingPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Physician Review Experience">
+                        <GovernedPhysicianReviewExperiencePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Clinical Differential Foundation">
+                        <ClinicalDifferentialFoundationPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Evidence Mapping Foundation">
+                        <EvidenceMappingFoundationPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Clinical Confidence Foundation">
+                        <ClinicalConfidenceFoundationPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Missing Information Engine">
+                        <MissingInformationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Physician Decision Workspace">
+                        <PhysicianDecisionWorkspacePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Diagnostic Evidence Workspace">
+                        <DiagnosticEvidenceWorkspacePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Diagnostic Gap Analyzer">
+                        <DiagnosticGapAnalyzerPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Clinical Priority Workspace">
+                        <ClinicalPriorityWorkspacePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Physician Review Workspace V2">
+                        <PhysicianReviewWorkspaceV2Panel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Session Package">
+                        <GovernedClinicalSessionPackagePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Clinical Review Dataset Foundation">
+                        <ClinicalReviewDatasetFoundationPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Review Checklist Foundation">
+                        <ReviewChecklistFoundationPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Clinical Validation Workspace">
+                        <ClinicalValidationWorkspacePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Physician Review Summary">
+                        <PhysicianReviewSummaryPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Physician Review Package">
+                        <GovernedPhysicianReviewPackagePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Physician Review Checklist Workspace">
+                        <PhysicianReviewChecklistWorkspacePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Clinical Review Timeline">
+                        <ClinicalReviewTimelinePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Clinical Review Navigation">
+                        <ClinicalReviewNavigationPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Physician Review Dashboard">
+                        <PhysicianReviewDashboardPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Review Session">
+                        <GovernedReviewSessionPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Clinical Question Generator">
+                        <ClinicalQuestionGeneratorPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Physician Interview Workspace">
+                        <PhysicianInterviewWorkspacePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Clinical Completeness Analyzer">
+                        <ClinicalCompletenessAnalyzerPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Clinical Readiness Workspace">
+                        <ClinicalReadinessWorkspacePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Assessment Package">
+                        <GovernedClinicalAssessmentPackagePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Clinical Reasoning Workspace">
+                        <ClinicalReasoningWorkspacePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Differential Review Workspace">
+                        <DifferentialReviewWorkspacePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Evidence Completeness Workspace">
+                        <EvidenceCompletenessWorkspacePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Physician Reasoning Preparation">
+                        <PhysicianReasoningPreparationPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Reasoning Package">
+                        <GovernedClinicalReasoningPackagePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Clinical Reasoning Dataset">
+                        <ClinicalReasoningDatasetPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Evidence Correlation Workspace">
+                        <EvidenceCorrelationWorkspacePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Clinical Pattern Workspace">
+                        <ClinicalPatternWorkspacePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Reasoning Workspace">
+                        <GovernedReasoningWorkspacePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Reasoning Dataset">
+                        <GovernedClinicalReasoningDatasetPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Clinical Reasoning Context">
+                        <ClinicalReasoningContextPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Evidence Graph Workspace">
+                        <EvidenceGraphWorkspacePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Clinical Reasoning Inputs">
+                        <ClinicalReasoningInputsPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Reasoning Preparation">
+                        <GovernedReasoningPreparationPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Reasoning Input Package">
+                        <GovernedClinicalReasoningInputPackagePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Clinical Reasoning Engine Core">
+                        <ClinicalReasoningEngineCorePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Reasoning Rule Pipeline">
+                        <ReasoningRulePipelinePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Reasoning Execution Context">
+                        <ReasoningExecutionContextPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Reasoning Runtime">
+                        <GovernedReasoningRuntimePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Clinical Reasoning Engine Foundation">
+                        <ClinicalReasoningEngineFoundationPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Reasoning Stage Manager">
+                        <ReasoningStageManagerPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Reasoning State Machine">
+                        <ReasoningStateMachinePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Reasoning Validation Engine">
+                        <ReasoningValidationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Reasoning Session">
+                        <GovernedReasoningSessionPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Clinical Reasoning Runtime Foundation">
+                        <ClinicalReasoningRuntimeFoundationPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Clinical Reasoning Pipeline">
+                        <ClinicalReasoningPipelinePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Clinical Reasoning Graph">
+                        <ClinicalReasoningGraphPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Clinical Reasoning Trace">
+                        <ClinicalReasoningTracePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Reasoning Session">
+                        <GovernedClinicalReasoningSessionPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Clinical Reasoning Package">
+                        <ClinicalReasoningPackagePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Clinical Reasoning Orchestrator">
+                        <ClinicalReasoningOrchestratorPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Differential Reasoning Engine">
+                        <DifferentialReasoningEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Evidence Reasoning Engine">
+                        <EvidenceReasoningEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Clinical Consistency Engine">
+                        <ClinicalConsistencyEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Reasoning Output">
+                        <GovernedReasoningOutputPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Clinical Hypothesis Workspace">
+                        <ClinicalHypothesisWorkspacePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Evidence Ranking Workspace">
+                        <EvidenceRankingWorkspacePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Reasoning Quality Engine">
+                        <ReasoningQualityEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Physician Reasoning Review">
+                        <PhysicianReasoningReviewPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Intelligence Package">
+                        <GovernedClinicalIntelligencePackagePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Clinical Intelligence Orchestrator">
+                        <ClinicalIntelligenceOrchestratorPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Clinical Intelligence Context">
+                        <ClinicalIntelligenceContextPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Clinical Intelligence Graph">
+                        <ClinicalIntelligenceGraphPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Clinical Intelligence Trace">
+                        <ClinicalIntelligenceTracePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Clinical Intelligence Runtime">
+                        <ClinicalIntelligenceRuntimePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Physician Intelligence Workspace">
+                        <PhysicianIntelligenceWorkspacePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Clinical Intelligence Validation">
+                        <ClinicalIntelligenceValidationPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Intelligence Session">
+                        <GovernedClinicalIntelligenceSessionPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Clinical Intelligence Output">
+                        <ClinicalIntelligenceOutputPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Intelligence Foundation">
+                        <GovernedClinicalIntelligenceFoundationPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Intelligence Flow">
+                        <GovernedClinicalIntelligenceFlowPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Intelligence Runtime">
+                        <GovernedClinicalIntelligenceRuntimePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Assistance">
+                        <GovernedClinicalAssistancePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Draft">
+                        <GovernedClinicalDraftPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Soap Draft">
+                        <GovernedSoapDraftPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Prescription Draft">
+                        <GovernedPrescriptionDraftPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Orders Draft">
+                        <GovernedOrdersDraftPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Referral Draft">
+                        <GovernedReferralDraftPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Medical Certificate Draft">
+                        <GovernedMedicalCertificateDraftPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Medical Leave Draft">
+                        <GovernedMedicalLeaveDraftPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Patient Instructions Draft">
+                        <GovernedPatientInstructionsDraftPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Follow Up Draft">
+                        <GovernedFollowUpDraftPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Visit Summary Draft">
+                        <GovernedClinicalVisitSummaryDraftPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Care Plan Draft">
+                        <GovernedCarePlanDraftPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Patient Education Draft">
+                        <GovernedPatientEducationDraftPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Discharge Draft">
+                        <GovernedDischargeDraftPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Documentation Package">
+                        <GovernedClinicalDocumentationPackagePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Encounter">
+                        <GovernedClinicalEncounterPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Physician Workspace">
+                        <GovernedPhysicianWorkspacePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Consultation Runtime">
+                        <GovernedConsultationRuntimePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Consultation Snapshot">
+                        <GovernedConsultationSnapshotPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Consultation Review">
+                        <GovernedConsultationReviewPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Consultation Workspace">
+                        <GovernedConsultationWorkspacePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Encounter Workspace">
+                        <GovernedEncounterWorkspacePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Encounter Review">
+                        <GovernedEncounterReviewPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Encounter Snapshot">
+                        <GovernedEncounterSnapshotPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Encounter Consolidation">
+                        <GovernedEncounterConsolidationPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Consultation Package">
+                        <GovernedConsultationPackagePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Workspace">
+                        <GovernedClinicalWorkspacePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Workspace Review">
+                        <GovernedClinicalWorkspaceReviewPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Workspace Snapshot">
+                        <GovernedClinicalWorkspaceSnapshotPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Workspace Consolidation">
+                        <GovernedClinicalWorkspaceConsolidationPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Consultation Dashboard">
+                        <GovernedConsultationDashboardPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Physician Dashboard">
+                        <GovernedPhysicianDashboardPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Dashboard">
+                        <GovernedClinicalDashboardPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Session Dashboard">
+                        <GovernedClinicalSessionDashboardPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Overview">
+                        <GovernedClinicalOverviewPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Workspace Package">
+                        <GovernedClinicalWorkspacePackagePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Home">
+                        <GovernedClinicalHomePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Physician Home">
+                        <GovernedPhysicianHomePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Consultation Home">
+                        <GovernedConsultationHomePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Timeline">
+                        <GovernedClinicalTimelinePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Encounter Timeline">
+                        <GovernedEncounterTimelinePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Navigation">
+                        <GovernedClinicalNavigationPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Experience">
+                        <GovernedClinicalExperiencePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Physician Experience">
+                        <GovernedPhysicianExperiencePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Consultation Experience">
+                        <GovernedConsultationExperiencePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Experience Package">
+                        <GovernedClinicalExperiencePackagePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Physician Interaction Workspace">
+                        <GovernedPhysicianInteractionWorkspacePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Draft Review Workspace">
+                        <GovernedDraftReviewWorkspacePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Draft Comparison Workspace">
+                        <GovernedDraftComparisonWorkspacePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Validation Workspace">
+                        <GovernedValidationWorkspacePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Approval Preview">
+                        <GovernedApprovalPreviewPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Approval Queue">
+                        <GovernedApprovalQueuePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Pending Actions">
+                        <GovernedPendingActionsPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Review Package">
+                        <GovernedClinicalReviewPackagePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Physician Session">
+                        <GovernedPhysicianSessionPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Physician Runtime Package">
+                        <GovernedPhysicianRuntimePackagePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Activation Workspace">
+                        <GovernedClinicalActivationWorkspacePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Activation Review">
+                        <GovernedClinicalActivationReviewPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Activation Timeline">
+                        <GovernedClinicalActivationTimelinePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Activation Navigation">
+                        <GovernedClinicalActivationNavigationPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Physician Activation Workspace">
+                        <GovernedPhysicianActivationWorkspacePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Consultation Activation Workspace">
+                        <GovernedConsultationActivationWorkspacePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Activation Dashboard">
+                        <GovernedClinicalActivationDashboardPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Activation Session">
+                        <GovernedClinicalActivationSessionPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Activation Runtime">
+                        <GovernedClinicalActivationRuntimePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Activation Package">
+                        <GovernedClinicalActivationPackagePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Persistence Preparation Workspace">
+                        <GovernedPersistencePreparationWorkspacePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Persistence Review">
+                        <GovernedPersistenceReviewPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Persistence Timeline">
+                        <GovernedPersistenceTimelinePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Persistence Navigation">
+                        <GovernedPersistenceNavigationPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Persistence Dashboard">
+                        <GovernedPersistenceDashboardPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Persistence Session">
+                        <GovernedPersistenceSessionPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Persistence Runtime">
+                        <GovernedPersistenceRuntimePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Persistence Preview">
+                        <GovernedPersistencePreviewPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Persistence Validation">
+                        <GovernedPersistenceValidationPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Persistence Package">
+                        <GovernedPersistencePackagePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Persistence Readiness Workspace">
+                        <GovernedPersistenceReadinessWorkspacePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Persistence Readiness Review">
+                        <GovernedPersistenceReadinessReviewPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Persistence Readiness Timeline">
+                        <GovernedPersistenceReadinessTimelinePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Persistence Readiness Dashboard">
+                        <GovernedPersistenceReadinessDashboardPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Persistence Readiness Session">
+                        <GovernedPersistenceReadinessSessionPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Persistence Readiness Runtime">
+                        <GovernedPersistenceReadinessRuntimePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Persistence Readiness Preview">
+                        <GovernedPersistenceReadinessPreviewPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Persistence Readiness Validation">
+                        <GovernedPersistenceReadinessValidationPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Persistence Readiness Consolidation">
+                        <GovernedPersistenceReadinessConsolidationPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Persistence Readiness Package">
+                        <GovernedPersistenceReadinessPackagePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Persistence Infrastructure">
+                        <GovernedClinicalPersistenceInfrastructurePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Persistence Runtime State">
+                        <GovernedClinicalPersistenceRuntimeStatePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Repository Runtime">
+                        <GovernedClinicalRepositoryRuntimePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Repository Wiring">
+                        <GovernedClinicalRepositoryWiringPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Validation">
+                        <GovernedClinicalValidationPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Execution Preparation">
+                        <GovernedClinicalExecutionPreparationPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Repository Discovery">
+                        <GovernedClinicalRepositoryDiscoveryPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Entity Mapping">
+                        <GovernedClinicalEntityMappingPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Persistence Orchestrator">
+                        <GovernedClinicalPersistenceOrchestratorPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Persistence Readiness">
+                        <GovernedClinicalPersistenceReadinessPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Consultation Persistence Bridge">
+                        <GovernedConsultationPersistenceBridgePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Soap Persistence Bridge">
+                        <GovernedSoapPersistenceBridgePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Prescription Persistence Bridge">
+                        <GovernedPrescriptionPersistenceBridgePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Orders Persistence Bridge">
+                        <GovernedOrdersPersistenceBridgePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Referral Persistence Bridge">
+                        <GovernedReferralPersistenceBridgePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Documents Persistence Bridge">
+                        <GovernedClinicalDocumentsPersistenceBridgePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Consultation Persistence Execution">
+                        <GovernedConsultationPersistenceExecutionPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Soap Persistence Execution">
+                        <GovernedSoapPersistenceExecutionPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Prescription Persistence Execution">
+                        <GovernedPrescriptionPersistenceExecutionPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Orders Persistence Execution">
+                        <GovernedOrdersPersistenceExecutionPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Referral Persistence Execution">
+                        <GovernedReferralPersistenceExecutionPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Documents Persistence Execution">
+                        <GovernedClinicalDocumentsPersistenceExecutionPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Suggestion Runtime">
+                        <GovernedClinicalSuggestionRuntimePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Differential Diagnosis Suggestion">
+                        <GovernedDifferentialDiagnosisSuggestionPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Assessment Suggestion">
+                        <GovernedClinicalAssessmentSuggestionPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Treatment Suggestion">
+                        <GovernedTreatmentSuggestionPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Medication Suggestion">
+                        <GovernedMedicationSuggestionPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Orders Suggestion">
+                        <GovernedOrdersSuggestionPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Referral Suggestion">
+                        <GovernedReferralSuggestionPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Follow Up Suggestion">
+                        <GovernedFollowUpSuggestionPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Patient Education Suggestion">
+                        <GovernedPatientEducationSuggestionPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Recommendation Package">
+                        <GovernedClinicalRecommendationPackagePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Evidence Runtime">
+                        <GovernedClinicalEvidenceRuntimePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Evidence Mapping">
+                        <GovernedEvidenceMappingPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Evidence Trace">
+                        <GovernedEvidenceTracePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Evidence Confidence">
+                        <GovernedEvidenceConfidencePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Explainability">
+                        <GovernedClinicalExplainabilityPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Justification">
+                        <GovernedClinicalJustificationPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Physician Decision Support">
+                        <GovernedPhysicianDecisionSupportPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Safety Checks">
+                        <GovernedClinicalSafetyChecksPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Recommendation Validation">
+                        <GovernedRecommendationValidationPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Decision Package">
+                        <GovernedClinicalDecisionPackagePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Drug Interaction Analysis">
+                        <GovernedDrugInteractionAnalysisPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Allergy Cross Check">
+                        <GovernedAllergyCrossCheckPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Contraindication Analysis">
+                        <GovernedContraindicationAnalysisPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Risk Detection">
+                        <GovernedClinicalRiskDetectionPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Preventive Care Suggestions">
+                        <GovernedPreventiveCareSuggestionsPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Preventive Screening Suggestions">
+                        <GovernedPreventiveScreeningSuggestionsPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Vaccination Review">
+                        <GovernedVaccinationReviewPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Chronic Disease Follow Up Analysis">
+                        <GovernedChronicDiseaseFollowUpAnalysisPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Alert Center">
+                        <GovernedClinicalAlertCenterPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Functional Intelligence Package">
+                        <GovernedClinicalFunctionalIntelligencePackagePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Cardiovascular Risk Engine">
+                        <GovernedCardiovascularRiskEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Diabetes Care Engine">
+                        <GovernedDiabetesCareEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Hypertension Management Engine">
+                        <GovernedHypertensionManagementEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Renal Risk Engine">
+                        <GovernedRenalRiskEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Polypharmacy Analysis Engine">
+                        <GovernedPolypharmacyAnalysisEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Preventive Health Engine">
+                        <GovernedPreventiveHealthEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Geriatric Assessment Engine">
+                        <GovernedGeriatricAssessmentEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Pediatric Safety Engine">
+                        <GovernedPediatricSafetyEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Womens Health Review Engine">
+                        <GovernedWomensHealthReviewEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Specialized Clinical Intelligence Package">
+                        <GovernedSpecializedClinicalIntelligencePackagePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Rule Engine Runtime">
+                        <GovernedClinicalRuleEngineRuntimePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Drug Interaction Rule Engine">
+                        <GovernedDrugInteractionRuleEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Allergy Rule Engine">
+                        <GovernedAllergyRuleEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Contraindication Rule Engine">
+                        <GovernedContraindicationRuleEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Risk Rule Engine">
+                        <GovernedClinicalRiskRuleEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Preventive Care Rule Engine">
+                        <GovernedPreventiveCareRuleEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Vaccination Rule Engine">
+                        <GovernedVaccinationRuleEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Chronic Disease Rule Engine">
+                        <GovernedChronicDiseaseRuleEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Alert Rule Engine">
+                        <GovernedClinicalAlertRuleEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Deterministic Clinical Rules Package">
+                        <GovernedDeterministicClinicalRulesPackagePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Intake Stage">
+                        <GovernedClinicalIntakeStagePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Context Stage">
+                        <GovernedClinicalContextStagePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Evidence Aggregation Stage">
+                        <GovernedEvidenceAggregationStagePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Rules Evaluation Stage">
+                        <GovernedRulesEvaluationStagePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Suggestions Aggregation Stage">
+                        <GovernedSuggestionsAggregationStagePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Decision Support Stage">
+                        <GovernedDecisionSupportStagePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Intelligence Stage">
+                        <GovernedClinicalIntelligenceStagePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Summary Stage">
+                        <GovernedClinicalSummaryStagePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Physician Review Stage">
+                        <GovernedPhysicianReviewStagePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Reasoning Pipeline">
+                        <GovernedClinicalReasoningPipelinePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Disease Knowledge Engine">
+                        <GovernedDiseaseKnowledgeEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Medication Knowledge Engine">
+                        <GovernedMedicationKnowledgeEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Laboratory Knowledge Engine">
+                        <GovernedLaboratoryKnowledgeEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Imaging Knowledge Engine">
+                        <GovernedImagingKnowledgeEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Procedure Knowledge Engine">
+                        <GovernedProcedureKnowledgeEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Vaccine Knowledge Engine">
+                        <GovernedVaccineKnowledgeEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Preventive Medicine Knowledge Engine">
+                        <GovernedPreventiveMedicineKnowledgeEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Guidelines Knowledge Engine">
+                        <GovernedClinicalGuidelinesKnowledgeEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Diagnostic Criteria Knowledge Engine">
+                        <GovernedDiagnosticCriteriaKnowledgeEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Differential Diagnosis Knowledge Engine">
+                        <GovernedDifferentialDiagnosisKnowledgeEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Drug Monograph Knowledge Engine">
+                        <GovernedDrugMonographKnowledgeEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Drug Interaction Knowledge Engine">
+                        <GovernedDrugInteractionKnowledgeEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Contraindication Knowledge Engine">
+                        <GovernedContraindicationKnowledgeEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Allergy Knowledge Engine">
+                        <GovernedAllergyKnowledgeEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Red Flag Knowledge Engine">
+                        <GovernedRedFlagKnowledgeEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Scale Knowledge Engine">
+                        <GovernedClinicalScaleKnowledgeEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Risk Score Knowledge Engine">
+                        <GovernedRiskScoreKnowledgeEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Chronic Disease Knowledge Engine">
+                        <GovernedChronicDiseaseKnowledgeEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Womens Health Knowledge Engine">
+                        <GovernedWomensHealthKnowledgeEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Pediatrics Knowledge Engine">
+                        <GovernedPediatricsKnowledgeEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Geriatrics Knowledge Engine">
+                        <GovernedGeriatricsKnowledgeEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Mental Health Knowledge Engine">
+                        <GovernedMentalHealthKnowledgeEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Emergency Medicine Knowledge Engine">
+                        <GovernedEmergencyMedicineKnowledgeEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Public Health Knowledge Engine">
+                        <GovernedPublicHealthKnowledgeEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Preventive Screening Knowledge Engine">
+                        <GovernedPreventiveScreeningKnowledgeEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Lifestyle Medicine Knowledge Engine">
+                        <GovernedLifestyleMedicineKnowledgeEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Nutrition Knowledge Engine">
+                        <GovernedNutritionKnowledgeEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Follow Up Knowledge Engine">
+                        <GovernedFollowUpKnowledgeEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Care Pathway Knowledge Engine">
+                        <GovernedCarePathwayKnowledgeEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Knowledge Package">
+                        <GovernedClinicalKnowledgePackagePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Evidence Source Engine">
+                        <GovernedEvidenceSourceEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Evidence Hierarchy Engine">
+                        <GovernedEvidenceHierarchyEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Evidence Level Engine">
+                        <GovernedEvidenceLevelEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Evidence Quality Engine">
+                        <GovernedEvidenceQualityEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Evidence Confidence Engine">
+                        <GovernedEvidenceConfidenceEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Evidence Recommendation Strength Engine">
+                        <GovernedEvidenceRecommendationStrengthEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Guideline Evidence Engine">
+                        <GovernedClinicalGuidelineEvidenceEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Systematic Review Evidence Engine">
+                        <GovernedSystematicReviewEvidenceEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Meta Analysis Evidence Engine">
+                        <GovernedMetaAnalysisEvidenceEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Randomized Trial Evidence Engine">
+                        <GovernedRandomizedTrialEvidenceEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Observational Study Evidence Engine">
+                        <GovernedObservationalStudyEvidenceEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Case Series Evidence Engine">
+                        <GovernedCaseSeriesEvidenceEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Expert Consensus Evidence Engine">
+                        <GovernedExpertConsensusEvidenceEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Protocol Evidence Engine">
+                        <GovernedClinicalProtocolEvidenceEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Society Recommendation Engine">
+                        <GovernedSocietyRecommendationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Uspstf Evidence Engine">
+                        <GovernedUspstfEvidenceEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Nice Evidence Engine">
+                        <GovernedNiceEvidenceEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Aha Evidence Engine">
+                        <GovernedAhaEvidenceEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Esc Evidence Engine">
+                        <GovernedEscEvidenceEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Ada Evidence Engine">
+                        <GovernedAdaEvidenceEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Kdigo Evidence Engine">
+                        <GovernedKdigoEvidenceEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Gina Evidence Engine">
+                        <GovernedGinaEvidenceEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Gold Evidence Engine">
+                        <GovernedGoldEvidenceEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Who Evidence Engine">
+                        <GovernedWhoEvidenceEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Cdc Evidence Engine">
+                        <GovernedCdcEvidenceEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Evidence Traceability Engine">
+                        <GovernedEvidenceTraceabilityEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Evidence Versioning Engine">
+                        <GovernedEvidenceVersioningEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Evidence Provenance Engine">
+                        <GovernedEvidenceProvenanceEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Evidence Consistency Engine">
+                        <GovernedEvidenceConsistencyEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Evidence Engine Package">
+                        <GovernedClinicalEvidenceEnginePackagePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Guideline Runtime Engine">
+                        <GovernedGuidelineRuntimeEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Ada Guideline Engine">
+                        <GovernedAdaGuidelineEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Aha Guideline Engine">
+                        <GovernedAhaGuidelineEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Acc Guideline Engine">
+                        <GovernedAccGuidelineEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Esc Guideline Engine">
+                        <GovernedEscGuidelineEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Kdigo Guideline Engine">
+                        <GovernedKdigoGuidelineEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Gina Guideline Engine">
+                        <GovernedGinaGuidelineEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Gold Guideline Engine">
+                        <GovernedGoldGuidelineEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Who Guideline Engine">
+                        <GovernedWhoGuidelineEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Cdc Guideline Engine">
+                        <GovernedCdcGuidelineEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Uspstf Guideline Engine">
+                        <GovernedUspstfGuidelineEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Nice Guideline Engine">
+                        <GovernedNiceGuidelineEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Aap Guideline Engine">
+                        <GovernedAapGuidelineEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Acog Guideline Engine">
+                        <GovernedAcogGuidelineEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Idsa Guideline Engine">
+                        <GovernedIdsaGuidelineEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Asco Guideline Engine">
+                        <GovernedAscoGuidelineEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Surviving Sepsis Guideline Engine">
+                        <GovernedSurvivingSepsisGuidelineEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Hypertension Guideline Engine">
+                        <GovernedHypertensionGuidelineEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Diabetes Guideline Engine">
+                        <GovernedDiabetesGuidelineEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Heart Failure Guideline Engine">
+                        <GovernedHeartFailureGuidelineEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Copd Guideline Engine">
+                        <GovernedCopdGuidelineEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Asthma Guideline Engine">
+                        <GovernedAsthmaGuidelineEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Ckd Guideline Engine">
+                        <GovernedCkdGuidelineEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Preventive Guideline Engine">
+                        <GovernedPreventiveGuidelineEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Vaccination Guideline Engine">
+                        <GovernedVaccinationGuidelineEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Guideline Version Engine">
+                        <GovernedGuidelineVersionEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Guideline Traceability Engine">
+                        <GovernedGuidelineTraceabilityEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Guideline Conflict Resolution Engine">
+                        <GovernedGuidelineConflictResolutionEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Guideline Recommendation Engine">
+                        <GovernedGuidelineRecommendationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Guidelines Engine Package">
+                        <GovernedClinicalGuidelinesEnginePackagePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Decision Runtime Engine">
+                        <GovernedClinicalDecisionRuntimeEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Differential Diagnosis Ranking Engine">
+                        <GovernedDifferentialDiagnosisRankingEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Differential Prioritization Engine">
+                        <GovernedDifferentialPrioritizationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Hypothesis Engine">
+                        <GovernedClinicalHypothesisEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Hypothesis Validation Engine">
+                        <GovernedHypothesisValidationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Diagnostic Confidence Engine">
+                        <GovernedDiagnosticConfidenceEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Evidence Correlation Engine">
+                        <GovernedEvidenceCorrelationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Knowledge Correlation Engine">
+                        <GovernedKnowledgeCorrelationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Guideline Correlation Engine">
+                        <GovernedGuidelineCorrelationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Conflict Detection Engine">
+                        <GovernedClinicalConflictDetectionEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Recommendation Prioritization Engine">
+                        <GovernedRecommendationPrioritizationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Recommendation Ranking Engine">
+                        <GovernedRecommendationRankingEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Recommendation Engine">
+                        <GovernedClinicalRecommendationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Action Candidate Engine">
+                        <GovernedClinicalActionCandidateEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Diagnostic Gap Detection Engine">
+                        <GovernedDiagnosticGapDetectionEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Missing Information Detection Engine">
+                        <GovernedMissingInformationDetectionEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Missing Laboratory Detection Engine">
+                        <GovernedMissingLaboratoryDetectionEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Missing Imaging Detection Engine">
+                        <GovernedMissingImagingDetectionEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Missing History Detection Engine">
+                        <GovernedMissingHistoryDetectionEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Consistency Engine">
+                        <GovernedClinicalConsistencyEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Coherence Engine">
+                        <GovernedClinicalCoherenceEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Explainability Engine">
+                        <GovernedClinicalExplainabilityEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Transparency Engine">
+                        <GovernedClinicalTransparencyEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Traceability Engine">
+                        <GovernedClinicalTraceabilityEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Physician Review Preparation Engine">
+                        <GovernedPhysicianReviewPreparationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Decision Confidence Aggregation Engine">
+                        <GovernedDecisionConfidenceAggregationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Decision Safety Engine">
+                        <GovernedDecisionSafetyEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Decision Quality Engine">
+                        <GovernedDecisionQualityEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Decision Governance Engine">
+                        <GovernedDecisionGovernanceEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Decision System Package">
+                        <GovernedClinicalDecisionSystemPackagePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Calculation Runtime Engine">
+                        <GovernedCalculationRuntimeEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Bmi Calculation Engine">
+                        <GovernedBmiCalculationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Bsa Calculation Engine">
+                        <GovernedBsaCalculationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Cockcroft Gault Calculation Engine">
+                        <GovernedCockcroftGaultCalculationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Ckd Epi Calculation Engine">
+                        <GovernedCkdEpiCalculationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Egfr Calculation Engine">
+                        <GovernedEgfrCalculationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Cha2ds2 Vasc Calculation Engine">
+                        <GovernedCha2ds2VascCalculationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Has Bled Calculation Engine">
+                        <GovernedHasBledCalculationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Ascvd Calculation Engine">
+                        <GovernedAscvdCalculationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed News2 Calculation Engine">
+                        <GovernedNews2CalculationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Curb65 Calculation Engine">
+                        <GovernedCurb65CalculationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Qsofa Calculation Engine">
+                        <GovernedQsofaCalculationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Wells Dvt Calculation Engine">
+                        <GovernedWellsDvtCalculationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Wells Pe Calculation Engine">
+                        <GovernedWellsPeCalculationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Perc Calculation Engine">
+                        <GovernedPercCalculationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Centor Calculation Engine">
+                        <GovernedCentorCalculationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Glasgow Calculation Engine">
+                        <GovernedGlasgowCalculationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Nihss Calculation Engine">
+                        <GovernedNihssCalculationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Child Pugh Calculation Engine">
+                        <GovernedChildPughCalculationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Meld Calculation Engine">
+                        <GovernedMeldCalculationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Fib4 Calculation Engine">
+                        <GovernedFib4CalculationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Nafld Score Calculation Engine">
+                        <GovernedNafldScoreCalculationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Apgar Calculation Engine">
+                        <GovernedApgarCalculationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Framingham Calculation Engine">
+                        <GovernedFraminghamCalculationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Timi Calculation Engine">
+                        <GovernedTimiCalculationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Heart Score Calculation Engine">
+                        <GovernedHeartScoreCalculationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Ottawa Ankle Rules Calculation Engine">
+                        <GovernedOttawaAnkleRulesCalculationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Ottawa Knee Rules Calculation Engine">
+                        <GovernedOttawaKneeRulesCalculationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Calculation Validation Engine">
+                        <GovernedCalculationValidationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Calculation System Package">
+                        <GovernedClinicalCalculationSystemPackagePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Patient Timeline Engine Longitudinal Engine">
+                        <GovernedPatientTimelineEngineLongitudinalEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Evolution Engine Longitudinal Engine">
+                        <GovernedClinicalEvolutionEngineLongitudinalEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Disease Progression Engine Longitudinal Engine">
+                        <GovernedDiseaseProgressionEngineLongitudinalEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Medication Timeline Engine Longitudinal Engine">
+                        <GovernedMedicationTimelineEngineLongitudinalEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Laboratory Trend Engine Longitudinal Engine">
+                        <GovernedLaboratoryTrendEngineLongitudinalEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Imaging Trend Engine Longitudinal Engine">
+                        <GovernedImagingTrendEngineLongitudinalEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Vital Signs Trend Engine Longitudinal Engine">
+                        <GovernedVitalSignsTrendEngineLongitudinalEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Risk Evolution Engine Longitudinal Engine">
+                        <GovernedRiskEvolutionEngineLongitudinalEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Milestone Engine Longitudinal Engine">
+                        <GovernedClinicalMilestoneEngineLongitudinalEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Chronic Disease Timeline Longitudinal Engine">
+                        <GovernedChronicDiseaseTimelineLongitudinalEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Hospitalization Timeline Longitudinal Engine">
+                        <GovernedHospitalizationTimelineLongitudinalEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Procedure Timeline Longitudinal Engine">
+                        <GovernedProcedureTimelineLongitudinalEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Vaccination Timeline Longitudinal Engine">
+                        <GovernedVaccinationTimelineLongitudinalEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Consultation Timeline Longitudinal Engine">
+                        <GovernedConsultationTimelineLongitudinalEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Care Gap Timeline Longitudinal Engine">
+                        <GovernedCareGapTimelineLongitudinalEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Outcome Tracking Longitudinal Engine">
+                        <GovernedOutcomeTrackingLongitudinalEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Event Timeline Longitudinal Engine">
+                        <GovernedClinicalEventTimelineLongitudinalEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Patient Journey Engine Longitudinal Engine">
+                        <GovernedPatientJourneyEngineLongitudinalEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Continuity Of Care Engine Longitudinal Engine">
+                        <GovernedContinuityOfCareEngineLongitudinalEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Longitudinal Intelligence Package">
+                        <GovernedClinicalLongitudinalIntelligencePackagePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Medication Optimization Therapeutic Engine">
+                        <GovernedMedicationOptimizationTherapeuticEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Dose Optimization Therapeutic Engine">
+                        <GovernedDoseOptimizationTherapeuticEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Therapeutic Escalation Therapeutic Engine">
+                        <GovernedTherapeuticEscalationTherapeuticEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Therapeutic De Escalation Therapeutic Engine">
+                        <GovernedTherapeuticDeEscalationTherapeuticEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Deprescribing Therapeutic Engine">
+                        <GovernedDeprescribingTherapeuticEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Medication Reconciliation Therapeutic Engine">
+                        <GovernedMedicationReconciliationTherapeuticEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Adherence Analysis Therapeutic Engine">
+                        <GovernedAdherenceAnalysisTherapeuticEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Drug Monitoring Therapeutic Engine">
+                        <GovernedDrugMonitoringTherapeuticEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Therapeutic Goal Tracking Therapeutic Engine">
+                        <GovernedTherapeuticGoalTrackingTherapeuticEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Side Effect Surveillance Therapeutic Engine">
+                        <GovernedSideEffectSurveillanceTherapeuticEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Drug Safety Therapeutic Engine">
+                        <GovernedDrugSafetyTherapeuticEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Polypharmacy Optimization Therapeutic Engine">
+                        <GovernedPolypharmacyOptimizationTherapeuticEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Treatment Response Therapeutic Engine">
+                        <GovernedTreatmentResponseTherapeuticEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Monitoring Therapeutic Engine">
+                        <GovernedClinicalMonitoringTherapeuticEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Follow Up Optimization Therapeutic Engine">
+                        <GovernedFollowUpOptimizationTherapeuticEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Care Pathway Optimization Therapeutic Engine">
+                        <GovernedCarePathwayOptimizationTherapeuticEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Therapeutic Recommendations Therapeutic Engine">
+                        <GovernedTherapeuticRecommendationsTherapeuticEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Treatment Prioritization Therapeutic Engine">
+                        <GovernedTreatmentPrioritizationTherapeuticEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Intervention Planning Therapeutic Engine">
+                        <GovernedClinicalInterventionPlanningTherapeuticEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Therapeutic Intelligence Package">
+                        <GovernedTherapeuticIntelligencePackagePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Diagnostic Runtime Diagnostic Intel Engine">
+                        <GovernedDiagnosticRuntimeDiagnosticIntelEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Differential Evolution Diagnostic Intel Engine">
+                        <GovernedDifferentialEvolutionDiagnosticIntelEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Diagnostic Correlation Diagnostic Intel Engine">
+                        <GovernedDiagnosticCorrelationDiagnosticIntelEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Diagnostic Pattern Recognition Diagnostic Intel Engine">
+                        <GovernedDiagnosticPatternRecognitionDiagnosticIntelEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Syndromic Recognition Diagnostic Intel Engine">
+                        <GovernedSyndromicRecognitionDiagnosticIntelEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Clustering Diagnostic Intel Engine">
+                        <GovernedClinicalClusteringDiagnosticIntelEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Missing Diagnosis Detection Diagnostic Intel Engine">
+                        <GovernedMissingDiagnosisDetectionDiagnosticIntelEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Diagnostic Consistency Diagnostic Intel Engine">
+                        <GovernedDiagnosticConsistencyDiagnosticIntelEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Diagnostic Prioritization Diagnostic Intel Engine">
+                        <GovernedDiagnosticPrioritizationDiagnosticIntelEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Diagnostic Confidence Diagnostic Intel Engine">
+                        <GovernedDiagnosticConfidenceDiagnosticIntelEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Diagnostic Evidence Diagnostic Intel Engine">
+                        <GovernedDiagnosticEvidenceDiagnosticIntelEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Diagnostic Explainability Diagnostic Intel Engine">
+                        <GovernedDiagnosticExplainabilityDiagnosticIntelEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Rare Disease Awareness Diagnostic Intel Engine">
+                        <GovernedRareDiseaseAwarenessDiagnosticIntelEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Diagnostic Validation Diagnostic Intel Engine">
+                        <GovernedDiagnosticValidationDiagnosticIntelEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Diagnostic Timeline Diagnostic Intel Engine">
+                        <GovernedDiagnosticTimelineDiagnosticIntelEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Diagnostic Learning Diagnostic Intel Engine">
+                        <GovernedDiagnosticLearningDiagnosticIntelEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Diagnostic Alerts Diagnostic Intel Engine">
+                        <GovernedDiagnosticAlertsDiagnosticIntelEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Diagnostic Review Diagnostic Intel Engine">
+                        <GovernedDiagnosticReviewDiagnosticIntelEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Diagnostic Governance Diagnostic Intel Engine">
+                        <GovernedDiagnosticGovernanceDiagnosticIntelEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Diagnostic Intelligence Package">
+                        <GovernedDiagnosticIntelligencePackagePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Population Runtime Population Engine">
+                        <GovernedPopulationRuntimePopulationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Risk Stratification Population Engine">
+                        <GovernedRiskStratificationPopulationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Population Screening Population Engine">
+                        <GovernedPopulationScreeningPopulationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Preventive Coverage Population Engine">
+                        <GovernedPreventiveCoveragePopulationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Vaccination Coverage Population Engine">
+                        <GovernedVaccinationCoveragePopulationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Quality Indicators Population Engine">
+                        <GovernedQualityIndicatorsPopulationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Kpis Population Engine">
+                        <GovernedClinicalKpisPopulationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Population Trends Population Engine">
+                        <GovernedPopulationTrendsPopulationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Outcomes Population Engine">
+                        <GovernedClinicalOutcomesPopulationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Resource Utilization Population Engine">
+                        <GovernedResourceUtilizationPopulationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Disease Burden Population Engine">
+                        <GovernedDiseaseBurdenPopulationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Readmission Risk Population Engine">
+                        <GovernedReadmissionRiskPopulationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Preventive Opportunities Population Engine">
+                        <GovernedPreventiveOpportunitiesPopulationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Chronic Disease Registry Population Engine">
+                        <GovernedChronicDiseaseRegistryPopulationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Population Dashboard Population Engine">
+                        <GovernedPopulationDashboardPopulationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Quality Dashboard Population Engine">
+                        <GovernedQualityDashboardPopulationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Benchmark Population Engine">
+                        <GovernedClinicalBenchmarkPopulationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Population Explainability Population Engine">
+                        <GovernedPopulationExplainabilityPopulationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Population Governance Population Engine">
+                        <GovernedPopulationGovernancePopulationEnginePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Population Health Package">
+                        <GovernedPopulationHealthPackagePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Orchestrator Runtime">
+                        <GovernedClinicalOrchestratorRuntimePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Context Aggregator">
+                        <GovernedClinicalContextAggregatorPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Intelligence Aggregator">
+                        <GovernedClinicalIntelligenceAggregatorPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Knowledge Aggregator">
+                        <GovernedKnowledgeAggregatorPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Evidence Aggregator">
+                        <GovernedEvidenceAggregatorPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Guideline Aggregator">
+                        <GovernedGuidelineAggregatorPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Decision Aggregator">
+                        <GovernedDecisionAggregatorPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Calculation Aggregator">
+                        <GovernedCalculationAggregatorPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Longitudinal Aggregator">
+                        <GovernedLongitudinalAggregatorPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Therapeutic Aggregator">
+                        <GovernedTherapeuticAggregatorPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Diagnostic Aggregator">
+                        <GovernedDiagnosticAggregatorPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Population Aggregator">
+                        <GovernedPopulationAggregatorPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Persistence Aggregator">
+                        <GovernedPersistenceAggregatorPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Reasoning Aggregator">
+                        <GovernedReasoningAggregatorPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Suggestion Aggregator">
+                        <GovernedSuggestionAggregatorPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Rule Aggregator">
+                        <GovernedRuleAggregatorPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Safety Aggregator">
+                        <GovernedSafetyAggregatorPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Governance Aggregator">
+                        <GovernedGovernanceAggregatorPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Audit Aggregator">
+                        <GovernedAuditAggregatorPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Ai Orchestrator Package">
+                        <GovernedClinicalAiOrchestratorPackagePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Consultation Workflow">
+                        <GovernedClinicalConsultationWorkflowPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Documentation Workflow">
+                        <GovernedClinicalDocumentationWorkflowPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Reasoning Workflow">
+                        <GovernedClinicalReasoningWorkflowPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Decision Workflow">
+                        <GovernedClinicalDecisionWorkflowPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Intelligence Workflow">
+                        <GovernedClinicalIntelligenceWorkflowPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Knowledge Workflow">
+                        <GovernedClinicalKnowledgeWorkflowPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Evidence Workflow">
+                        <GovernedClinicalEvidenceWorkflowPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Guidelines Workflow">
+                        <GovernedClinicalGuidelinesWorkflowPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Calculation Workflow">
+                        <GovernedClinicalCalculationWorkflowPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Safety Workflow">
+                        <GovernedClinicalSafetyWorkflowPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Validation Workflow">
+                        <GovernedClinicalValidationWorkflowPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Physician Review Workflow">
+                        <GovernedClinicalPhysicianReviewWorkflowPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Persistence Workflow">
+                        <GovernedClinicalPersistenceWorkflowPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Audit Workflow">
+                        <GovernedClinicalAuditWorkflowPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Analytics Workflow">
+                        <GovernedClinicalAnalyticsWorkflowPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Population Workflow">
+                        <GovernedClinicalPopulationWorkflowPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Marketplace Workflow">
+                        <GovernedClinicalMarketplaceWorkflowPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Dashboard Workflow">
+                        <GovernedClinicalDashboardWorkflowPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Session Workflow">
+                        <GovernedClinicalSessionWorkflowPanel />
+                      </MedicalCopilotDeferredPanel>
+                      <MedicalCopilotDeferredPanel title="Governed Clinical Workflow Engine Package">
+                        <GovernedClinicalWorkflowEnginePackagePanel />
+                      </MedicalCopilotDeferredPanel>
+                      <ClinicalFeedbackPanel />
+                      </>
+                    ) : null}
                   </div>
                   <MedicalCopilotWorkspace
                     consultationId={consultationId}

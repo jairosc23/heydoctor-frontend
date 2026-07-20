@@ -37,6 +37,8 @@ export interface Appointment {
   invoiceReady?: boolean;
   version?: number;
   reason?: string | null;
+  /** Linked clinical encounter when the visit was started from Agenda. */
+  consultationId?: string | null;
   patientId?: string;
   doctorId?: string;
   reminderSummary?: Record<string, unknown>;

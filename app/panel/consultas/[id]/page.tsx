@@ -191,6 +191,8 @@ export default function ConsultationDetailPage() {
   const [dnaDrawerOpen, setDnaDrawerOpen] = useState(false);
   const [copilotDrawerOpen, setCopilotDrawerOpen] = useState(false);
   const [generativeExpandToken, setGenerativeExpandToken] = useState(0);
+  /** EPIC-3 UC-01: auto-open Daily Hub once per consultation mount for Prep context. */
+  const preVisitAutoOpenedRef = useRef(false);
 
   const [patientRow, setPatientRow] = useState<PatientRow | null>(null);
   const [patientProfile, setPatientProfile] = useState<PatientProfile | null>(
@@ -371,6 +373,15 @@ export default function ConsultationDetailPage() {
   const clinicalFoundation = clinicalFoundationState.data;
   const effectiveClinicalMemory =
     clinicalFoundation?.memory ?? patientClinicalMemoryState.data;
+
+  // UC-01: surface Prep context automatically in Daily Hub (read-only). No generative expand.
+  useEffect(() => {
+    if (preVisitAutoOpenedRef.current) return;
+    if (!consultation?.id) return;
+    if (clinicalFoundationState.loading) return;
+    preVisitAutoOpenedRef.current = true;
+    setCopilotDrawerOpen(true);
+  }, [consultation?.id, clinicalFoundationState.loading]);
   const effectiveClinicalMemoryLoading =
     clinicalFoundationState.loading && !clinicalFoundation
       ? true
@@ -967,6 +978,7 @@ export default function ConsultationDetailPage() {
         open={copilotDrawerOpen}
         onClose={() => setCopilotDrawerOpen(false)}
         generativeExpandToken={generativeExpandToken}
+        consultation={consultation}
         consultationId={id}
         patientId={consultation.patientId}
         diagnosis={diagnosisState.diagnosis}
@@ -979,7 +991,16 @@ export default function ConsultationDetailPage() {
         patientAge={soapPatientAge}
         patientSex={soapPatientSex}
         clinicalMemory={effectiveClinicalMemory}
+        clinicalFoundation={clinicalFoundation}
+        clinicalFoundationLoading={clinicalFoundationState.loading}
+        clinicalFoundationError={clinicalFoundationState.error}
         foundationOutputs={clinicalFoundationOutputs}
+        onSignConsultation={async (signatureBase64) => {
+          await handleSign(signatureBase64);
+        }}
+        onClosePersisted={() => {
+          void load();
+        }}
       />
 
       <DoctorDnaDrawer

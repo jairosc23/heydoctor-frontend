@@ -13,10 +13,18 @@ import {
 } from "@/lib/clinical-copilot-intelligence";
 import { buildDoctorDnaIntelligenceView } from "@/lib/doctor-dna-intelligence";
 import type { PatientClinicalMemory } from "@/lib/types/clinical-memory";
+import { useDailyHubPreVisit } from "@/hooks/useDailyHubPreVisit";
+import { useCloseHitlExecution } from "@/hooks/useCloseHitlExecution";
+import { useLiveClinicalContextTimeline } from "@/hooks/useLiveClinicalContextTimeline";
+import { useLiveClinicalInsights } from "@/hooks/useLiveClinicalInsights";
+import { useReviewSelectionLayer } from "@/hooks/useReviewSelectionLayer";
+import { useSuggestedInterviewQuestions } from "@/hooks/useSuggestedInterviewQuestions";
 import type {
+  ClinicalFoundationBundle,
   ClinicalFoundationFinding,
   ClinicalFoundationOutputs,
 } from "@/lib/types/clinical-foundation";
+import type { NestConsultation } from "@/lib/services/consultations";
 import { cn } from "@/lib/utils";
 import {
   CLINICAL_OVERLAY_BACKDROP_CLASS,
@@ -26,14 +34,22 @@ import { CopilotActionSystem } from "./CopilotActionSystem";
 import { CopilotContextEngine } from "./CopilotContextEngine";
 import { CopilotDocumentationGaps } from "./CopilotDocumentationGaps";
 import { CopilotDocumentationQuality } from "./CopilotDocumentationQuality";
-import { CopilotGenerativeSection } from "./CopilotGenerativeSection";
 import { CopilotGovernanceBoundary } from "./CopilotGovernanceBoundary";
 import { CopilotInsightCards } from "./CopilotInsightCards";
+import { CopilotClinicalReviewWorkspace } from "./CopilotClinicalReviewWorkspace";
+import { CopilotLiveClinicalInsights } from "./CopilotLiveClinicalInsights";
+import { buildClinicalReviewWorkspaceMeta } from "@/lib/epic3/clinical-review-workspace";
+import { buildPersistencePreview } from "@/lib/epic3/persistence-preview";
+import { buildPreVisitClinicalSnapshot } from "@/lib/epic3/pre-visit-clinical-snapshot";
+import { evaluateLiveDocumentationQuality } from "@/lib/epic3/live-documentation-quality";
+import { evaluatePreVisitQualitySignals } from "@/lib/epic3/pre-visit-quality-signals";
+import { CopilotSuggestedInterviewQuestions } from "./CopilotSuggestedInterviewQuestions";
 import { CopilotRiskSignals } from "./CopilotRiskSignals";
 
 export interface ClinicalCopilotDrawerProps {
   open: boolean;
   onClose: () => void;
+  consultation?: NestConsultation | null;
   consultationId?: string | null;
   patientId?: string | null;
   diagnosis?: string | null;
@@ -46,8 +62,17 @@ export interface ClinicalCopilotDrawerProps {
   patientAge?: string | number | null;
   patientSex?: string | null;
   clinicalMemory?: PatientClinicalMemory;
+  /** Full Clinical Foundation bundle (UC-01 Prep). */
+  clinicalFoundation?: ClinicalFoundationBundle | null;
+  clinicalFoundationLoading?: boolean;
+  clinicalFoundationError?: string | null;
   foundationOutputs?: ClinicalFoundationOutputs | null;
+  /** @deprecated Unused — UC-02B/03C are the sole generative Daily Hub surfaces. */
   generativeExpandToken?: number;
+  /** UC-04D H4 — prefer encounter handleSign (flush + tracking). */
+  onSignConsultation?: (signatureBase64: string) => Promise<void>;
+  /** UC-04D after H3 — refresh consultation expectedVersion / notes. */
+  onClosePersisted?: () => void;
 }
 
 function mapFoundationFindingKind(
@@ -90,6 +115,7 @@ function mapFoundationGapsToDocumentationGaps(
 export function ClinicalCopilotDrawer({
   open,
   onClose,
+  consultation = null,
   consultationId,
   patientId,
   diagnosis,
@@ -102,13 +128,111 @@ export function ClinicalCopilotDrawer({
   patientAge,
   patientSex,
   clinicalMemory: providedClinicalMemory,
+  clinicalFoundation = null,
+  clinicalFoundationLoading = false,
+  clinicalFoundationError = null,
   foundationOutputs,
-  generativeExpandToken = 0,
+  generativeExpandToken: _generativeExpandToken = 0,
+  onSignConsultation,
+  onClosePersisted,
 }: ClinicalCopilotDrawerProps) {
+  void _generativeExpandToken;
   const clinicalMemoryData =
     providedClinicalMemory ?? EMPTY_PATIENT_CLINICAL_MEMORY;
   const { data: doctorDnaData, loading: dnaLoading, error: dnaError } =
     useDoctorDna();
+  const { view: preVisitView, agendaLoading } = useDailyHubPreVisit({
+    open,
+    consultationId,
+    patientId,
+    foundation: clinicalFoundation,
+    foundationLoading: clinicalFoundationLoading,
+    foundationError: clinicalFoundationError,
+  });
+  const preVisitQualitySignals = useMemo(
+    () => evaluatePreVisitQualitySignals(clinicalFoundation),
+    [clinicalFoundation],
+  );
+  const preVisitClinicalSnapshot = useMemo(
+    () => buildPreVisitClinicalSnapshot(clinicalFoundation),
+    [clinicalFoundation],
+  );
+  const interviewQuestions = useSuggestedInterviewQuestions({
+    open,
+    sessionId: preVisitView.sessionId,
+    sessionBootstrapping:
+      preVisitView.sessionStatus === "idle" ||
+      preVisitView.sessionStatus === "loading",
+    preVisit: preVisitView,
+    qualitySignals: preVisitQualitySignals,
+    foundation: clinicalFoundation,
+  });
+  const liveTimeline = useLiveClinicalContextTimeline({
+    open,
+    sessionId: preVisitView.sessionId,
+    consultation,
+    foundation: clinicalFoundation,
+  });
+  const liveDocumentationQuality = useMemo(
+    () =>
+      evaluateLiveDocumentationQuality({
+        consultation,
+        foundation: clinicalFoundation,
+      }),
+    [consultation, clinicalFoundation],
+  );
+  const liveInsights = useLiveClinicalInsights({
+    open,
+    sessionId: preVisitView.sessionId,
+    sessionBootstrapping:
+      preVisitView.sessionStatus === "idle" ||
+      preVisitView.sessionStatus === "loading",
+    consultation,
+    foundation: clinicalFoundation,
+    documentationQuality: liveDocumentationQuality,
+  });
+  const clinicalReviewWorkspace = useMemo(
+    () =>
+      buildClinicalReviewWorkspaceMeta({
+        sessionId: preVisitView.sessionId,
+        interviewBatch: interviewQuestions.batch,
+        insightsBatch: liveInsights.batch,
+      }),
+    [
+      preVisitView.sessionId,
+      interviewQuestions.batch,
+      liveInsights.batch,
+    ],
+  );
+  const reviewSelection = useReviewSelectionLayer({
+    open,
+    sessionId: preVisitView.sessionId,
+    interviewBatch: interviewQuestions.batch,
+    insightsBatch: liveInsights.batch,
+    snapshot: preVisitClinicalSnapshot,
+  });
+  const persistencePreview = useMemo(
+    () =>
+      buildPersistencePreview({
+        reviewState: reviewSelection.state,
+        consultationId: consultationId ?? consultation?.id ?? null,
+        foundationProvenance: clinicalFoundation?.provenance ?? null,
+      }),
+    [
+      reviewSelection.state,
+      consultationId,
+      consultation?.id,
+      clinicalFoundation?.provenance,
+    ],
+  );
+  const closeHitl = useCloseHitlExecution({
+    open,
+    preview: persistencePreview,
+    expectedVersion: consultation?.updatedAt ?? null,
+    existingNotes: notes ?? consultation?.notes ?? null,
+    signConsultationFn: onSignConsultation,
+    onPersisted: onClosePersisted,
+  });
 
   const clinicalMemory = useMemo(
     () =>
@@ -166,12 +290,6 @@ export function ClinicalCopilotDrawer({
     ],
   );
 
-  const diagnosisLabel = useMemo(() => {
-    if (diagnosisCode && diagnosisDescription) {
-      return `${diagnosisCode} — ${diagnosisDescription}`;
-    }
-    return diagnosisDescription?.trim() || diagnosis?.trim() || null;
-  }, [diagnosis, diagnosisCode, diagnosisDescription]);
   const foundationInsights = useMemo(
     () => mapFoundationFindingsToInsights(foundationOutputs),
     [foundationOutputs],
@@ -224,13 +342,13 @@ export function ClinicalCopilotDrawer({
         <header className="shrink-0 border-b border-hd-border-subtle px-hd-4 py-hd-3">
           <div className="heydoctor-presence">
             <p className="text-[10px] font-semibold uppercase tracking-wide text-primary/80">
-              Phase 4.7B Noise Reduction
+              Clinical Copilot Daily Hub · Prep
             </p>
             <h2 className="text-sm font-semibold text-slate-900">
               Clinical Copilot™
             </h2>
             <p className="text-[10px] text-slate-500">
-              Menos ruido — observaciones con valor clínico
+              Contexto pre-consulta · solo lectura
             </p>
           </div>
           <button
@@ -244,6 +362,69 @@ export function ClinicalCopilotDrawer({
         </header>
 
         <div className="flex-1 space-y-hd-5 overflow-y-auto px-hd-4 py-hd-4">
+          {/* Prep/Live generative SSOT (UC-02B / UC-03C) — single surface */}
+          <CopilotSuggestedInterviewQuestions
+            batch={interviewQuestions.batch}
+            loading={interviewQuestions.loading}
+            error={interviewQuestions.error}
+            onRegenerate={() => {
+              void interviewQuestions.regenerate();
+            }}
+            onUpdate={interviewQuestions.updateSuggestion}
+            onDiscard={interviewQuestions.discardSuggestion}
+          />
+          <CopilotLiveClinicalInsights
+            batch={liveInsights.batch}
+            loading={liveInsights.loading}
+            error={liveInsights.error}
+            onRegenerate={() => {
+              void liveInsights.regenerate();
+            }}
+            onDiscard={liveInsights.discardInsight}
+          />
+          {/* Close SSOT — observational + H1 selection + preview + H2/H3/H4 */}
+          <CopilotClinicalReviewWorkspace
+            meta={clinicalReviewWorkspace}
+            agendaLoading={agendaLoading}
+            preVisitView={preVisitView}
+            clinicalSnapshot={preVisitClinicalSnapshot}
+            qualitySignals={preVisitQualitySignals}
+            documentationQuality={liveDocumentationQuality}
+            timelineView={liveTimeline.view}
+            timelineLoading={liveTimeline.loading}
+            timelineError={liveTimeline.error}
+            onTimelineRefresh={() => {
+              void liveTimeline.refresh();
+            }}
+            reviewState={reviewSelection.state}
+            reviewSummary={reviewSelection.summary}
+            onReviewAccept={(id) => {
+              void reviewSelection.accept(id);
+            }}
+            onReviewDiscard={(id) => {
+              void reviewSelection.discard(id);
+            }}
+            onReviewEdit={(id, text) => {
+              void reviewSelection.edit(id, text);
+            }}
+            reviewBusy={reviewSelection.busy}
+            reviewError={reviewSelection.error}
+            persistencePreview={persistencePreview}
+            closeAudit={closeHitl.audit}
+            closeGateOk={closeHitl.gateOk}
+            closeGateReason={closeHitl.gateReason}
+            closeBusy={closeHitl.busy}
+            closeError={closeHitl.error}
+            onCloseApproveH2={() => {
+              void closeHitl.approveH2();
+            }}
+            onCloseExecuteH3={() => {
+              void closeHitl.executeH3();
+            }}
+            onCloseSignH4={(signatureBase64) => {
+              void closeHitl.signH4(signatureBase64);
+            }}
+          />
           <CopilotGovernanceBoundary />
           {silenceMode ? (
             <p
@@ -270,13 +451,6 @@ export function ClinicalCopilotDrawer({
           <CopilotInsightCards insights={displayedInsights} />
           <CopilotRiskSignals signals={intelligence.riskSignals} />
           <CopilotDocumentationGaps gaps={displayedGaps} />
-          <CopilotGenerativeSection
-            chiefComplaint={chiefComplaint}
-            notes={notes}
-            diagnosis={diagnosisLabel}
-            treatment={treatment}
-            expandRequestToken={generativeExpandToken}
-          />
           <CopilotActionSystem />
         </div>
       </aside>

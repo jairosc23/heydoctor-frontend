@@ -56,9 +56,9 @@ describe("clinical-ai-facade Phase 4.8.3A", () => {
   });
 });
 
-describe("clinical-ai-facade-audit Phase 4.8.3A", () => {
-  it("inventaria 4 consumidores migrados", () => {
-    assert.equal(CLINICAL_AI_FACADE_CONSUMERS.length, 4);
+describe("clinical-ai-facade-audit Phase 4.8.3A / E3-0c", () => {
+  it("inventaria consumidores migrados vivos (Assist/Insights removed)", () => {
+    assert.equal(CLINICAL_AI_FACADE_CONSUMERS.length, 3);
     assert.ok(CLINICAL_AI_FACADE_CONSUMERS.every((c) => c.migrated));
   });
 
@@ -77,7 +77,7 @@ describe("clinical-ai-facade-audit Phase 4.8.3A", () => {
         `Violaciones facade: ${JSON.stringify(audit.componentViolations, null, 2)}`,
       );
     }
-    assert.equal(audit.consumersMigrated, 4);
+    assert.equal(audit.consumersMigrated, 3);
     assert.equal(audit.endpointsCentralized, 5);
   });
 });

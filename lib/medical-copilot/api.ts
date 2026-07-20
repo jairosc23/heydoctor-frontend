@@ -2353,6 +2353,43 @@ export async function getMedicalCopilotGovernedSoapPersistenceExecution(
   return heydoctorApi.get(`${BASE}/session/${encodeURIComponent(sessionId)}/governed-soap-persistence-execution`);
 }
 
+/**
+ * Execute Governed SOAP Persistence (HITL; existing backend writer).
+ * Body requires explicit draftApproved + optimistic expectedVersion.
+ */
+export async function postMedicalCopilotGovernedSoapPersistenceExecution(
+  sessionId: string,
+  body: {
+    draftApproved: true;
+    expectedVersion: string;
+    patch: {
+      reason?: string;
+      notes?: string;
+      diagnosis?: string | null;
+      treatment?: string | null;
+    };
+  },
+): Promise<
+  MedicalCopilotApiEnvelope<{
+    writeExecuted?: boolean;
+    writeAttempted?: boolean;
+    entityPersisted?: boolean;
+    rollbackExecuted?: boolean;
+    reason?: string;
+    persistenceId?: string;
+    correlationId?: string;
+    auditWriter?: unknown;
+    runtime?: unknown;
+    status?: unknown;
+    governance?: unknown;
+  }>
+> {
+  return heydoctorApi.post(
+    `${BASE}/session/${encodeURIComponent(sessionId)}/governed-soap-persistence-execution`,
+    body,
+  );
+}
+
 /** Governed Prescription Persistence Execution evaluate (HITL; never auto-writes). */
 export async function getMedicalCopilotGovernedPrescriptionPersistenceExecution(
   sessionId: string,
