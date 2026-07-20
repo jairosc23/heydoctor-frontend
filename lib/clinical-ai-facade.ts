@@ -1,7 +1,9 @@
 /**
  * Phase 4.8.3A — ClinicalAiFacade™
  * Puerta de entrada única frontend hacia capacidades IA generativas.
- * Sin cambios de UX, backend ni payloads.
+ *
+ * EPIC-3 E3-0c: transitional MERGE client for Daily Hub (`/ai/*`).
+ * EMR AI writes remain Governed Persistence only (not this facade).
  */
 
 import {

@@ -671,10 +671,9 @@ export const FILES_AFFECTED_BY_CONSOLIDATION = [
   "app/panel/consultas/[id]/_components/SafetyStrip.tsx",
   "app/panel/consultas/[id]/_components/copilot/ClinicalCopilotDrawer.tsx",
   "app/panel/consultas/[id]/_components/copilot/CopilotContextEngine.tsx",
-  "components/clinical/ConsultationAssistPanel.tsx",
-  "components/clinical/AiInsightsPanel.tsx",
   "components/clinical/ConsultationActionBar.tsx",
   "app/panel/consultas/page.tsx",
+  "lib/epic3/architecture-contract.ts",
 ] as const;
 
 export function runProductionConsolidationAuditSummary() {

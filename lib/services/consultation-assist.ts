@@ -9,6 +9,8 @@ export type ConsultationAssistRequest = {
 
 export type ConsultationAssistResponse = {
   aiRunId?: string;
+  /** From AI Governance startRun / workflow spec. */
+  promptVersion?: string | null;
   approvalState?: string;
   generatedByAi?: boolean;
   assistiveOnlyNotice: string;

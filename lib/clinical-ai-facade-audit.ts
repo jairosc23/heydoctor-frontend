@@ -74,17 +74,11 @@ export const CLINICAL_AI_FACADE_CONSUMERS: FacadeConsumer[] = [
     migrated: true,
   },
   {
-    component: "components/clinical/ConsultationAssistPanel.tsx",
+    component:
+      "app/panel/consultas/[id]/_components/copilot/CopilotGenerativeSection.tsx",
     facadeMethod: "getConsultationAssist",
     operation: "consultation_assist",
-    trigger: "Tab Asistencia → Obtener sugerencias",
-    migrated: true,
-  },
-  {
-    component: "components/clinical/AiInsightsPanel.tsx",
-    facadeMethod: "getConsultationInsights",
-    operation: "consultation_insights",
-    trigger: "Tab Asistencia → carga automática",
+    trigger: "Clinical Copilot Daily Hub → asistencia generativa",
     migrated: true,
   },
   {
@@ -115,8 +109,8 @@ export const CLINICAL_AI_ARCHITECTURE_BEFORE: FacadeArchitectureLayer[] = [
     layer: "UI",
     modules: [
       "LiveAiNoteSuggestions",
-      "ConsultationAssistPanel",
-      "AiInsightsPanel",
+      "ConsultationAssistPanel (removed E3-0c)",
+      "AiInsightsPanel (removed E3-0c)",
       "ClinicalRecordPanel",
     ],
     role: "Cada componente llama servicio IA directo",
