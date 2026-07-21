@@ -2,12 +2,18 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { submitDoctorApplication } from "@/lib/services/doctor-applications";
+import { GlobalAddressFields } from "@/components/global-address";
 import { BrandLogo } from "@/components/branding";
 import Container from "@/components/ui/Container";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
+import {
+  createEmptyAddressSelection,
+  getCountryLabel,
+  type AddressSelection,
+} from "@/lib/global-address-engine";
+import { submitDoctorApplication } from "@/lib/services/doctor-applications";
 
 const FONT_HEADING = "Montserrat, sans-serif";
 
@@ -30,21 +36,19 @@ const SPECIALTIES = [
   "Otra",
 ];
 
-const COUNTRIES = [
-  "Chile",
-  "México",
-  "Colombia",
-  "Argentina",
-  "Perú",
-  "España",
-  "Otro",
-];
+/** Preserve legacy apply payload labels for known codes (API still receives display names). */
+function countryPayloadLabel(code: string): string {
+  if (code === "OTHER") return "Otro";
+  return getCountryLabel(code, "es") || code;
+}
 
 export default function DoctorApplyPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [specialty, setSpecialty] = useState("");
-  const [country, setCountry] = useState("");
+  const [address, setAddress] = useState<AddressSelection>(() =>
+    createEmptyAddressSelection(""),
+  );
   const [licenseUrl, setLicenseUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -59,7 +63,7 @@ export default function DoctorApplyPage() {
         name: name.trim(),
         email: email.trim(),
         specialty,
-        country,
+        country: countryPayloadLabel(address.countryCode),
         licenseUrl: licenseUrl.trim() || undefined,
       });
       setSuccess(true);
@@ -174,23 +178,23 @@ export default function DoctorApplyPage() {
                 </select>
               </Field>
 
-              <Field label="País" required htmlFor="apply-country">
-                <select
-                  id="apply-country"
-                  value={country}
-                  onChange={(e) => setCountry(e.target.value)}
-                  required
-                  disabled={submitting}
-                  className={`w-full outline-none transition-all duration-200 disabled:opacity-60 ${FIELD}`}
-                >
-                  <option value="">Seleccionar...</option>
-                  {COUNTRIES.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
-              </Field>
+              <GlobalAddressFields
+                value={address}
+                onChange={setAddress}
+                disabled={submitting}
+                showAdminLevels={false}
+                showStreetFields={false}
+                residenceCountryLabel="País"
+                residenceCountryRequired
+                idPrefix="apply-address"
+                selectStyle={{
+                  minHeight: 48,
+                  borderRadius: 8,
+                  border: "1px solid #d1d5db",
+                  padding: "12px",
+                  fontSize: 16,
+                }}
+              />
 
               <Field label="URL de licencia médica (opcional)" htmlFor="apply-license">
                 <Input

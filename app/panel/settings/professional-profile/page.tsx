@@ -1,6 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { GlobalAddressFields } from "@/components/global-address";
+import {
+  createEmptyAddressSelection,
+  normalizeCountryCode,
+  type AddressSelection,
+} from "@/lib/global-address-engine";
 import {
   fetchMyDoctorProfile,
   fetchMyDoctorProfileCompleteness,
@@ -91,7 +97,6 @@ const FIELDS: Array<{
     label: "Dirección profesional",
     placeholder: "Dirección clínica o consulta",
   },
-  { name: "country", label: "País", placeholder: "CL" },
   {
     name: "signatureUrl",
     label: "URL de firma",
@@ -131,12 +136,23 @@ function profileErrorMessage(error: unknown, fallback: string): string {
 
 export default function ProfessionalProfilePage() {
   const [form, setForm] = useState<ProfessionalProfileForm>(EMPTY_FORM);
+  const [address, setAddress] = useState<AddressSelection>(() =>
+    createEmptyAddressSelection("CL"),
+  );
   const [completeness, setCompleteness] =
     useState<DoctorProfileCompleteness | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
+
+  function syncCountryFromAddress(next: AddressSelection) {
+    setAddress(next);
+    setForm((current) => ({
+      ...current,
+      country: normalizeCountryCode(next.countryCode),
+    }));
+  }
 
   const missingLabels = useMemo(
     () =>
@@ -154,7 +170,13 @@ export default function ProfessionalProfilePage() {
         fetchMyDoctorProfile(),
         fetchMyDoctorProfileCompleteness(),
       ]);
-      setForm(formFromResponse(profileResponse));
+      const nextForm = formFromResponse(profileResponse);
+      setForm(nextForm);
+      setAddress(
+        createEmptyAddressSelection(
+          normalizeCountryCode(nextForm.country) || "CL",
+        ),
+      );
       setCompleteness(completenessResponse);
     } catch (err) {
       setError(
@@ -176,7 +198,13 @@ export default function ProfessionalProfilePage() {
     setSavedMessage(null);
     try {
       const response = await updateMyDoctorProfile(trimForm(form));
-      setForm(formFromResponse(response));
+      const nextForm = formFromResponse(response);
+      setForm(nextForm);
+      setAddress(
+        createEmptyAddressSelection(
+          normalizeCountryCode(nextForm.country) || "CL",
+        ),
+      );
       setCompleteness(response.completeness);
       setSavedMessage("Perfil profesional guardado correctamente.");
     } catch (err) {
@@ -312,6 +340,19 @@ export default function ProfessionalProfilePage() {
               />
             </div>
           ))}
+
+          <div className="md:col-span-2">
+            <GlobalAddressFields
+              value={address}
+              onChange={syncCountryFromAddress}
+              disabled={loading || saving}
+              showAdminLevels={false}
+              showStreetFields={false}
+              residenceCountryLabel="País"
+              residenceCountryRequired
+              idPrefix="professional-profile-address"
+            />
+          </div>
 
           <div className="flex flex-wrap items-center gap-3 pt-2 md:col-span-2">
             <button

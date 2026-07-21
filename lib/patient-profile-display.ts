@@ -1,4 +1,7 @@
 import {
+  computeAgeFromBirthDate as computeAgeFromBirthDateSsot,
+} from "@/lib/global-address-engine";
+import {
   formatPatientAge,
   type PatientProfile,
   type PatientRow,
@@ -76,37 +79,26 @@ export function formatPatientDocument(
   return "—";
 }
 
+/** @deprecated Prefer `@/lib/global-address-engine` — kept as compatibility facade. */
 export function computeAgeFromBirthDate(
   birthDate: string,
   refDate: Date = new Date(),
 ): number | null {
-  const parsed = new Date(birthDate);
-  const t = parsed.getTime();
-  if (Number.isNaN(t)) return null;
-
-  let age = refDate.getFullYear() - parsed.getFullYear();
-  const monthDelta = refDate.getMonth() - parsed.getMonth();
-  if (
-    monthDelta < 0 ||
-    (monthDelta === 0 && refDate.getDate() < parsed.getDate())
-  ) {
-    age -= 1;
-  }
-  return age >= 0 ? age : null;
+  return computeAgeFromBirthDateSsot(birthDate, refDate);
 }
 
-/** Edad para UI: usa `age` del backend o calcula desde `birthDate`. */
+/** Edad para UI: siempre deriva de `birthDate` cuando es válida; fallback a `age` API. */
 export function resolvePatientAge(
   patient: Pick<PatientRow, "age" | "birthDate">,
   refDate?: Date,
 ): string {
   const { age, birthDate } = patient;
-  if (age !== null && age !== undefined && age !== "") {
-    return formatPatientAge(age);
-  }
   if (birthDate?.trim()) {
     const computed = computeAgeFromBirthDate(birthDate.trim(), refDate);
     if (computed !== null) return formatPatientAge(computed);
+  }
+  if (age !== null && age !== undefined && age !== "") {
+    return formatPatientAge(age);
   }
   return formatPatientAge(null);
 }

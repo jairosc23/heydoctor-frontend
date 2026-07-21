@@ -111,16 +111,24 @@ describe("collectProfileAlerts", () => {
 });
 
 describe("resolvePatientAge", () => {
-  it("prefers backend age when present", () => {
-    assert.equal(resolvePatientAge({ age: 42, birthDate: "1990-01-01" }), "42 años");
+  it("derives age from birthDate even when backend age differs", () => {
+    const ref = new Date(2026, 5, 4); // 2026-06-04 local
+    assert.equal(
+      resolvePatientAge({ age: 42, birthDate: "1990-01-01" }, ref),
+      "36 años",
+    );
   });
 
   it("derives age from birthDate when age is empty", () => {
-    const ref = new Date("2026-06-04T12:00:00Z");
+    const ref = new Date(2026, 5, 4); // 2026-06-04 local
     assert.equal(
       resolvePatientAge({ age: null, birthDate: "2000-06-04" }, ref),
       "26 años",
     );
+  });
+
+  it("falls back to backend age when birthDate missing", () => {
+    assert.equal(resolvePatientAge({ age: 42, birthDate: null }), "42 años");
   });
 
   it("returns em dash when age cannot be resolved", () => {
