@@ -1,6 +1,16 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
+import {
+  AgeFromBirthDateField,
+  GlobalAddressFields,
+  NationalityField,
+} from "@/components/global-address";
+import {
+  addressSelectionToPatientFields,
+  createEmptyAddressSelection,
+  type AddressSelection,
+} from "@/lib/global-address-engine";
 import {
   createPatient,
   upsertPatientProfile,
@@ -27,16 +37,6 @@ const SEX_OPTIONS: { value: PatientSex; label: string }[] = [
   { value: "female", label: "Femenino" },
   { value: "other", label: "Otro" },
   { value: "unknown", label: "No especificado" },
-];
-
-const COUNTRY_OPTIONS = [
-  { value: "CL", label: "Chile" },
-  { value: "AR", label: "Argentina" },
-  { value: "PE", label: "Perú" },
-  { value: "CO", label: "Colombia" },
-  { value: "MX", label: "México" },
-  { value: "ES", label: "España" },
-  { value: "US", label: "Estados Unidos" },
 ];
 
 const inputStyle: React.CSSProperties = {
@@ -104,14 +104,21 @@ export function PatientIntakeForm({ onSuccess, onCancel }: PatientIntakeFormProp
   const [birthDate, setBirthDate] = useState("");
   const [sex, setSex] = useState<PatientSex>("unknown");
   const [mobilePhone, setMobilePhone] = useState("");
-  const [addressLine1, setAddressLine1] = useState("");
-  const [country, setCountry] = useState("CL");
+  const [nationality, setNationality] = useState("");
+  const [address, setAddress] = useState<AddressSelection>(() =>
+    createEmptyAddressSelection("CL"),
+  );
   const [emergencyContactName, setEmergencyContactName] = useState("");
   const [emergencyContactPhone, setEmergencyContactPhone] = useState("");
   const [emergencyRelationship, setEmergencyRelationship] = useState("");
   const [allergiesSummary, setAllergiesSummary] = useState("");
   const [creating, setCreating] = useState(false);
   const [formError, setFormError] = useState("");
+
+  const patientAddress = useMemo(
+    () => addressSelectionToPatientFields(address),
+    [address],
+  );
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -135,8 +142,13 @@ export function PatientIntakeForm({ onSuccess, onCancel }: PatientIntakeFormProp
       birthDate: birthDate || undefined,
       sex: sex !== "unknown" ? sex : undefined,
       mobilePhone: mobilePhone.trim() || undefined,
-      addressLine1: addressLine1.trim() || undefined,
-      country: country || undefined,
+      nationality: nationality || undefined,
+      addressLine1: patientAddress.addressLine1,
+      addressLine2: patientAddress.addressLine2,
+      city: patientAddress.city,
+      stateProvince: patientAddress.stateProvince,
+      postalCode: patientAddress.postalCode,
+      country: patientAddress.country,
       emergencyContactName: emergencyContactName.trim() || undefined,
       emergencyContactPhone: emergencyContactPhone.trim() || undefined,
       emergencyRelationship: emergencyRelationship.trim() || undefined,
@@ -251,6 +263,8 @@ export function PatientIntakeForm({ onSuccess, onCancel }: PatientIntakeFormProp
           />
         </Field>
 
+        <AgeFromBirthDateField birthDate={birthDate} />
+
         <Field label="Sexo">
           <select
             value={sex}
@@ -266,33 +280,20 @@ export function PatientIntakeForm({ onSuccess, onCancel }: PatientIntakeFormProp
           </select>
         </Field>
 
-        <div style={{ gridColumn: "1 / -1" }}>
-          <Field label="Dirección">
-            <input
-              type="text"
-              value={addressLine1}
-              onChange={(e) => setAddressLine1(e.target.value)}
-              disabled={creating}
-              placeholder="Calle, número, comuna"
-              style={inputStyle}
-            />
-          </Field>
-        </div>
+        <NationalityField
+          value={nationality}
+          onChange={setNationality}
+          disabled={creating}
+        />
 
-        <Field label="País">
-          <select
-            value={country}
-            onChange={(e) => setCountry(e.target.value)}
+        <div style={{ gridColumn: "1 / -1" }}>
+          <GlobalAddressFields
+            value={address}
+            onChange={setAddress}
             disabled={creating}
-            style={inputStyle}
-          >
-            {COUNTRY_OPTIONS.map((c) => (
-              <option key={c.value} value={c.value}>
-                {c.label}
-              </option>
-            ))}
-          </select>
-        </Field>
+            idPrefix="intake-address"
+          />
+        </div>
       </div>
 
       <fieldset

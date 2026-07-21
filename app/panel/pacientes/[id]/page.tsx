@@ -3,12 +3,22 @@
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import {
+  AgeFromBirthDateField,
+  GlobalAddressFields,
+  NationalityField,
+} from "@/components/global-address";
 import { getApiErrorMessage } from "@/lib/heydoctor-api";
+import {
+  addressSelectionToPatientFields,
+  patientFieldsToAddressSelection,
+  resolveAgeDisplay,
+  type AddressSelection,
+} from "@/lib/global-address-engine";
 import { jsonLinesToText } from "@/lib/patient-profile-display";
 import {
   fetchPatientById,
   fetchPatientProfile,
-  formatPatientAge,
   formatPatientDisplayName,
   updatePatient,
   upsertPatientProfile,
@@ -109,6 +119,9 @@ export default function PatientDetailPage() {
   const [profile, setProfile] = useState<PatientProfile | null>(null);
 
   const [form, setForm] = useState<UpdatePatientDto>({});
+  const [address, setAddress] = useState<AddressSelection>(() =>
+    patientFieldsToAddressSelection({ country: "CL" }),
+  );
   const [allergiesText, setAllergiesText] = useState("");
   const [medicationsText, setMedicationsText] = useState("");
   const [chronicText, setChronicText] = useState("");
@@ -153,6 +166,16 @@ export default function PatientDetailPage() {
         emergencyContactPhone: p.emergencyContactPhone ?? "",
         emergencyRelationship: p.emergencyRelationship ?? "",
       });
+      setAddress(
+        patientFieldsToAddressSelection({
+          country: p.country ?? "CL",
+          stateProvince: p.stateProvince ?? "",
+          city: p.city ?? "",
+          addressLine1: p.addressLine1 ?? "",
+          addressLine2: p.addressLine2 ?? "",
+          postalCode: p.postalCode ?? "",
+        }),
+      );
       if (prof) {
         setAllergiesText(jsonLinesToText(prof.allergies));
         setMedicationsText(jsonLinesToText(prof.medications));
@@ -175,6 +198,20 @@ export default function PatientDetailPage() {
     value: UpdatePatientDto[K]
   ) {
     setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function updateAddress(next: AddressSelection) {
+    setAddress(next);
+    const mapped = addressSelectionToPatientFields(next);
+    setForm((prev) => ({
+      ...prev,
+      country: mapped.country ?? "",
+      stateProvince: mapped.stateProvince ?? "",
+      city: mapped.city ?? "",
+      addressLine1: mapped.addressLine1 ?? "",
+      addressLine2: mapped.addressLine2 ?? "",
+      postalCode: mapped.postalCode ?? "",
+    }));
   }
 
   async function handleSave(e: React.FormEvent) {
@@ -266,7 +303,7 @@ export default function PatientDetailPage() {
           </h1>
           <p style={{ margin: 0, color: "rgba(2,44,44,0.7)", fontSize: 14 }}>
             {patient.email || "Sin email"} · Edad:{" "}
-            {formatPatientAge(patient.age)}
+            {resolveAgeDisplay(form.birthDate ?? patient.birthDate, patient.age)}
             {patient.documentType && patient.documentNumber
               ? ` · ${patient.documentType} ${patient.documentNumber}`
               : ""}
@@ -428,14 +465,10 @@ export default function PatientDetailPage() {
                 onChange={(e) => updateField("birthDate", e.target.value)}
               />
             </Field>
-            <Field label="Edad (calculada)">
-              <input
-                style={{ ...inputStyle, background: "#f8fafb" }}
-                value={formatPatientAge(patient.age)}
-                readOnly
-                disabled
-              />
-            </Field>
+            <AgeFromBirthDateField
+              birthDate={form.birthDate ?? ""}
+              fallbackAge={patient.age}
+            />
             <Field label="Sexo biológico">
               <select
                 style={inputStyle}
@@ -459,16 +492,10 @@ export default function PatientDetailPage() {
                 onChange={(e) => updateField("genderIdentity", e.target.value)}
               />
             </Field>
-            <Field label="Nacionalidad (ISO-2)">
-              <input
-                style={inputStyle}
-                maxLength={2}
-                value={form.nationality ?? ""}
-                onChange={(e) =>
-                  updateField("nationality", e.target.value.toUpperCase())
-                }
-              />
-            </Field>
+            <NationalityField
+              value={form.nationality ?? ""}
+              onChange={(code) => updateField("nationality", code)}
+            />
             <Field label="Teléfono">
               <input
                 style={inputStyle}
@@ -483,51 +510,13 @@ export default function PatientDetailPage() {
                 onChange={(e) => updateField("mobilePhone", e.target.value)}
               />
             </Field>
-            <Field label="Dirección">
-              <input
-                style={inputStyle}
-                value={form.addressLine1 ?? ""}
-                onChange={(e) => updateField("addressLine1", e.target.value)}
+            <div style={{ gridColumn: "1 / -1" }}>
+              <GlobalAddressFields
+                value={address}
+                onChange={updateAddress}
+                idPrefix="patient-detail-address"
               />
-            </Field>
-            <Field label="Dirección (línea 2)">
-              <input
-                style={inputStyle}
-                value={form.addressLine2 ?? ""}
-                onChange={(e) => updateField("addressLine2", e.target.value)}
-              />
-            </Field>
-            <Field label="Ciudad">
-              <input
-                style={inputStyle}
-                value={form.city ?? ""}
-                onChange={(e) => updateField("city", e.target.value)}
-              />
-            </Field>
-            <Field label="Región / Estado">
-              <input
-                style={inputStyle}
-                value={form.stateProvince ?? ""}
-                onChange={(e) => updateField("stateProvince", e.target.value)}
-              />
-            </Field>
-            <Field label="Código postal">
-              <input
-                style={inputStyle}
-                value={form.postalCode ?? ""}
-                onChange={(e) => updateField("postalCode", e.target.value)}
-              />
-            </Field>
-            <Field label="País (ISO-2)">
-              <input
-                style={inputStyle}
-                maxLength={2}
-                value={form.country ?? ""}
-                onChange={(e) =>
-                  updateField("country", e.target.value.toUpperCase())
-                }
-              />
-            </Field>
+            </div>
           </div>
         )}
 
