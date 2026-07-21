@@ -19,6 +19,7 @@ export type EncounterContextSeverity = "critical" | "warning" | "info";
 export type EncounterContextStatus =
   | "DRAFT"
   | "IN_PROGRESS"
+  | "COMPLETED"
   | "SIGNED"
   | "LOCKED"
   | "CANCELLED";
@@ -77,7 +78,8 @@ const DEFAULT_VISIBLE_MEDICATIONS = 3;
 const STATUS_LABELS: Record<EncounterContextStatus, string> = {
   DRAFT: "Borrador",
   IN_PROGRESS: "En consulta",
-  SIGNED: "Firmado",
+  COMPLETED: "Completada",
+  SIGNED: "Firmada",
   LOCKED: "Bloqueado",
   CANCELLED: "Cancelado",
 };
@@ -87,7 +89,8 @@ export function normalizeEncounterContextStatus(
 ): EncounterContextStatus {
   const normalized = status.trim().toLowerCase();
   if (normalized === "in_progress") return "IN_PROGRESS";
-  if (normalized === "signed" || normalized === "completed") return "SIGNED";
+  if (normalized === "completed") return "COMPLETED";
+  if (normalized === "signed") return "SIGNED";
   if (normalized === "locked") return "LOCKED";
   if (normalized === "cancelled" || normalized === "canceled") return "CANCELLED";
   return "DRAFT";

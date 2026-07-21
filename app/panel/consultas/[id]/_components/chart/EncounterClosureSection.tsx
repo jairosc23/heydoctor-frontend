@@ -107,8 +107,9 @@ export function EncounterClosureSection({
         {showSign ? (
           <div id="encounter-sign-panel" data-testid="encounter-sign-panel">
             <p className="mb-hd-1.5 text-sm text-slate-600">
-              La firma cierra la consulta de forma legal e inmutable. Revise la
-              ficha antes de firmar.
+              Cierre legal e inmutable de la consulta (estado Firmada). No
+              sustituye ni genera PDFs clínicos; revise la ficha antes de
+              confirmar.
             </p>
             <SignatureCanvas onSign={onSign} disabled={signing} />
             {signing ? (

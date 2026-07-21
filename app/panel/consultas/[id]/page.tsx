@@ -454,8 +454,18 @@ export default function ConsultationDetailPage() {
         });
         return prevKey === nextKey ? prev : nextDiagnosis;
       });
+      // Recalculate Documentation Gaps / UC-03B from the same notes SoT.
+      void clinicalFoundationState.reload();
     },
-    [notes, treatment, diagnosisState, id, isEditable, composeNotes],
+    [
+      notes,
+      treatment,
+      diagnosisState,
+      id,
+      isEditable,
+      composeNotes,
+      clinicalFoundationState.reload,
+    ],
   );
 
   const soapDraftKey = buildSoapDraftKey({
@@ -519,7 +529,15 @@ export default function ConsultationDetailPage() {
 
   async function handleSign(base64: string) {
     if (!consultation) return;
+    // Unique legal-close writer: POST /consultations/:id/sign only.
+    if (status !== "in_progress" && status !== "completed") {
+      setSaveMsg(
+        `No se puede firmar la consulta en estado "${status}". Pásela a En progreso o Completada.`,
+      );
+      return;
+    }
     setSigning(true);
+    setSaveMsg("");
     try {
       if (isEditable) {
         await flushNow();
@@ -527,11 +545,20 @@ export default function ConsultationDetailPage() {
       const prev = consultation.status ?? prevStatusRef.current;
       const updated = await signConsultation(id, base64);
       const st = updated.status ?? "";
+      if (st !== "signed" && st !== "locked") {
+        throw new Error(
+          `El cierre legal no actualizó el estado (recibido: "${st || "vacío"}").`,
+        );
+      }
       trackConsultationCompletedIfNeeded(prev, st, id);
       prevStatusRef.current = st;
       setConsultation(updated);
+      consultationRef.current = updated;
+      setSaveMsg("Consulta firmada (cierre legal).");
+      void clinicalFoundationState.reload();
     } catch (err) {
       setSaveMsg(err instanceof Error ? err.message : "Error al firmar");
+      throw err;
     } finally {
       setSigning(false);
     }
