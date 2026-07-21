@@ -3,7 +3,8 @@
 import React, { useRef, useState, useEffect, useCallback } from "react";
 
 interface SignatureCanvasProps {
-  onSign: (base64: string) => void;
+  /** Legal consultation close — must call POST /consultations/:id/sign (or page handleSign). */
+  onSign: (base64: string) => void | Promise<void>;
   disabled?: boolean;
   width?: number;
   height?: number;
@@ -82,11 +83,15 @@ export function SignatureCanvas({
     setHasContent(false);
   }
 
-  function handleConfirm() {
+  async function handleConfirm() {
     const canvas = canvasRef.current;
-    if (!canvas || !hasContent) return;
+    if (!canvas || !hasContent || disabled) return;
     const base64 = canvas.toDataURL("image/png");
-    onSign(base64);
+    try {
+      await onSign(base64);
+    } catch {
+      // Parent surfaces the error (saveMsg / Close HITL audit). Keep canvas usable.
+    }
   }
 
   return (
@@ -149,7 +154,7 @@ export function SignatureCanvas({
             fontWeight: 600,
           }}
         >
-          Firmar consulta
+          Confirmar cierre legal
         </button>
       </div>
     </div>

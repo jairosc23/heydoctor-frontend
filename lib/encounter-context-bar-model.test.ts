@@ -74,8 +74,8 @@ const memory: PatientClinicalMemory = {
 test("normalizeEncounterContextStatus maps backend states to enterprise labels", () => {
   assert.equal(normalizeEncounterContextStatus("draft"), "DRAFT");
   assert.equal(normalizeEncounterContextStatus("in_progress"), "IN_PROGRESS");
+  assert.equal(normalizeEncounterContextStatus("completed"), "COMPLETED");
   assert.equal(normalizeEncounterContextStatus("signed"), "SIGNED");
-  assert.equal(normalizeEncounterContextStatus("completed"), "SIGNED");
   assert.equal(normalizeEncounterContextStatus("locked"), "LOCKED");
   assert.equal(normalizeEncounterContextStatus("cancelled"), "CANCELLED");
 });

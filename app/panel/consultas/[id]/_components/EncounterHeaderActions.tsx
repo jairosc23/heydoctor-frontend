@@ -148,7 +148,8 @@ export function EncounterHeaderActions({
           className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"
         >
           <p className="mb-2 text-xs text-slate-600">
-            Firme para cerrar la consulta. La firma es inmutable una vez registrada.
+            Cierre legal de la consulta vía firma digital. Esto actualiza el
+            estado a Firmada (no es la firma de PDFs de receta/lab/interconsulta).
           </p>
           <SignatureCanvas onSign={onSign} disabled={signing} />
           {signing ? (
