@@ -92,6 +92,14 @@ function normalizeHeightToCm(value: number): number | null {
   return value <= 3 ? round1(value * 100) : value;
 }
 
+export type NormalizeClinicalVitalSignsOptions = {
+  /**
+   * Cuando true (default), convierte talla en metros (≤3) a cm.
+   * Desactivar durante digitación; activar en blur / persistencia.
+   */
+  convertHeightMetersToCm?: boolean;
+};
+
 /** IMC con peso en kg y talla aceptando centímetros (160) o metros (1.60). */
 export function computeBmi(weightKg: number, heightCmOrM: number): number | null {
   if (!Number.isFinite(weightKg) || weightKg <= 0) return null;
@@ -104,7 +112,10 @@ export function computeBmi(weightKg: number, heightCmOrM: number): number | null
 
 export function normalizeClinicalVitalSigns(
   raw: ClinicalVitalSigns,
+  options?: NormalizeClinicalVitalSignsOptions,
 ): ClinicalVitalSigns {
+  const convertHeight = options?.convertHeightMetersToCm !== false;
+  const heightRaw = finiteNumber(raw.heightCm);
   const vitals: ClinicalVitalSigns = {
     systolic: finiteNumber(raw.systolic),
     diastolic: finiteNumber(raw.diastolic),
@@ -114,8 +125,10 @@ export function normalizeClinicalVitalSigns(
     oxygenSaturation: finiteNumber(raw.oxygenSaturation),
     weightKg: finiteNumber(raw.weightKg),
     heightCm:
-      raw.heightCm != null && finiteNumber(raw.heightCm) != null
-        ? normalizeHeightToCm(raw.heightCm)
+      heightRaw != null
+        ? convertHeight
+          ? normalizeHeightToCm(heightRaw)
+          : heightRaw
         : null,
     bmi: null,
   };

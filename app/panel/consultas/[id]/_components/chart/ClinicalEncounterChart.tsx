@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 import type { ClinicalVitalSigns } from "@/lib/clinical-vital-signs-context";
 import type { PhysicalExam } from "@/lib/physical-exam-framework";
 import type { DiagnosisSource } from "@/lib/services/consultation-diagnosis";
@@ -19,7 +19,10 @@ import {
   type EncounterClosureSectionProps,
 } from "./EncounterClosureSection";
 import { PatientIdentificationSection } from "./PatientIdentificationSection";
-import { PatientAntecedentsSection } from "./PatientLongitudinalSections";
+import {
+  PatientAntecedentsSection,
+  type PatientAntecedentsSectionHandle,
+} from "./PatientLongitudinalSections";
 
 export type ManualSaveStatus = "idle" | "saving" | "saved" | "error";
 
@@ -28,6 +31,11 @@ export interface PatientLongitudinalProps {
   profile: PatientProfile | null;
   loading?: boolean;
   patientId?: string | null;
+  editable?: boolean;
+  antecedentsRef?: Ref<PatientAntecedentsSectionHandle>;
+  onProfileSaved?: (profile: PatientProfile) => void;
+  onAntecedentsDraftKeyChange?: (draftKey: string) => void;
+  onAntecedentsPersistError?: (message: string) => void;
 }
 
 export interface ClinicalEncounterChartProps {
@@ -104,6 +112,11 @@ export function ClinicalEncounterChart({
   const profileProps = {
     profile: longitudinal?.profile ?? null,
     loading: longitudinal?.loading,
+    patientId: longitudinal?.patientId ?? patientId,
+    editable: Boolean(longitudinal?.editable && editable),
+    onProfileSaved: longitudinal?.onProfileSaved,
+    onDraftKeyChange: longitudinal?.onAntecedentsDraftKeyChange,
+    onPersistError: longitudinal?.onAntecedentsPersistError,
   };
   const manualSaveLabel =
     manualSaveStatus === "saving"
@@ -156,7 +169,10 @@ export function ClinicalEncounterChart({
           loading={longitudinal?.loading}
           patientId={longitudinal?.patientId ?? patientId}
         />
-        <PatientAntecedentsSection {...profileProps} />
+        <PatientAntecedentsSection
+          ref={longitudinal?.antecedentsRef}
+          {...profileProps}
+        />
         <AnamnesisSection
           value={presentIllnessHistory}
           onChange={onPresentIllnessHistoryChange}

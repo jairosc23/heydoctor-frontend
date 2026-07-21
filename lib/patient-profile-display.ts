@@ -39,6 +39,24 @@ export function jsonLinesToText(items?: Record<string, unknown>[]): string {
     .join("\n");
 }
 
+/** Convierte texto multilínea (una entrada por línea) a JSONB del perfil. */
+export function textToJsonLines(text: string): Record<string, unknown>[] {
+  return text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const colon = line.indexOf(":");
+      if (colon > 0) {
+        return {
+          label: line.slice(0, colon).trim(),
+          detail: line.slice(colon + 1).trim(),
+        };
+      }
+      return { label: line };
+    });
+}
+
 /** Líneas no vacías para listas compactas (p. ej. rail de consulta). */
 export function jsonLinesToList(items?: Record<string, unknown>[]): string[] {
   const text = jsonLinesToText(items);

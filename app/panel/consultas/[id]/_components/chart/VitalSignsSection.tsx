@@ -54,16 +54,28 @@ export function VitalSignsSection({
   editable,
   className,
 }: VitalSignsSectionProps) {
-  const normalized = normalizeClinicalVitalSigns(vitals);
+  // Durante digitación no convertir m→cm; solo coerce finito + IMC preview.
+  const live = normalizeClinicalVitalSigns(vitals, {
+    convertHeightMetersToCm: false,
+  });
+  const displayHeight = vitals.heightCm ?? null;
   const bmi =
-    normalized.bmi ??
-    (normalized.weightKg != null && normalized.heightCm != null
-      ? computeBmi(normalized.weightKg, normalized.heightCm)
+    live.bmi ??
+    (live.weightKg != null && displayHeight != null
+      ? computeBmi(live.weightKg, displayHeight)
       : null);
 
   const setField = (key: VitalField, raw: string) => {
     const next = { ...vitals, [key]: parseNumberInput(raw) };
-    onChange(normalizeClinicalVitalSigns(next));
+    onChange(
+      normalizeClinicalVitalSigns(next, { convertHeightMetersToCm: false }),
+    );
+  };
+
+  const commitHeight = () => {
+    onChange(
+      normalizeClinicalVitalSigns(vitals, { convertHeightMetersToCm: true }),
+    );
   };
 
   return (
@@ -73,21 +85,28 @@ export function VitalSignsSection({
       className={className}
     >
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {FIELDS.map(({ key, label, step }) => (
-          <label key={key} className="block text-xs">
-            <span className="mb-1 block font-semibold text-slate-700">{label}</span>
-            <input
-              type="number"
-              inputMode="decimal"
-              step={step ?? "1"}
-              className={INPUT_CLASS}
-              value={normalized[key] ?? ""}
-              disabled={!editable}
-              onChange={(e) => setField(key, e.target.value)}
-              data-testid={`vital-${key}`}
-            />
-          </label>
-        ))}
+        {FIELDS.map(({ key, label, step }) => {
+          const value =
+            key === "heightCm" ? (displayHeight ?? "") : (live[key] ?? "");
+          return (
+            <label key={key} className="block text-xs">
+              <span className="mb-1 block font-semibold text-slate-700">
+                {label}
+              </span>
+              <input
+                type="number"
+                inputMode="decimal"
+                step={step ?? "1"}
+                className={INPUT_CLASS}
+                value={value}
+                disabled={!editable}
+                onChange={(e) => setField(key, e.target.value)}
+                onBlur={key === "heightCm" ? commitHeight : undefined}
+                data-testid={`vital-${key}`}
+              />
+            </label>
+          );
+        })}
         <div className="block text-xs">
           <span className="mb-1 block font-semibold text-slate-700">IMC</span>
           <div

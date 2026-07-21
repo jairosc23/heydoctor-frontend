@@ -300,8 +300,12 @@ export function ClinicalCopilotDrawer({
   );
   const displayedInsights =
     foundationInsights.length > 0 ? foundationInsights : intelligence.insights;
+  // Foundation disponible (aunque con 0 gaps) es el SoT de Documentation Gaps.
+  // Antes, length===0 caía al heurístico y mostraba pendientes inexistentes.
   const displayedGaps =
-    foundationGaps.length > 0 ? foundationGaps : intelligence.documentationGaps;
+    foundationOutputs != null
+      ? foundationGaps
+      : intelligence.documentationGaps;
   const silenceMode =
     displayedInsights.length === 0 &&
     intelligence.riskSignals.length === 0 &&

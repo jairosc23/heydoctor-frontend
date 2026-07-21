@@ -176,6 +176,7 @@ export function buildSoapDraftKey(parts: {
   vitals?: ClinicalVitalSigns;
   physicalExam?: PhysicalExam;
   presentIllnessHistory?: string;
+  antecedentsDraftKey?: string;
 }): string {
   return JSON.stringify({
     notes: parts.notes,
@@ -185,5 +186,6 @@ export function buildSoapDraftKey(parts: {
     vitals: parts.vitals ?? {},
     physicalExam: parts.physicalExam ?? {},
     presentIllnessHistory: parts.presentIllnessHistory ?? "",
+    antecedentsDraftKey: parts.antecedentsDraftKey ?? "",
   });
 }

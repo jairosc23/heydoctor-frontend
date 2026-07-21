@@ -202,6 +202,11 @@ export default function ConsultationDetailPage() {
   const [patientContextError, setPatientContextError] = useState<string | null>(
     null,
   );
+  const [antecedentsDraftKey, setAntecedentsDraftKey] = useState("");
+  const antecedentsRef = useRef<{
+    flush: () => Promise<boolean>;
+    getDraftKey: () => string;
+  } | null>(null);
 
   const paymentResult = searchParams.get("payment");
   const prevStatusRef = React.useRef<string | undefined>(undefined);
@@ -433,29 +438,34 @@ export default function ConsultationDetailPage() {
         diagnosis,
       });
       const patchFingerprint = soapPatchFingerprint(patch);
-      if (patchFingerprint === lastPersistedPatchRef.current) {
-        return;
+      const soapUnchanged =
+        patchFingerprint === lastPersistedPatchRef.current;
+      if (!soapUnchanged) {
+        const updated = await updateConsultation(id, patch);
+        lastPersistedPatchRef.current = patchFingerprint;
+        setConsultation(updated);
+        consultationRef.current = updated;
+        const nextDiagnosis = hydrateDiagnosisFromConsultation(updated);
+        setDiagnosisState((prev) => {
+          const prevKey = buildSoapDraftKey({
+            notes,
+            treatment,
+            diagnosis: prev,
+          });
+          const nextKey = buildSoapDraftKey({
+            notes,
+            treatment,
+            diagnosis: nextDiagnosis,
+          });
+          return prevKey === nextKey ? prev : nextDiagnosis;
+        });
       }
-      const updated = await updateConsultation(id, patch);
-      lastPersistedPatchRef.current = patchFingerprint;
-      setConsultation(updated);
-      consultationRef.current = updated;
-      const nextDiagnosis = hydrateDiagnosisFromConsultation(updated);
-      setDiagnosisState((prev) => {
-        const prevKey = buildSoapDraftKey({
-          notes,
-          treatment,
-          diagnosis: prev,
-        });
-        const nextKey = buildSoapDraftKey({
-          notes,
-          treatment,
-          diagnosis: nextDiagnosis,
-        });
-        return prevKey === nextKey ? prev : nextDiagnosis;
-      });
-      // Recalculate Documentation Gaps / UC-03B from the same notes SoT.
-      void clinicalFoundationState.reload();
+      // Patient profile SoT (antecedentes) — independent of SOAP fingerprint.
+      const profileSaved = Boolean(await antecedentsRef.current?.flush());
+      // Recalculate Documentation Gaps / UC-03B from persisted notes SoT.
+      if (!soapUnchanged || profileSaved) {
+        await clinicalFoundationState.reload();
+      }
     },
     [
       notes,
@@ -475,6 +485,7 @@ export default function ConsultationDetailPage() {
     vitals,
     physicalExam,
     presentIllnessHistory,
+    antecedentsDraftKey,
   });
 
   const { lastSavedAt, status: autosaveStatus, errorMessage: autosaveError, flushNow } =
@@ -496,6 +507,9 @@ export default function ConsultationDetailPage() {
     setManualSaveStatus("saving");
     try {
       await flushNow();
+      // Si el SOAP no cambió, flushNow puede no-op; forzar persistencia de antecedentes.
+      await antecedentsRef.current?.flush();
+      await clinicalFoundationState.reload();
       setManualSaveStatus("saved");
       setSaveMsg("Guardado correctamente.");
     } catch (err) {
@@ -1207,6 +1221,14 @@ export default function ConsultationDetailPage() {
             profile: patientProfile,
             loading: patientContextLoading,
             patientId: consultation.patientId,
+            editable: isEditable && editMode,
+            antecedentsRef,
+            onProfileSaved: setPatientProfile,
+            onAntecedentsDraftKeyChange: setAntecedentsDraftKey,
+            onAntecedentsPersistError: (message) => {
+              setManualSaveStatus("error");
+              setSaveMsg(message);
+            },
           },
         }}
         diagnosisCode={

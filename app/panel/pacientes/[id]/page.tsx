@@ -15,7 +15,10 @@ import {
   resolveAgeDisplay,
   type AddressSelection,
 } from "@/lib/global-address-engine";
-import { jsonLinesToText } from "@/lib/patient-profile-display";
+import {
+  jsonLinesToText,
+  textToJsonLines,
+} from "@/lib/patient-profile-display";
 import {
   fetchPatientById,
   fetchPatientProfile,
@@ -88,22 +91,6 @@ function Field({
   );
 }
 
-function textToJsonLines(text: string): Record<string, unknown>[] {
-  return text
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      const colon = line.indexOf(":");
-      if (colon > 0) {
-        return {
-          label: line.slice(0, colon).trim(),
-          detail: line.slice(colon + 1).trim(),
-        };
-      }
-      return { label: line };
-    });
-}
 
 export default function PatientDetailPage() {
   const params = useParams();

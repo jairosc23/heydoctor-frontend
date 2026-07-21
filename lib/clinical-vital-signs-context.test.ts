@@ -42,6 +42,20 @@ describe("clinical-vital-signs-context", () => {
     assert.equal(vitals.bmi, 24.9);
   });
 
+  it("no convierte metros a cm durante digitación; sí en persistencia", () => {
+    const whileTyping = normalizeClinicalVitalSigns(
+      { heightCm: 1.7 },
+      { convertHeightMetersToCm: false },
+    );
+    assert.equal(whileTyping.heightCm, 1.7);
+
+    const onBlur = normalizeClinicalVitalSigns(
+      { heightCm: 1.7 },
+      { convertHeightMetersToCm: true },
+    );
+    assert.equal(onBlur.heightCm, 170);
+  });
+
   it("no calcula IMC con valores inválidos", () => {
     assert.equal(computeBmi(72, 0), null);
     assert.equal(computeBmi(0, 160), null);
