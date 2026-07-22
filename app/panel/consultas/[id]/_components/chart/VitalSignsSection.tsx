@@ -104,6 +104,14 @@ export function VitalSignsSection({
                 onBlur={key === "heightCm" ? commitHeight : undefined}
                 data-testid={`vital-${key}`}
               />
+              {key === "heightCm" ? (
+                <span
+                  className="mt-1 block text-[11px] font-normal text-slate-500"
+                  data-testid="vital-heightCm-hint"
+                >
+                  Puede indicar cm o metros; se confirma al salir del campo.
+                </span>
+              ) : null}
             </label>
           );
         })}

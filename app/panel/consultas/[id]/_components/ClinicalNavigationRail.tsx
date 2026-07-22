@@ -216,9 +216,9 @@ export function ClinicalNavigationRail({
       data-testid="clinical-navigation-rail"
       data-orientation="vertical"
       className={cn(
-        // PanelLayout header is h-16 (4rem); subtract it so the rail viewport
-        // matches the scrollable <main> and the last nav item stays reachable.
-        "clinical-depth-secondary sticky top-[calc(var(--encounter-chrome-h,5.5rem)+0.75rem)] z-10 max-h-[calc(100vh-4rem-var(--encounter-chrome-h,5.5rem)-1.5rem)] overflow-y-auto rounded-hd-lg border border-hd-border-subtle bg-hd-surface-raised p-hd-2 shadow-hd-1",
+        // Panel header h-16 (4rem) + encounter chrome + sticky gap (0.75rem) +
+        // bottom padding so the last nav item stays reachable when scrolling.
+        "clinical-depth-secondary sticky top-[calc(var(--encounter-chrome-h,5.5rem)+0.75rem)] z-10 max-h-[calc(100dvh-4rem-var(--encounter-chrome-h,5.5rem)-0.75rem-1.5rem)] overflow-y-auto overscroll-contain rounded-hd-lg border border-hd-border-subtle bg-hd-surface-raised p-hd-2 shadow-hd-1",
         className,
       )}
     >
