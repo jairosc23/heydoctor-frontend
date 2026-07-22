@@ -7,7 +7,6 @@ import {
   updatePrescription,
   deletePrescription,
   downloadPrescriptionPdf,
-  type MedicationItem,
   type PrescriptionRecord,
 } from "@/lib/services";
 import { getApiErrorMessage } from "@/lib/heydoctor-api";
@@ -16,7 +15,15 @@ import {
   inferPrescriptionStatus,
   sortOrdersByStatusThenDate,
 } from "@/lib/orders-command-center";
-import { MedicationSuggestInput } from "./MedicationSuggestInput";
+import {
+  emptySelectedMedication,
+  type SelectedMedication,
+} from "@/lib/types/selected-medication";
+import {
+  medicationItemsFromSelectedMedications,
+  selectedMedicationsFromMedicationItems,
+} from "@/lib/prescription-composer";
+import { PrescriptionComposer } from "./PrescriptionComposer";
 import { OrdersEmptyState } from "./orders/OrdersEmptyState";
 import { UnifiedOrderCard } from "./orders/UnifiedOrderCard";
 
@@ -27,8 +34,6 @@ interface PrescriptionPanelProps {
   onPrescriptionCreated?: () => void;
   className?: string;
 }
-
-const emptyMed = (): MedicationItem => ({ name: "", dosage: "", frequency: "" });
 
 export function PrescriptionPanel({
   patientId,
@@ -41,7 +46,9 @@ export function PrescriptionPanel({
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [draftMeds, setDraftMeds] = useState<MedicationItem[]>([emptyMed()]);
+  const [draftLines, setDraftLines] = useState<SelectedMedication[]>([
+    emptySelectedMedication(),
+  ]);
   const [diagnosis, setDiagnosis] = useState(diagnosisCode ?? "");
   const [notes, setNotes] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -79,26 +86,14 @@ export function PrescriptionPanel({
     setDiagnosis(diagnosisCode ?? "");
   }, [diagnosisCode]);
 
-  const updateDraftMed = (index: number, patch: Partial<MedicationItem>) => {
-    setDraftMeds((prev) =>
-      prev.map((m, i) => (i === index ? { ...m, ...patch } : m)),
-    );
-  };
-
-  const addDraftRow = () => setDraftMeds((p) => [...p, emptyMed()]);
-
-  const removeDraftRow = (index: number) => {
-    setDraftMeds((p) => (p.length <= 1 ? [emptyMed()] : p.filter((_, i) => i !== index)));
-  };
-
   const resetForm = () => {
     setEditingId(null);
-    setDraftMeds([emptyMed()]);
+    setDraftLines([emptySelectedMedication()]);
     setNotes("");
   };
 
   const handleSave = async () => {
-    const meds = draftMeds.filter((m) => m.name.trim());
+    const meds = medicationItemsFromSelectedMedications(draftLines);
     if (meds.length === 0) return;
     setCreating(true);
     setError(null);
@@ -130,9 +125,7 @@ export function PrescriptionPanel({
 
   const startEdit = (p: PrescriptionRecord) => {
     setEditingId(p.id);
-    setDraftMeds(
-      p.medications?.length ? [...p.medications] : [emptyMed()],
-    );
+    setDraftLines(selectedMedicationsFromMedicationItems(p.medications));
     setDiagnosis(p.diagnosis ?? "");
     setNotes(p.notes ?? "");
   };
@@ -165,8 +158,9 @@ export function PrescriptionPanel({
     <section
       className={`rounded-lg border border-gray-200 p-4 ${className}`}
       style={{ background: "white" }}
+      data-testid="prescription-panel"
     >
-      <h3 className="font-medium text-gray-700 mb-3 flex items-center gap-2">
+      <h3 className="mb-3 flex items-center gap-2 font-medium text-gray-700">
         <span>💊</span> Recetas médicas
       </h3>
       {loading ? (
@@ -174,7 +168,10 @@ export function PrescriptionPanel({
       ) : (
         <>
           {listError && (
-            <p role="alert" className="text-xs mb-2 text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-2 py-1">
+            <p
+              role="alert"
+              className="mb-2 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-800"
+            >
               {listError}
             </p>
           )}
@@ -197,147 +194,67 @@ export function PrescriptionPanel({
                 (item) => inferPrescriptionStatus(item.status),
                 (item) => item.createdAt,
               ).map((p) => (
-                  <UnifiedOrderCard
-                    key={p.id}
-                    kind="Receta médica"
-                    title={formatPrescriptionTitle(p)}
-                    status={inferPrescriptionStatus(p.status)}
-                    updatedAt={p.createdAt}
-                    actions={
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => startEdit(p)}
-                          className="rounded font-medium text-slate-600 hover:text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primaryLight focus:ring-offset-2"
-                          aria-label={`Editar receta ${formatPrescriptionTitle(p)}`}
-                        >
-                          Editar
-                        </button>
-                        <span className="text-slate-300" aria-hidden>
-                          |
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => void handlePdf(p.id)}
-                          disabled={pdfLoadingId === p.id}
-                          className="rounded font-medium text-slate-600 hover:text-primary hover:underline disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-primaryLight focus:ring-offset-2"
-                          aria-label={`Descargar PDF de ${formatPrescriptionTitle(p)}`}
-                        >
-                          {pdfLoadingId === p.id ? "PDF…" : "PDF"}
-                        </button>
-                        <span className="text-slate-300" aria-hidden>
-                          |
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => void handleDelete(p.id)}
-                          className="rounded font-medium text-slate-500 hover:text-red-600 hover:underline focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-                          aria-label={`Eliminar receta ${formatPrescriptionTitle(p)}`}
-                        >
-                          Eliminar
-                        </button>
-                      </>
-                    }
-                  />
-                ))}
+                <UnifiedOrderCard
+                  key={p.id}
+                  kind="Receta médica"
+                  title={formatPrescriptionTitle(p)}
+                  status={inferPrescriptionStatus(p.status)}
+                  updatedAt={p.createdAt}
+                  actions={
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => startEdit(p)}
+                        className="rounded font-medium text-slate-600 hover:text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primaryLight focus:ring-offset-2"
+                        aria-label={`Editar receta ${formatPrescriptionTitle(p)}`}
+                      >
+                        Editar
+                      </button>
+                      <span className="text-slate-300" aria-hidden>
+                        |
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => void handlePdf(p.id)}
+                        disabled={pdfLoadingId === p.id}
+                        className="rounded font-medium text-slate-600 hover:text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primaryLight focus:ring-offset-2 disabled:opacity-50"
+                        aria-label={`Descargar PDF de ${formatPrescriptionTitle(p)}`}
+                      >
+                        {pdfLoadingId === p.id ? "PDF…" : "PDF"}
+                      </button>
+                      <span className="text-slate-300" aria-hidden>
+                        |
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => void handleDelete(p.id)}
+                        className="rounded font-medium text-slate-500 hover:text-red-600 hover:underline focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                        aria-label={`Eliminar receta ${formatPrescriptionTitle(p)}`}
+                      >
+                        Eliminar
+                      </button>
+                    </>
+                  }
+                />
+              ))}
             </div>
           )}
-          <div id="prescription-form" className="space-y-2">
-            <input
-              type="text"
-              value={diagnosis}
-              onChange={(e) => setDiagnosis(e.target.value)}
-              aria-label="Diagnóstico de la receta"
-              placeholder="Diagnóstico"
-              className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-            {draftMeds.map((med, idx) => (
-              <div key={idx} className="grid grid-cols-1 sm:grid-cols-4 gap-1 border border-gray-100 rounded p-2">
-                <MedicationSuggestInput
-                  value={med.name}
-                  patientId={patientId}
-                  consultationId={consultationId}
-                  onChange={(name) =>
-                    updateDraftMed(idx, {
-                      name,
-                      // Free-text edit invalidates catalog link until re-selected.
-                      drugPresentationId: undefined,
-                      route: undefined,
-                    })
-                  }
-                  onSelectPresentation={(suggestion) =>
-                    updateDraftMed(idx, {
-                      name: suggestion.displayLabel,
-                      drugPresentationId: suggestion.id,
-                      route: suggestion.route?.code || undefined,
-                    })
-                  }
-                  placeholder="Medicamento"
-                  className="sm:col-span-2"
-                  inputClassName="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-                <input
-                  type="text"
-                  value={med.dosage ?? ""}
-                  onChange={(e) => updateDraftMed(idx, { dosage: e.target.value })}
-                  aria-label={`Dosis del medicamento ${idx + 1}`}
-                  placeholder="Dosis"
-                  className="px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-                <input
-                  type="text"
-                  value={med.frequency ?? ""}
-                  onChange={(e) => updateDraftMed(idx, { frequency: e.target.value })}
-                  aria-label={`Posología del medicamento ${idx + 1}`}
-                  placeholder="Posología"
-                  className="px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-                <button
-                  type="button"
-                  onClick={() => removeDraftRow(idx)}
-                  className="rounded text-xs text-red-600 sm:col-span-4 text-left focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-                  aria-label={`Quitar medicamento ${idx + 1}`}
-                >
-                  Quitar línea
-                </button>
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={addDraftRow}
-              className="rounded text-xs text-indigo-600 hover:underline focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-            >
-              + Agregar medicamento
-            </button>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              aria-label="Notas generales de la receta"
-              placeholder="Notas adicionales"
-              rows={2}
-              className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-            {error && <p className="text-sm text-red-600" role="alert">{error}</p>}
-            <div className="flex gap-2 flex-wrap">
-              <button
-                type="button"
-                onClick={() => void handleSave()}
-                disabled={creating}
-                className="px-3 py-1.5 bg-teal-600 text-white rounded text-sm hover:bg-teal-700 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
-              >
-                {creating ? "Guardando…" : editingId ? "Actualizar receta" : "Crear receta"}
-              </button>
-              {editingId && (
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="px-3 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
-                >
-                  Cancelar edición
-                </button>
-              )}
-            </div>
-          </div>
+
+          <PrescriptionComposer
+            lines={draftLines}
+            onChange={setDraftLines}
+            patientId={patientId}
+            consultationId={consultationId}
+            diagnosis={diagnosis}
+            onDiagnosisChange={setDiagnosis}
+            notes={notes}
+            onNotesChange={setNotes}
+            error={error}
+            saving={creating}
+            editing={Boolean(editingId)}
+            onSave={() => void handleSave()}
+            onCancelEdit={editingId ? resetForm : undefined}
+          />
         </>
       )}
     </section>

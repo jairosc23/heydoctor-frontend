@@ -1,0 +1,199 @@
+"use client";
+
+import { MedicationSuggestInput } from "./MedicationSuggestInput";
+import type { SelectedMedication } from "@/lib/types/selected-medication";
+import {
+  clearCatalogIdentity,
+  selectedMedicationFromSmartSuggestion,
+} from "@/lib/prescription-composer";
+
+const FIELD =
+  "w-full rounded border border-gray-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-slate-50";
+
+export interface PrescriptionComposerLineProps {
+  line: SelectedMedication;
+  index: number;
+  patientId: string;
+  consultationId?: string | null;
+  onChange: (line: SelectedMedication) => void;
+  onRemove: () => void;
+  canRemove: boolean;
+}
+
+/**
+ * PR-2 — Structured prescription line (presentation-first).
+ * Catalog identity lives in SelectedMedication.drugPresentationId.
+ */
+export function PrescriptionComposerLine({
+  line,
+  index,
+  patientId,
+  consultationId,
+  onChange,
+  onRemove,
+  canRemove,
+}: PrescriptionComposerLineProps) {
+  const n = index + 1;
+  const hasCatalog = Boolean(line.drugPresentationId);
+
+  return (
+    <div
+      className="space-y-2 rounded-lg border border-slate-200 bg-slate-50/40 p-3"
+      data-testid={`prescription-composer-line-${index}`}
+    >
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+          Medicamento {n}
+          {hasCatalog ? (
+            <span className="ml-2 rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium normal-case text-emerald-800">
+              Catálogo
+            </span>
+          ) : null}
+        </p>
+        {canRemove ? (
+          <button
+            type="button"
+            onClick={onRemove}
+            className="rounded text-xs text-red-600 hover:underline focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1"
+            aria-label={`Quitar medicamento ${n}`}
+          >
+            Quitar
+          </button>
+        ) : null}
+      </div>
+
+      <MedicationSuggestInput
+        value={line.displayLabel}
+        patientId={patientId}
+        consultationId={consultationId}
+        placeholder="Buscar presentación…"
+        onChange={(name) => onChange(clearCatalogIdentity(line, name))}
+        onSelectPresentation={(suggestion) =>
+          onChange(selectedMedicationFromSmartSuggestion(suggestion, line))
+        }
+        inputClassName={FIELD}
+      />
+
+      {(line.innName ||
+        line.strengthDisplay ||
+        line.dosageForm ||
+        line.routeLabel ||
+        line.routeCode) && (
+        <div
+          className="flex flex-wrap gap-1.5"
+          data-testid={`prescription-composer-snapshot-${index}`}
+        >
+          {line.innName ? (
+            <SnapshotChip label="Principio activo" value={line.innName} />
+          ) : null}
+          {line.strengthDisplay ? (
+            <SnapshotChip label="Concentración" value={line.strengthDisplay} />
+          ) : null}
+          {line.dosageForm ? (
+            <SnapshotChip label="Forma" value={line.dosageForm} />
+          ) : null}
+          {line.routeLabel || line.routeCode ? (
+            <SnapshotChip
+              label="Vía"
+              value={line.routeLabel || line.routeCode || ""}
+            />
+          ) : null}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+        <label className="block text-xs text-slate-600">
+          <span className="mb-1 block font-medium">Dosis</span>
+          <input
+            type="text"
+            value={line.dosage}
+            onChange={(e) => onChange({ ...line, dosage: e.target.value })}
+            aria-label={`Dosis del medicamento ${n}`}
+            placeholder="Ej. 1 comprimido"
+            className={FIELD}
+          />
+        </label>
+        <label className="block text-xs text-slate-600">
+          <span className="mb-1 block font-medium">Frecuencia</span>
+          <input
+            type="text"
+            value={line.frequency}
+            onChange={(e) => onChange({ ...line, frequency: e.target.value })}
+            aria-label={`Frecuencia del medicamento ${n}`}
+            placeholder="Ej. c/8 h · 1-0-1"
+            className={FIELD}
+          />
+        </label>
+        <label className="block text-xs text-slate-600">
+          <span className="mb-1 block font-medium">Duración</span>
+          <input
+            type="text"
+            value={line.duration}
+            onChange={(e) => onChange({ ...line, duration: e.target.value })}
+            aria-label={`Duración del medicamento ${n}`}
+            placeholder="Ej. 7 días"
+            className={FIELD}
+          />
+        </label>
+      </div>
+
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <label className="block text-xs text-slate-600">
+          <span className="mb-1 block font-medium">Instrucciones al paciente</span>
+          <input
+            type="text"
+            value={line.instructions}
+            onChange={(e) =>
+              onChange({ ...line, instructions: e.target.value })
+            }
+            aria-label={`Instrucciones del medicamento ${n}`}
+            placeholder="Ej. con alimentos"
+            className={FIELD}
+          />
+        </label>
+        <label className="block text-xs text-slate-600">
+          <span className="mb-1 block font-medium">Observaciones</span>
+          <input
+            type="text"
+            value={line.observations}
+            onChange={(e) =>
+              onChange({ ...line, observations: e.target.value })
+            }
+            aria-label={`Observaciones del medicamento ${n}`}
+            placeholder="Notas clínicas de la línea"
+            className={FIELD}
+          />
+        </label>
+      </div>
+
+      {!hasCatalog && line.displayLabel.trim() ? (
+        <label className="block text-xs text-slate-600 sm:max-w-xs">
+          <span className="mb-1 block font-medium">Vía (texto)</span>
+          <input
+            type="text"
+            value={line.routeCode ?? ""}
+            onChange={(e) =>
+              onChange({
+                ...line,
+                routeCode: e.target.value,
+                routeLabel: e.target.value,
+              })
+            }
+            aria-label={`Vía del medicamento ${n}`}
+            placeholder="Ej. oral"
+            className={FIELD}
+          />
+        </label>
+      ) : null}
+    </div>
+  );
+}
+
+function SnapshotChip({ label, value }: { label: string; value: string }) {
+  return (
+    <span className="inline-flex max-w-full items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[11px] text-slate-700">
+      <span className="font-medium text-slate-500">{label}:</span>
+      <span className="truncate">{value}</span>
+    </span>
+  );
+}
