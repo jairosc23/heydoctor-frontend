@@ -2,6 +2,11 @@ export { SmartDiagnosisPicker } from "./SmartDiagnosisPicker";
 export { MedicationSuggestInput } from "./MedicationSuggestInput";
 export { PrescriptionComposer } from "./PrescriptionComposer";
 export { PrescriptionComposerLine } from "./PrescriptionComposerLine";
+export {
+  PrescriptionSafetyPanel,
+  SafetyAlertCard,
+  defaultSafetyProvider,
+} from "./safety";
 export { DiagnosisBadge } from "./DiagnosisBadge";
 export { PrescriptionPanel } from "./PrescriptionPanel";
 export { LabOrdersPanel } from "./LabOrdersPanel";

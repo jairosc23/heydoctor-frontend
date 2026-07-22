@@ -1,8 +1,10 @@
 "use client";
 
 import { PrescriptionComposerLine } from "./PrescriptionComposerLine";
+import { PrescriptionSafetyPanel } from "./safety/PrescriptionSafetyPanel";
 import type { SelectedMedication } from "@/lib/types/selected-medication";
 import { emptySelectedMedication } from "@/lib/types/selected-medication";
+import type { SafetyProvider } from "@/lib/prescription-safety";
 
 export interface PrescriptionComposerProps {
   lines: SelectedMedication[];
@@ -18,11 +20,17 @@ export interface PrescriptionComposerProps {
   editing?: boolean;
   onSave: () => void;
   onCancelEdit?: () => void;
+  /**
+   * Optional Safety provider (defaults to mock inside Safety Panel).
+   * Composer only mounts the panel — no safety logic here.
+   */
+  safetyProvider?: SafetyProvider;
 }
 
 /**
- * PR-2 — Prescription Composer shell.
+ * PR-2/PR-4.1 — Prescription Composer shell.
  * Works exclusively on SelectedMedication[]; persistence stays in the panel.
+ * Safety UX is delegated to PrescriptionSafetyPanel via SafetyProvider.
  */
 export function PrescriptionComposer({
   lines,
@@ -38,6 +46,7 @@ export function PrescriptionComposer({
   editing,
   onSave,
   onCancelEdit,
+  safetyProvider,
 }: PrescriptionComposerProps) {
   const updateLine = (index: number, next: SelectedMedication) => {
     onChange(lines.map((line, i) => (i === index ? next : line)));
@@ -107,6 +116,14 @@ export function PrescriptionComposer({
           className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
         />
       </label>
+
+      <PrescriptionSafetyPanel
+        patientId={patientId}
+        consultationId={consultationId}
+        diagnosis={diagnosis}
+        lines={lines}
+        provider={safetyProvider}
+      />
 
       {error ? (
         <p className="text-sm text-red-600" role="alert">
