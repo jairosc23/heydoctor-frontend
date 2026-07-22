@@ -7,12 +7,50 @@
 **Baseline FE:** `40b3b9657f564544b9c7b298a80634e86b572e4b`  
 **Baseline BE:** `e5364190ebeac61f94181c4a9bfb692962e4401c`  
 **Precedente:** Phase 0 §4 Safety Model (política CRITICAL aprobada) · PR-1 Catalog · PR-2 Composer · PR-3 Calculation Engine  
-**STATUS:** DRAFT — awaiting Product Owner approval  
+**STATUS:** APPROVED by Product Owner  
 
 **Reglas de este documento**
-- Diseña el dominio de seguridad; **no** implementa CDSS, IA, FHIR ni código productivo.
-- No modifica Composer, Calculation Engine ni Backend en esta fase.
+- Diseña el dominio de seguridad; **no** implementa CDSS, IA, FHIR ni código productivo en Phase A.
 - La política CRITICAL de Phase 0 es vinculante: **nunca hard-block automático**.
+
+---
+
+## Implementation status — PR-4.1 Clinical Safety Panel + UX States
+
+**PR-4.1**  
+**STATUS:** COMPLETED  
+
+| Campo | Valor |
+|-------|--------|
+| Fecha | 2026-07-22 |
+| SHA código (squash → `main`) | `0c237680af31cec92af9fea298ef6cb71e8b8332` |
+| SHA Vercel Production | `0c237680af31cec92af9fea298ef6cb71e8b8332` (`0c23768`) |
+| Deploy Production | `dpl_4rc3zi4Beyw5mc3tft4MnQrHQqLp` · Ready · alias `https://app.heydoctor.health` |
+| Backend (sin cambios / sin redeploy) | `e5364190ebeac61f94181c4a9bfb692962e4401c` |
+
+### Resumen técnico
+- Safety Panel inline integrado al Prescription Composer (sin modales invasivos).
+- UX de alertas INFO / WARNING / CRITICAL con Decision State, acknowledgement y justification.
+- **Sin** Rule Engine clínico, **sin** Backend, **sin** persistencia / audit real.
+- Emisión **nunca** se bloquea por seguridad (política Phase A).
+
+### Arquitectura desacoplada (`SafetyProvider`)
+```
+SafetyProvider (mock hoy → Backend Rule Engine mañana)
+  → PrescriptionSafetyPanel
+    → aggregateAlerts + DecisionState
+      → SafetyAlertCard
+```
+El Composer solo monta el panel; no contiene lógica de seguridad.  
+Sustituir el mock = implementar `SafetyProvider` sin cambiar componentes UI.
+
+### Extensiones al modelo de dominio (PR-4.1)
+- **Priority** (independiente de severidad): `HIGH` | `NORMAL` | `LOW` — solo orden de presentación.
+- **Confidence** (solo representación): `HIGH` | `PARTIAL` | `LOW` — sin cálculo.
+- Contratos: `SafetyEvaluation`, `SafetyAlert`, `SafetyRuleResult`, `DecisionState`, `WarningAcknowledgement`, `CriticalJustification`.
+
+### Selector mock
+Escenarios de simulación (`none` / `info` / `warning` / `critical` / `multi` / confidence_*) visibles solo con `MockSafetyProvider` — no son reglas clínicas.
 
 ---
 
