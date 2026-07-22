@@ -1,21 +1,50 @@
 # CX-01 — Clinical Experience Sprint 1
 
 **ID:** `CX-01-CLINICAL-EXPERIENCE-SPRINT-1`  
-**Tipo:** Estándar de UX clínica + diseño de sprint (sin implementación en este documento)  
+**Tipo:** Estándar de UX clínica + diseño e implementación del sprint  
 **Producto:** HeyDoctor Clinical Encounter™  
-**Estado del documento:** APPROVED  
-**Fecha:** 2026-07-21  
-**Implementación:** CX-01 Fase 1 (PR-1) en curso — I0–I3  
+**STATUS:** COMPLETED  
+**Fecha de cierre:** 2026-07-21  
+**Clinical Acceptance final:** PASS (PR-1, PR-2, PR-3)
 
+### Cierre de implementación
 
-### Baseline congelado (no tocar en CX-01)
+| Campo | Valor |
+|-------|--------|
+| SHA final `main` (código CX-01 I0–I7) | `2133fa84b05e7d0f223b8c43215db79d36e7f60e` |
+| SHA desplegado Vercel Production | `2133fa84b05e7d0f223b8c43215db79d36e7f60e` (`2133fa8`) |
+| Deploy Production | `dpl_5E7gYz6YR4LL36yj4wJkFy9fCiem` · Ready · alias `app.heydoctor.health` |
+| Backend Production (sin redeploy) | `e5364190ebeac61f94181c4a9bfb692962e4401c` |
+
+### Resumen ejecutivo de mejoras
+
+| Iniciativa | Mejora |
+|------------|--------|
+| I0 | Estándar UX clínica documentado y aprobado |
+| I1 | Modo edición visible (badge + CTA fuera del menú `⋯`) |
+| I2 | Antecedentes editables a la vista, sin accordion crítico |
+| I3 | Guardar con alcance y feedback clínico |
+| I4 | Pendientes de documentación con estados de sincronización |
+| I5 | Lenguaje clínico en navegación e identificación |
+| I6 | Hint de talla (cm/m; confirma al salir del campo) |
+| I7 | Viewport del Navigation Rail para alcanzar el último ítem |
+
+### Resultado Clinical Acceptance
+
+- PR-1 (I0–I3): PASS  
+- PR-2 (I4–I5): PASS  
+- PR-3 (I6–I7): PASS  
+- CX-01 Clinical Acceptance Final: **PASS**  
+- EPIC-3 permanece congelado; Backend sin cambios en CX-01.
+
+### Baseline de entrada (pre-CX-01)
 
 | Capa | Valor |
 |------|--------|
 | EPIC-3 Engineering | COMPLETED (congelado) |
-| Backend `main` | `e5364190ebeac61f94181c4a9bfb692962e4401c` |
-| Frontend `main` | `3efaad0224f4ff01aaf3588548bc5d46ef0a91db` |
-| Producción | Railway (BE) + Vercel (FE) — tip alineado |
+| Backend `main` / prod | `e5364190ebeac61f94181c4a9bfb692962e4401c` |
+| Frontend `main` al inicio | `3efaad0224f4ff01aaf3588548bc5d46ef0a91db` |
+| Producción al inicio | Railway (BE) + Vercel (FE) |
 
 ### Fuera de alcance absoluto
 
