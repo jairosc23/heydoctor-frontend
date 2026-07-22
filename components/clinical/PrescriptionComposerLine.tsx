@@ -6,6 +6,7 @@ import {
   clearCatalogIdentity,
   selectedMedicationFromSmartSuggestion,
 } from "@/lib/prescription-composer";
+import { calculateFromSelectedMedication } from "@/lib/prescription-calculation";
 
 const FIELD =
   "w-full rounded border border-gray-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-slate-50";
@@ -21,8 +22,9 @@ export interface PrescriptionComposerLineProps {
 }
 
 /**
- * PR-2 — Structured prescription line (presentation-first).
+ * PR-2/PR-3 — Structured prescription line (presentation-first).
  * Catalog identity lives in SelectedMedication.drugPresentationId.
+ * Quantity math is delegated to the Calculation Engine (no math in UI).
  */
 export function PrescriptionComposerLine({
   line,
@@ -35,6 +37,7 @@ export function PrescriptionComposerLine({
 }: PrescriptionComposerLineProps) {
   const n = index + 1;
   const hasCatalog = Boolean(line.drugPresentationId);
+  const calculation = calculateFromSelectedMedication(line);
 
   return (
     <div
@@ -137,6 +140,25 @@ export function PrescriptionComposerLine({
         </label>
       </div>
 
+      {(calculation.status === "computed" ||
+        calculation.status === "non_deterministic") && (
+        <div
+          className="grid grid-cols-1 gap-2 rounded-md border border-teal-100 bg-teal-50/60 px-2.5 py-2 sm:grid-cols-3"
+          data-testid={`prescription-calculation-${index}`}
+          aria-live="polite"
+        >
+          <CalcStat
+            label="Cantidad calculada"
+            value={calculation.display.quantity}
+          />
+          <CalcStat
+            label="Consumo diario"
+            value={calculation.display.dailyConsumption}
+          />
+          <CalcStat label="Duración" value={calculation.display.duration} />
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         <label className="block text-xs text-slate-600">
           <span className="mb-1 block font-medium">Instrucciones al paciente</span>
@@ -195,5 +217,16 @@ function SnapshotChip({ label, value }: { label: string; value: string }) {
       <span className="font-medium text-slate-500">{label}:</span>
       <span className="truncate">{value}</span>
     </span>
+  );
+}
+
+function CalcStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0">
+      <p className="text-[10px] font-medium uppercase tracking-wide text-teal-800/80">
+        {label}
+      </p>
+      <p className="truncate text-sm font-semibold text-teal-950">{value}</p>
+    </div>
   );
 }
