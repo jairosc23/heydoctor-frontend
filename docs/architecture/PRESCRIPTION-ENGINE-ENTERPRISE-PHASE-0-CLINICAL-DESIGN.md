@@ -7,7 +7,7 @@
 **Precedente:** Phase 1 Audit (`PRESCRIPTION-ENGINE-ENTERPRISE-AUDIT.md`) — **aprobada**  
 **Rama:** `feature/prescription-engine-enterprise`  
 **STATUS:** APPROVED by Product Owner (2026-07-22)  
-**Siguiente autorizado:** PR-3 Quantity Engine (requiere autorización explícita del PO)  
+**Siguiente autorizado:** PR-4 Safety Gate (requiere autorización explícita del PO)  
 
 **Reglas de este documento**
 - Diseña el **dominio clínico**, no tablas ni componentes React.
@@ -37,6 +37,38 @@
 
 ### Limitación conocida
 Observaciones de línea utilizan temporalmente `instructions` con prefijo `Obs.:` hasta la incorporación de un campo dedicado en Backend.
+
+---
+
+## Implementation status — PR-3 Prescription Calculation Engine
+
+**PR-3**  
+**STATUS:** COMPLETED  
+
+| Campo | Valor |
+|-------|--------|
+| Fecha | 2026-07-22 |
+| SHA código (squash → `main`) | `c2bb7e64818ee47d0c6995bb5de5301aa71095df` |
+| SHA Vercel Production | `c2bb7e64818ee47d0c6995bb5de5301aa71095df` (`c2bb7e6`) |
+| Deploy Production | `dpl_6c64jryeMbRNFYkzhY8eoBtMHUkj` · Commit `c2bb7e6` · Ready · alias `https://app.heydoctor.health` |
+| Backend (sin cambios / sin redeploy) | `e5364190ebeac61f94181c4a9bfb692962e4401c` |
+
+### Resumen técnico
+- Capa aislada `lib/prescription-calculation` (Calculation Engine → Composer → Persistence).
+- Cálculo determinístico en tiempo real; sin IA, sin heurísticas, sin cambios Backend/PDF/Persistence.
+- Composer solo muestra resultados; no contiene lógica matemática.
+
+### Modelo enriquecido del Calculation Engine
+Factores explícitos (sin sobrecarga de campos):
+
+- `dosePerAdministration`
+- `administrationsPerDay`
+- `dailyConsumption` (= dosePerAdministration × administrationsPerDay)
+- `totalQuantity` (= dailyConsumption × durationDays)
+- `finalQuantity` (según presentación; PR-3 = totalQuantity)
+- `explanation.formula` (p. ej. `2 comprimidos × 2 administraciones/día × 10 días = 40 comprimidos`)
+
+Estados: `deterministic` · `non_deterministic` · `incomplete` · `unsupported`
 
 ---
 
@@ -423,7 +455,7 @@ flowchart TB
 |-------|-----|--------|-------|
 | 1 | **PR-1** | Catalog | Cliente FE tipado: presentations + smart-suggestions; deprecar path string-only en UI nueva — **COMPLETED** |
 | 2 | **PR-2** | Composer | UI estructurada presentation-first — **COMPLETED** (2026-07-22) |
-| 3 | **PR-3** | Quantity Engine | Cálculo / override de cantidad + PDF |
+| 3 | **PR-3** | Quantity Engine | Cálculo / override de cantidad + PDF — **COMPLETED** (2026-07-22; FE Calculation Engine; PDF/BE sin cambio) |
 | 4 | **PR-4** | Safety Gate | Severidades + ack WARNING + justificación CRITICAL auditada |
 | 5 | **PR-5** | Prescription Integrity | GET `:id`, versionado/re-firma, audit update/cancel |
 | 6 | **PR-6** | Continuity | Favoritos FE, plantillas, renovar |
