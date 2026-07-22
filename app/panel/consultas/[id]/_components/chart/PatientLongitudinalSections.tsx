@@ -30,7 +30,7 @@ const HABIT_FIELDS: { key: keyof PatientProfile; label: string }[] = [
 ];
 
 const TEXTAREA_CLASS =
-  "min-h-[88px] w-full rounded-hd-md border border-hd-border-subtle bg-white px-hd-3 py-hd-2 text-sm text-slate-800 placeholder:text-slate-400 disabled:bg-slate-50 disabled:text-slate-500";
+  "min-h-[88px] w-full rounded-hd-md border border-slate-300 bg-white px-hd-3 py-hd-2 text-sm text-slate-800 shadow-sm placeholder:text-slate-400 disabled:bg-slate-50 disabled:text-slate-500";
 
 function mergeLines(...groups: string[][]): string[] {
   const seen = new Set<string>();
@@ -67,9 +67,10 @@ function draftKeyOf(draft: AntecedentsDraft): string {
 }
 
 export type PatientAntecedentsSectionHandle = {
-  /** Persiste el perfil si hay cambios. Retorna true si escribió en el SoT. */
+  /** Persiste el perfil si hay cambios. Retorna true si escribió en la ficha del paciente. */
   flush: () => Promise<boolean>;
   getDraftKey: () => string;
+  isDirty: () => boolean;
 };
 
 export interface PatientLongitudinalSectionsProps {
@@ -79,6 +80,7 @@ export interface PatientLongitudinalSectionsProps {
   editable?: boolean;
   onProfileSaved?: (profile: PatientProfile) => void;
   onDraftKeyChange?: (draftKey: string) => void;
+  onDirtyChange?: (dirty: boolean) => void;
   onPersistError?: (message: string) => void;
 }
 
@@ -133,13 +135,13 @@ function EditableField({
   return (
     <label
       className={cn(
-        "block rounded-hd-md border border-hd-border-subtle bg-white px-hd-3 py-hd-2",
-        critical && "border-red-200 bg-red-50",
+        "block rounded-hd-md border border-slate-300 bg-white px-hd-3 py-hd-2 shadow-sm",
+        critical && "border-red-300 bg-red-50/40",
       )}
     >
       <span
         className={cn(
-          "mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600",
+          "mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-700",
           critical && "text-red-800",
         )}
       >
@@ -154,8 +156,8 @@ function EditableField({
         data-testid={testId}
         rows={4}
       />
-      <span className="mt-1 block text-[11px] text-slate-400">
-        Una entrada por línea. Se guarda en el perfil del paciente.
+      <span className="mt-1 block text-[11px] text-slate-500">
+        Una entrada por línea. Se guarda en la ficha del paciente.
       </span>
     </label>
   );
@@ -172,6 +174,7 @@ export const PatientAntecedentsSection = forwardRef<
     editable = false,
     onProfileSaved,
     onDraftKeyChange,
+    onDirtyChange,
     onPersistError,
   },
   ref,
@@ -209,6 +212,10 @@ export const PatientAntecedentsSection = forwardRef<
     onDraftKeyChange?.(currentDraftKey);
   }, [currentDraftKey, onDraftKeyChange]);
 
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+  }, [dirty, onDirtyChange]);
+
   const flush = useCallback(async (): Promise<boolean> => {
     if (!patientId || !editable) return false;
     if (savingRef.current) return false;
@@ -237,7 +244,7 @@ export const PatientAntecedentsSection = forwardRef<
       onPersistError?.(
         err instanceof Error
           ? err.message
-          : "No se pudieron guardar los antecedentes del paciente.",
+          : "No se pudieron guardar los antecedentes. Intente Guardar de nuevo.",
       );
       throw err;
     } finally {
@@ -251,6 +258,7 @@ export const PatientAntecedentsSection = forwardRef<
     () => ({
       flush,
       getDraftKey: () => draftKeyOf(draftRef.current),
+      isDirty: () => draftKeyOf(draftRef.current) !== baselineKeyRef.current,
     }),
     [flush],
   );
@@ -267,12 +275,6 @@ export const PatientAntecedentsSection = forwardRef<
     return value ? `${label}: ${value}` : null;
   }).filter((line): line is string => Boolean(line));
   const familyLines = jsonLinesToList(profile?.familyHistory);
-  const totalItems =
-    personalLines.length +
-    medicationLines.length +
-    allergyLines.length +
-    habitLines.length +
-    familyLines.length;
   const hasAllergies =
     allergyLines.length > 0 || draft.allergiesText.trim().length > 0;
   const canEdit = Boolean(editable && patientId);
@@ -285,122 +287,114 @@ export const PatientAntecedentsSection = forwardRef<
     >
       {loading ? (
         <p className="text-sm text-slate-500">Cargando antecedentes…</p>
-      ) : (
-        <details className="group" open={canEdit || hasAllergies || dirty}>
-          <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-hd-2 rounded-hd-md border border-hd-border-subtle bg-hd-surface-muted px-hd-3 py-hd-2 text-sm text-slate-700">
-            <span>
-              <span className="font-semibold">§4–§8 longitudinal</span>{" "}
-              <span className="text-slate-500">
-                {canEdit
-                  ? dirty
-                    ? "cambios sin guardar en el perfil"
-                    : "editables · SoT perfil del paciente"
-                  : totalItems === 0
-                    ? "sin datos registrados"
-                    : `${totalItems} dato${totalItems === 1 ? "" : "s"} del perfil`}
+      ) : canEdit ? (
+        <div className="space-y-hd-3" data-testid="antecedents-editor">
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <span className="rounded-hd-md border border-primary/20 bg-primaryLight/40 px-2 py-0.5 font-semibold text-primary">
+              Antecedentes — editable
+            </span>
+            {dirty && !saving ? (
+              <span
+                className="font-semibold text-amber-700"
+                data-testid="antecedents-dirty-badge"
+              >
+                Hay cambios sin guardar en antecedentes
               </span>
-            </span>
-            <span className="text-xs font-semibold text-primary group-open:hidden">
-              Ver antecedentes
-            </span>
-            <span className="hidden text-xs font-semibold text-primary group-open:inline">
-              Ocultar antecedentes
-            </span>
-          </summary>
-
-          {canEdit ? (
-            <div className="mt-hd-3 space-y-hd-3">
-              <p className="text-xs text-slate-500">
-                Los antecedentes se persisten en el perfil del paciente (único
-                Source of Truth). Use «Guardar» en la ficha clínica para
-                confirmarlos.
-                {saving ? " Guardando perfil…" : null}
-                {dirty && !saving ? (
-                  <span className="ml-1 font-semibold text-amber-700">
-                    Hay cambios pendientes de guardar.
-                  </span>
-                ) : null}
-              </p>
-              <div className="grid gap-hd-3 md:grid-cols-2">
-                <EditableField
-                  label="§4 Antecedentes personales"
-                  value={draft.personalText}
-                  onChange={(personalText) =>
-                    setDraft((prev) => ({ ...prev, personalText }))
-                  }
-                  placeholder="Una condición por línea"
-                  disabled={saving}
-                  testId="antecedents-personal"
-                />
-                <EditableField
-                  label="§5 Medicamentos habituales"
-                  value={draft.medicationsText}
-                  onChange={(medicationsText) =>
-                    setDraft((prev) => ({ ...prev, medicationsText }))
-                  }
-                  placeholder="Un medicamento por línea"
-                  disabled={saving}
-                  testId="antecedents-medications"
-                />
-                <EditableField
-                  label="§6 Alergias"
-                  value={draft.allergiesText}
-                  onChange={(allergiesText) =>
-                    setDraft((prev) => ({ ...prev, allergiesText }))
-                  }
-                  placeholder="Una alergia por línea"
-                  critical={hasAllergies}
-                  disabled={saving}
-                  testId="antecedents-allergies"
-                />
-                <EditableField
-                  label="§8 Antecedentes familiares"
-                  value={draft.familyText}
-                  onChange={(familyText) =>
-                    setDraft((prev) => ({ ...prev, familyText }))
-                  }
-                  placeholder="Un antecedente familiar por línea"
-                  disabled={saving}
-                  testId="antecedents-family"
-                />
-                <SectionSummary
-                  label="§7 Hábitos"
-                  lines={habitLines}
-                  emptyLabel="Sin hábitos registrados."
-                />
-              </div>
-            </div>
-          ) : (
-            <div className="mt-hd-3 grid gap-hd-3 md:grid-cols-2">
-              <SectionSummary
-                label="§4 Antecedentes personales"
-                lines={personalLines}
-                emptyLabel="Sin antecedentes personales registrados."
-              />
-              <SectionSummary
-                label="§5 Medicamentos habituales"
-                lines={medicationLines}
-                emptyLabel="Sin medicamentos habituales registrados."
-              />
-              <SectionSummary
-                label="§6 Alergias"
-                lines={allergyLines}
-                emptyLabel="Sin alergias documentadas en la ficha del paciente."
-                critical={hasAllergies}
-              />
-              <SectionSummary
-                label="§7 Hábitos"
-                lines={habitLines}
-                emptyLabel="Sin hábitos registrados."
-              />
-              <SectionSummary
-                label="§8 Antecedentes familiares"
-                lines={familyLines}
-                emptyLabel="Sin antecedentes familiares registrados."
-              />
-            </div>
-          )}
-        </details>
+            ) : null}
+            {saving ? (
+              <span className="font-semibold text-slate-600">
+                Guardando en la ficha del paciente…
+              </span>
+            ) : null}
+          </div>
+          <p className="text-xs text-slate-500">
+            Use «Guardar» en la ficha clínica para confirmar los cambios en la
+            ficha del paciente.
+          </p>
+          <div className="grid gap-hd-3 md:grid-cols-2">
+            <EditableField
+              label="Antecedentes personales"
+              value={draft.personalText}
+              onChange={(personalText) =>
+                setDraft((prev) => ({ ...prev, personalText }))
+              }
+              placeholder="Una condición por línea"
+              disabled={saving}
+              testId="antecedents-personal"
+            />
+            <EditableField
+              label="Medicamentos habituales"
+              value={draft.medicationsText}
+              onChange={(medicationsText) =>
+                setDraft((prev) => ({ ...prev, medicationsText }))
+              }
+              placeholder="Un medicamento por línea"
+              disabled={saving}
+              testId="antecedents-medications"
+            />
+            <EditableField
+              label="Alergias"
+              value={draft.allergiesText}
+              onChange={(allergiesText) =>
+                setDraft((prev) => ({ ...prev, allergiesText }))
+              }
+              placeholder="Una alergia por línea"
+              critical={hasAllergies}
+              disabled={saving}
+              testId="antecedents-allergies"
+            />
+            <EditableField
+              label="Antecedentes familiares"
+              value={draft.familyText}
+              onChange={(familyText) =>
+                setDraft((prev) => ({ ...prev, familyText }))
+              }
+              placeholder="Un antecedente familiar por línea"
+              disabled={saving}
+              testId="antecedents-family"
+            />
+            <SectionSummary
+              label="Hábitos"
+              lines={habitLines}
+              emptyLabel="Sin hábitos registrados."
+            />
+          </div>
+        </div>
+      ) : (
+        <div className="grid gap-hd-3 md:grid-cols-2">
+          {!editable ? (
+            <p className="md:col-span-2 text-xs text-slate-500">
+              Solo lectura. Active «Editar consulta» para modificar
+              antecedentes.
+            </p>
+          ) : null}
+          <SectionSummary
+            label="Antecedentes personales"
+            lines={personalLines}
+            emptyLabel="Sin antecedentes personales registrados."
+          />
+          <SectionSummary
+            label="Medicamentos habituales"
+            lines={medicationLines}
+            emptyLabel="Sin medicamentos habituales registrados."
+          />
+          <SectionSummary
+            label="Alergias"
+            lines={allergyLines}
+            emptyLabel="Sin alergias documentadas en la ficha del paciente."
+            critical={hasAllergies}
+          />
+          <SectionSummary
+            label="Hábitos"
+            lines={habitLines}
+            emptyLabel="Sin hábitos registrados."
+          />
+          <SectionSummary
+            label="Antecedentes familiares"
+            lines={familyLines}
+            emptyLabel="Sin antecedentes familiares registrados."
+          />
+        </div>
       )}
     </ClinicalEncounterSection>
   );

@@ -105,7 +105,7 @@ export function EncounterActionMenu({
           className="absolute right-0 top-full z-50 mt-1 min-w-[240px] max-w-[min(100vw-32px,300px)] rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
         >
           <MenuItem
-            label={isEditing ? "Cerrar edición" : "Editar ficha"}
+            label={isEditing ? "Cerrar edición" : "Editar consulta"}
             icon="✏️"
             disabled={disabled.edit}
             onClick={() => {

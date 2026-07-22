@@ -2,8 +2,14 @@
 
 **Repositorio:** `jairosc23/heydoctor-frontend`  
 **Estado del documento:** Aprobado — referencia estratégica permanente  
-**Última revisión:** 2026-07-04  
+**Última revisión:** 2026-07-21  
 **Base de referencia:** `main` post Fase 18 (`b6a9b6ff`)
+
+### Estándar UX clínica activo
+
+**CX-01 Clinical Experience** — estándar normativo de UX clínica del encuentro.  
+Documento: [`CX-01-Clinical-Experience.md`](./CX-01-Clinical-Experience.md).  
+Sprint acotado FE (I0–I7); EPIC-3 congelado; sin cambios de backend/Foundation/IA.
 
 ---
 
