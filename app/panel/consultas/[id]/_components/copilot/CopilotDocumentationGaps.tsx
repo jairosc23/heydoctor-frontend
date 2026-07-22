@@ -20,16 +20,24 @@ export function CopilotDocumentationGaps({
     syncState === "loading"
       ? "Actualizando pendientes…"
       : syncState === "unsaved_changes"
-        ? "Hay cambios sin guardar. Los pendientes se actualizan al guardar."
+        ? "Hay cambios clínicos sin guardar. Los pendientes reflejan la última versión guardada."
         : syncState === "unavailable"
           ? "Pendientes no disponibles todavía."
-          : "Según la última versión guardada.";
+          : "Sincronizado con la última versión guardada.";
+
+  const statusTone =
+    syncState === "unsaved_changes"
+      ? "text-amber-800"
+      : syncState === "loading"
+        ? "text-slate-600"
+        : "text-slate-600";
 
   return (
     <section
       aria-label="Pendientes de documentación"
       className="space-y-hd-2"
       data-testid="documentation-gaps-panel"
+      data-sync-state={syncState}
     >
       <div>
         <h3 className={CLINICAL_SECTION_TITLE}>
@@ -39,11 +47,19 @@ export function CopilotDocumentationGaps({
           Oportunidades de completitud — informativo
         </p>
         <p
-          className="mt-1 text-[11px] font-medium text-slate-600"
+          className={`mt-1 text-[11px] font-medium ${statusTone}`}
           data-testid="documentation-gaps-sync-status"
         >
           {statusLine}
         </p>
+        {syncState === "unsaved_changes" ? (
+          <p
+            className="mt-1 rounded-hd-md border border-amber-200/80 bg-amber-50/70 px-hd-2 py-1 text-[11px] text-amber-900"
+            data-testid="documentation-gaps-unsaved-banner"
+          >
+            Guarde la consulta para actualizar estos pendientes.
+          </p>
+        ) : null}
       </div>
       {syncState === "loading" ? (
         <p className="rounded-hd-md border border-slate-200/80 bg-slate-50/80 px-hd-3 py-hd-2 text-[11px] text-slate-600">

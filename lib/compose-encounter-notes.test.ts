@@ -78,6 +78,38 @@ describe("compose-encounter-notes", () => {
     assert.equal(again.clinicalRecord.freeNotes, "Nota libre");
   });
 
+  it("round-trip de talla parcial no convierte m→cm (sin salto por autosave)", () => {
+    const composed = composeEncounterNotes({
+      clinicalRecord: {
+        presentIllnessHistory: "",
+        systemsReview: {
+          skin: "",
+          digestive: "",
+          neurological: "",
+          respiratory: "",
+          cardiovascular: "",
+          genitourinary: "",
+        },
+        freeNotes: "",
+      },
+      vitals: { heightCm: 1.7, weightKg: 70 },
+      physicalExam: {
+        general: "",
+        head: "",
+        neck: "",
+        cardiovascular: "",
+        respiratory: "",
+        abdomen: "",
+        neurological: "",
+        extremities: "",
+        skin: "",
+        other: "",
+      },
+    });
+    const parsed = parseEncounterNotes(composed);
+    assert.equal(parsed.vitals.heightCm, 1.7);
+  });
+
   it("stripAllEncounterMarkers deja solo texto libre", () => {
     const cr = serializeClinicalRecord({
       presentIllnessHistory: "HEA",

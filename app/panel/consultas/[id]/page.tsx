@@ -490,19 +490,49 @@ export default function ConsultationDetailPage() {
     antecedentsDraftKey,
   });
 
-  const { lastSavedAt, status: autosaveStatus, errorMessage: autosaveError, flushNow } =
-    useConsultationAutosave({
-      enabled: isEditable && Boolean(consultation),
-      draftKey: soapDraftKey,
-      debounceMs: 900,
-      save: persistSoapDraft,
-    });
+  const {
+    lastSavedAt,
+    status: autosaveStatus,
+    errorMessage: autosaveError,
+    flushNow,
+    isDraftDirty,
+  } = useConsultationAutosave({
+    enabled: isEditable && Boolean(consultation),
+    draftKey: soapDraftKey,
+    debounceMs: 900,
+    save: persistSoapDraft,
+  });
+
+  const hasUnsavedClinicalChanges =
+    antecedentsDirty ||
+    isDraftDirty ||
+    autosaveStatus === "pending" ||
+    autosaveStatus === "saving" ||
+    manualSaveStatus === "saving";
 
   useEffect(() => {
     setManualSaveStatus((status) =>
       status === "saving" ? status : "idle",
     );
   }, [soapDraftKey]);
+
+  // Persistencia determinística al ocultar/cerrar pestaña (antes de F5 / navegación).
+  useEffect(() => {
+    const persistAntecedents = () => {
+      if (antecedentsRef.current?.isDirty()) {
+        void antecedentsRef.current.flush();
+      }
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") persistAntecedents();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("pagehide", persistAntecedents);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("pagehide", persistAntecedents);
+    };
+  }, []);
 
   async function handleManualSave() {
     if (!isEditable || !consultation) return;
@@ -744,7 +774,24 @@ export default function ConsultationDetailPage() {
     handleActionResult("PDF", r);
   }
 
-  function handleToggleEdit() {
+  async function handleToggleEdit() {
+    if (editMode) {
+      // Al salir de edición: forzar flush del draft dirty antes de solo-lectura.
+      try {
+        const saved = Boolean(await antecedentsRef.current?.flush());
+        if (saved) {
+          setAntecedentsDirty(false);
+          await clinicalFoundationState.reload();
+        }
+      } catch (err) {
+        setSaveMsg(
+          err instanceof Error
+            ? err.message
+            : "No se pudieron guardar los antecedentes. Permanece en edición.",
+        );
+        return;
+      }
+    }
     setEditMode((v) => !v);
     setWorkspaceTab("soap");
     setLeftPaneTab("soap");
@@ -1051,7 +1098,7 @@ export default function ConsultationDetailPage() {
         clinicalFoundationLoading={clinicalFoundationState.loading}
         clinicalFoundationError={clinicalFoundationState.error}
         foundationOutputs={clinicalFoundationOutputs}
-        hasUnsavedClinicalChanges={antecedentsDirty}
+        hasUnsavedClinicalChanges={hasUnsavedClinicalChanges}
         onSignConsultation={async (signatureBase64) => {
           await handleSign(signatureBase64);
         }}

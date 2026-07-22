@@ -56,6 +56,7 @@ export function parseEncounterNotes(
   const record = parseClinicalRecord(notes);
   const vitals = normalizeClinicalVitalSigns(
     parseClinicalVitalSignsFromNotes(notes).vitals,
+    { convertHeightMetersToCm: false },
   );
   const physicalExam = parsePhysicalExamMarkerOnly(notes);
   const freeNotes = stripAllEncounterMarkers(notes);

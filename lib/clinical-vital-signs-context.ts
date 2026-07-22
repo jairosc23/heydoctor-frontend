@@ -95,7 +95,8 @@ function normalizeHeightToCm(value: number): number | null {
 export type NormalizeClinicalVitalSignsOptions = {
   /**
    * Cuando true (default), convierte talla en metros (≤3) a cm.
-   * Desactivar durante digitación; activar en blur / persistencia.
+   * Desactivar durante digitación, serialize y rehydrate del draft.
+   * Activar solo en blur del campo talla (commit explícito).
    */
   convertHeightMetersToCm?: boolean;
 };
@@ -158,7 +159,11 @@ function parseMarkerBlock(notes: string): ClinicalVitalSigns | null {
       : notes.slice(start + VITAL_SIGNS_MARKER.length).trim();
   const parsed = safeParseJson(jsonPart);
   if (!parsed) return null;
-  return normalizeClinicalVitalSigns(parsed);
+  // No convertir m→cm aquí: rehidratación/autosave no debe alterar digitación.
+  // La conversión ocurre solo en blur del campo talla (UI).
+  return normalizeClinicalVitalSigns(parsed, {
+    convertHeightMetersToCm: false,
+  });
 }
 
 function extractInt(text: string, pattern: RegExp): number | null {
@@ -275,7 +280,11 @@ export function parseClinicalVitalSignsFromNotes(
 export function serializeClinicalVitalSigns(
   vitals: ClinicalVitalSigns,
 ): string | null {
-  const normalized = normalizeClinicalVitalSigns(vitals);
+  // Preservar talla tal como está en el draft (sin m→cm). Autosave/rehydrate
+  // no deben saltar valores parciales; el blur del input confirma metros→cm.
+  const normalized = normalizeClinicalVitalSigns(vitals, {
+    convertHeightMetersToCm: false,
+  });
   if (!hasClinicalVitalSignsData(normalized)) return null;
 
   const payload: PersistedVitals = { v: 1 };
