@@ -217,7 +217,9 @@ export const PatientAntecedentsSection = forwardRef<
   }, [dirty, onDirtyChange]);
 
   const flush = useCallback(async (): Promise<boolean> => {
-    if (!patientId || !editable) return false;
+    // Persistencia no depende de editMode: salir de edición / autosave / F5
+    // deben poder escribir el draft dirty aunque la UI esté en solo lectura.
+    if (!patientId) return false;
     if (savingRef.current) return false;
     const current = draftRef.current;
     const key = draftKeyOf(current);
@@ -251,7 +253,7 @@ export const PatientAntecedentsSection = forwardRef<
       savingRef.current = false;
       setSaving(false);
     }
-  }, [editable, onPersistError, onProfileSaved, patientId]);
+  }, [onPersistError, onProfileSaved, patientId]);
 
   useImperativeHandle(
     ref,

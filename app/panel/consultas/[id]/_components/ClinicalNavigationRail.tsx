@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, type RefObject } from "react";
 import { cn } from "@/lib/utils";
 import {
   clinicalNavigationGroupLabel,
@@ -9,6 +10,75 @@ import {
   type ClinicalNavigationRisk,
   type ClinicalNavigationSection,
 } from "./clinical-navigation-rail-model";
+
+/** Scrollport más cercano (p. ej. `<main>` del PanelLayout). */
+function nearestScrollPort(el: HTMLElement): HTMLElement | null {
+  let parent: HTMLElement | null = el.parentElement;
+  while (parent) {
+    const { overflowY } = getComputedStyle(parent);
+    if (
+      overflowY === "auto" ||
+      overflowY === "scroll" ||
+      overflowY === "overlay"
+    ) {
+      return parent;
+    }
+    parent = parent.parentElement;
+  }
+  return null;
+}
+
+/**
+ * Ajusta max-height al espacio visible real bajo el sticky top:
+ * viewport clínico, zoom, visualViewport y borde inferior del scrollport.
+ */
+function useRailStickyMaxHeight(
+  enabled: boolean,
+  navRef: RefObject<HTMLElement | null>,
+) {
+  useEffect(() => {
+    if (!enabled) return;
+    const el = navRef.current;
+    if (!el) return;
+
+    const apply = () => {
+      const top = el.getBoundingClientRect().top;
+      const scrollPort = nearestScrollPort(el);
+      let bottom: number;
+      if (scrollPort) {
+        bottom = scrollPort.getBoundingClientRect().bottom;
+      } else if (window.visualViewport) {
+        bottom =
+          window.visualViewport.offsetTop + window.visualViewport.height;
+      } else {
+        bottom = window.innerHeight;
+      }
+      // Aire inferior para que el último ítem quede alcanzable al hacer scroll.
+      const available = Math.floor(bottom - top - 16);
+      if (Number.isFinite(available) && available > 0) {
+        el.style.maxHeight = `${Math.max(160, available)}px`;
+      }
+    };
+
+    apply();
+    const ro = new ResizeObserver(apply);
+    ro.observe(el);
+    const scrollPort = nearestScrollPort(el);
+    if (scrollPort) ro.observe(scrollPort);
+    window.addEventListener("resize", apply);
+    window.visualViewport?.addEventListener("resize", apply);
+    window.visualViewport?.addEventListener("scroll", apply);
+    scrollPort?.addEventListener("scroll", apply, { passive: true });
+
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", apply);
+      window.visualViewport?.removeEventListener("resize", apply);
+      window.visualViewport?.removeEventListener("scroll", apply);
+      scrollPort?.removeEventListener("scroll", apply);
+    };
+  }, [enabled, navRef]);
+}
 
 export interface ClinicalNavigationRailProps {
   sections: ClinicalNavigationSection[];
@@ -183,6 +253,9 @@ export function ClinicalNavigationRail({
   orientation = "vertical",
   className,
 }: ClinicalNavigationRailProps) {
+  const verticalNavRef = useRef<HTMLElement | null>(null);
+  useRailStickyMaxHeight(orientation === "vertical" && sections.length > 0, verticalNavRef);
+
   if (sections.length === 0) return null;
 
   if (orientation === "horizontal") {
@@ -212,13 +285,13 @@ export function ClinicalNavigationRail({
 
   return (
     <nav
+      ref={verticalNavRef}
       aria-label="Navegación de ficha clínica"
       data-testid="clinical-navigation-rail"
       data-orientation="vertical"
       className={cn(
-        // Panel header h-16 (4rem) + encounter chrome + sticky gap (0.75rem) +
-        // bottom padding so the last nav item stays reachable when scrolling.
-        "clinical-depth-secondary sticky top-[calc(var(--encounter-chrome-h,5.5rem)+0.75rem)] z-10 max-h-[calc(100dvh-4rem-var(--encounter-chrome-h,5.5rem)-0.75rem-1.5rem)] overflow-y-auto overscroll-contain rounded-hd-lg border border-hd-border-subtle bg-hd-surface-raised p-hd-2 shadow-hd-1",
+        // Fallback CSS (100dvh + safe-area); JS mide el espacio real del scrollport.
+        "clinical-depth-secondary sticky top-[calc(var(--encounter-chrome-h,5.5rem)+0.75rem)] z-10 max-h-[calc(100dvh-4rem-var(--encounter-chrome-h,5.5rem)-0.75rem-env(safe-area-inset-bottom,0px)-2.5rem)] overflow-y-auto overscroll-contain rounded-hd-lg border border-hd-border-subtle bg-hd-surface-raised p-hd-2 pb-hd-3 shadow-hd-1",
         className,
       )}
     >

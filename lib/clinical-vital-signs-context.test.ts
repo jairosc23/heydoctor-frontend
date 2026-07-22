@@ -42,7 +42,7 @@ describe("clinical-vital-signs-context", () => {
     assert.equal(vitals.bmi, 24.9);
   });
 
-  it("no convierte metros a cm durante digitación; sí en persistencia", () => {
+  it("no convierte metros a cm durante digitación; sí en blur (no en serialize/rehydrate)", () => {
     const whileTyping = normalizeClinicalVitalSigns(
       { heightCm: 1.7 },
       { convertHeightMetersToCm: false },
@@ -54,6 +54,13 @@ describe("clinical-vital-signs-context", () => {
       { convertHeightMetersToCm: true },
     );
     assert.equal(onBlur.heightCm, 170);
+
+    // Autosave/serialize no debe convertir (evita salto mid-typing al rehidratar).
+    const block = serializeClinicalVitalSigns({ heightCm: 1.7, weightKg: 70 });
+    assert.ok(block);
+    assert.match(block!, /"heightCm":1\.7/);
+    const rehydrated = parseClinicalVitalSignsFromNotes(block!);
+    assert.equal(rehydrated.vitals.heightCm, 1.7);
   });
 
   it("no calcula IMC con valores inválidos", () => {

@@ -87,5 +87,10 @@ export function useConsultationAutosave({
     void runSave(debouncedKey);
   }, [debouncedKey, enabled, runSave]);
 
-  return { lastSavedAt, status, errorMessage, flushNow };
+  const isDraftDirty =
+    enabled &&
+    lastSavedDraftKeyRef.current != null &&
+    draftKey !== lastSavedDraftKeyRef.current;
+
+  return { lastSavedAt, status, errorMessage, flushNow, isDraftDirty };
 }
