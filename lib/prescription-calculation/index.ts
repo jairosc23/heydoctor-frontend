@@ -6,10 +6,13 @@
 export {
   calculatePrescription,
   calculateFromSelectedMedication,
+  buildExplanation,
 } from "./engine";
 export type {
   CalculationInput,
   CalculationResult,
   CalculationStatus,
+  CalculationReasonCode,
+  MathExplanation,
 } from "./types";
 export { emptyCalculationDisplay } from "./types";

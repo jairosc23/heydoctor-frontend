@@ -140,22 +140,32 @@ export function PrescriptionComposerLine({
         </label>
       </div>
 
-      {(calculation.status === "computed" ||
+      {(calculation.status === "deterministic" ||
         calculation.status === "non_deterministic") && (
         <div
-          className="grid grid-cols-1 gap-2 rounded-md border border-teal-100 bg-teal-50/60 px-2.5 py-2 sm:grid-cols-3"
+          className="space-y-1.5 rounded-md border border-teal-100 bg-teal-50/60 px-2.5 py-2"
           data-testid={`prescription-calculation-${index}`}
           aria-live="polite"
         >
-          <CalcStat
-            label="Cantidad calculada"
-            value={calculation.display.quantity}
-          />
-          <CalcStat
-            label="Consumo diario"
-            value={calculation.display.dailyConsumption}
-          />
-          <CalcStat label="Duración" value={calculation.display.duration} />
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+            <CalcStat
+              label="Cantidad total"
+              value={calculation.display.quantity}
+            />
+            <CalcStat
+              label="Consumo diario"
+              value={calculation.display.dailyConsumption}
+            />
+            <CalcStat label="Duración" value={calculation.display.duration} />
+          </div>
+          {calculation.display.explanation !== "—" ? (
+            <p
+              className="text-[11px] text-teal-900/90"
+              data-testid={`prescription-calculation-explanation-${index}`}
+            >
+              {calculation.display.explanation}
+            </p>
+          ) : null}
         </div>
       )}
 

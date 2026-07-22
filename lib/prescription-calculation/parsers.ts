@@ -42,12 +42,12 @@ export function parseDurationDays(raw: string): number | null {
 }
 
 export type FrequencyParse =
-  | { kind: "scheduled"; dosesPerDay: number }
+  | { kind: "scheduled"; administrationsPerDay: number }
   | { kind: "prn" }
   | { kind: "unparseable" };
 
 /**
- * Deterministic frequency → doses/day.
+ * Deterministic frequency → administrationsPerDay.
  * PRN / “según necesidad” → non-deterministic (no auto quantity).
  */
 export function parseFrequency(raw: string): FrequencyParse {
@@ -63,9 +63,11 @@ export function parseFrequency(raw: string): FrequencyParse {
   if (interval) {
     const hours = Number(interval[1]!.replace(",", "."));
     if (!Number.isFinite(hours) || hours <= 0) return { kind: "unparseable" };
-    const dpd = 24 / hours;
-    if (!Number.isFinite(dpd) || dpd <= 0) return { kind: "unparseable" };
-    return { kind: "scheduled", dosesPerDay: dpd };
+    const administrationsPerDay = 24 / hours;
+    if (!Number.isFinite(administrationsPerDay) || administrationsPerDay <= 0) {
+      return { kind: "unparseable" };
+    }
+    return { kind: "scheduled", administrationsPerDay };
   }
 
   // 1-0-1 · 1-1-1 · 2-0-2 (sum of numeric slots)
@@ -74,7 +76,7 @@ export function parseFrequency(raw: string): FrequencyParse {
     const parts = text.split(/[-–]/).map((p) => Number(p.trim().replace(",", ".")));
     if (parts.every((n) => Number.isFinite(n) && n >= 0)) {
       const sum = parts.reduce((a, b) => a + b, 0);
-      if (sum > 0) return { kind: "scheduled", dosesPerDay: sum };
+      if (sum > 0) return { kind: "scheduled", administrationsPerDay: sum };
     }
   }
 
@@ -84,7 +86,9 @@ export function parseFrequency(raw: string): FrequencyParse {
   );
   if (times) {
     const n = Number(times[1]!.replace(",", "."));
-    if (Number.isFinite(n) && n > 0) return { kind: "scheduled", dosesPerDay: n };
+    if (Number.isFinite(n) && n > 0) {
+      return { kind: "scheduled", administrationsPerDay: n };
+    }
   }
 
   // diaria / diario / 1 vez al día / qd / once daily
@@ -93,18 +97,18 @@ export function parseFrequency(raw: string): FrequencyParse {
       text,
     )
   ) {
-    return { kind: "scheduled", dosesPerDay: 1 };
+    return { kind: "scheduled", administrationsPerDay: 1 };
   }
 
   // bid / tid / qid
   if (/^(?:bid|2\s*veces(?:\s*(?:al|\/|por)\s*d[ií]a)?)$/i.test(text)) {
-    return { kind: "scheduled", dosesPerDay: 2 };
+    return { kind: "scheduled", administrationsPerDay: 2 };
   }
   if (/^(?:tid|3\s*veces(?:\s*(?:al|\/|por)\s*d[ií]a)?)$/i.test(text)) {
-    return { kind: "scheduled", dosesPerDay: 3 };
+    return { kind: "scheduled", administrationsPerDay: 3 };
   }
   if (/^(?:qid|4\s*veces(?:\s*(?:al|\/|por)\s*d[ií]a)?)$/i.test(text)) {
-    return { kind: "scheduled", dosesPerDay: 4 };
+    return { kind: "scheduled", administrationsPerDay: 4 };
   }
 
   return { kind: "unparseable" };

@@ -1,16 +1,19 @@
 /**
- * Prescription Calculation Engine (PR-3).
+ * Prescription Calculation Engine (PR-3) — enriched deterministic model.
  *
  * Architecture:
  *   Calculation Engine → Composer (display) → Persistence (unchanged)
  *
- * Pure, deterministic math. No AI. No heuristics. No Backend / PDF / Safety.
+ * Explicit factors (never overloaded):
+ *   dosePerAdministration × administrationsPerDay × durationDays = totalQuantity
  */
 
 import {
   emptyCalculationDisplay,
   type CalculationInput,
+  type CalculationReasonCode,
   type CalculationResult,
+  type MathExplanation,
 } from "./types";
 import {
   formatAmount,
@@ -29,69 +32,76 @@ export function calculatePrescription(
   const frequency = input.frequency.trim();
   const duration = input.duration.trim();
 
-  if (!dosage) {
-    return incomplete("missing_dosage");
-  }
-  if (!frequency) {
-    return incomplete("missing_frequency");
-  }
-  if (!duration) {
-    return incomplete("missing_duration");
-  }
+  if (!dosage) return incomplete("missing_dosage");
+  if (!frequency) return incomplete("missing_frequency");
+  if (!duration) return incomplete("missing_duration");
 
   const dose = parseDose(dosage);
-  if (!dose) {
-    return incomplete("unparseable_dosage");
-  }
+  if (!dose) return unsupported("unparseable_dosage");
 
   const freq = parseFrequency(frequency);
   if (freq.kind === "prn") {
+    const unit = resolveQuantityUnit(dose.unit, input.dosageForm);
+    const durationDays = parseDurationDays(duration);
     return {
       status: "non_deterministic",
       reasonCode: "prn_non_deterministic",
-      doseAmount: dose.amount,
-      doseUnit: resolveQuantityUnit(dose.unit, input.dosageForm),
+      dosePerAdministration: dose.amount,
+      unit,
+      durationDays: durationDays ?? undefined,
       display: {
         quantity: "Sin cálculo automático (PRN)",
         dailyConsumption: "—",
-        duration: formatDurationDisplay(parseDurationDays(duration)),
+        duration: formatDurationDisplay(durationDays),
+        explanation:
+          "Frecuencia PRN: no hay administraciones/día determinísticas",
       },
     };
   }
   if (freq.kind === "unparseable") {
-    return incomplete("unparseable_frequency");
+    return unsupported("unparseable_frequency");
   }
 
   const durationDays = parseDurationDays(duration);
   if (durationDays == null) {
-    return incomplete("unparseable_duration");
+    return unsupported("unparseable_duration");
   }
 
-  const dosesPerDay = freq.dosesPerDay;
-  if (!Number.isFinite(dosesPerDay) || dosesPerDay <= 0) {
-    return incomplete("invalid_interval");
+  const administrationsPerDay = freq.administrationsPerDay;
+  if (!Number.isFinite(administrationsPerDay) || administrationsPerDay <= 0) {
+    return unsupported("invalid_interval");
   }
 
   const unit = resolveQuantityUnit(dose.unit, input.dosageForm);
-  const dailyConsumption = dose.amount * dosesPerDay;
+  const dosePerAdministration = dose.amount;
+  const dailyConsumption = dosePerAdministration * administrationsPerDay;
   const totalQuantity = dailyConsumption * durationDays;
-  // Presentation-adjusted final quantity (pack size not in FE catalog yet).
   const finalQuantity = totalQuantity;
 
-  return {
-    status: "computed",
-    doseAmount: dose.amount,
-    doseUnit: unit,
-    dosesPerDay,
+  const explanation = buildExplanation({
+    dosePerAdministration,
+    administrationsPerDay,
     durationDays,
     dailyConsumption,
     totalQuantity,
+    unit,
+  });
+
+  return {
+    status: "deterministic",
+    dosePerAdministration,
+    administrationsPerDay,
+    dailyConsumption,
+    durationDays,
+    totalQuantity,
     finalQuantity,
-    quantityUnit: unit,
+    unit,
+    explanation,
     display: {
       quantity: `${formatAmount(finalQuantity)} ${pluralizeUnit(finalQuantity, unit)}`,
       dailyConsumption: `${formatAmount(dailyConsumption)} ${pluralizeUnit(dailyConsumption, unit)}/día`,
       duration: `${formatAmount(durationDays)} ${durationDays === 1 ? "día" : "días"}`,
+      explanation: explanation.formula,
     },
   };
 }
@@ -109,11 +119,47 @@ export function calculateFromSelectedMedication(
   });
 }
 
-function incomplete(
-  reasonCode: NonNullable<CalculationResult["reasonCode"]>,
-): CalculationResult {
+export function buildExplanation(parts: {
+  dosePerAdministration: number;
+  administrationsPerDay: number;
+  durationDays: number;
+  dailyConsumption: number;
+  totalQuantity: number;
+  unit: string;
+}): MathExplanation {
+  const doseLabel = `${formatAmount(parts.dosePerAdministration)} ${pluralizeUnit(parts.dosePerAdministration, parts.unit)}`;
+  const adminLabel = `${formatAmount(parts.administrationsPerDay)} ${
+    parts.administrationsPerDay === 1
+      ? "administración/día"
+      : "administraciones/día"
+  }`;
+  const daysLabel = `${formatAmount(parts.durationDays)} ${
+    parts.durationDays === 1 ? "día" : "días"
+  }`;
+  const totalLabel = `${formatAmount(parts.totalQuantity)} ${pluralizeUnit(parts.totalQuantity, parts.unit)}`;
+
+  return {
+    dosePerAdministration: parts.dosePerAdministration,
+    administrationsPerDay: parts.administrationsPerDay,
+    durationDays: parts.durationDays,
+    dailyConsumption: parts.dailyConsumption,
+    totalQuantity: parts.totalQuantity,
+    unit: parts.unit,
+    formula: `${doseLabel} × ${adminLabel} × ${daysLabel} = ${totalLabel}`,
+  };
+}
+
+function incomplete(reasonCode: CalculationReasonCode): CalculationResult {
   return {
     status: "incomplete",
+    reasonCode,
+    display: emptyCalculationDisplay(),
+  };
+}
+
+function unsupported(reasonCode: CalculationReasonCode): CalculationResult {
+  return {
+    status: "unsupported",
     reasonCode,
     display: emptyCalculationDisplay(),
   };
@@ -124,4 +170,9 @@ function formatDurationDisplay(days: number | null): string {
   return `${formatAmount(days)} ${days === 1 ? "día" : "días"}`;
 }
 
-export type { CalculationInput, CalculationResult, CalculationStatus } from "./types";
+export type {
+  CalculationInput,
+  CalculationResult,
+  CalculationStatus,
+  MathExplanation,
+} from "./types";

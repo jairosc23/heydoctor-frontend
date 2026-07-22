@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { calculatePrescription } from "./engine";
+import { buildExplanation, calculatePrescription } from "./engine";
 import { parseDose, parseDurationDays, parseFrequency } from "./parsers";
 
 describe("prescription-calculation parsers (PR-3)", () => {
@@ -20,18 +20,18 @@ describe("prescription-calculation parsers (PR-3)", () => {
     });
   });
 
-  it("parses interval frequency to doses/day", () => {
+  it("parses interval frequency to administrations/day", () => {
     assert.deepEqual(parseFrequency("cada 8 horas"), {
       kind: "scheduled",
-      dosesPerDay: 3,
+      administrationsPerDay: 3,
     });
     assert.deepEqual(parseFrequency("c/12 h"), {
       kind: "scheduled",
-      dosesPerDay: 2,
+      administrationsPerDay: 2,
     });
     assert.deepEqual(parseFrequency("diaria"), {
       kind: "scheduled",
-      dosesPerDay: 1,
+      administrationsPerDay: 1,
     });
   });
 
@@ -47,7 +47,56 @@ describe("prescription-calculation parsers (PR-3)", () => {
   });
 });
 
-describe("prescription-calculation engine (PR-3)", () => {
+describe("prescription-calculation engine enriched model (PR-3)", () => {
+  it("separates dosePerAdministration, administrationsPerDay, dailyConsumption, totalQuantity", () => {
+    const r = calculatePrescription({
+      dosage: "2 comprimidos",
+      frequency: "cada 12 horas",
+      duration: "10 días",
+    });
+    assert.equal(r.status, "deterministic");
+    assert.equal(r.dosePerAdministration, 2);
+    assert.equal(r.administrationsPerDay, 2);
+    assert.equal(r.dailyConsumption, 4);
+    assert.equal(r.durationDays, 10);
+    assert.equal(r.totalQuantity, 40);
+    assert.equal(r.finalQuantity, 40);
+    assert.equal(r.unit, "comprimido");
+    // Distinct concept fields coexist on the enriched result.
+    assert.ok("dosePerAdministration" in r);
+    assert.ok("administrationsPerDay" in r);
+    assert.ok("dailyConsumption" in r);
+    assert.ok("totalQuantity" in r);
+    assert.equal(
+      r.dailyConsumption,
+      r.dosePerAdministration! * r.administrationsPerDay!,
+    );
+    assert.equal(
+      r.totalQuantity,
+      r.dailyConsumption! * r.durationDays!,
+    );
+  });
+
+  it("exposes structured math explanation", () => {
+    const r = calculatePrescription({
+      dosage: "2 comprimidos",
+      frequency: "cada 12 horas",
+      duration: "10 días",
+    });
+    assert.equal(r.status, "deterministic");
+    assert.ok(r.explanation);
+    assert.equal(r.explanation!.dosePerAdministration, 2);
+    assert.equal(r.explanation!.administrationsPerDay, 2);
+    assert.equal(r.explanation!.durationDays, 10);
+    assert.equal(r.explanation!.dailyConsumption, 4);
+    assert.equal(r.explanation!.totalQuantity, 40);
+    assert.equal(
+      r.explanation!.formula,
+      "2 comprimidos × 2 administraciones/día × 10 días = 40 comprimidos",
+    );
+    assert.equal(r.display.explanation, r.explanation!.formula);
+  });
+
   it("1 comprimido cada 8 horas × 7 días → 21 comprimidos", () => {
     const r = calculatePrescription({
       dosage: "1 comprimido",
@@ -55,8 +104,9 @@ describe("prescription-calculation engine (PR-3)", () => {
       duration: "7 días",
       dosageForm: "comprimido",
     });
-    assert.equal(r.status, "computed");
-    assert.equal(r.dosesPerDay, 3);
+    assert.equal(r.status, "deterministic");
+    assert.equal(r.dosePerAdministration, 1);
+    assert.equal(r.administrationsPerDay, 3);
     assert.equal(r.dailyConsumption, 3);
     assert.equal(r.durationDays, 7);
     assert.equal(r.totalQuantity, 21);
@@ -64,6 +114,10 @@ describe("prescription-calculation engine (PR-3)", () => {
     assert.equal(r.display.quantity, "21 comprimidos");
     assert.equal(r.display.dailyConsumption, "3 comprimidos/día");
     assert.equal(r.display.duration, "7 días");
+    assert.equal(
+      r.display.explanation,
+      "1 comprimido × 3 administraciones/día × 7 días = 21 comprimidos",
+    );
   });
 
   it("2 comprimidos cada 12 horas × 10 días → 40 comprimidos", () => {
@@ -72,11 +126,11 @@ describe("prescription-calculation engine (PR-3)", () => {
       frequency: "cada 12 horas",
       duration: "10 días",
     });
-    assert.equal(r.status, "computed");
-    assert.equal(r.dosesPerDay, 2);
+    assert.equal(r.status, "deterministic");
+    assert.equal(r.dosePerAdministration, 2);
+    assert.equal(r.administrationsPerDay, 2);
     assert.equal(r.dailyConsumption, 4);
     assert.equal(r.totalQuantity, 40);
-    assert.equal(r.finalQuantity, 40);
     assert.equal(r.display.quantity, "40 comprimidos");
   });
 
@@ -86,13 +140,19 @@ describe("prescription-calculation engine (PR-3)", () => {
       frequency: "cada 8 horas",
       duration: "5 días",
     });
-    assert.equal(r.status, "computed");
+    assert.equal(r.status, "deterministic");
+    assert.equal(r.dosePerAdministration, 5);
+    assert.equal(r.administrationsPerDay, 3);
     assert.equal(r.dailyConsumption, 15);
     assert.equal(r.totalQuantity, 75);
     assert.equal(r.finalQuantity, 75);
-    assert.equal(r.quantityUnit, "mL");
+    assert.equal(r.unit, "mL");
     assert.equal(r.display.quantity, "75 mL");
     assert.equal(r.display.dailyConsumption, "15 mL/día");
+    assert.equal(
+      r.display.explanation,
+      "5 mL × 3 administraciones/día × 5 días = 75 mL",
+    );
   });
 
   it("1 aplicación diaria × 30 días → 30 aplicaciones", () => {
@@ -101,16 +161,19 @@ describe("prescription-calculation engine (PR-3)", () => {
       frequency: "diaria",
       duration: "30 días",
     });
-    assert.equal(r.status, "computed");
-    assert.equal(r.dosesPerDay, 1);
+    assert.equal(r.status, "deterministic");
+    assert.equal(r.dosePerAdministration, 1);
+    assert.equal(r.administrationsPerDay, 1);
     assert.equal(r.dailyConsumption, 1);
     assert.equal(r.totalQuantity, 30);
-    assert.equal(r.finalQuantity, 30);
     assert.equal(r.display.quantity, "30 aplicaciones");
-    assert.equal(r.display.duration, "30 días");
+    assert.equal(
+      r.display.explanation,
+      "1 aplicación × 1 administración/día × 30 días = 30 aplicaciones",
+    );
   });
 
-  it("PRN — sin cantidad automática", () => {
+  it("PRN — non_deterministic sin cantidad automática", () => {
     const r = calculatePrescription({
       dosage: "1 comprimido",
       frequency: "PRN",
@@ -118,31 +181,61 @@ describe("prescription-calculation engine (PR-3)", () => {
     });
     assert.equal(r.status, "non_deterministic");
     assert.equal(r.reasonCode, "prn_non_deterministic");
+    assert.equal(r.dosePerAdministration, 1);
+    assert.equal(r.administrationsPerDay, undefined);
+    assert.equal(r.dailyConsumption, undefined);
     assert.equal(r.totalQuantity, undefined);
     assert.equal(r.finalQuantity, undefined);
+    assert.equal(r.explanation, undefined);
     assert.match(r.display.quantity, /PRN/i);
   });
 
-  it("reacts to presentation form when dose unit omitted", () => {
+  it("missing fields → incomplete", () => {
+    const r = calculatePrescription({
+      dosage: "",
+      frequency: "cada 8 horas",
+      duration: "7 días",
+    });
+    assert.equal(r.status, "incomplete");
+    assert.equal(r.reasonCode, "missing_dosage");
+  });
+
+  it("unsupported frequency pattern → unsupported", () => {
+    const r = calculatePrescription({
+      dosage: "1 comprimido",
+      frequency: "como le parezca al paciente",
+      duration: "7 días",
+    });
+    assert.equal(r.status, "unsupported");
+    assert.equal(r.reasonCode, "unparseable_frequency");
+  });
+
+  it("presentation form supplies unit when dose unit omitted", () => {
     const r = calculatePrescription({
       dosage: "1",
       frequency: "cada 8 horas",
       duration: "7 días",
       dosageForm: "cápsula",
     });
-    assert.equal(r.status, "computed");
+    assert.equal(r.status, "deterministic");
+    assert.equal(r.unit, "cápsula");
+    assert.equal(r.totalQuantity, 21);
     assert.equal(r.finalQuantity, 21);
-    assert.equal(r.quantityUnit, "cápsula");
     assert.equal(r.display.quantity, "21 cápsulas");
   });
 
-  it("incomplete when frequency is free prose", () => {
-    const r = calculatePrescription({
-      dosage: "1 comprimido",
-      frequency: "como le parezca al paciente",
-      duration: "7 días",
+  it("buildExplanation formats the canonical formula", () => {
+    const explanation = buildExplanation({
+      dosePerAdministration: 2,
+      administrationsPerDay: 2,
+      durationDays: 10,
+      dailyConsumption: 4,
+      totalQuantity: 40,
+      unit: "comprimido",
     });
-    assert.equal(r.status, "incomplete");
-    assert.equal(r.reasonCode, "unparseable_frequency");
+    assert.equal(
+      explanation.formula,
+      "2 comprimidos × 2 administraciones/día × 10 días = 40 comprimidos",
+    );
   });
 });

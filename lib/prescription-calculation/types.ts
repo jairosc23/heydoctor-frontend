@@ -1,12 +1,19 @@
 /**
- * Prescription Engine PR-3 — Calculation Engine types.
+ * Prescription Engine PR-3 — Calculation Engine types (enriched model).
  * Pure clinical calculation; no persistence / Safety / Backend coupling.
+ *
+ * Concepts are explicit and never overloaded:
+ * - dosePerAdministration
+ * - administrationsPerDay
+ * - dailyConsumption
+ * - totalQuantity
  */
 
 export type CalculationStatus =
-  | "computed"
+  | "deterministic"
+  | "non_deterministic"
   | "incomplete"
-  | "non_deterministic";
+  | "unsupported";
 
 export type CalculationInput = {
   dosage: string;
@@ -23,37 +30,66 @@ export type ParsedDose = {
   unit: string;
 };
 
+export type CalculationReasonCode =
+  | "missing_dosage"
+  | "missing_frequency"
+  | "missing_duration"
+  | "unparseable_dosage"
+  | "unparseable_frequency"
+  | "unparseable_duration"
+  | "prn_non_deterministic"
+  | "invalid_interval"
+  | "unsupported_pattern";
+
+/** Structured math explanation for a deterministic result. */
+export type MathExplanation = {
+  dosePerAdministration: number;
+  administrationsPerDay: number;
+  durationDays: number;
+  dailyConsumption: number;
+  totalQuantity: number;
+  unit: string;
+  /**
+   * Example:
+   * "2 comprimidos × 2 administraciones/día × 10 días = 40 comprimidos"
+   */
+  formula: string;
+};
+
+/**
+ * Enriched calculation result.
+ * All derived values are exposed as distinct fields.
+ */
 export type CalculationResult = {
   status: CalculationStatus;
-  /** Why calculation did not complete (when not computed). */
-  reasonCode?:
-    | "missing_dosage"
-    | "missing_frequency"
-    | "missing_duration"
-    | "unparseable_dosage"
-    | "unparseable_frequency"
-    | "unparseable_duration"
-    | "prn_non_deterministic"
-    | "invalid_interval";
-  doseAmount?: number;
-  doseUnit?: string;
-  /** Administrations per day (deterministic). */
-  dosesPerDay?: number;
-  durationDays?: number;
-  /** doseAmount × dosesPerDay */
+  reasonCode?: CalculationReasonCode;
+
+  /** Dosis por administración (p. ej. 2 comprimidos). */
+  dosePerAdministration?: number;
+  /** Administraciones por día (p. ej. 2 si c/12 h). */
+  administrationsPerDay?: number;
+  /** Consumo diario = dosePerAdministration × administrationsPerDay. */
   dailyConsumption?: number;
-  /** dailyConsumption × durationDays */
+  /** Duración del tratamiento en días. */
+  durationDays?: number;
+  /** Cantidad total = dailyConsumption × durationDays. */
   totalQuantity?: number;
   /**
-   * Final dispense quantity for the presentation unit.
-   * PR-3: equals totalQuantity (no pack-size catalog field yet).
+   * Cantidad final según presentación.
+   * PR-3: equals totalQuantity (pack-size not in FE catalog yet).
    */
   finalQuantity?: number;
-  quantityUnit?: string;
+  /** Unidad clínica de la cantidad (comprimido, mL, aplicación…). */
+  unit?: string;
+
+  /** Present only when status === "deterministic". */
+  explanation?: MathExplanation;
+
   display: {
     quantity: string;
     dailyConsumption: string;
     duration: string;
+    explanation: string;
   };
 };
 
@@ -62,5 +98,6 @@ export function emptyCalculationDisplay(): CalculationResult["display"] {
     quantity: "—",
     dailyConsumption: "—",
     duration: "—",
+    explanation: "—",
   };
 }
