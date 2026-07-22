@@ -45,6 +45,7 @@ export function AppointmentEventCard({
       )}
       <div className="mt-0.5 text-[10px] font-medium uppercase tracking-wide opacity-90">
         {calendarStatusLabel[status]}
+        {appointment.consultationId ? " · Ficha" : ""}
       </div>
     </button>
   );

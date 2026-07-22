@@ -7,6 +7,7 @@ import {
   physicalExamFromLegacySystemsReview,
   PHYSICAL_EXAM_END,
   PHYSICAL_EXAM_MARKER,
+  EMPTY_PHYSICAL_EXAM,
   resolvePhysicalExamFromNotes,
   serializePhysicalExam,
 } from "./physical-exam-framework";
@@ -59,19 +60,50 @@ describe("physical-exam-framework", () => {
 
   it("serializa y parsea marcador HD_PE_V1", () => {
     const block = serializePhysicalExam({
+      ...EMPTY_PHYSICAL_EXAM,
       general: "Buen estado general",
-      head: "",
-      neck: "",
-      cardiovascular: "",
-      respiratory: "",
-      abdomen: "",
-      neurological: "",
-      extremities: "",
-      skin: "",
-      other: "",
     });
     assert.ok(block);
     const exam = resolvePhysicalExamFromNotes(block);
     assert.equal(exam.general, "Buen estado general");
+  });
+
+  it("serializa y preserva columna lumbar en bolsa msk (CW-1)", () => {
+    const block = serializePhysicalExam({
+      ...EMPTY_PHYSICAL_EXAM,
+      msk: { lumbar: "Dolor a la palpación L4-L5, Lasègue (−)" },
+    });
+    assert.ok(block);
+    assert.match(block!, /"msk"/);
+    assert.match(block!, /lumbar/);
+    const exam = resolvePhysicalExamFromNotes(block);
+    assert.equal(
+      exam.msk.lumbar,
+      "Dolor a la palpación L4-L5, Lasègue (−)",
+    );
+    assert.ok(hasPhysicalExamData(exam));
+    const ctx = formatPhysicalExamForContext(exam);
+    assert.match(ctx ?? "", /Columna lumbar/);
+  });
+
+  it("preserva regiones msk desconocidas en round-trip (escalabilidad)", () => {
+    const notes = `${PHYSICAL_EXAM_MARKER}\n${JSON.stringify({
+      v: 1,
+      msk: { lumbar: "OK", cervical: "Contractura paravertebral" },
+    })}\n${PHYSICAL_EXAM_END}`;
+    const exam = resolvePhysicalExamFromNotes(notes);
+    assert.equal(exam.msk.lumbar, "OK");
+    assert.equal(exam.msk.cervical, "Contractura paravertebral");
+    const again = serializePhysicalExam(exam);
+    assert.ok(again);
+    const reparsed = resolvePhysicalExamFromNotes(again);
+    assert.equal(reparsed.msk.cervical, "Contractura paravertebral");
+  });
+
+  it("encounters históricos sin msk siguen parseando (backward compat)", () => {
+    const notes = `${PHYSICAL_EXAM_MARKER}\n{"v":1,"general":"BEG"}\n${PHYSICAL_EXAM_END}`;
+    const exam = resolvePhysicalExamFromNotes(notes);
+    assert.equal(exam.general, "BEG");
+    assert.equal(exam.msk.lumbar, "");
   });
 });

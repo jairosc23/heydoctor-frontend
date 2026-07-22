@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Button from "@/components/ui/Button";
 import {
@@ -50,6 +51,7 @@ export function AppointmentFormModal({
   clinicTimezone,
   onClose,
 }: Props) {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
@@ -324,6 +326,20 @@ export function AppointmentFormModal({
           )}
 
           <div className="flex flex-wrap gap-2 pt-2">
+            {appointment?.consultationId ? (
+              <Button
+                type="button"
+                data-testid="agenda-open-consultation"
+                onClick={() => {
+                  const cid = appointment.consultationId!.trim();
+                  if (!cid) return;
+                  onClose();
+                  router.push(`/panel/consultas/${cid}`);
+                }}
+              >
+                Abrir ficha clínica
+              </Button>
+            ) : null}
             <Button
               type="submit"
               disabled={

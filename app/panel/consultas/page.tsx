@@ -141,7 +141,8 @@ function ConsultasContent() {
     try {
       const cid = await startConsultation(pid);
       if (cid) {
-        router.push(`/panel/consultas/${cid}`);
+        // CW-2: acceso directo al encounter canónico (sin flash de workspace intermedio).
+        router.replace(`/panel/consultas/${cid}`);
       }
     } finally {
       setStarting(false);
@@ -189,6 +190,22 @@ function ConsultasContent() {
 
   return (
     <div className="space-y-5">
+      {/*
+        CW-2: si hay consulta activa en contexto y aún estamos en /panel/consultas,
+        el useEffect hace replace al encounter. No mostrar banner intermedio.
+      */}
+      {!LEGACY_INLINE_CONSULTATION_WORKSPACE && consultationId ? (
+        <div
+          className="rounded-2xl border border-hd-border-subtle bg-hd-surface-chrome px-4 py-6 text-sm text-primaryDark/70"
+          data-testid="consultation-entry-redirect"
+          aria-live="polite"
+        >
+          Abriendo ficha clínica…
+        </div>
+      ) : null}
+
+      {!(!LEGACY_INLINE_CONSULTATION_WORKSPACE && consultationId) ? (
+        <>
       <div>
         <h1
           className="mb-3 text-2xl font-bold text-primary"
@@ -444,26 +461,6 @@ function ConsultasContent() {
         </div>
       )}
 
-      {!LEGACY_INLINE_CONSULTATION_WORKSPACE && consultationId ? (
-        <div className="mt-6 rounded-2xl border border-primary/20 bg-primaryLight px-6 py-5 text-sm leading-relaxed text-primaryDark">
-          <p className="mb-3 font-semibold">
-            Workspace clínico oficial
-          </p>
-          <p className="mb-4">
-            La consulta activa se gestiona en el detalle canónico{" "}
-            <code className="text-primary">/panel/consultas/[id]</code> (firma, pago, Clinical Copilot™,
-            Close Flow). Redirigiendo automáticamente…
-          </p>
-          <button
-            type="button"
-            onClick={() => router.push(`/panel/consultas/${consultationId}`)}
-            className="rounded-lg border-0 bg-primary px-4 py-2 text-[13px] font-semibold text-white"
-          >
-            Abrir consulta →
-          </button>
-        </div>
-      ) : null}
-
       {/* Recent consultations list */}
       {!consultationId && (
         <div className="mt-8">
@@ -513,6 +510,8 @@ function ConsultasContent() {
           )}
         </div>
       )}
+        </>
+      ) : null}
     </div>
   );
 }

@@ -6,7 +6,10 @@ import {
   stripAllEncounterMarkers,
 } from "./compose-encounter-notes";
 import { serializeClinicalVitalSigns } from "./clinical-vital-signs-context";
-import { serializePhysicalExam } from "./physical-exam-framework";
+import {
+  EMPTY_PHYSICAL_EXAM,
+  serializePhysicalExam,
+} from "./physical-exam-framework";
 import { serializeClinicalRecord } from "./services/clinical-record";
 
 describe("compose-encounter-notes", () => {
@@ -30,6 +33,7 @@ describe("compose-encounter-notes", () => {
         heartRate: 72,
       },
       physicalExam: {
+        ...EMPTY_PHYSICAL_EXAM,
         general: "Buen estado general",
         head: "Normocefálico",
         neck: "Sin adenopatías",
@@ -39,7 +43,7 @@ describe("compose-encounter-notes", () => {
         neurological: "Sin focalidad",
         extremities: "Sin edema",
         skin: "Hidratada",
-        other: "",
+        msk: { ...EMPTY_PHYSICAL_EXAM.msk, lumbar: "Sin dolor lumbar" },
       },
     };
 
@@ -53,6 +57,7 @@ describe("compose-encounter-notes", () => {
     assert.equal(parsed.physicalExam.general, "Buen estado general");
     assert.equal(parsed.physicalExam.head, "Normocefálico");
     assert.equal(parsed.physicalExam.neck, "Sin adenopatías");
+    assert.equal(parsed.physicalExam.msk.lumbar, "Sin dolor lumbar");
   });
 
   it("no pierde bloques HD_VS_V1 al recomponer con nueva ficha", () => {
@@ -93,18 +98,7 @@ describe("compose-encounter-notes", () => {
         freeNotes: "",
       },
       vitals: { heightCm: 1.7, weightKg: 70 },
-      physicalExam: {
-        general: "",
-        head: "",
-        neck: "",
-        cardiovascular: "",
-        respiratory: "",
-        abdomen: "",
-        neurological: "",
-        extremities: "",
-        skin: "",
-        other: "",
-      },
+      physicalExam: { ...EMPTY_PHYSICAL_EXAM },
     });
     const parsed = parseEncounterNotes(composed);
     assert.equal(parsed.vitals.heightCm, 1.7);
@@ -124,16 +118,8 @@ describe("compose-encounter-notes", () => {
       freeNotes: "",
     });
     const pe = serializePhysicalExam({
+      ...EMPTY_PHYSICAL_EXAM,
       general: "Normal",
-      head: "",
-      neck: "",
-      cardiovascular: "",
-      respiratory: "",
-      abdomen: "",
-      neurological: "",
-      extremities: "",
-      skin: "",
-      other: "",
     });
     const raw = `Texto médico\n\n${cr}\n\n${pe}`;
     assert.equal(stripAllEncounterMarkers(raw), "Texto médico");

@@ -7,7 +7,10 @@ import {
   parseEncounterNotes,
 } from "@/lib/compose-encounter-notes";
 import type { PhysicalExam } from "@/lib/physical-exam-framework";
-import { EMPTY_PHYSICAL_EXAM } from "@/lib/physical-exam-framework";
+import {
+  EMPTY_PHYSICAL_EXAM,
+  emptyMskExam,
+} from "@/lib/physical-exam-framework";
 
 export function useEncounterNotesDraft(
   rawNotes: string | null | undefined,
@@ -16,6 +19,7 @@ export function useEncounterNotesDraft(
   const [vitals, setVitals] = useState<ClinicalVitalSigns>({});
   const [physicalExam, setPhysicalExam] = useState<PhysicalExam>({
     ...EMPTY_PHYSICAL_EXAM,
+    msk: emptyMskExam(),
   });
   const [presentIllnessHistory, setPresentIllnessHistory] = useState("");
   const hydrationKeyRef = useRef<string | null>(null);
