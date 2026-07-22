@@ -4,6 +4,7 @@ export * from "./consultation-diagnosis";
 export * from "./diagnosis";
 export * from "./diagnosis-preferences";
 export * from "./prescriptions";
+export * from "./drug-catalog";
 export * from "./lab-orders";
 export * from "./referrals";
 export * from "./invoices";

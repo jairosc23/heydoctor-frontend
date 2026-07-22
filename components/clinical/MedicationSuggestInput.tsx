@@ -1,11 +1,19 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { suggestMedications } from "@/lib/services/prescriptions";
+import { suggestMedicationPresentations } from "@/lib/services/prescriptions";
+import { formatPresentationSecondaryLine } from "@/lib/prescription-catalog";
+import type { SmartMedicationSuggestion } from "@/lib/types/drug-catalog";
 
 export interface MedicationSuggestInputProps {
   value: string;
   onChange: (value: string) => void;
+  /** Catalog-aware selection (PR-1). When set, preferred over string-only onChange for picks. */
+  onSelectPresentation?: (suggestion: SmartMedicationSuggestion) => void;
+  consultationId?: string | null;
+  cie10CodeId?: string | null;
+  patientId?: string | null;
+  countryCode?: string;
   placeholder?: string;
   debounceMs?: number;
   minChars?: number;
@@ -15,12 +23,17 @@ export interface MedicationSuggestInputProps {
 }
 
 /**
- * Autocompletado de medicamentos vía GET /prescriptions/suggest-medications.
- * Patrón alineado con SmartDiagnosisPicker (debounce + dropdown absoluto).
+ * Autocompletado de presentaciones vía smart-suggestions (catalog-aware).
+ * Legacy free-text typing still calls onChange(string).
  */
 export function MedicationSuggestInput({
   value,
   onChange,
+  onSelectPresentation,
+  consultationId,
+  cie10CodeId,
+  patientId,
+  countryCode,
   placeholder = "Medicamento",
   debounceMs = 280,
   minChars = 2,
@@ -29,7 +42,9 @@ export function MedicationSuggestInput({
   disabled = false,
 }: MedicationSuggestInputProps) {
   const [input, setInput] = useState(value);
-  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [suggestions, setSuggestions] = useState<SmartMedicationSuggestion[]>(
+    [],
+  );
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -52,12 +67,17 @@ export function MedicationSuggestInput({
     const timer = window.setTimeout(() => {
       const current = ++requestId.current;
       setLoading(true);
-      void suggestMedications(trimmed)
+      void suggestMedicationPresentations(trimmed, {
+        consultationId: consultationId ?? undefined,
+        cie10CodeId: cie10CodeId ?? undefined,
+        patientId: patientId ?? undefined,
+        countryCode,
+        limit: 12,
+      })
         .then((list) => {
           if (current !== requestId.current) return;
-          const items = list.slice(0, 12);
-          setSuggestions(items);
-          setActiveIndex(items.length > 0 ? 0 : -1);
+          setSuggestions(list);
+          setActiveIndex(list.length > 0 ? 0 : -1);
         })
         .catch(() => {
           if (current !== requestId.current) return;
@@ -70,11 +90,23 @@ export function MedicationSuggestInput({
     }, debounceMs);
 
     return () => window.clearTimeout(timer);
-  }, [input, debounceMs, minChars]);
+  }, [
+    input,
+    debounceMs,
+    minChars,
+    consultationId,
+    cie10CodeId,
+    patientId,
+    countryCode,
+  ]);
 
-  const select = (name: string) => {
-    setInput(name);
-    onChange(name);
+  const select = (item: SmartMedicationSuggestion) => {
+    setInput(item.displayLabel);
+    if (onSelectPresentation) {
+      onSelectPresentation(item);
+    } else {
+      onChange(item.displayLabel);
+    }
     setOpen(false);
     setActiveIndex(-1);
   };
@@ -92,7 +124,7 @@ export function MedicationSuggestInput({
       );
     } else if (event.key === "Enter" && activeIndex >= 0) {
       event.preventDefault();
-      select(suggestions[activeIndex]);
+      select(suggestions[activeIndex]!);
     } else if (event.key === "Escape") {
       setOpen(false);
       setActiveIndex(-1);
@@ -130,6 +162,7 @@ export function MedicationSuggestInput({
         placeholder={placeholder}
         aria-autocomplete="list"
         aria-expanded={showDropdown}
+        data-testid="medication-suggest-input"
         className={
           inputClassName ||
           "w-full px-2 py-1.5 border border-gray-300 rounded text-sm"
@@ -139,6 +172,7 @@ export function MedicationSuggestInput({
         <ul
           ref={listRef}
           role="listbox"
+          data-testid="medication-suggest-list"
           className="absolute z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg"
         >
           {loading && suggestions.length === 0 ? (
@@ -147,20 +181,27 @@ export function MedicationSuggestInput({
           {!loading && suggestions.length === 0 ? (
             <li className="px-3 py-2 text-sm text-slate-500">Sin resultados</li>
           ) : null}
-          {suggestions.map((name, index) => (
-            <li key={name}>
+          {suggestions.map((item, index) => (
+            <li key={item.id}>
               <button
                 type="button"
                 data-selectable="true"
+                data-presentation-id={item.id}
                 role="option"
                 aria-selected={index === activeIndex}
                 onMouseDown={(e) => e.preventDefault()}
-                onClick={() => select(name)}
+                onClick={() => select(item)}
                 className={`w-full px-3 py-2 text-left text-sm hover:bg-indigo-50 ${
-                  index === activeIndex ? "bg-indigo-50 text-indigo-900" : "text-slate-800"
+                  index === activeIndex
+                    ? "bg-indigo-50 text-indigo-900"
+                    : "text-slate-800"
                 }`}
               >
-                {name}
+                <span className="block font-medium">{item.displayLabel}</span>
+                <span className="block text-[11px] text-slate-500">
+                  {formatPresentationSecondaryLine(item)}
+                  {item.innName ? ` · ${item.innName}` : ""}
+                </span>
               </button>
             </li>
           ))}

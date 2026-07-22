@@ -255,7 +255,23 @@ export function PrescriptionPanel({
               <div key={idx} className="grid grid-cols-1 sm:grid-cols-4 gap-1 border border-gray-100 rounded p-2">
                 <MedicationSuggestInput
                   value={med.name}
-                  onChange={(name) => updateDraftMed(idx, { name })}
+                  patientId={patientId}
+                  consultationId={consultationId}
+                  onChange={(name) =>
+                    updateDraftMed(idx, {
+                      name,
+                      // Free-text edit invalidates catalog link until re-selected.
+                      drugPresentationId: undefined,
+                      route: undefined,
+                    })
+                  }
+                  onSelectPresentation={(suggestion) =>
+                    updateDraftMed(idx, {
+                      name: suggestion.displayLabel,
+                      drugPresentationId: suggestion.id,
+                      route: suggestion.route?.code || undefined,
+                    })
+                  }
                   placeholder="Medicamento"
                   className="sm:col-span-2"
                   inputClassName="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
