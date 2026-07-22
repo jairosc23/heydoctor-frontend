@@ -6,7 +6,8 @@
 **Baseline FE Production:** `5f4434b3cff4dc696c5e79494f06c2a60a0b4f92`  
 **Baseline BE Production:** `e5364190ebeac61f94181c4a9bfb692962e4401c`  
 **Rama:** `feature/prescription-engine-enterprise`  
-**STATUS:** AUDIT COMPLETE — awaiting Product Owner approval to develop
+**STATUS:** AUDIT COMPLETE — Phase 0 Clinical Design next (no PR-1 until PO approval)  
+**Siguiente:** `PRESCRIPTION-ENGINE-ENTERPRISE-PHASE-0-CLINICAL-DESIGN.md`
 
 ---
 
