@@ -6,12 +6,27 @@
 **Fecha:** 2026-07-22  
 **Precedente:** Phase 1 Audit (`PRESCRIPTION-ENGINE-ENTERPRISE-AUDIT.md`) — **aprobada**  
 **Rama:** `feature/prescription-engine-enterprise`  
-**STATUS:** DESIGN DRAFT — awaiting Product Owner approval before PR-1  
+**STATUS:** APPROVED by Product Owner (2026-07-22)  
+**Siguiente autorizado:** PR-1 Catalog-aware FE client  
 
 **Reglas de este documento**
 - Diseña el **dominio clínico**, no tablas ni componentes React.
 - Representa el flujo real del médico en consulta.
-- No autoriza implementación de código.
+- Decisiones de Product Owner de §0bis y §7.3 son vinculantes para implementación.
+
+---
+
+## 0bis. Prescription Engine Principles
+
+Principios permanentes del motor (aprobados por Product Owner):
+
+1. **Physician remains in control.** El médico decide siempre qué se prescribe y qué se emite.
+2. **AI assists but never prescribes.** La IA / Copilot puede sugerir; nunca escribe la receta por sí sola.
+3. **Every suggestion is rejectable.** Toda sugerencia (catálogo, smart, favorito, IA) puede descartarse sin fricción.
+4. **Every prescription is fully reproducible.** Identidad del fármaco, posología, cantidad, safety ack/justificación y autoría quedan reconstruibles.
+5. **Clinical judgment always prevails.** Ninguna regla automática sustituye el criterio clínico.
+6. **Country-independent architecture.** Catálogo y jurisdicción son parámetros; el motor no asume un solo país.
+7. **Full auditability.** Toda emisión, warning ack y justificación CRITICAL quedan auditados.
 
 ---
 
@@ -19,10 +34,10 @@
 
 1. **Presentation-first:** el médico elige una presentación dispensable (producto + concentración + forma + vía usual), no un string libre.
 2. **Una línea = una intención terapéutica** clara (qué, cuánto, cómo, por cuánto tiempo, para qué).
-3. **Velocidad sin ocultar seguridad:** defaults inteligentes; safety visible sin bloquear el ritmo salvo riesgo crítico.
+3. **Velocidad sin ocultar seguridad:** defaults inteligentes; safety visible sin bloquear el ritmo de forma opaca.
 4. **Separación de capas:** catálogo ≠ línea prescrita ≠ documento emitido ≠ memoria longitudinal.
 5. **Backward compatible:** el MVP actual sigue siendo legible; el motor nuevo es evolución, no ruptura histórica.
-6. **HITL:** advertencias requieren atención humana; errores críticos requieren resolución o justificación explícita.
+6. **HITL:** advertencias requieren atención humana; CRITICAL exige justificación auditada (no bloqueo ciego).
 
 ---
 
@@ -231,11 +246,23 @@ Safety es un **gate de decisión clínica**, no un bloqueo técnico opaco.
 
 ### 4.2 Severidades
 
-| Severidad | Significado | Comportamiento UX |
-|-----------|-------------|-------------------|
-| **CRITICAL** | Riesgo alto de daño si se emite | Bloquea emisión hasta resolver o **justificación explícita** (policy configurable) |
+| Severidad | Significado | Comportamiento UX (PO) |
+|-----------|-------------|------------------------|
+| **CRITICAL** | Riesgo alto de daño si se emite | **No bloquea automáticamente.** Emisión permitida **solo** con justificación obligatoria + auditoría completa (usuario, fecha, motivo, persistencia) |
 | **WARNING** | Riesgo o interacción relevante | Emisión permitida tras **ack** visible |
 | **INFO** | Contexto útil | Visible, no requiere ack |
+
+#### 4.2.1 Política CRITICAL (aprobada)
+
+- El sistema **nunca** impide la emisión por un CRITICAL de forma automática.
+- Para emitir con CRITICAL abierto el médico **debe** registrar:
+  - justificación (motivo clínico obligatorio),
+  - usuario (identidad),
+  - fecha/hora,
+  - motivo tipificado o texto libre estructurado,
+  - persistencia auditable ligada a la versión emitida.
+- Sin ese paquete de justificación, la emisión no avanza (gate de calidad/auditoría, no “bloqueo clínico opaco”).
+- Resolver cambiando fármaco/dosis sigue siendo el camino preferido; la justificación es el escape controlado.
 
 ### 4.3 Familias de señales (diseño)
 
@@ -254,7 +281,7 @@ Safety es un **gate de decisión clínica**, no un bloqueo técnico opaco.
 flowchart TD
   L[Línea candidata] --> S[Evaluar señales]
   S --> C{¿CRITICAL abiertos?}
-  C -->|Sí| R[Resolver: cambiar fármaco / dosis / cancelar línea<br/>o justificar si política lo permite]
+  C -->|Sí| R[Resolver preferente: cambiar fármaco / dosis<br/>o justificar con auditoría completa]
   R --> S
   C -->|No| W{¿WARNINGS?}
   W -->|Sí| A[Ack médico]
@@ -262,6 +289,8 @@ flowchart TD
   W -->|No| OK
   OK --> I[INFO permanece visible]
 ```
+
+> **PO:** CRITICAL no es hard-block automático; es gate de justificación auditada.
 
 ### 4.5 Separación de responsabilidades
 
@@ -362,46 +391,43 @@ flowchart TB
 
 ---
 
-## 7. Roadmap revisado (orden óptimo)
+## 7. Roadmap (aprobado por Product Owner)
 
-### 7.1 Orden auditado (Phase 1)
-PR-1 Catalog FE → PR-2 Composer → PR-3 Safety → PR-4 Continuity → PR-5 Integrity → PR-6 Quantity → PR-7 FHIR → PR-8 Copilot bridge
+### 7.1 Orden aprobado (vinculante)
 
-### 7.2 Orden recomendado (superior)
+| Orden | PR | Nombre | Scope |
+|-------|-----|--------|-------|
+| 1 | **PR-1** | Catalog | Cliente FE tipado: presentations + smart-suggestions; deprecar path string-only en UI nueva |
+| 2 | **PR-2** | Composer | UI estructurada presentation-first |
+| 3 | **PR-3** | Quantity Engine | Cálculo / override de cantidad + PDF |
+| 4 | **PR-4** | Safety Gate | Severidades + ack WARNING + justificación CRITICAL auditada |
+| 5 | **PR-5** | Prescription Integrity | GET `:id`, versionado/re-firma, audit update/cancel |
+| 6 | **PR-6** | Continuity | Favoritos FE, plantillas, renovar |
+| 7 | **PR-7** | FHIR MedicationRequest | Adapter Nest |
+| 8 | **PR-8** | Copilot Bridge | Draft HITL → CreatePrescriptionDto (opt-in) |
 
-| Orden | PR | Motivo del cambio |
-|-------|-----|-------------------|
-| **0** | Phase 0 Design (este doc) | Dominio cerrado antes de código |
-| **1** | **PR-1 Catalog-aware client** | Sin presentación tipada no hay enterprise |
-| **2** | **PR-2 Structured Composer UI** | Expone el dominio al médico |
-| **3** | **PR-6 Quantity Engine (mínimo)** *adelantado* | Agudo/crónico incompletos sin cantidad; PDF pobre |
-| **4** | **PR-3 Safety Gate v1** | Seguridad antes de continuidad masiva |
-| **5** | **PR-5 Integrity (version/re-sign/GET)** | Antes de renovaciones intensivas |
-| **6** | **PR-4 Continuity** (favoritos FE + plantillas + renew) | Requiere composer + integrity estables |
-| **7** | **PR-7 FHIR adapter** | Solo con modelo de línea estable |
-| **8** | **PR-8 Copilot bridge** | Último: write-path gobernado |
+### 7.2 Notas de secuencia
+1. Quantity (PR-3) antes de Continuity: el acto clínico y el PDF requieren cantidad.
+2. Safety (PR-4) antes de Continuity: no multiplicar renew/favoritos sobre gate vacío.
+3. Integrity (PR-5) antes de Continuity intensiva: renovar sobre update in-place es deuda.
+4. FHIR y Copilot al final.
 
-### 7.3 Por qué este orden es mejor
-1. **Cantidad** no es “nice to have”: es parte del acto clínico y del PDF; no debe quedar al final.
-2. **Safety** antes de **Continuity**: evitar multiplicar renovaciones/favoritos sobre un gate vacío.
-3. **Integrity** antes de renew: renovar sobre update in-place es deuda documental.
-4. **FHIR/Copilot** al final: no contaminan el camino clínico crítico.
-
-### 7.4 Qué NO mover
-- No empezar por FHIR.
-- No empezar por Copilot.
+### 7.3 Qué NO mover
+- No empezar por FHIR ni Copilot.
 - No implementar CDSS completo antes del composer presentation-first.
+- No merge/deploy sin aprobación explícita del Product Owner.
 
 ---
 
 ## 8. Recomendaciones al Product Owner
 
-1. **Aprobar este dominio** como contrato clínico antes de PR-1.  
-2. Autorizar el **roadmap revisado** (§7.2), no el orden original de cantidad al final.  
-3. Definir política de **CRITICAL**: ¿bloqueo duro o justificación obligatoria? (recomendación: justificación obligatoria auditada).  
-4. Definir scope v1 de **titulación**: texto estructurado + flag (no motor de pasos aún).  
+1. ~~Aprobar este dominio~~ → **APROBADO**.  
+2. ~~Autorizar roadmap revisado~~ → **APROBADO** (§7.1).  
+3. ~~Política CRITICAL~~ → **APROBADA:** no hard-block; justificación + auditoría completa.  
+4. Scope v1 de **titulación:** texto estructurado + flag (no motor de pasos aún).  
 5. Mantener **AI fuera del write-path** hasta PR-8.  
-6. Feature-flag del composer nuevo en producción.
+6. Feature-flag del composer nuevo en producción (PR-2+).  
+7. **PR-1 autorizado** tras esta actualización documental.
 
 ---
 
