@@ -203,9 +203,11 @@ export default function ConsultationDetailPage() {
     null,
   );
   const [antecedentsDraftKey, setAntecedentsDraftKey] = useState("");
+  const [antecedentsDirty, setAntecedentsDirty] = useState(false);
   const antecedentsRef = useRef<{
     flush: () => Promise<boolean>;
     getDraftKey: () => string;
+    isDirty: () => boolean;
   } | null>(null);
 
   const paymentResult = searchParams.get("payment");
@@ -505,16 +507,27 @@ export default function ConsultationDetailPage() {
   async function handleManualSave() {
     if (!isEditable || !consultation) return;
     setManualSaveStatus("saving");
+    const hadAntecedentsDirty =
+      antecedentsDirty || Boolean(antecedentsRef.current?.isDirty());
     try {
       await flushNow();
       // Si el SOAP no cambió, flushNow puede no-op; forzar persistencia de antecedentes.
-      await antecedentsRef.current?.flush();
+      const profileSaved = Boolean(await antecedentsRef.current?.flush());
       await clinicalFoundationState.reload();
       setManualSaveStatus("saved");
-      setSaveMsg("Guardado correctamente.");
+      setAntecedentsDirty(false);
+      setSaveMsg(
+        profileSaved || hadAntecedentsDirty
+          ? "Consulta guardada. Antecedentes del paciente actualizados."
+          : "Consulta guardada.",
+      );
     } catch (err) {
       setManualSaveStatus("error");
-      setSaveMsg(err instanceof Error ? err.message : "Error al guardar");
+      setSaveMsg(
+        err instanceof Error
+          ? err.message
+          : "No se pudo guardar. Intente de nuevo.",
+      );
     }
   }
 
@@ -931,6 +944,8 @@ export default function ConsultationDetailPage() {
               saveMsg && paymentStep === "confirm" ? saveMsg : undefined
             }
             isEditing={editMode}
+            canToggleEdit={isEditable}
+            onToggleEdit={handleToggleEdit}
             actionHandlers={{
               onStartTeleconsultation: () => void handleStartCall(),
               onOpenPrescription: handleOpenPrescription,
@@ -1182,11 +1197,17 @@ export default function ConsultationDetailPage() {
           clinicalMemoryLoading: effectiveClinicalMemoryLoading,
           clinicalMemoryError: effectiveClinicalMemoryError,
           editable: isEditable && editMode,
+          canToggleEdit: isEditable,
+          isEditing: editMode,
+          onToggleEdit: handleToggleEdit,
+          antecedentsDirty,
           autosaveStatus,
           lastSavedAt,
           autosaveError,
           manualSaveStatus,
           onManualSave: handleManualSave,
+          saveFeedbackMessage:
+            saveMsg && paymentStep !== "confirm" ? saveMsg : null,
           closure: {
             status,
             isSigned,
@@ -1225,6 +1246,7 @@ export default function ConsultationDetailPage() {
             antecedentsRef,
             onProfileSaved: setPatientProfile,
             onAntecedentsDraftKeyChange: setAntecedentsDraftKey,
+            onAntecedentsDirtyChange: setAntecedentsDirty,
             onAntecedentsPersistError: (message) => {
               setManualSaveStatus("error");
               setSaveMsg(message);

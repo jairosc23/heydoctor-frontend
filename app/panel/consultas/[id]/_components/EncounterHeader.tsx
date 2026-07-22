@@ -100,6 +100,9 @@ export interface EncounterHeaderProps {
   actionLoading?: ActionBarLoading;
   actionDisabled?: ActionBarDisabled;
   isEditing?: boolean;
+  /** Status permite editar la consulta (draft / in_progress). */
+  canToggleEdit?: boolean;
+  onToggleEdit?: () => void;
   dnaDrawerOpen?: boolean;
   onOpenDoctorDna?: () => void;
   copilotDrawerOpen?: boolean;
@@ -135,6 +138,8 @@ export function EncounterHeader({
   actionLoading,
   actionDisabled,
   isEditing,
+  canToggleEdit = false,
+  onToggleEdit,
   dnaDrawerOpen = false,
   onOpenDoctorDna,
   copilotDrawerOpen = false,
@@ -165,6 +170,29 @@ export function EncounterHeader({
           role="toolbar"
           aria-label="Acciones del encuentro"
         >
+          {canToggleEdit ? (
+            <span
+              className={cn(
+                "inline-flex h-8 items-center rounded-md border px-2 text-xs font-semibold",
+                isEditing
+                  ? "border-primary/30 bg-primaryLight/50 text-primary"
+                  : "border-slate-200 bg-slate-50 text-slate-600",
+              )}
+              data-testid="encounter-header-edit-mode-badge"
+            >
+              {isEditing ? "Editando la consulta" : "Solo lectura"}
+            </span>
+          ) : null}
+          {canToggleEdit && onToggleEdit ? (
+            <button
+              type="button"
+              onClick={onToggleEdit}
+              data-testid="encounter-header-toggle-edit"
+              className="inline-flex h-8 items-center rounded-md border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+            >
+              {isEditing ? "Cerrar edición" : "Editar consulta"}
+            </button>
+          ) : null}
           {medicalCopilotHref ? (
             <a
               href={medicalCopilotHref}

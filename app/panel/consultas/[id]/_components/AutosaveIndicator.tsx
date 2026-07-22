@@ -37,7 +37,7 @@ export function AutosaveIndicator({
     return (
       <ClinicalStatusBadge
         status={autosaveStatusToClinical(status)}
-        label="Guardando…"
+        label="Guardado automático…"
         className={cn(className)}
       />
     );
@@ -61,7 +61,7 @@ export function AutosaveIndicator({
       return (
         <ClinicalStatusBadge
           status={autosaveStatusToClinical("saved")}
-          label={`Guardado hace ${ago}`}
+          label={`Guardado automático hace ${ago}`}
           className={cn(className)}
         />
       );
