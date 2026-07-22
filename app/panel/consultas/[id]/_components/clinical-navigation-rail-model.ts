@@ -224,10 +224,10 @@ export function buildClinicalNavigationIntelligence(
           : "empty",
       risk: profileHasContent || profileLoading ? undefined : "info",
       helperText: profileHasContent
-        ? "Antecedentes longitudinales disponibles"
+        ? "Antecedentes del paciente disponibles"
         : profileLoading
           ? "Cargando antecedentes"
-          : "Sin antecedentes longitudinales registrados",
+          : "Sin antecedentes del paciente registrados",
     },
     {
       id: "encounter-section-3",

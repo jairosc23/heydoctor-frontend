@@ -3,18 +3,58 @@
 import { CLINICAL_SECTION_TITLE } from "@/lib/clinical-design-tokens";
 import type { DocumentationGap } from "@/lib/clinical-copilot-intelligence";
 
-export function CopilotDocumentationGaps({ gaps }: { gaps: DocumentationGap[] }) {
+export type DocumentationGapsSyncState =
+  | "loading"
+  | "unsaved_changes"
+  | "synced"
+  | "unavailable";
+
+export function CopilotDocumentationGaps({
+  gaps,
+  syncState = "synced",
+}: {
+  gaps: DocumentationGap[];
+  syncState?: DocumentationGapsSyncState;
+}) {
+  const statusLine =
+    syncState === "loading"
+      ? "Actualizando pendientes…"
+      : syncState === "unsaved_changes"
+        ? "Hay cambios sin guardar. Los pendientes se actualizan al guardar."
+        : syncState === "unavailable"
+          ? "Pendientes no disponibles todavía."
+          : "Según la última versión guardada.";
+
   return (
-    <section aria-label="Documentation Gaps" className="space-y-hd-2">
+    <section
+      aria-label="Pendientes de documentación"
+      className="space-y-hd-2"
+      data-testid="documentation-gaps-panel"
+    >
       <div>
-        <h3 className={CLINICAL_SECTION_TITLE}>Documentation Gaps™</h3>
+        <h3 className={CLINICAL_SECTION_TITLE}>
+          Pendientes de documentación
+        </h3>
         <p className="text-[11px] text-slate-500">
-          Oportunidades de completitud documental — informativo
+          Oportunidades de completitud — informativo
+        </p>
+        <p
+          className="mt-1 text-[11px] font-medium text-slate-600"
+          data-testid="documentation-gaps-sync-status"
+        >
+          {statusLine}
         </p>
       </div>
-      {gaps.length === 0 ? (
-        <p className="rounded-hd-md border border-emerald-200/80 bg-emerald-50/40 px-hd-3 py-hd-2 text-[11px] text-emerald-900">
-          No se detectaron gaps documentales relevantes con los datos actuales.
+      {syncState === "loading" ? (
+        <p className="rounded-hd-md border border-slate-200/80 bg-slate-50/80 px-hd-3 py-hd-2 text-[11px] text-slate-600">
+          Actualizando pendientes de documentación…
+        </p>
+      ) : gaps.length === 0 ? (
+        <p
+          className="rounded-hd-md border border-emerald-200/80 bg-emerald-50/40 px-hd-3 py-hd-2 text-[11px] text-emerald-900"
+          data-testid="documentation-gaps-empty"
+        >
+          No hay pendientes de documentación con los datos guardados.
         </p>
       ) : (
         <ul className="space-y-1.5">

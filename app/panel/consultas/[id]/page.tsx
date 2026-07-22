@@ -1051,6 +1051,7 @@ export default function ConsultationDetailPage() {
         clinicalFoundationLoading={clinicalFoundationState.loading}
         clinicalFoundationError={clinicalFoundationState.error}
         foundationOutputs={clinicalFoundationOutputs}
+        hasUnsavedClinicalChanges={antecedentsDirty}
         onSignConsultation={async (signatureBase64) => {
           await handleSign(signatureBase64);
         }}

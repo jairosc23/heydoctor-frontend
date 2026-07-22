@@ -224,10 +224,10 @@ export function ClinicalNavigationRail({
     >
       <div className="mb-hd-2 border-b border-hd-border-subtle pb-hd-2">
         <p className="text-[10px] font-semibold uppercase tracking-wide text-primary/80">
-          Navegación clínica
+          Navegación de la ficha
         </p>
         <p className="mt-0.5 text-[11px] text-slate-500">
-          Ficha Clínica
+          Ficha clínica
         </p>
         {progress ? <RailProgressSummary progress={progress} /> : null}
       </div>
