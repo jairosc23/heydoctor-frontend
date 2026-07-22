@@ -8,6 +8,7 @@
 import { buildClinicalAiContextPrompt } from "./ai-clinical-context";
 import { buildClinicalDataFoundation } from "./clinical-data-foundation";
 import {
+  EMPTY_PHYSICAL_EXAM,
   formatPhysicalExamForSoap,
   hasPhysicalExamData,
   resolvePhysicalExamFromNotes,
@@ -308,16 +309,11 @@ export const REAL_CLINICAL_CASES: RealCaseFixture[] = [
       chiefComplaint: "control HTA",
       draftNotes: [
         serializePhysicalExam({
+          ...EMPTY_PHYSICAL_EXAM,
           general: "Buen estado general, hidratado, afebril",
-          head: "",
-          neck: "",
           cardiovascular: "Ritmo regular, no soplos",
           respiratory: "MV conservado, sin estertores",
-          abdomen: "",
           neurological: "Sin focalidad, Glasgow 15",
-          extremities: "",
-          skin: "",
-          other: "",
         }) ?? "",
         "PA 130/85 mmHg.",
       ].join("\n"),

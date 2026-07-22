@@ -11,6 +11,7 @@ import { clinicalMemoryConfidenceLabel } from "./clinical-memory";
 import type { DoctorDnaIntelligenceView } from "./doctor-dna-intelligence";
 import {
   hasPhysicalExamData,
+  PHYSICAL_EXAM_SECTIONS,
   resolvePhysicalExamFromNotes,
 } from "./physical-exam-framework";
 import {
@@ -330,9 +331,14 @@ export function buildCopilotContextV2(
 
   const pe = foundation.physicalExam;
   const peSections = hasPhysicalExamData(pe)
-    ? Object.entries(pe)
-        .filter(([, v]) => v?.trim())
-        .map(([k, v]) => `${k}: ${v}`)
+    ? [
+        ...PHYSICAL_EXAM_SECTIONS.filter((key) => pe[key]?.trim()).map(
+          (key) => `${key}: ${pe[key]}`,
+        ),
+        ...Object.entries(pe.msk ?? {})
+          .filter(([, value]) => value?.trim())
+          .map(([key, value]) => `${key}: ${value}`),
+      ]
         .slice(0, 4)
         .join(" · ")
     : null;
