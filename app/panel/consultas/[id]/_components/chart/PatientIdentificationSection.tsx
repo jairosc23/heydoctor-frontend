@@ -112,7 +112,7 @@ export function PatientIdentificationSection({
             href={`/panel/pacientes/${patientId}`}
             className="font-medium text-primary hover:underline"
           >
-            Editar ficha completa del paciente →
+            Datos demográficos del paciente →
           </Link>
         </p>
       ) : null}

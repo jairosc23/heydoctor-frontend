@@ -67,6 +67,8 @@ export interface ClinicalCopilotDrawerProps {
   clinicalFoundationLoading?: boolean;
   clinicalFoundationError?: string | null;
   foundationOutputs?: ClinicalFoundationOutputs | null;
+  /** CX-01 I4 — cambios locales aún no guardados (p. ej. antecedentes). */
+  hasUnsavedClinicalChanges?: boolean;
   /** @deprecated Unused — UC-02B/03C are the sole generative Daily Hub surfaces. */
   generativeExpandToken?: number;
   /** UC-04D H4 — prefer encounter handleSign (flush + tracking). */
@@ -132,6 +134,7 @@ export function ClinicalCopilotDrawer({
   clinicalFoundationLoading = false,
   clinicalFoundationError = null,
   foundationOutputs,
+  hasUnsavedClinicalChanges = false,
   generativeExpandToken: _generativeExpandToken = 0,
   onSignConsultation,
   onClosePersisted,
@@ -300,12 +303,19 @@ export function ClinicalCopilotDrawer({
   );
   const displayedInsights =
     foundationInsights.length > 0 ? foundationInsights : intelligence.insights;
-  // Foundation disponible (aunque con 0 gaps) es el SoT de Documentation Gaps.
-  // Antes, length===0 caía al heurístico y mostraba pendientes inexistentes.
+  // Preferir gaps del bundle persistido cuando está disponible (incluye lista vacía).
   const displayedGaps =
     foundationOutputs != null
       ? foundationGaps
       : intelligence.documentationGaps;
+  const documentationGapsSyncState =
+    clinicalFoundationLoading
+      ? ("loading" as const)
+      : hasUnsavedClinicalChanges
+        ? ("unsaved_changes" as const)
+        : foundationOutputs != null
+          ? ("synced" as const)
+          : ("unavailable" as const);
   const silenceMode =
     displayedInsights.length === 0 &&
     intelligence.riskSignals.length === 0 &&
@@ -441,7 +451,7 @@ export function ClinicalCopilotDrawer({
           {foundationOutputs?.clinicalSummary ? (
             <section className="rounded-hd-md border border-primary/10 bg-primaryLight/40 px-hd-3 py-hd-2">
               <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-primary">
-                Resumen Foundation
+                Resumen clínico
               </p>
               <ul className="space-y-1 text-[11px] leading-relaxed text-slate-700">
                 {foundationOutputs.clinicalSummary.lines.slice(0, 4).map((line) => (
@@ -454,7 +464,10 @@ export function ClinicalCopilotDrawer({
           <CopilotContextEngine context={intelligence.context} />
           <CopilotInsightCards insights={displayedInsights} />
           <CopilotRiskSignals signals={intelligence.riskSignals} />
-          <CopilotDocumentationGaps gaps={displayedGaps} />
+          <CopilotDocumentationGaps
+            gaps={displayedGaps}
+            syncState={documentationGapsSyncState}
+          />
           <CopilotActionSystem />
         </div>
       </aside>
