@@ -7,12 +7,36 @@
 **Precedente:** Phase 1 Audit (`PRESCRIPTION-ENGINE-ENTERPRISE-AUDIT.md`) — **aprobada**  
 **Rama:** `feature/prescription-engine-enterprise`  
 **STATUS:** APPROVED by Product Owner (2026-07-22)  
-**Siguiente autorizado:** PR-1 Catalog-aware FE client  
+**Siguiente autorizado:** PR-3 Quantity Engine (requiere autorización explícita del PO)  
 
 **Reglas de este documento**
 - Diseña el **dominio clínico**, no tablas ni componentes React.
 - Representa el flujo real del médico en consulta.
 - Decisiones de Product Owner de §0bis y §7.3 son vinculantes para implementación.
+
+---
+
+## Implementation status — PR-2 Prescription Composer
+
+**PR-2**  
+**STATUS:** COMPLETED  
+
+| Campo | Valor |
+|-------|--------|
+| Fecha | 2026-07-22 |
+| SHA código (squash → `main`) | `14f4d98c7f6f692797aa8943c3eff522af8e40fd` |
+| SHA Vercel Production | `14f4d98c7f6f692797aa8943c3eff522af8e40fd` (`14f4d98`) |
+| Deploy Production | `dpl_2tXCiRdfMCncUwECKeAhfQhrXs7e` · Ready · alias `https://app.heydoctor.health` |
+| Backend (sin cambios / sin redeploy) | `e5364190ebeac61f94181c4a9bfb692962e4401c` |
+
+### Resumen técnico
+- Modelo de trabajo `SelectedMedication` sobre identidad de catálogo PR-1 (`drugPresentationId`).
+- UI `PrescriptionComposer` / `PrescriptionComposerLine` presentation-first (medicamento, snapshot, vía, dosis, frecuencia, duración, instrucciones, observaciones).
+- Persistencia vía `MedicationItem` existente (CRUD + PDF sin cambio de contrato Backend).
+- Separación Catalog → Composer → Persistence.
+
+### Limitación conocida
+Observaciones de línea utilizan temporalmente `instructions` con prefijo `Obs.:` hasta la incorporación de un campo dedicado en Backend.
 
 ---
 
@@ -397,8 +421,8 @@ flowchart TB
 
 | Orden | PR | Nombre | Scope |
 |-------|-----|--------|-------|
-| 1 | **PR-1** | Catalog | Cliente FE tipado: presentations + smart-suggestions; deprecar path string-only en UI nueva |
-| 2 | **PR-2** | Composer | UI estructurada presentation-first |
+| 1 | **PR-1** | Catalog | Cliente FE tipado: presentations + smart-suggestions; deprecar path string-only en UI nueva — **COMPLETED** |
+| 2 | **PR-2** | Composer | UI estructurada presentation-first — **COMPLETED** (2026-07-22) |
 | 3 | **PR-3** | Quantity Engine | Cálculo / override de cantidad + PDF |
 | 4 | **PR-4** | Safety Gate | Severidades + ack WARNING + justificación CRITICAL auditada |
 | 5 | **PR-5** | Prescription Integrity | GET `:id`, versionado/re-firma, audit update/cancel |
