@@ -6,13 +6,14 @@ import {
   acknowledgeWarning,
   aggregateAlerts,
   buildDecisionState,
-  createMockSafetyProvider,
+  createDefaultSafetyProvider,
+  isSafetyMockEnabled,
   MOCK_SAFETY_SCENARIOS,
   MockSafetyProvider,
   revokeWarningAck,
   upsertCriticalJustification,
+  type ClinicalDecisionState,
   type CriticalJustification,
-  type DecisionState,
   type MockSafetyScenario,
   type SafetyEvaluation,
   type SafetyProvider,
@@ -25,17 +26,19 @@ export interface PrescriptionSafetyPanelProps {
   consultationId?: string | null;
   diagnosis?: string;
   lines: SelectedMedication[];
-  /** Injected provider — defaults to mock; swap for Backend without UI changes. */
+  /**
+   * Injected provider. Defaults to createDefaultSafetyProvider()
+   * (Http in production; Mock only when NEXT_PUBLIC_SAFETY_MOCK=1).
+   */
   provider?: SafetyProvider;
   /** Optional controlled mock scenario (only when using MockSafetyProvider). */
   mockScenario?: MockSafetyScenario;
-  onDecisionStateChange?: (state: DecisionState) => void;
+  onDecisionStateChange?: (state: ClinicalDecisionState) => void;
   className?: string;
 }
 
 /**
- * PR-4.1 — Clinical Safety Panel (UX only).
- * Consumes SafetyProvider contract; contains no clinical rule engine.
+ * Clinical Safety Panel — consumes SafetyProvider; no rule engine in UI.
  */
 export function PrescriptionSafetyPanel({
   patientId,
@@ -47,8 +50,8 @@ export function PrescriptionSafetyPanel({
   onDecisionStateChange,
   className = "",
 }: PrescriptionSafetyPanelProps) {
-  const [ownedMock] = useState(() => new MockSafetyProvider(mockScenario));
-  const provider = providerProp ?? ownedMock;
+  const [defaultProvider] = useState(() => createDefaultSafetyProvider(mockScenario));
+  const provider = providerProp ?? defaultProvider;
   const [scenario, setScenario] = useState<MockSafetyScenario>(mockScenario);
   const [evaluation, setEvaluation] = useState<SafetyEvaluation | null>(null);
   const [acknowledgements, setAcknowledgements] = useState<
@@ -58,6 +61,7 @@ export function PrescriptionSafetyPanel({
     CriticalJustification[]
   >([]);
   const [loading, setLoading] = useState(false);
+  const [evalError, setEvalError] = useState<string | null>(null);
 
   useEffect(() => {
     if (provider instanceof MockSafetyProvider) {
@@ -75,6 +79,11 @@ export function PrescriptionSafetyPanel({
         lineIndex,
         displayLabel: line.displayLabel,
         drugPresentationId: line.drugPresentationId,
+        dosage: line.dosage,
+        frequency: line.frequency,
+        duration: line.duration,
+        route: line.routeCode || line.routeLabel,
+        instructions: line.instructions,
       })),
     [lines],
   );
@@ -82,6 +91,7 @@ export function PrescriptionSafetyPanel({
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setEvalError(null);
     void provider
       .evaluate({
         patientId,
@@ -94,6 +104,11 @@ export function PrescriptionSafetyPanel({
         setEvaluation(result);
         setAcknowledgements([]);
         setJustifications([]);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setEvaluation(null);
+        setEvalError("No se pudo evaluar seguridad clínica.");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -122,14 +137,16 @@ export function PrescriptionSafetyPanel({
     onDecisionStateChange?.(decision);
   }, [decision, onDecisionStateChange]);
 
-  const showMockControls = provider instanceof MockSafetyProvider;
-  const happyPath = aggregated.length === 0 && !loading;
+  const showMockControls =
+    isSafetyMockEnabled() && provider instanceof MockSafetyProvider;
+  const happyPath = aggregated.length === 0 && !loading && !evalError;
 
   return (
     <section
       className={`rounded-md border border-slate-200 bg-white p-3 ${className}`}
       data-testid="prescription-safety-panel"
       aria-label="Panel de seguridad clínica"
+      data-safety-provider={provider.id}
     >
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-600">
@@ -140,7 +157,7 @@ export function PrescriptionSafetyPanel({
 
       {showMockControls ? (
         <label className="mb-3 block text-[11px] text-slate-500">
-          Simulación Safety (mock — reemplazable)
+          Simulación Safety (solo desarrollo — NEXT_PUBLIC_SAFETY_MOCK=1)
           <select
             value={scenario}
             onChange={(e) =>
@@ -157,6 +174,12 @@ export function PrescriptionSafetyPanel({
             ))}
           </select>
         </label>
+      ) : null}
+
+      {evalError ? (
+        <p className="mb-2 text-sm text-amber-700" role="alert">
+          {evalError}
+        </p>
       ) : null}
 
       {happyPath ? (
@@ -208,7 +231,7 @@ export function PrescriptionSafetyPanel({
           role="status"
           data-testid="safety-soft-gate-hint"
         >
-          {decision.issueDecision === "needs_justification"
+          {decision.uxIssueDecision === "needs_justification"
             ? "Hay CRITICAL pendientes de justificación. La emisión no se bloquea."
             : "Hay WARNING pendientes de reconocimiento. La emisión no se bloquea."}
         </p>
@@ -221,7 +244,7 @@ function DecisionBadge({
   decision,
   loading,
 }: {
-  decision: DecisionState;
+  decision: ClinicalDecisionState;
   loading: boolean;
 }) {
   if (loading) {
@@ -232,27 +255,27 @@ function DecisionBadge({
     );
   }
   const label =
-    decision.issueDecision === "ready"
+    decision.uxIssueDecision === "ready"
       ? "Listo"
-      : decision.issueDecision === "ready_with_info_only"
+      : decision.uxIssueDecision === "ready_with_info_only"
         ? "INFO"
-        : decision.issueDecision === "needs_ack"
+        : decision.uxIssueDecision === "needs_ack"
           ? "Ack pendiente"
           : "Justificación pendiente";
   return (
     <span
       className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-700"
       data-testid="safety-decision-badge"
-      data-issue-decision={decision.issueDecision}
+      data-ux-issue-decision={decision.uxIssueDecision}
     >
       {label}
     </span>
   );
 }
 
-/** Factory helper for tests / future Backend wiring. */
+/** @deprecated Prefer createDefaultSafetyProvider from lib/prescription-safety. */
 export function defaultSafetyProvider(
   scenario: MockSafetyScenario = "none",
 ): SafetyProvider {
-  return createMockSafetyProvider(scenario);
+  return createDefaultSafetyProvider(scenario);
 }

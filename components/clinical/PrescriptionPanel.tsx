@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   fetchPrescriptionsByPatient,
   createPrescription,
@@ -23,6 +23,11 @@ import {
   medicationItemsFromSelectedMedications,
   selectedMedicationsFromMedicationItems,
 } from "@/lib/prescription-composer";
+import {
+  buildSafetyDecisionPayload,
+  emptyDecisionState,
+  type ClinicalDecisionState,
+} from "@/lib/prescription-safety";
 import { PrescriptionComposer } from "./PrescriptionComposer";
 import { OrdersEmptyState } from "./orders/OrdersEmptyState";
 import { UnifiedOrderCard } from "./orders/UnifiedOrderCard";
@@ -54,6 +59,15 @@ export function PrescriptionPanel({
   const [error, setError] = useState<string | null>(null);
   const [listError, setListError] = useState<string | null>(null);
   const [pdfLoadingId, setPdfLoadingId] = useState<string | null>(null);
+  const [safetyDecisionState, setSafetyDecisionState] =
+    useState<ClinicalDecisionState>(() => emptyDecisionState());
+
+  const handleSafetyDecisionStateChange = useCallback(
+    (state: ClinicalDecisionState) => {
+      setSafetyDecisionState(state);
+    },
+    [],
+  );
 
   const reload = async () => {
     const list = await fetchPrescriptionsByPatient(patientId);
@@ -90,6 +104,7 @@ export function PrescriptionPanel({
     setEditingId(null);
     setDraftLines([emptySelectedMedication()]);
     setNotes("");
+    setSafetyDecisionState(emptyDecisionState());
   };
 
   const handleSave = async () => {
@@ -97,12 +112,14 @@ export function PrescriptionPanel({
     if (meds.length === 0) return;
     setCreating(true);
     setError(null);
+    const safetyDecision = buildSafetyDecisionPayload(safetyDecisionState);
     try {
       if (editingId) {
         await updatePrescription(editingId, {
           diagnosis: diagnosis || undefined,
           medications: meds,
           notes: notes || undefined,
+          safetyDecision,
         });
       } else {
         await createPrescription({
@@ -111,6 +128,7 @@ export function PrescriptionPanel({
           diagnosis: diagnosis || undefined,
           medications: meds,
           notes: notes || undefined,
+          safetyDecision,
         });
         onPrescriptionCreated?.();
       }
@@ -254,6 +272,7 @@ export function PrescriptionPanel({
             editing={Boolean(editingId)}
             onSave={() => void handleSave()}
             onCancelEdit={editingId ? resetForm : undefined}
+            onSafetyDecisionStateChange={handleSafetyDecisionStateChange}
           />
         </>
       )}

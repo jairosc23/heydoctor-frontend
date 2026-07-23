@@ -1,6 +1,6 @@
 /**
- * Prescription Engine PR-4.1 — Clinical Safety Gate domain contracts.
- * Aligned with Phase A design. No clinical rule engine. No persistence.
+ * Prescription Engine — Clinical Safety Gate domain contracts.
+ * Integration sprint: FE ↔ BE wired. No clinical rule engine in FE.
  */
 
 export type SafetySeverity = "INFO" | "WARNING" | "CRITICAL";
@@ -8,7 +8,7 @@ export type SafetySeverity = "INFO" | "WARNING" | "CRITICAL";
 /** Presentation order only — never changes clinical severity. */
 export type SafetyPriority = "HIGH" | "NORMAL" | "LOW";
 
-/** Representation only — no confidence calculation in PR-4.1. */
+/** Representation only — no confidence calculation in FE. */
 export type SafetyConfidence = "HIGH" | "PARTIAL" | "LOW";
 
 export type SafetyAlertFamily =
@@ -66,17 +66,37 @@ export type CriticalJustification = {
   justifiedAt: string;
 };
 
-export type IssueDecision =
+/**
+ * Soft UX readiness signal (frontend only).
+ * Never confused with PersistedIssueDecision (backend audit trail).
+ */
+export type UxIssueDecision =
   | "ready"
   | "ready_with_info_only"
   | "needs_ack"
   | "needs_justification";
 
 /**
- * UX decision state derived from evaluation + doctor actions.
- * Informational only in PR-4.1 — never hard-blocks emission.
+ * @deprecated Use UxIssueDecision. Kept for transitional imports.
  */
-export type DecisionState = {
+export type IssueDecision = UxIssueDecision;
+
+/**
+ * Backend audit trail issue decision (PR-4.3).
+ * Derived server-side on persist — FE must not invent these values.
+ */
+export type PersistedIssueDecision =
+  | "evaluated_not_persisted"
+  | "issued"
+  | "issued_with_acknowledgements"
+  | "issued_with_justifications"
+  | "issued_incomplete_decisions";
+
+/**
+ * Clinical decision state: evaluation + physician UX actions.
+ * Soft gate only — never hard-blocks emission.
+ */
+export type ClinicalDecisionState = {
   evaluationId: string | null;
   acknowledgements: WarningAcknowledgement[];
   justifications: CriticalJustification[];
@@ -87,24 +107,42 @@ export type DecisionState = {
   openCriticalCount: number;
   /** Soft readiness signal — does not disable save. */
   readyToIssue: boolean;
-  issueDecision: IssueDecision;
+  /** UX readiness only — not the BE persisted issueDecision. */
+  uxIssueDecision: UxIssueDecision;
+};
+
+/**
+ * @deprecated Use ClinicalDecisionState.
+ */
+export type DecisionState = ClinicalDecisionState;
+
+/** Payload accepted by BE create/update `safetyDecision`. */
+export type SafetyDecisionPayload = {
+  evaluationId?: string;
+  acknowledgements: WarningAcknowledgement[];
+  justifications: CriticalJustification[];
 };
 
 export type SafetyEvaluateInput = {
   patientId: string;
   consultationId?: string | null;
+  cie10CodeId?: string | null;
   diagnosis?: string;
-  /** Opaque line snapshots for future engine; mock may ignore clinically. */
   lines: Array<{
     lineIndex: number;
     displayLabel: string;
     drugPresentationId?: string;
+    dosage?: string;
+    frequency?: string;
+    duration?: string;
+    route?: string;
+    instructions?: string;
   }>;
 };
 
 /**
  * Replaceable provider contract.
- * Mock today → Backend Rule Engine tomorrow without changing UI components.
+ * Production default: HttpSafetyProvider → POST /prescriptions/safety-evaluate.
  */
 export interface SafetyProvider {
   readonly id: string;
