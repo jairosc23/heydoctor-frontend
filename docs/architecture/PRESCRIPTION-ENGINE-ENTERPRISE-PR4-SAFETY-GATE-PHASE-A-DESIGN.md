@@ -103,6 +103,38 @@ Modelo + puntos de integración listos; **sin** persistencia definitiva (`prepar
 
 ---
 
+## Implementation status — PR-4.3 Clinical Decision Audit Trail
+
+**PR-4.3**  
+**STATUS:** COMPLETED  
+
+| Campo | Valor |
+|-------|--------|
+| Fecha | 2026-07-22 |
+| SHA código (squash → `main`) | `31bd1a5ae4f4aa2b2181cb3f05e2fbe4293d1d13` |
+| SHA producción Railway | `31bd1a5ae4f4aa2b2181cb3f05e2fbe4293d1d13` (`31bd1a5ae4f4`) |
+| Deploy Production | `85dc62dc-955f-407d-b63a-afcd8fb20cdb` · ready · `https://pro-api.heydoctor.health` |
+| Migración | `1753300000000-PrescriptionSafetyAuditTrail` · aplicada |
+| Frontend | Sin cambios de producto / sin redeploy (baseline producto `d4c5b5aa…`; tip docs puede diferir) |
+
+### Resumen técnico
+- **Audit Trail persistente** append-only en `prescription_safety_audits`.
+- Persistencia de `SafetyAuditPackage` + `WarningAcknowledgement` + `CriticalJustification` en create/update de receta.
+- `packageHash` (SHA-256) para integridad del snapshot.
+- `persistenceStatus: persisted` / `issueDecision` derivado (`issued*` / `issued_incomplete_decisions`).
+- Rehidratación: `GET /api/prescriptions/:id/safety-audit`.
+- Emisión **nunca** hard-block por seguridad.
+- Rule Engine R1–R7 sin cambios de lógica.
+
+### Arquitectura
+```
+DrugSafetyCheckService → SafetyRuleEngineService → SafetyEvaluation
+  → SafetyAuditTrailService → prescription_safety_audits (append-only)
+  → GET /prescriptions/:id/safety-audit
+```
+
+---
+
 ## 0. Principios del Safety Gate
 
 1. **Physician remains in control** — el gate informa y exige atención; no sustituye criterio clínico.
