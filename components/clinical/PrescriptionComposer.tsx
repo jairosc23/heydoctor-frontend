@@ -4,7 +4,10 @@ import { PrescriptionComposerLine } from "./PrescriptionComposerLine";
 import { PrescriptionSafetyPanel } from "./safety/PrescriptionSafetyPanel";
 import type { SelectedMedication } from "@/lib/types/selected-medication";
 import { emptySelectedMedication } from "@/lib/types/selected-medication";
-import type { SafetyProvider } from "@/lib/prescription-safety";
+import type {
+  ClinicalDecisionState,
+  SafetyProvider,
+} from "@/lib/prescription-safety";
 
 export interface PrescriptionComposerProps {
   lines: SelectedMedication[];
@@ -21,10 +24,11 @@ export interface PrescriptionComposerProps {
   onSave: () => void;
   onCancelEdit?: () => void;
   /**
-   * Optional Safety provider (defaults to mock inside Safety Panel).
+   * Optional Safety provider (defaults to HttpSafetyProvider in production).
    * Composer only mounts the panel — no safety logic here.
    */
   safetyProvider?: SafetyProvider;
+  onSafetyDecisionStateChange?: (state: ClinicalDecisionState) => void;
 }
 
 /**
@@ -47,6 +51,7 @@ export function PrescriptionComposer({
   onSave,
   onCancelEdit,
   safetyProvider,
+  onSafetyDecisionStateChange,
 }: PrescriptionComposerProps) {
   const updateLine = (index: number, next: SelectedMedication) => {
     onChange(lines.map((line, i) => (i === index ? next : line)));
@@ -123,6 +128,7 @@ export function PrescriptionComposer({
         diagnosis={diagnosis}
         lines={lines}
         provider={safetyProvider}
+        onDecisionStateChange={onSafetyDecisionStateChange}
       />
 
       {error ? (

@@ -29,7 +29,7 @@ describe("prescription-safety decision-state (PR-4.1)", () => {
       justifications: [],
     });
     assert.equal(state.readyToIssue, true);
-    assert.equal(state.issueDecision, "ready");
+    assert.equal(state.uxIssueDecision, "ready");
   });
 
   it("INFO only → ready_with_info_only without interaction", () => {
@@ -52,7 +52,7 @@ describe("prescription-safety decision-state (PR-4.1)", () => {
       acknowledgements: [],
       justifications: [],
     });
-    assert.equal(state.issueDecision, "ready_with_info_only");
+    assert.equal(state.uxIssueDecision, "ready_with_info_only");
     assert.equal(state.readyToIssue, true);
     assert.equal(state.pendingWarningAcks.length, 0);
   });
@@ -78,7 +78,7 @@ describe("prescription-safety decision-state (PR-4.1)", () => {
       acknowledgements: [],
       justifications: [],
     });
-    assert.equal(pending.issueDecision, "needs_ack");
+    assert.equal(pending.uxIssueDecision, "needs_ack");
     assert.equal(pending.readyToIssue, false);
 
     const acks = acknowledgeWarning([], "w1", "2026-07-22T01:00:00.000Z");
@@ -87,7 +87,7 @@ describe("prescription-safety decision-state (PR-4.1)", () => {
       acknowledgements: acks,
       justifications: [],
     });
-    assert.equal(done.issueDecision, "ready");
+    assert.equal(done.uxIssueDecision, "ready");
     assert.equal(done.readyToIssue, true);
   });
 
@@ -112,7 +112,7 @@ describe("prescription-safety decision-state (PR-4.1)", () => {
       acknowledgements: [],
       justifications: [],
     });
-    assert.equal(pending.issueDecision, "needs_justification");
+    assert.equal(pending.uxIssueDecision, "needs_justification");
     assert.equal(pending.readyToIssue, false);
 
     const incomplete = upsertCriticalJustification([], {
@@ -150,6 +150,6 @@ describe("prescription-safety decision-state (PR-4.1)", () => {
   it("emptyDecisionState defaults", () => {
     const s = emptyDecisionState();
     assert.equal(s.readyToIssue, true);
-    assert.equal(s.issueDecision, "ready");
+    assert.equal(s.uxIssueDecision, "ready");
   });
 });

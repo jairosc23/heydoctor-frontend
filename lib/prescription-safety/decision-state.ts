@@ -1,18 +1,19 @@
 /**
- * Decision State — pure derivation from evaluation + UX actions.
+ * Clinical Decision State — pure derivation from evaluation + UX actions.
  * Never hard-blocks emission.
+ * uxIssueDecision ≠ PersistedIssueDecision (BE audit).
  */
 
 import type {
+  ClinicalDecisionState,
   CriticalJustification,
-  DecisionState,
-  IssueDecision,
   SafetyEvaluation,
+  UxIssueDecision,
   WarningAcknowledgement,
 } from "./types";
 import { aggregateAlerts } from "./aggregator";
 
-export function emptyDecisionState(): DecisionState {
+export function emptyDecisionState(): ClinicalDecisionState {
   return {
     evaluationId: null,
     acknowledgements: [],
@@ -23,7 +24,7 @@ export function emptyDecisionState(): DecisionState {
     openWarningCount: 0,
     openCriticalCount: 0,
     readyToIssue: true,
-    issueDecision: "ready",
+    uxIssueDecision: "ready",
   };
 }
 
@@ -31,7 +32,7 @@ export function buildDecisionState(input: {
   evaluation: SafetyEvaluation | null;
   acknowledgements: WarningAcknowledgement[];
   justifications: CriticalJustification[];
-}): DecisionState {
+}): ClinicalDecisionState {
   if (!input.evaluation) return emptyDecisionState();
 
   const alerts = aggregateAlerts(input.evaluation.alerts);
@@ -54,13 +55,13 @@ export function buildDecisionState(input: {
   const openWarningCount = pendingWarningAcks.length;
   const openCriticalCount = pendingCriticalJustifications.length;
 
-  let issueDecision: IssueDecision = "ready";
+  let uxIssueDecision: UxIssueDecision = "ready";
   if (openCriticalCount > 0) {
-    issueDecision = "needs_justification";
+    uxIssueDecision = "needs_justification";
   } else if (openWarningCount > 0) {
-    issueDecision = "needs_ack";
+    uxIssueDecision = "needs_ack";
   } else if (openInfoCount > 0) {
-    issueDecision = "ready_with_info_only";
+    uxIssueDecision = "ready_with_info_only";
   }
 
   return {
@@ -73,7 +74,7 @@ export function buildDecisionState(input: {
     openWarningCount,
     openCriticalCount,
     readyToIssue: openWarningCount === 0 && openCriticalCount === 0,
-    issueDecision,
+    uxIssueDecision,
   };
 }
 

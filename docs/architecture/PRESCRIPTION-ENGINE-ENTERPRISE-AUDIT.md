@@ -213,6 +213,11 @@ Mantener shell Orders Command Center; reemplazar formulario interno.
 | **PR-4** | Continuity | Favoritos FE + plantillas Rx + “repetir” | FE + BE templates |
 | **PR-5** | Integrity | GET `:id`; version/re-sign on update; audit update/cancel | BE |
 | **PR-6** | Quantity engine | Cálculo cantidad / daysSupply + PDF | FE + BE |
+
+> **Superseded numbering:** la fuente de verdad del roadmap es
+> `PRESCRIPTION-ENGINE-ENTERPRISE-PHASE-0-CLINICAL-DESIGN.md`
+> (PR-5 = Integrity, PR-6 = Continuity). La tabla anterior es histórica.
+> Integración FE↔BE Safety (HttpSafetyProvider + `safetyDecision`) = sprint post PR-4.3.
 | **PR-7** | FHIR adapter | MedicationRequest Nest (read/export) | BE |
 | **PR-8** | Copilot bridge | Draft HITL → CreatePrescriptionDto (opt-in) | FE/BE bridge |
 

@@ -36,13 +36,13 @@
 
 ### Arquitectura desacoplada (`SafetyProvider`)
 ```
-SafetyProvider (mock hoy → Backend Rule Engine mañana)
+SafetyProvider (HttpSafetyProvider productivo; Mock solo en dev con flag)
   → PrescriptionSafetyPanel
-    → aggregateAlerts + DecisionState
+    → aggregateAlerts + ClinicalDecisionState
       → SafetyAlertCard
 ```
 El Composer solo monta el panel; no contiene lógica de seguridad.  
-Sustituir el mock = implementar `SafetyProvider` sin cambiar componentes UI.
+Producción usa `HttpSafetyProvider` → Rule Engine BE.
 
 ### Extensiones al modelo de dominio (PR-4.1)
 - **Priority** (independiente de severidad): `HIGH` | `NORMAL` | `LOW` — solo orden de presentación.
@@ -132,6 +132,41 @@ DrugSafetyCheckService → SafetyRuleEngineService → SafetyEvaluation
   → SafetyAuditTrailService → prescription_safety_audits (append-only)
   → GET /prescriptions/:id/safety-audit
 ```
+
+---
+
+## Implementation status — Clinical Safety Integration Sprint (Post PR-4.3)
+
+**STATUS:** COMPLETED (pending PO merge/deploy)  
+
+### Resumen
+Cierra el circuito FE ↔ BE del Safety Platform **sin** nuevas reglas clínicas ni cambios al Rule Engine / Audit Trail / Calculation Engine.
+
+| Item | Entrega |
+|------|---------|
+| **S1** | `HttpSafetyProvider` → `POST /api/prescriptions/safety-evaluate` (default productivo) |
+| **S2** | `ClinicalDecisionState` → `safetyDecision` en create/update |
+| **S3** | Selector mock solo con `NEXT_PUBLIC_SAFETY_MOCK=1` (nunca en production) |
+| **S4** | Nomenclatura: `UxIssueDecision` (FE) ≠ `PersistedIssueDecision` (BE) |
+| **S5** | Esta sección de documentación |
+
+### Flujo integrado
+```
+Composer lines
+  → HttpSafetyProvider.evaluate
+  → POST /prescriptions/safety-evaluate
+  → SafetyEvaluation + ClinicalDecisionState (acks/justs UX)
+  → create/update + safetyDecision
+  → BE re-evalúa + SafetyAuditTrailService.persist
+```
+
+### Nomenclatura
+| Concepto | Nombre | Capa |
+|----------|--------|------|
+| Readiness UX | `UxIssueDecision` (`ready` / `needs_ack` / …) | Frontend |
+| Decisión al emitir | `PersistedIssueDecision` (`issued*` / …) | Backend audit |
+| Estado clínico FE | `ClinicalDecisionState` | Frontend |
+| Payload persistencia | `SafetyDecisionPayload` | FE → BE DTO |
 
 ---
 

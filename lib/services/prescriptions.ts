@@ -2,6 +2,7 @@ import { heydoctorApi } from "../heydoctor-api";
 import { withCache } from "../clinical-cache";
 import { createClinicalLogger } from "../clinical-logger";
 import { downloadClinicalPdf } from "../download-clinical-pdf";
+import type { SafetyDecisionPayload } from "../prescription-safety";
 import type {
   SmartMedicationSuggestion,
   SmartSuggestionsParams,
@@ -40,12 +41,15 @@ export interface CreatePrescriptionDto {
   diagnosis?: string;
   medications: MedicationItem[];
   notes?: string;
+  /** PR-4.3 / Integration — physician acks & justifications for Audit Trail. */
+  safetyDecision?: SafetyDecisionPayload;
 }
 
 export interface UpdatePrescriptionDto {
   diagnosis?: string;
   medications?: MedicationItem[];
   notes?: string;
+  safetyDecision?: SafetyDecisionPayload;
 }
 
 export async function fetchPrescriptionsByPatient(
