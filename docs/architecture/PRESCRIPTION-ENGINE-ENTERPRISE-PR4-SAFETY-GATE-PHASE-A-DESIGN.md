@@ -137,18 +137,27 @@ DrugSafetyCheckService → SafetyRuleEngineService → SafetyEvaluation
 
 ## Implementation status — Clinical Safety Integration Sprint (Post PR-4.3)
 
-**STATUS:** COMPLETED (pending PO merge/deploy)  
+**STATUS:** COMPLETED  
+
+| Campo | Valor |
+|-------|--------|
+| Fecha | 2026-07-23 |
+| SHA código (squash → `main`) | `8fdf9c4b4f64647dc3e8f9dd08e335a914768523` |
+| SHA Vercel Production | `8fdf9c4b4f64647dc3e8f9dd08e335a914768523` (`8fdf9c4b`) |
+| Deploy Production | `dpl_ExbSSF7NUK5YFRqUXheUsJTtbyFM` · Ready · alias `https://app.heydoctor.health` |
+| Backend (sin cambios / sin redeploy) | `31bd1a5ae4f4aa2b2181cb3f05e2fbe4293d1d13` |
 
 ### Resumen
-Cierra el circuito FE ↔ BE del Safety Platform **sin** nuevas reglas clínicas ni cambios al Rule Engine / Audit Trail / Calculation Engine.
+Circuito FE ↔ BE del Safety Platform **completamente integrado**.  
+Sin nuevas reglas clínicas; sin cambios al Rule Engine, Audit Trail ni Calculation Engine.
 
 | Item | Entrega |
 |------|---------|
 | **S1** | `HttpSafetyProvider` → `POST /api/prescriptions/safety-evaluate` (default productivo) |
 | **S2** | `ClinicalDecisionState` → `safetyDecision` en create/update |
-| **S3** | Selector mock solo con `NEXT_PUBLIC_SAFETY_MOCK=1` (nunca en production) |
+| **S3** | Mock restringido a desarrollo (`NEXT_PUBLIC_SAFETY_MOCK=1`); deshabilitado en production |
 | **S4** | Nomenclatura: `UxIssueDecision` (FE) ≠ `PersistedIssueDecision` (BE) |
-| **S5** | Esta sección de documentación |
+| **S5** | Documentación de integración completa |
 
 ### Flujo integrado
 ```
