@@ -54,6 +54,55 @@ Escenarios de simulación (`none` / `info` / `warning` / `critical` / `multi` / 
 
 ---
 
+## Implementation status — PR-4.2 Clinical Safety Rule Engine v1
+
+**PR-4.2**  
+**STATUS:** COMPLETED  
+
+| Campo | Valor |
+|-------|--------|
+| Fecha | 2026-07-22 |
+| SHA código (squash → `main`) | `0deb3cd3b7613977ba02d57b0b3adb18c48a0803` |
+| SHA producción Railway | `0deb3cd3b7613977ba02d57b0b3adb18c48a0803` (`0deb3cd3b761`) |
+| Deploy Production | `4f27fd60-50f7-48e8-9e24-87c13efe18f0` · ready · `https://pro-api.heydoctor.health` |
+| Frontend | Sin cambios de producto / sin redeploy (`d4c5b5aa8795480903b6f05d67eae76c28581a4a`) |
+
+### Resumen técnico
+- Rule Engine clínico determinista Release 1 (R1–R7), sin IA/LLM.
+- `DrugSafetyCheckService` real: ensambla contexto → registry → evaluators → aggregator → `SafetyEvaluation`.
+- `POST /prescriptions/safety-evaluate` expone el contrato para el `SafetyProvider` del FE.
+- `blocked` clínico siempre `false` (política CRITICAL: nunca hard-block).
+- `AuditPackage` generado con `persistenceStatus: prepared_not_persisted` (persistencia = PR-4.3).
+
+### Rule Registry
+Cada regla es una clase independiente (`SafetyRule.evaluate(context) → SafetyRuleResult[]`).  
+Agregar reglas no requiere modificar el motor principal.
+
+| Regla | Severidad | Acción clínica |
+|-------|-----------|----------------|
+| R1 Alergia conocida | CRITICAL | Justificación |
+| R2 Alergia sospechada / incompleta | WARNING | Acknowledgement |
+| R3 Duplicidad por sustancia | WARNING | Acknowledgement |
+| R4 Duplicidad por ATC | WARNING | Acknowledgement |
+| R5 Contexto clínico insuficiente | INFO | — |
+| R6 Medicamento sin clasificación suficiente | INFO | — |
+| R7 Datos incompletos para evaluación | INFO | — |
+
+### Rule Engine / DrugSafetyCheckService
+```
+Clinical Context
+  → DrugSafetyCheckService
+    → SafetyRuleEngineService
+      → Rule Registry → R1–R7
+        → Alert Aggregator
+          → SafetyEvaluation (+ AuditPackage prepared_not_persisted)
+```
+
+### AuditPackage
+Modelo + puntos de integración listos; **sin** persistencia definitiva (`prepared_not_persisted`).
+
+---
+
 ## 0. Principios del Safety Gate
 
 1. **Physician remains in control** — el gate informa y exige atención; no sustituye criterio clínico.
