@@ -11,6 +11,7 @@
     "preview": "next build && next start",
     "lint": "tsc --noEmit",
     "lint:ccp-c1": "node scripts/ccp-c1-boundary-lint.mjs",
+    "lint:gce-w2": "node scripts/gce-w2-encounter-boundary-lint.mjs",
     "typecheck": "tsc --noEmit",
     "dx:check": "npm run typecheck && npm test && npm run test:component",
     "dx:check:full": "npm run dx:check && npm run build",

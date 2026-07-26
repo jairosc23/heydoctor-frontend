@@ -32,6 +32,12 @@ export function isClinicalActionWorkspaceEnabled(
   return TRUTHY.has(raw.trim().toLowerCase());
 }
 
+/** GCE-W2 — Encounter Runtime host (default off). Re-export for workspace discoverability. */
+export {
+  isGceCopilotAssistEnabled,
+  isGceEncounterRuntimeEnabled,
+} from "@/lib/encounter-runtime/flags";
+
 export function clinicalActionModuleLabel(id: ClinicalActionModuleId): string {
   return (
     CLINICAL_ACTION_MODULES.find((module) => module.id === id)?.label ?? id

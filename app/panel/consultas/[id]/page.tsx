@@ -1040,6 +1040,7 @@ export default function ConsultationDetailPage() {
               <ClinicalActionBar
                 patientId={consultation.patientId}
                 consultationId={id}
+                clinicId={consultation.clinicId ?? ctxClinicId ?? null}
                 ordersRefreshKey={ordersRefreshKey}
               />
             ) : null}

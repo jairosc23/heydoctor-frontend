@@ -5,6 +5,7 @@ import {
   ContinuityEntry,
   ContinuityPanelShell,
 } from "@/components/clinical/continuity";
+import { EncounterRuntimeHost } from "@/components/clinical/encounter/EncounterRuntimeHost";
 import {
   CLINICAL_ACTION_MODULES,
   type ClinicalActionModuleId,
@@ -17,6 +18,7 @@ export interface ClinicalActionBarProps {
   className?: string;
   patientId?: string | null;
   consultationId?: string;
+  clinicId?: string | null;
   ordersRefreshKey?: number;
 }
 
@@ -24,6 +26,7 @@ export function ClinicalActionBar({
   className,
   patientId,
   consultationId,
+  clinicId,
   ordersRefreshKey = 0,
 }: ClinicalActionBarProps) {
   const { enabled, activeModule, sheetOpen, openModule } =
@@ -76,6 +79,13 @@ export function ClinicalActionBar({
           encounterId={consultationId ?? null}
           open={continuityOpen}
           onOpenChange={setContinuityOpen}
+        />
+      ) : null}
+      {patientId && consultationId ? (
+        <EncounterRuntimeHost
+          patientId={patientId}
+          consultationId={consultationId}
+          clinicId={clinicId}
         />
       ) : null}
     </div>
