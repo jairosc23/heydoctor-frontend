@@ -28,6 +28,20 @@ import {
   emptyDecisionState,
   type ClinicalDecisionState,
 } from "@/lib/prescription-safety";
+import { useAuth } from "@/lib/context/AuthContext";
+import {
+  assistMedicationsFromSelectedMedications,
+  composerEditClinical,
+  confirmAndEmit,
+  fetchCurrentProtocolAssistPrefill,
+  hydrateFromAssistDraft,
+  IntakeGateError,
+  projectCompositionStateToForm,
+  protocolDraftAsCanonical,
+  validateAssistIntakeEcho,
+  type ClinicalAssistPrefillDraft,
+  type CompositionState,
+} from "@/lib/composer-intake";
 import { PrescriptionComposer } from "./PrescriptionComposer";
 import { OrdersEmptyState } from "./orders/OrdersEmptyState";
 import { UnifiedOrderCard } from "./orders/UnifiedOrderCard";
@@ -38,6 +52,8 @@ interface PrescriptionPanelProps {
   diagnosisCode?: string;
   onPrescriptionCreated?: () => void;
   className?: string;
+  /** Optional pre-loaded assist draft (tests / external opt-in). */
+  initialAssistDraft?: ClinicalAssistPrefillDraft | null;
 }
 
 export function PrescriptionPanel({
@@ -46,7 +62,9 @@ export function PrescriptionPanel({
   diagnosisCode,
   onPrescriptionCreated,
   className = "",
+  initialAssistDraft = null,
 }: PrescriptionPanelProps) {
+  const { user } = useAuth();
   const [prescriptions, setPrescriptions] = useState<PrescriptionRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -62,11 +80,58 @@ export function PrescriptionPanel({
   const [safetyDecisionState, setSafetyDecisionState] =
     useState<ClinicalDecisionState>(() => emptyDecisionState());
 
+  /** PR-8 M2 — Composer-owned Composition State (assist path). */
+  const [compositionState, setCompositionState] =
+    useState<CompositionState | null>(null);
+  const [confirmationGateChecked, setConfirmationGateChecked] = useState(false);
+  const [protocolIdInput, setProtocolIdInput] = useState("");
+  const [hydrating, setHydrating] = useState(false);
+
+  const assistActive = Boolean(compositionState?.assistanceSession);
+
   const handleSafetyDecisionStateChange = useCallback(
     (state: ClinicalDecisionState) => {
       setSafetyDecisionState(state);
     },
     [],
+  );
+
+  const applyCompositionToForm = useCallback((state: CompositionState) => {
+    const projected = projectCompositionStateToForm(state);
+    setDiagnosis(projected.diagnosis);
+    setNotes(projected.notes);
+    setDraftLines(projected.lines);
+  }, []);
+
+  const hydrateFromDraft = useCallback(
+    async (rawDraft: ClinicalAssistPrefillDraft) => {
+      if (!user?.id || !user.clinicId) {
+        throw new Error("Sesión de médico requerida para intake asistido");
+      }
+      if (!patientId?.trim()) {
+        throw new Error("patient_required");
+      }
+
+      const canonical =
+        rawDraft.sourceAssetType === "clinical_protocol"
+          ? protocolDraftAsCanonical(rawDraft)
+          : rawDraft;
+
+      const echoed = await validateAssistIntakeEcho(canonical);
+      const state = hydrateFromAssistDraft(echoed.draft, {
+        actorDoctorId: user.id,
+        clinicId: user.clinicId,
+        patientId,
+        consultationId: consultationId ?? null,
+      });
+
+      setCompositionState(state);
+      applyCompositionToForm(state);
+      setConfirmationGateChecked(false);
+      setEditingId(null);
+      setSafetyDecisionState(emptyDecisionState());
+    },
+    [user, patientId, consultationId, applyCompositionToForm],
   );
 
   const reload = async () => {
@@ -97,23 +162,142 @@ export function PrescriptionPanel({
   }, [patientId]);
 
   useEffect(() => {
-    setDiagnosis(diagnosisCode ?? "");
-  }, [diagnosisCode]);
+    if (!compositionState) {
+      setDiagnosis(diagnosisCode ?? "");
+    }
+  }, [diagnosisCode, compositionState]);
+
+  useEffect(() => {
+    if (!initialAssistDraft) return;
+    let cancelled = false;
+    setHydrating(true);
+    setError(null);
+    hydrateFromDraft(initialAssistDraft)
+      .catch((e) => {
+        if (!cancelled) {
+          setError(
+            e instanceof IntakeGateError
+              ? e.message
+              : getApiErrorMessage(e, "No se pudo hidratar asistencia"),
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setHydrating(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [initialAssistDraft, hydrateFromDraft]);
+
+  const clearAssistSession = () => {
+    setCompositionState(null);
+    setConfirmationGateChecked(false);
+  };
 
   const resetForm = () => {
     setEditingId(null);
     setDraftLines([emptySelectedMedication()]);
     setNotes("");
     setSafetyDecisionState(emptyDecisionState());
+    clearAssistSession();
+  };
+
+  const handleDiagnosisChange = (value: string) => {
+    setDiagnosis(value);
+    if (compositionState) {
+      setCompositionState(
+        composerEditClinical(compositionState, { diagnosis: value }),
+      );
+      setConfirmationGateChecked(false);
+    }
+  };
+
+  const handleNotesChange = (value: string) => {
+    setNotes(value);
+    if (compositionState) {
+      setCompositionState(
+        composerEditClinical(compositionState, { notes: value }),
+      );
+      setConfirmationGateChecked(false);
+    }
+  };
+
+  const handleLinesChange = (lines: SelectedMedication[]) => {
+    setDraftLines(lines);
+    if (compositionState) {
+      setCompositionState(
+        composerEditClinical(compositionState, {
+          medications: assistMedicationsFromSelectedMedications(lines),
+        }),
+      );
+      setConfirmationGateChecked(false);
+    }
+  };
+
+  const handleHydrateProtocol = async () => {
+    const protocolId = protocolIdInput.trim();
+    if (!protocolId) {
+      setError("Indique el ID del protocolo publicado");
+      return;
+    }
+    setHydrating(true);
+    setError(null);
+    try {
+      const draft = await fetchCurrentProtocolAssistPrefill(protocolId);
+      await hydrateFromDraft(draft);
+    } catch (e) {
+      setError(
+        e instanceof IntakeGateError
+          ? e.message
+          : getApiErrorMessage(e, "No se pudo cargar asistencia del protocolo"),
+      );
+    } finally {
+      setHydrating(false);
+    }
   };
 
   const handleSave = async () => {
-    const meds = medicationItemsFromSelectedMedications(draftLines);
-    if (meds.length === 0) return;
     setCreating(true);
     setError(null);
     const safetyDecision = buildSafetyDecisionPayload(safetyDecisionState);
     try {
+      if (assistActive && compositionState) {
+        if (!confirmationGateChecked) {
+          setError("Confirmation Gate: confirme antes de emitir");
+          return;
+        }
+        const meds = assistMedicationsFromSelectedMedications(draftLines);
+        if (meds.length === 0) return;
+
+        // Form handlers keep Composition State in sync; final structural sync only.
+        const emitState: CompositionState = {
+          ...compositionState,
+          patientId,
+          consultationId: consultationId ?? null,
+          diagnosis: diagnosis || null,
+          notes: notes || null,
+          medications: meds,
+          lifecycle:
+            compositionState.lifecycle === "HYDRATED" ||
+            compositionState.lifecycle === "EDITED"
+              ? compositionState.lifecycle
+              : "EDITED",
+        };
+
+        await confirmAndEmit(emitState, {
+          physicianConfirmation: true,
+          safetyDecision,
+        });
+        onPrescriptionCreated?.();
+        resetForm();
+        await reload();
+        return;
+      }
+
+      const meds = medicationItemsFromSelectedMedications(draftLines);
+      if (meds.length === 0) return;
+
       if (editingId) {
         await updatePrescription(editingId, {
           diagnosis: diagnosis || undefined,
@@ -142,6 +326,7 @@ export function PrescriptionPanel({
   };
 
   const startEdit = (p: PrescriptionRecord) => {
+    clearAssistSession();
     setEditingId(p.id);
     setDraftLines(selectedMedicationsFromMedicationItems(p.medications));
     setDiagnosis(p.diagnosis ?? "");
@@ -171,6 +356,21 @@ export function PrescriptionPanel({
       setPdfLoadingId(null);
     }
   };
+
+  const assistBanner =
+    compositionState?.assistanceSession != null
+      ? {
+          sourceAssetType: compositionState.assistanceSession.sourceAssetType,
+          sourceAssetId: compositionState.assistanceSession.sourceAssetId,
+          sourceRevisionId: compositionState.assistanceSession.sourceRevisionId,
+          cie10Hints:
+            compositionState.assistanceSession.assistanceContext.cie10Hints,
+          omittedMedicationLines:
+            compositionState.assistanceSession.assistanceContext
+              .omittedMedicationLines.length,
+          physicianEdited: compositionState.physicianEdited,
+        }
+      : null;
 
   return (
     <section
@@ -258,21 +458,73 @@ export function PrescriptionPanel({
             </div>
           )}
 
+          {!editingId ? (
+            <div
+              className="mb-3 space-y-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2"
+              data-testid="composer-assist-intake"
+            >
+              <p className="text-xs font-medium text-slate-700">
+                Asistencia de protocolo (opt-in)
+              </p>
+              <div className="flex flex-wrap items-end gap-2">
+                <label className="min-w-[12rem] flex-1 text-xs text-slate-600">
+                  ID protocolo publicado
+                  <input
+                    type="text"
+                    value={protocolIdInput}
+                    onChange={(e) => setProtocolIdInput(e.target.value)}
+                    placeholder="UUID del protocolo"
+                    className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    data-testid="assist-protocol-id-input"
+                    disabled={hydrating}
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={() => void handleHydrateProtocol()}
+                  disabled={hydrating || !protocolIdInput.trim()}
+                  className="rounded bg-indigo-600 px-3 py-1.5 text-sm text-white hover:bg-indigo-700 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                  data-testid="assist-hydrate-button"
+                >
+                  {hydrating ? "Hidratando…" : "Usar en composición"}
+                </button>
+                {assistActive ? (
+                  <button
+                    type="button"
+                    onClick={clearAssistSession}
+                    className="rounded border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
+                    data-testid="assist-discard-button"
+                  >
+                    Descartar asistencia
+                  </button>
+                ) : null}
+              </div>
+              <p className="text-[11px] text-slate-500">
+                Contrato de entrada: ClinicalAssistPrefillDraft. No evalúa
+                reglas ni emite automáticamente.
+              </p>
+            </div>
+          ) : null}
+
           <PrescriptionComposer
             lines={draftLines}
-            onChange={setDraftLines}
+            onChange={handleLinesChange}
             patientId={patientId}
             consultationId={consultationId}
             diagnosis={diagnosis}
-            onDiagnosisChange={setDiagnosis}
+            onDiagnosisChange={handleDiagnosisChange}
             notes={notes}
-            onNotesChange={setNotes}
+            onNotesChange={handleNotesChange}
             error={error}
-            saving={creating}
+            saving={creating || hydrating}
             editing={Boolean(editingId)}
             onSave={() => void handleSave()}
             onCancelEdit={editingId ? resetForm : undefined}
             onSafetyDecisionStateChange={handleSafetyDecisionStateChange}
+            assistSession={assistBanner}
+            assistEmitMode={assistActive && !editingId}
+            confirmationGateChecked={confirmationGateChecked}
+            onConfirmationGateChange={setConfirmationGateChecked}
           />
         </>
       )}

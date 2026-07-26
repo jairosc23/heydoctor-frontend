@@ -38,6 +38,15 @@ export async function fetchProtocolAssistPrefill(
   );
 }
 
+/** M1 GET shorthand — current published version. */
+export async function fetchCurrentProtocolAssistPrefill(
+  protocolId: string,
+): Promise<ClinicalAssistPrefillDraft> {
+  return heydoctorApi.get<ClinicalAssistPrefillDraft>(
+    `/clinical-protocols/${protocolId}/assist-prefill`,
+  );
+}
+
 /** T7 — HTTP 200 + { ok, persisted } */
 export async function postAssistConfirmed(
   protocolId: string,

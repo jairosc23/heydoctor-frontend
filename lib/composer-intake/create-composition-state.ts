@@ -52,6 +52,18 @@ export function buildIntakeSession(
   };
 }
 
+/**
+ * Hydrate: ClinicalAssistPrefillDraft → IntakeSession → Composition State.
+ * Sole Composer entry for assist drafts (Ownership Principle).
+ */
+export function hydrateFromAssistDraft(
+  draft: ClinicalAssistPrefillDraft,
+  ctx: IntakeContext,
+): CompositionState {
+  const intake = buildIntakeSession(draft);
+  return createCompositionStateFromIntake(intake, ctx);
+}
+
 export function createCompositionStateFromIntake(
   intake: IntakeSession,
   ctx: IntakeContext,

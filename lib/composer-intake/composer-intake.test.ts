@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   buildAssistConfirmedBody,
+  confirmAndEmit,
   toCreatePrescriptionDto,
 } from "./confirm-and-emit";
 import {
@@ -11,6 +12,7 @@ import {
   composerMarkEmitted,
   createCompositionStateFromIntake,
   emptyCompositionState,
+  hydrateFromAssistDraft,
 } from "./create-composition-state";
 import { IntakeGateError, assertIntakeDraft } from "./intake-gate";
 import { toClinicalAssistPrefillDraftFromTk } from "./tk-adapter";
@@ -148,5 +150,70 @@ describe("PR-8 M2 Composer Intake", () => {
     assert.ok(body);
     assert.equal(body!.contentHash, "hash-1");
     assert.equal(body!.physicianEdited, false);
+  });
+
+  it("hydrateFromAssistDraft is Composer-owned entry for ClinicalAssistPrefillDraft", () => {
+    const state = hydrateFromAssistDraft(protocolDraft(), {
+      actorDoctorId: "d1",
+      clinicId: "c1",
+      patientId: "p1",
+    });
+    assert.equal(state.lifecycle, "HYDRATED");
+    assert.equal(state.assistanceSession?.sourceAssetType, "clinical_protocol");
+  });
+
+  it("confirmAndEmit is sole orchestrator: prescriptions then assist-confirmed", async () => {
+    const state = hydrateFromAssistDraft(protocolDraft(), {
+      actorDoctorId: "d1",
+      clinicId: "c1",
+      patientId: "p1",
+    });
+    const calls: string[] = [];
+    const result = await confirmAndEmit(
+      state,
+      { physicianConfirmation: true },
+      {
+        createPrescription: async (dto) => {
+          calls.push("create");
+          assert.equal(dto.patientId, "p1");
+          assert.equal(
+            "assistanceProvenance" in dto || "safetyDecision" in dto,
+            false,
+          );
+          return {
+            id: "55555555-5555-4555-8555-555555555555",
+            patientId: "p1",
+            medications: dto.medications,
+          };
+        },
+        postAssistConfirmed: async (_p, _v, body) => {
+          calls.push("assist-confirmed");
+          assert.equal(body.contentHash, "hash-1");
+          assert.equal(body.physicianEdited, false);
+          return { ok: true, persisted: true };
+        },
+      },
+    );
+    assert.deepEqual(calls, ["create", "assist-confirmed"]);
+    assert.equal(result.state.lifecycle, "EMITTED");
+    assert.equal(result.assistConfirmed?.persisted, true);
+  });
+
+  it("confirmAndEmit rejects emission without Confirmation Gate", async () => {
+    const state = hydrateFromAssistDraft(protocolDraft(), {
+      actorDoctorId: "d1",
+      clinicId: "c1",
+      patientId: "p1",
+    });
+    await assert.rejects(
+      () =>
+        confirmAndEmit(
+          state,
+          { physicianConfirmation: false } as unknown as {
+            physicianConfirmation: true;
+          },
+        ),
+      /confirmation_gate_required/,
+    );
   });
 });
