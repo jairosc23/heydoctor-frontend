@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { emitContinuityHintEvent } from "@/lib/continuity-platform/hint-events-client";
 import type { PassiveContinuityHint } from "@/lib/continuity-platform/types";
 import { ContinuityHintCta } from "./ContinuityHintCta";
 
@@ -11,6 +12,8 @@ export function ContinuityHintsSection({
   ctaDisabled,
   onUseHint,
   handoffMessage,
+  patientId,
+  encounterId,
 }: {
   hints: PassiveContinuityHint[];
   loading?: boolean;
@@ -18,6 +21,8 @@ export function ContinuityHintsSection({
   ctaDisabled?: boolean;
   onUseHint?: (hint: PassiveContinuityHint) => void;
   handoffMessage?: string | null;
+  patientId?: string;
+  encounterId?: string | null;
 }) {
   const sorted = [...hints].sort((a, b) => a.priorityRank - b.priorityRank);
 
@@ -48,6 +53,8 @@ export function ContinuityHintsSection({
               handoffBusy={handoffBusy}
               ctaDisabled={ctaDisabled}
               onUseHint={onUseHint}
+              patientId={patientId}
+              encounterId={encounterId}
             />
           ))}
         </ul>
@@ -61,11 +68,15 @@ function HintRow({
   handoffBusy,
   ctaDisabled,
   onUseHint,
+  patientId,
+  encounterId,
 }: {
   hint: PassiveContinuityHint;
   handoffBusy?: boolean;
   ctaDisabled?: boolean;
   onUseHint?: (hint: PassiveContinuityHint) => void;
+  patientId?: string;
+  encounterId?: string | null;
 }) {
   const [expanded, setExpanded] = useState(false);
   return (
@@ -73,7 +84,21 @@ function HintRow({
       <button
         type="button"
         className="flex w-full items-start justify-between gap-2 text-left"
-        onClick={() => setExpanded((v) => !v)}
+        onClick={() => {
+          setExpanded((v) => {
+            const next = !v;
+            if (next && patientId) {
+              emitContinuityHintEvent({
+                eventType: "hint_expanded",
+                patientId,
+                encounterId: encounterId ?? null,
+                hintId: hint.hintId,
+                sourceKind: hint.sourceKind,
+              });
+            }
+            return next;
+          });
+        }}
         aria-expanded={expanded}
       >
         <span>

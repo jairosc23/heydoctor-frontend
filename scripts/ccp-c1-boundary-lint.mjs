@@ -73,11 +73,13 @@ for (const file of walk(DIR)) {
       }
     }
   } else {
-    if (
-      /from\s+["']@\/lib\/composer-intake["']/.test(src) ||
-      /from\s+["']@\/lib\/continuity-platform["']/.test(src)
-    ) {
-      console.error(`FORBIDDEN barrel import in ${path.relative(ROOT, file)}`);
+    // C2/C3 handoff files: deep imports only (apply-continuity / hint-events-client / adapter)
+    if (/from\s+["']@\/lib\/composer-intake["']/.test(src)) {
+      console.error(`FORBIDDEN composer-intake barrel in ${path.relative(ROOT, file)}`);
+      failed = true;
+    }
+    if (/from\s+["']@\/lib\/continuity-platform["']/.test(src)) {
+      console.error(`FORBIDDEN continuity barrel in ${path.relative(ROOT, file)}`);
       failed = true;
     }
   }

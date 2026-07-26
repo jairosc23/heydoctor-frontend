@@ -307,6 +307,8 @@ export function ContinuityPanelShell({
             }
             onUseHint={handleUseHint}
             handoffMessage={handoffMessage}
+            patientId={patientId}
+            encounterId={encounterId}
           />
         </>
       ) : null}

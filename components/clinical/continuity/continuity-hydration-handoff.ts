@@ -14,10 +14,8 @@ import {
   type ContinuityHydrationActor,
   type ContinuityHydrationDraft,
 } from "@/lib/continuity-platform/adapter";
-import {
-  assertContinuityHydrationDraft,
-  ContinuityHydrationError,
-} from "@/lib/continuity-platform/assert-hydration-draft";
+import { assertContinuityHydrationDraft } from "@/lib/continuity-platform/assert-hydration-draft";
+import { emitContinuityHintEvent } from "@/lib/continuity-platform/hint-events-client";
 import { resolveContinuityHydrationGate } from "@/lib/continuity-platform/hydration-policy";
 import type {
   ContinuityContext,
@@ -71,17 +69,54 @@ export async function runContinuityHydrationHandoff(
     const { hint, context, actor, encounterId } = input;
 
     if (!context?.patientId || !hint?.hintId) {
-      return fail(handoffId, "context_missing");
+      const result = fail(handoffId, "context_missing");
+      emitContinuityHintEvent({
+        eventType: "handoff_failed",
+        patientId: actor.patientId,
+        encounterId: encounterId ?? null,
+        hintId: hint?.hintId ?? null,
+        handoffId,
+        resultCode: "context_missing",
+      });
+      return result;
     }
     if (context.patientId !== actor.patientId) {
-      return fail(handoffId, "patient_mismatch");
+      const result = fail(handoffId, "patient_mismatch");
+      emitContinuityHintEvent({
+        eventType: "handoff_failed",
+        patientId: actor.patientId,
+        encounterId: encounterId ?? null,
+        hintId: hint.hintId,
+        handoffId,
+        resultCode: "patient_mismatch",
+      });
+      return result;
     }
+
+    emitContinuityHintEvent({
+      eventType: "handoff_requested",
+      patientId: actor.patientId,
+      encounterId: encounterId ?? context.encounterId ?? null,
+      hintId: hint.hintId,
+      sourceKind: hint.sourceKind,
+      handoffId,
+    });
 
     let draft: ContinuityHydrationDraft;
     try {
       draft = toClinicalAssistPrefillDraftFromContinuityHint(hint, actor);
     } catch {
-      return fail(handoffId, "invalid_hint");
+      const result = fail(handoffId, "invalid_hint");
+      emitContinuityHintEvent({
+        eventType: "handoff_failed",
+        patientId: actor.patientId,
+        encounterId: encounterId ?? context.encounterId ?? null,
+        hintId: hint.hintId,
+        sourceKind: hint.sourceKind,
+        handoffId,
+        resultCode: "invalid_hint",
+      });
+      return result;
     }
     ephemeralDraft = draft;
 
@@ -90,11 +125,18 @@ export async function runContinuityHydrationHandoff(
       try {
         draft = assertContinuityHydrationDraft(draft, hint);
         ephemeralDraft = draft;
-      } catch (err) {
-        if (err instanceof ContinuityHydrationError) {
-          return fail(handoffId, "assert_denied");
-        }
-        return fail(handoffId, "assert_denied");
+      } catch {
+        const result = fail(handoffId, "assert_denied");
+        emitContinuityHintEvent({
+          eventType: "handoff_failed",
+          patientId: actor.patientId,
+          encounterId: encounterId ?? context.encounterId ?? null,
+          hintId: hint.hintId,
+          sourceKind: hint.sourceKind,
+          handoffId,
+          resultCode: "assert_denied",
+        });
+        return result;
       }
     }
 
@@ -112,16 +154,41 @@ export async function runContinuityHydrationHandoff(
       hydrationGate: gate,
     });
 
-    if (!result.ok) {
-      ephemeralDraft = null;
+    ephemeralDraft = null;
+    if (result.ok) {
+      emitContinuityHintEvent({
+        eventType: "handoff_succeeded",
+        patientId: actor.patientId,
+        encounterId: encounterId ?? context.encounterId ?? null,
+        hintId: hint.hintId,
+        sourceKind: hint.sourceKind,
+        handoffId: result.handoffId,
+        resultCode: "ok",
+      });
     } else {
-      // Ownership transferred — Panel must not retain draft
-      ephemeralDraft = null;
+      emitContinuityHintEvent({
+        eventType: "handoff_failed",
+        patientId: actor.patientId,
+        encounterId: encounterId ?? context.encounterId ?? null,
+        hintId: hint.hintId,
+        sourceKind: hint.sourceKind,
+        handoffId: result.handoffId,
+        resultCode: result.code,
+      });
     }
     return result;
   } catch {
     ephemeralDraft = null;
-    return fail(handoffId, "handoff_rejected");
+    const result = fail(handoffId, "handoff_rejected");
+    emitContinuityHintEvent({
+      eventType: "handoff_failed",
+      patientId: input.actor.patientId,
+      encounterId: input.encounterId ?? null,
+      hintId: input.hint?.hintId ?? null,
+      handoffId,
+      resultCode: "handoff_rejected",
+    });
+    return result;
   } finally {
     ephemeralDraft = null;
     handoffInFlight = false;
