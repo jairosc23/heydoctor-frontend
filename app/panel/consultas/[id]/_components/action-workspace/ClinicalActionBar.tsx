@@ -1,6 +1,10 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import {
+  ContinuityEntry,
+  ContinuityPanelShell,
+} from "@/components/clinical/continuity";
 import {
   CLINICAL_ACTION_MODULES,
   type ClinicalActionModuleId,
@@ -24,43 +28,57 @@ export function ClinicalActionBar({
 }: ClinicalActionBarProps) {
   const { enabled, activeModule, sheetOpen, openModule } =
     useClinicalActionWorkspace();
+  const [continuityOpen, setContinuityOpen] = useState(false);
 
   if (!enabled) return null;
 
   return (
-    <nav
-      aria-label="Clinical Action Bar"
-      data-testid="clinical-action-bar"
-      className={cn(
-        "border-t border-hd-border-subtle bg-hd-surface-chrome/95 px-0 py-hd-2",
-        className,
-      )}
-    >
-      <div className="flex flex-wrap items-center gap-1.5">
-        {CLINICAL_ACTION_MODULES.map((module) => {
-          const isActive = sheetOpen && activeModule === module.id;
-          return (
-            <ActionBarChip
-              key={module.id}
-              moduleId={module.id}
-              icon={module.icon}
-              label={module.label}
-              active={isActive}
-              onSelect={openModule}
-              suffix={
-                module.id === "orders" && patientId && consultationId ? (
-                  <OrdersCompactSummary
-                    patientId={patientId}
-                    consultationId={consultationId}
-                    refreshKey={ordersRefreshKey}
-                  />
-                ) : null
-              }
+    <div className={cn("space-y-0", className)}>
+      <nav
+        aria-label="Clinical Action Bar"
+        data-testid="clinical-action-bar"
+        className="border-t border-hd-border-subtle bg-hd-surface-chrome/95 px-0 py-hd-2"
+      >
+        <div className="flex flex-wrap items-center gap-1.5">
+          {CLINICAL_ACTION_MODULES.map((module) => {
+            const isActive = sheetOpen && activeModule === module.id;
+            return (
+              <ActionBarChip
+                key={module.id}
+                moduleId={module.id}
+                icon={module.icon}
+                label={module.label}
+                active={isActive}
+                onSelect={openModule}
+                suffix={
+                  module.id === "orders" && patientId && consultationId ? (
+                    <OrdersCompactSummary
+                      patientId={patientId}
+                      consultationId={consultationId}
+                      refreshKey={ordersRefreshKey}
+                    />
+                  ) : null
+                }
+              />
+            );
+          })}
+          {patientId ? (
+            <ContinuityEntry
+              open={continuityOpen}
+              onOpenChange={setContinuityOpen}
             />
-          );
-        })}
-      </div>
-    </nav>
+          ) : null}
+        </div>
+      </nav>
+      {patientId ? (
+        <ContinuityPanelShell
+          patientId={patientId}
+          encounterId={consultationId ?? null}
+          open={continuityOpen}
+          onOpenChange={setContinuityOpen}
+        />
+      ) : null}
+    </div>
   );
 }
 
