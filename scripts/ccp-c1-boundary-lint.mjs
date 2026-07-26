@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 /**
- * I5 — Continuity Panel C1 import boundary lint (no ESLint dependency).
- * Fails if Composer / Draft / write-path / C0 hydration imports appear.
+ * Continuity Panel C1/C2 import boundary lint.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -11,27 +10,36 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
 const DIR = path.join(ROOT, "components/clinical/continuity");
 
-const FORBIDDEN = [
-  "@/lib/composer-intake",
-  "lib/composer-intake",
-  "ClinicalAssistPrefillDraft",
+const C2_HANDOFF = new Set([
+  "continuity-hydration-handoff.ts",
+  "ContinuityHintCta.tsx",
+  "ContinuityPanelShell.tsx",
+  "ContinuityHintsSection.tsx",
+]);
+
+const ALWAYS = [
   "confirmAndEmit",
-  "hydrateFromAssistDraft",
   "createPrescription",
   "@/lib/services/prescriptions",
   "lib/services/prescriptions",
   "renewPrescription",
+  "POST /prescriptions",
+  "hydrateFromAssistDraft",
   "continuity-platform/index",
+];
+
+const C1_EXTRA = [
+  "@/lib/composer-intake",
+  "lib/composer-intake",
+  "ClinicalAssistPrefillDraft",
   "continuity-platform/adapter",
   "continuity-platform/assert-hydration-draft",
   "continuity-platform/hydration-policy",
   "toClinicalAssistPrefillDraft",
   "assertContinuityHydrationDraft",
   "resolveContinuityHydrationGate",
-  // Barrel import (quote immediately after package root)
-  "@/lib/continuity-platform\"",
-  "@/lib/continuity-platform'",
-  "@/lib/continuity-platform`",
+  "applyContinuityHydrationDraft",
+  "runContinuityHydrationHandoff",
 ];
 
 function walk(dir) {
@@ -47,20 +55,34 @@ function walk(dir) {
 
 let failed = false;
 for (const file of walk(DIR)) {
+  const base = path.basename(file);
+  if (base === "continuity-panel-boundary.ts") continue;
   const src = fs.readFileSync(file, "utf8");
-  // Boundary definition file lists forbidden tokens — skip content checks there
-  if (file.endsWith("continuity-panel-boundary.ts")) continue;
-  for (const pattern of FORBIDDEN) {
+  const isC2 = C2_HANDOFF.has(base);
+  for (const pattern of ALWAYS) {
     if (src.includes(pattern)) {
       console.error(`FORBIDDEN "${pattern}" in ${path.relative(ROOT, file)}`);
       failed = true;
     }
   }
-  // Must not import continuity-platform barrel via bare path ending
-  const barrelRe =
-    /from\s+["']@\/lib\/continuity-platform["']|require\(["']@\/lib\/continuity-platform["']\)/;
-  if (barrelRe.test(src)) {
-    console.error(`FORBIDDEN barrel import in ${path.relative(ROOT, file)}`);
+  if (!isC2) {
+    for (const pattern of C1_EXTRA) {
+      if (src.includes(pattern)) {
+        console.error(`FORBIDDEN C1 "${pattern}" in ${path.relative(ROOT, file)}`);
+        failed = true;
+      }
+    }
+  } else {
+    if (
+      /from\s+["']@\/lib\/composer-intake["']/.test(src) ||
+      /from\s+["']@\/lib\/continuity-platform["']/.test(src)
+    ) {
+      console.error(`FORBIDDEN barrel import in ${path.relative(ROOT, file)}`);
+      failed = true;
+    }
+  }
+  if (/from\s+["']@\/lib\/continuity-platform["']/.test(src)) {
+    console.error(`FORBIDDEN continuity barrel in ${path.relative(ROOT, file)}`);
     failed = true;
   }
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   fetchPrescriptionsByPatient,
   createPrescription,
@@ -36,11 +36,15 @@ import {
   fetchCurrentProtocolAssistPrefill,
   hydrateFromAssistDraft,
   IntakeGateError,
+  isComposerBusyForContinuityHandoff,
   projectCompositionStateToForm,
   protocolDraftAsCanonical,
+  registerContinuityHydrationApplier,
   validateAssistIntakeEcho,
   type ClinicalAssistPrefillDraft,
   type CompositionState,
+  type ContinuityHandoffRequest,
+  type ContinuityHandoffResult,
 } from "@/lib/composer-intake";
 import { PrescriptionComposer } from "./PrescriptionComposer";
 import { OrdersEmptyState } from "./orders/OrdersEmptyState";
@@ -103,6 +107,9 @@ export function PrescriptionPanel({
     setDraftLines(projected.lines);
   }, []);
 
+  const compositionStateRef = useRef(compositionState);
+  compositionStateRef.current = compositionState;
+
   const hydrateFromDraft = useCallback(
     async (rawDraft: ClinicalAssistPrefillDraft) => {
       if (!user?.id || !user.clinicId) {
@@ -133,6 +140,69 @@ export function PrescriptionPanel({
     },
     [user, patientId, consultationId, applyCompositionToForm],
   );
+
+  /**
+   * PR-11 C2 — sole Continuity → Composer entry (applyContinuityHydrationDraft).
+   * Busy block-only; validate-echo only for clinical_protocol gate; no emit.
+   */
+  useEffect(() => {
+    const applier = async (
+      req: ContinuityHandoffRequest,
+    ): Promise<ContinuityHandoffResult> => {
+      const lifecycle = compositionStateRef.current?.lifecycle ?? null;
+      if (isComposerBusyForContinuityHandoff(lifecycle)) {
+        return { ok: false, handoffId: req.handoffId, code: "composer_busy" };
+      }
+      if (req.patientId !== patientId) {
+        return { ok: false, handoffId: req.handoffId, code: "patient_mismatch" };
+      }
+      if (!user?.id || !user.clinicId) {
+        return { ok: false, handoffId: req.handoffId, code: "handoff_rejected" };
+      }
+
+      try {
+        // TDR4 — copy draft fields into CompositionState; do not mutate req.draft
+        let draftForHydrate: ClinicalAssistPrefillDraft = {
+          ...req.draft,
+          medications: req.draft.medications.map((m) => ({ ...m })),
+        };
+
+        if (req.hydrationGate === "validate-echo") {
+          const canonical =
+            draftForHydrate.sourceAssetType === "clinical_protocol"
+              ? protocolDraftAsCanonical(draftForHydrate)
+              : draftForHydrate;
+          const echoed = await validateAssistIntakeEcho(canonical);
+          draftForHydrate = echoed.draft;
+        }
+
+        const state = hydrateFromAssistDraft(draftForHydrate, {
+          actorDoctorId: user.id,
+          clinicId: user.clinicId,
+          patientId,
+          consultationId: consultationId ?? req.encounterId ?? null,
+        });
+
+        setCompositionState(state);
+        applyCompositionToForm(state);
+        setConfirmationGateChecked(false);
+        setEditingId(null);
+        setSafetyDecisionState(emptyDecisionState());
+        setError(null);
+
+        return {
+          ok: true,
+          handoffId: req.handoffId,
+          composerLifecycle: "HYDRATED",
+        };
+      } catch {
+        return { ok: false, handoffId: req.handoffId, code: "handoff_rejected" };
+      }
+    };
+
+    registerContinuityHydrationApplier(applier);
+    return () => registerContinuityHydrationApplier(null);
+  }, [user, patientId, consultationId, applyCompositionToForm]);
 
   const reload = async () => {
     const list = await fetchPrescriptionsByPatient(patientId);

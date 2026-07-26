@@ -5,3 +5,4 @@ export * from "./tk-adapter";
 export * from "./confirm-and-emit";
 export * from "./ui-bridge";
 export * from "./api";
+export * from "./apply-continuity-hydration";

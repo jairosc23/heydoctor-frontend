@@ -1,6 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useReducer, useRef } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { useAuth } from "@/lib/context/AuthContext";
+import type { PassiveContinuityHint } from "@/lib/continuity-platform/types";
 import {
   destroyContinuityCacheForPatient,
   putContinuityCache,
@@ -11,6 +13,10 @@ import {
   shouldDiscardFetchResult,
   type ContinuityFetchJob,
 } from "./continuity-panel-fetch";
+import {
+  isContinuityHandoffInFlight,
+  runContinuityHydrationHandoff,
+} from "./continuity-hydration-handoff";
 import {
   bannersFromContext,
   ContinuityBanner,
@@ -36,6 +42,7 @@ export function ContinuityPanelShell({
   open,
   onOpenChange,
 }: ContinuityPanelProps) {
+  const { user } = useAuth();
   const [model, dispatch] = useReducer(
     reduceContinuityPanel,
     createInitialContinuityPanelModel(patientId, encounterId),
@@ -46,6 +53,8 @@ export function ContinuityPanelShell({
   const prevOpenRef = useRef(open);
   const prevPatientRef = useRef(patientId);
   const prevEncounterRef = useRef(encounterId);
+  const [handoffBusy, setHandoffBusy] = useState(false);
+  const [handoffMessage, setHandoffMessage] = useState<string | null>(null);
 
   const abortInFlight = useCallback(() => {
     inFlightRef.current?.abort();
@@ -192,6 +201,45 @@ export function ContinuityPanelShell({
     dispatch({ type: "RETRY" });
   };
 
+  const handleUseHint = useCallback(
+    async (hint: PassiveContinuityHint) => {
+      if (handoffBusy || isContinuityHandoffInFlight()) return;
+      if (!model.context) {
+        setHandoffMessage("Contexto de continuidad no disponible.");
+        return;
+      }
+      if (!user?.id || !user.clinicId) {
+        setHandoffMessage("Sesión de médico requerida para usar en Composer.");
+        return;
+      }
+
+      setHandoffBusy(true);
+      setHandoffMessage(null);
+      try {
+        const result = await runContinuityHydrationHandoff({
+          hint,
+          context: model.context,
+          encounterId,
+          actor: {
+            actorDoctorId: user.id,
+            clinicId: user.clinicId,
+            patientId,
+          },
+        });
+        if (result.ok) {
+          setHandoffMessage(
+            "Borrador cargado en Composer. Revise y confirme antes de emitir.",
+          );
+        } else {
+          setHandoffMessage(handoffErrorMessage(result.code));
+        }
+      } finally {
+        setHandoffBusy(false);
+      }
+    },
+    [handoffBusy, model.context, user, patientId, encounterId],
+  );
+
   if (!isContinuityPanelVisible(model.uiState)) {
     return null;
   }
@@ -253,6 +301,12 @@ export function ContinuityPanelShell({
           <ContinuityHintsSection
             hints={model.context?.hints ?? []}
             loading={loading && !model.context}
+            handoffBusy={handoffBusy}
+            ctaDisabled={
+              model.uiState !== "Loaded" && model.uiState !== "Empty"
+            }
+            onUseHint={handleUseHint}
+            handoffMessage={handoffMessage}
           />
         </>
       ) : null}
@@ -285,5 +339,25 @@ function errorMessage(code: string | undefined): string {
       return "Error de red al cargar Continuity. Puede reintentar.";
     default:
       return "No se pudo cargar Continuity. Puede reintentar.";
+  }
+}
+
+function handoffErrorMessage(code: string): string {
+  switch (code) {
+    case "composer_busy":
+      return "Composer tiene un borrador activo. Finalice o limpie antes de hidratar.";
+    case "assert_denied":
+      return "El hint no cumple la política de hidratación Continuity.";
+    case "invalid_hint":
+      return "Hint de continuidad inválido para Composer.";
+    case "context_missing":
+      return "Falta contexto de continuidad para el handoff.";
+    case "patient_mismatch":
+      return "El paciente del Panel no coincide con la sesión.";
+    case "in_flight":
+      return "Ya hay un handoff en curso.";
+    case "handoff_rejected":
+    default:
+      return "No se pudo aplicar el hint en Composer. Abra Prescripciones e intente de nuevo.";
   }
 }
