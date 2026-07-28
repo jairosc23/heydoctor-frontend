@@ -10,13 +10,12 @@ import {
 } from "react";
 import { getApiErrorMessage } from "@/lib/heydoctor-api";
 import {
-  approveMedicalCopilotAction,
   getMedicalCopilotActions,
   getMedicalCopilotMemory,
   getMedicalCopilotTimeline,
   getMedicalCopilotWorkspace,
-  rejectMedicalCopilotAction,
 } from "@/lib/medical-copilot/api";
+import { submitCopilotDisposition } from "@/lib/copilot-disposition/api";
 import { bootstrapMedicalCopilotSession } from "@/lib/medical-copilot/bootstrap-session";
 import {
   selectActionError,
@@ -149,43 +148,54 @@ export function MedicalCopilotProvider({ children }: { children: ReactNode }) {
   const approveAction = useCallback(async (actionId: string) => {
     dispatch({ type: "ACTION_BUSY", payload: { actionId } });
     try {
-      const result = await approveMedicalCopilotAction(actionId);
-      if (!envelopeIsOk(result) || !result.data.action) {
-        throw new Error(result.reason || "No se pudo aprobar la acción");
-      }
-      dispatch({
-        type: "ACTION_UPDATED",
-        payload: { action: result.data.action },
+      // W1.1 C4 — canonical Dispose channel (never HAB Confirm).
+      await submitCopilotDisposition({
+        kind: "dispose_accept",
+        proposalRef: actionId,
       });
+      const action = state.session
+        ? selectActions(state).find((a) => a.actionId === actionId)
+        : undefined;
+      if (action) {
+        dispatch({
+          type: "ACTION_UPDATED",
+          payload: {
+            action: { ...action, status: "approved" as typeof action.status },
+          },
+        });
+      }
     } catch (err) {
       dispatch({
         type: "ACTION_FAILURE",
         payload: { error: getApiErrorMessage(err) },
       });
     }
-  }, []);
+  }, [state]);
 
   const rejectAction = useCallback(async (actionId: string, reason?: string) => {
     dispatch({ type: "ACTION_BUSY", payload: { actionId } });
     try {
-      const result = await rejectMedicalCopilotAction(
-        actionId,
-        reason ?? "Rechazado desde Medical Copilot Workspace",
-      );
-      if (!envelopeIsOk(result) || !result.data.action) {
-        throw new Error(result.reason || "No se pudo rechazar la acción");
-      }
-      dispatch({
-        type: "ACTION_UPDATED",
-        payload: { action: result.data.action },
+      await submitCopilotDisposition({
+        kind: "dispose_reject",
+        proposalRef: actionId,
+        note: reason,
       });
+      const action = selectActions(state).find((a) => a.actionId === actionId);
+      if (action) {
+        dispatch({
+          type: "ACTION_UPDATED",
+          payload: {
+            action: { ...action, status: "rejected" as typeof action.status },
+          },
+        });
+      }
     } catch (err) {
       dispatch({
         type: "ACTION_FAILURE",
         payload: { error: getApiErrorMessage(err) },
       });
     }
-  }, []);
+  }, [state]);
 
   const clearActionError = useCallback(() => {
     dispatch({ type: "CLEAR_ACTION_ERROR" });

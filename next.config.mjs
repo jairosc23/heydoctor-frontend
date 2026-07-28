@@ -9,6 +9,9 @@ const nextConfig = {
   turbopack: {
     root: __dirname,
   },
+  experimental: {
+    optimizePackageImports: ["lucide-react"],
+  },
   async headers() {
     const list = [
       { key: "X-DNS-Prefetch-Control", value: "on" },

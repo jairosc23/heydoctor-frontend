@@ -200,9 +200,16 @@ export async function updateConsultation(
 
 export async function signConsultation(
   id: string,
-  signature: string
+  signature: string,
+  options: { habDecisionId: string },
 ): Promise<NestConsultation> {
-  return heydoctorApi.post<NestConsultation>(`${BASE}/${id}/sign`, { signature });
+  if (!options?.habDecisionId?.trim()) {
+    throw new Error("hab_confirm_required_before_sign");
+  }
+  return heydoctorApi.post<NestConsultation>(`${BASE}/${id}/sign`, {
+    signature,
+    habDecisionId: options.habDecisionId,
+  });
 }
 
 export async function startCall(

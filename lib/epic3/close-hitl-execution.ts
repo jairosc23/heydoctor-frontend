@@ -229,9 +229,14 @@ export async function runCloseHitlH3Persist(input: {
   expectedVersion: string;
   existingNotes?: string | null;
   priorAudit: CloseHitlAuditTrail;
+  /** W1.1 C2 — HAB Confirm required; H2 dispose is insufficient. */
+  habDecisionId: string;
 }): Promise<{ audit: CloseHitlAuditTrail; writeExecuted: boolean }> {
   if (input.priorAudit.h2Status !== "approved") {
     throw new Error("h2_required_before_h3");
+  }
+  if (!input.habDecisionId?.trim()) {
+    throw new Error("hab_confirm_required_before_h3");
   }
   const gate = validatePreviewForPersistence(input.preview);
   if (!gate.ok) {
@@ -253,6 +258,7 @@ export async function runCloseHitlH3Persist(input: {
     input.preview.sessionId,
     {
       draftApproved: true,
+      habDecisionId: input.habDecisionId,
       expectedVersion: input.expectedVersion,
       patch,
     },
@@ -283,11 +289,18 @@ export async function runCloseHitlH4Sign(input: {
   consultationId: string;
   signatureBase64: string;
   priorAudit: CloseHitlAuditTrail;
+  /** W1.1 C2/C5 — HAB Confirm required before legal sign. */
+  habDecisionId: string;
 }): Promise<{ audit: CloseHitlAuditTrail }> {
   if (input.priorAudit.h3Status !== "executed" || !input.priorAudit.writeExecuted) {
     throw new Error("h3_required_before_h4");
   }
-  await signConsultation(input.consultationId, input.signatureBase64);
+  if (!input.habDecisionId?.trim()) {
+    throw new Error("hab_confirm_required_before_h4");
+  }
+  await signConsultation(input.consultationId, input.signatureBase64, {
+    habDecisionId: input.habDecisionId,
+  });
   return {
     audit: {
       ...input.priorAudit,

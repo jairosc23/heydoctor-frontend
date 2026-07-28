@@ -9,6 +9,7 @@ import {
   startCall,
   type NestConsultation,
 } from "@/lib/services/consultations";
+import { submitHabDecision } from "@/lib/hab-authority/api";
 import {
   buildSoapDraftKey,
   buildSoapPatch,
@@ -600,7 +601,16 @@ export default function ConsultationDetailPage() {
         await flushNow();
       }
       const prev = consultation.status ?? prevStatusRef.current;
-      const updated = await signConsultation(id, base64);
+      // W1.1 C2/C5 — HAB Confirm then sign (no HAB bypass).
+      const hab = await submitHabDecision({
+        consultationId: id,
+        kind: "confirm",
+        actKind: "documentation_finalize",
+        rationale: "Physician confirms consultation legal sign",
+      });
+      const updated = await signConsultation(id, base64, {
+        habDecisionId: hab.decisionId,
+      });
       const st = updated.status ?? "";
       if (st !== "signed" && st !== "locked") {
         throw new Error(

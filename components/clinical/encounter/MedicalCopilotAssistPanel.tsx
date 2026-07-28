@@ -50,12 +50,13 @@ export function MedicalCopilotAssistPanel({
           Medical Copilot Assist
         </h3>
         <span className="text-[11px] uppercase tracking-wide text-hd-text-muted">
-          HITL · sin emisión
+          Dispose · no Confirm · no emisión
         </span>
       </div>
       <p className="mb-3 text-xs text-hd-text-muted">
-        Asistencia para revisión humana. No prescribe ni persiste recetas. Use
-        Composer / Confirmation Gate para emitir.
+        Asistencia provisional. Dispose acepta/rechaza sugerencias — no es HAB.
+        Actos irreversibles: Confirmation Mount (HAB). Emisión de Rx: PE tras HAB
+        (no desde Copilot).
       </p>
 
       {ui === "loading" ? (

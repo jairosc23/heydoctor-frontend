@@ -24,6 +24,8 @@ export function useCloseHitlExecution(input: {
   preview: PersistencePreviewPayload;
   expectedVersion: string | null | undefined;
   existingNotes: string | null | undefined;
+  /** W1.1 C2 — HAB Confirm id required for H3/H4. */
+  habDecisionId?: string | null;
   /** Prefer page handleSign (flush + tracking). Falls back to API sign. */
   signConsultationFn?: (signatureBase64: string) => Promise<void>;
   onPersisted?: () => void;
@@ -90,11 +92,15 @@ export function useCloseHitlExecution(input: {
       if (!input.expectedVersion) {
         throw new Error("missing_expected_version");
       }
+      if (!input.habDecisionId?.trim()) {
+        throw new Error("hab_confirm_required_before_h3");
+      }
       const { audit: next, writeExecuted } = await runCloseHitlH3Persist({
         preview: input.preview,
         expectedVersion: input.expectedVersion,
         existingNotes: input.existingNotes,
         priorAudit: audit,
+        habDecisionId: input.habDecisionId,
       });
       persistAudit(next);
       if (writeExecuted) {
@@ -140,10 +146,14 @@ export function useCloseHitlExecution(input: {
           };
           persistAudit(next);
         } else {
+          if (!input.habDecisionId?.trim()) {
+            throw new Error("hab_confirm_required_before_h4");
+          }
           const { audit: next } = await runCloseHitlH4Sign({
             consultationId: consultationId!,
             signatureBase64,
             priorAudit: audit,
+            habDecisionId: input.habDecisionId,
           });
           persistAudit(next);
         }

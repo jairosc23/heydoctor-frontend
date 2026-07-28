@@ -1,9 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { ClinicalContextBanner } from "@/components/clinical/context/ClinicalContextBanner";
+import { ConfirmationMount } from "@/components/clinical/hab/ConfirmationMount";
+import { JourneyNavigator } from "@/components/clinical/journey/JourneyNavigator";
+import { useBoundClinicalContext } from "@/hooks/useBoundClinicalContext";
 import { useAuth } from "@/lib/context/AuthContext";
 import {
   EncounterRuntime,
+  isCosW1JourneyEnabled,
+  isCosW1WorkspaceHostEnabled,
   isGceCopilotAssistEnabled,
   isGceEncounterRuntimeEnabled,
   type EncounterRuntimeSession,
@@ -23,7 +29,14 @@ export function EncounterRuntimeHost({
   const { user } = useAuth();
   const runtimeEnabled = isGceEncounterRuntimeEnabled();
   const copilotEnabled = isGceCopilotAssistEnabled();
+  const w1HostEnabled = isCosW1WorkspaceHostEnabled();
+  const w1JourneyEnabled = isCosW1JourneyEnabled();
   const resolvedClinicId = clinicId ?? user?.clinicId ?? null;
+
+  const context = useBoundClinicalContext(consultationId, {
+    enabled: w1HostEnabled && runtimeEnabled,
+    autoBind: w1HostEnabled,
+  });
 
   const runtime = useMemo(() => new EncounterRuntime(), []);
   const [session, setSession] = useState<EncounterRuntimeSession | null>(null);
@@ -36,6 +49,9 @@ export function EncounterRuntimeHost({
   const assistOpen =
     session?.activePluginIds.includes(MEDICAL_COPILOT_ASSIST_MANIFEST.id) ??
     false;
+
+  const contextBlocksAssist =
+    w1HostEnabled && context.status !== "bound" && context.status !== "loading";
 
   useEffect(() => {
     if (
@@ -91,6 +107,10 @@ export function EncounterRuntimeHost({
 
   const toggleAssist = async () => {
     if (!session || !copilotEnabled) return;
+    if (contextBlocksAssist) {
+      setInitError("CONTEXT_UNBOUND");
+      return;
+    }
     try {
       if (assistOpen) {
         await runtime.deactivatePlugin(MEDICAL_COPILOT_ASSIST_MANIFEST.id);
@@ -107,6 +127,13 @@ export function EncounterRuntimeHost({
 
   return (
     <div data-testid="gce-encounter-runtime-host" className="space-y-0">
+      {w1HostEnabled ? (
+        <ClinicalContextBanner
+          status={context.status}
+          error={context.error}
+          onRetryBind={() => void context.bind()}
+        />
+      ) : null}
       <div className="flex flex-wrap items-center gap-2 border-t border-hd-border-subtle bg-hd-surface-chrome/90 px-0 py-hd-2">
         <span className="px-1 text-[11px] font-medium uppercase tracking-wide text-hd-text-muted">
           Encounter Runtime
@@ -118,10 +145,13 @@ export function EncounterRuntimeHost({
           <button
             type="button"
             data-testid="gce-copilot-assist-toggle"
-            className="rounded-md border border-hd-border px-2.5 py-1 text-xs font-medium text-hd-text"
+            className="rounded-md border border-hd-border px-2.5 py-1 text-xs font-medium text-hd-text disabled:opacity-50"
             onClick={() => void toggleAssist()}
             disabled={
-              !session || session.state === "failed" || session.state === "closed"
+              !session ||
+              session.state === "failed" ||
+              session.state === "closed" ||
+              contextBlocksAssist
             }
           >
             {assistOpen ? "Ocultar Copilot Assist" : "Copilot Assist"}
@@ -133,10 +163,25 @@ export function EncounterRuntimeHost({
           </span>
         ) : null}
       </div>
-      {session && assistOpen ? (
+      {session && assistOpen && !contextBlocksAssist ? (
         <EncounterPluginSlot
           actor={session.actor}
           activePluginIds={session.activePluginIds}
+        />
+      ) : null}
+      {w1HostEnabled ? (
+        <ConfirmationMount
+          consultationId={consultationId}
+          enabled={w1HostEnabled}
+          contextBound={context.status === "bound"}
+        />
+      ) : null}
+      {w1JourneyEnabled || w1HostEnabled ? (
+        <JourneyNavigator
+          consultationId={consultationId}
+          patientId={patientId}
+          enabled={w1JourneyEnabled || w1HostEnabled}
+          contextBound={context.status === "bound"}
         />
       ) : null}
     </div>

@@ -1,8 +1,15 @@
 import { expect, type Page } from "@playwright/test";
-import { getEnv, isE2EAuthReady } from "./env";
+import { baseURL, getEnv, isE2EAuthReady } from "./env";
 
 const LOGIN_PATH = "/login";
 const PANEL_HOME = "/panel/consultas";
+
+function absoluteUrl(path: string): string {
+  if (/^https?:\/\//i.test(path)) return path;
+  const origin = baseURL().replace(/\/+$/, "");
+  const p = path.startsWith("/") ? path : `/${path}`;
+  return `${origin}${p}`;
+}
 
 /**
  * Deterministic doctor login for P0 / F2-01.
@@ -20,7 +27,7 @@ export async function loginAsDoctor(page: Page): Promise<void> {
 
   await page.context().clearCookies();
 
-  await page.goto(LOGIN_PATH, { waitUntil: "domcontentloaded" });
+  await page.goto(absoluteUrl(LOGIN_PATH), { waitUntil: "domcontentloaded" });
   await expect(page).toHaveURL(/\/login/);
 
   const emailField = page.getByLabel(/correo|email/i);
@@ -77,8 +84,14 @@ export async function expectProtectedRouteRequiresLogin(
   path: string,
 ): Promise<void> {
   await page.context().clearCookies();
-  await page.goto(path, { waitUntil: "domcontentloaded" });
+  testSkipWithoutBase(path);
+  await page.goto(absoluteUrl(path), { waitUntil: "domcontentloaded" });
   await expect(page).toHaveURL(/\/login/, { timeout: 45_000 });
+}
+
+function testSkipWithoutBase(path: string): void {
+  // When E2E_BASE_URL is unset, relative navigation is invalid — soft-skip at caller.
+  void path;
 }
 
 /**

@@ -1,14 +1,5 @@
-import {
-  createPrescription,
-  type CreatePrescriptionDto,
-  type PrescriptionRecord,
-} from "@/lib/services/prescriptions";
+import type { CreatePrescriptionDto } from "@/lib/services/prescriptions";
 import type { SafetyDecisionPayload } from "@/lib/prescription-safety";
-import { postAssistConfirmed } from "./api";
-import {
-  composerMarkConfirmed,
-  composerMarkEmitted,
-} from "./create-composition-state";
 import type { CompositionState, ProtocolAssistanceProvenance } from "./types";
 
 /**
@@ -72,76 +63,23 @@ export function buildAssistConfirmedBody(
 }
 
 export type ConfirmAndEmitOptions = {
-  /**
-   * Confirmation Gate — must be true. Emission without physician confirmation is forbidden.
-   */
   physicianConfirmation: true;
-  /** Safety Decision is separate from assist provenance (PR-4). */
   safetyDecision?: SafetyDecisionPayload;
 };
 
-export type ConfirmAndEmitResult = {
-  prescription: PrescriptionRecord;
-  state: CompositionState;
-  assistConfirmed: { ok: true; persisted: boolean } | null;
-};
+export type ConfirmAndEmitResult = never;
 
-/** Optional injectors for unit tests — production uses real API clients. */
-export type ConfirmAndEmitDeps = {
-  createPrescription?: typeof createPrescription;
-  postAssistConfirmed?: typeof postAssistConfirmed;
-};
+export type ConfirmAndEmitDeps = Record<string, never>;
 
 /**
- * Sole orchestrator for assisted Composer emit:
- * CONFIRMED → POST /prescriptions → EMITTED → assist-confirmed (best-effort).
+ * W1.1 C6 — fused Confirm+Emit removed. Callers must use HAB then PE.
  */
 export async function confirmAndEmit(
-  state: CompositionState,
-  options: ConfirmAndEmitOptions,
-  deps: ConfirmAndEmitDeps = {},
-): Promise<ConfirmAndEmitResult> {
-  if (options.physicianConfirmation !== true) {
-    throw new Error("confirmation_gate_required");
-  }
-  if (!state.assistanceSession) {
-    throw new Error("assist_session_required");
-  }
-  if (state.lifecycle !== "HYDRATED" && state.lifecycle !== "EDITED") {
-    throw new Error("Confirmation Gate requires HYDRATED or EDITED");
-  }
-  if (state.medications.length === 0) {
-    throw new Error("medications_required");
-  }
-
-  const createRx = deps.createPrescription ?? createPrescription;
-  const postConfirmed = deps.postAssistConfirmed ?? postAssistConfirmed;
-
-  const confirmed = composerMarkConfirmed(state);
-  const dto = toCreatePrescriptionDto(confirmed);
-  if (options.safetyDecision) {
-    dto.safetyDecision = options.safetyDecision;
-  }
-
-  const prescription = await createRx(dto);
-  const emitted = composerMarkEmitted(confirmed);
-
-  let assistConfirmed: { ok: true; persisted: boolean } | null = null;
-  const body = buildAssistConfirmedBody(emitted, prescription.id);
-  if (body) {
-    const prov = emitted.assistanceSession!
-      .assistanceProvenance as ProtocolAssistanceProvenance;
-    try {
-      assistConfirmed = await postConfirmed(
-        prov.protocolId,
-        prov.protocolVersionId,
-        body,
-      );
-    } catch {
-      // Best-effort: never roll back clinical emit
-      assistConfirmed = { ok: true, persisted: false };
-    }
-  }
-
-  return { prescription, state: emitted, assistConfirmed };
+  _state: CompositionState,
+  _options: ConfirmAndEmitOptions,
+  _deps?: ConfirmAndEmitDeps,
+): Promise<never> {
+  throw new Error(
+    "LEGACY_CONFIRM_AND_EMIT_REMOVED: Confirm and Emit are split. Use HAB Confirm then PE Emit. Copilot must use /copilot-disposition/dispose.",
+  );
 }
