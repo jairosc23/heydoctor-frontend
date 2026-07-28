@@ -24,8 +24,9 @@ export function ClinicalActionsPanel({
     <ClinicalPanel depth={2} className="min-h-[12rem]" focusPrimary>
       <ClinicalSection title="Clinical Actions">
         <p className="mb-3 text-sm text-slate-500">
-          Cola de elegibilidad. Aprobar/rechazar solo cambia estado — nunca
-          ejecuta recetas, certificados ni interconsultas.
+          Cola de disposición Copilot (Dispose). Aceptar/rechazar solo cambia
+          estado de sugerencia — nunca HAB Confirm ni emite recetas,
+          certificados ni interconsultas.
         </p>
         {actions.length === 0 ? (
           <MedicalCopilotEmptyState
@@ -74,7 +75,7 @@ export function ClinicalActionsPanel({
                         disabled={busy}
                         onClick={() => onApprove(action.actionId)}
                       >
-                        Aprobar revisión
+                        Aceptar disposición
                       </Button>
                       <Button
                         variant="secondary"
@@ -82,7 +83,7 @@ export function ClinicalActionsPanel({
                         disabled={busy}
                         onClick={() => onReject(action.actionId)}
                       >
-                        Rechazar
+                        Desechar
                       </Button>
                     </div>
                   ) : null}

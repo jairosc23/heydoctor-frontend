@@ -88,7 +88,7 @@ export function CopilotCloseExecution({
           className="clinical-interactive rounded-hd-md border border-emerald-300 bg-white px-2 py-1 text-[11px] font-medium text-emerald-900 disabled:opacity-40"
           data-testid="close-hitl-h2"
         >
-          {audit?.h2Status === "approved" ? "H2 aprobado" : "H2 Aprobar paquete"}
+          {audit?.h2Status === "approved" ? "H2 dispuesto" : "H2 Disponer paquete (≠ HAB)"}
         </button>
         <button
           type="button"
@@ -96,6 +96,7 @@ export function CopilotCloseExecution({
           onClick={onExecuteH3}
           className="clinical-interactive rounded-hd-md border border-violet-300 bg-white px-2 py-1 text-[11px] font-medium text-violet-900 disabled:opacity-40"
           data-testid="close-hitl-h3"
+          title="Persistencia clínica requiere gobernanza HAB — no es Dispose de Copilot"
         >
           {audit?.h3Status === "executed"
             ? "H3 ejecutado"

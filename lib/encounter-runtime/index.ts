@@ -15,6 +15,8 @@ export {
 export { ClinicalPluginRegistry } from "./plugin-registry";
 export { EncounterRuntime } from "./encounter-runtime";
 export {
+  isCosW1JourneyEnabled,
+  isCosW1WorkspaceHostEnabled,
   isGceCopilotAssistEnabled,
   isGceEncounterRuntimeEnabled,
 } from "./flags";

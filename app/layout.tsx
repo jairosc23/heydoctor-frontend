@@ -9,6 +9,7 @@ import { Providers } from "@/components/Providers";
 import { getBrandMarkSrc } from "@/lib/brand-mark.server";
 import { absoluteUrl, siteName } from "@/lib/seo";
 import "./globals.css";
+import "../styles/hcx/tokens.css";
 
 const SITE_DESCRIPTION = "Consulta médica online inmediata";
 

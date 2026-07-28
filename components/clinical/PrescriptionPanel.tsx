@@ -32,7 +32,6 @@ import { useAuth } from "@/lib/context/AuthContext";
 import {
   assistMedicationsFromSelectedMedications,
   composerEditClinical,
-  confirmAndEmit,
   fetchCurrentProtocolAssistPrefill,
   hydrateFromAssistDraft,
   IntakeGateError,
@@ -337,31 +336,10 @@ export function PrescriptionPanel({
           setError("Confirmation Gate: confirme antes de emitir");
           return;
         }
-        const meds = assistMedicationsFromSelectedMedications(draftLines);
-        if (meds.length === 0) return;
-
-        // Form handlers keep Composition State in sync; final structural sync only.
-        const emitState: CompositionState = {
-          ...compositionState,
-          patientId,
-          consultationId: consultationId ?? null,
-          diagnosis: diagnosis || null,
-          notes: notes || null,
-          medications: meds,
-          lifecycle:
-            compositionState.lifecycle === "HYDRATED" ||
-            compositionState.lifecycle === "EDITED"
-              ? compositionState.lifecycle
-              : "EDITED",
-        };
-
-        await confirmAndEmit(emitState, {
-          physicianConfirmation: true,
-          safetyDecision,
-        });
-        onPrescriptionCreated?.();
-        resetForm();
-        await reload();
+        // W1.1 C6 — confirmAndEmit removed; require HAB then PE (E11).
+        setError(
+          "Confirmación y emisión están separadas. Use Confirmación de autoridad (HAB); la emisión queda para el motor de prescripción (E11).",
+        );
         return;
       }
 

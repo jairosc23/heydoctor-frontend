@@ -63,6 +63,8 @@ const PROTECTED_PATHS = [
   "/teleconsulta",
   "/doctors",
   "/verify",
+  /** P1 hardening: Wave-3 / HCX harnesses require session (not public). */
+  "/dev",
 ];
 
 function isProtected(pathname: string): boolean {
@@ -140,12 +142,10 @@ function buildRequestHeaders(
 /**
  * Cookie de primer partido: el cliente POST `/api/auth/session` con Bearer tras login en el Nest.
  * Las cookies HttpOnly del API (`access_token` en pro-api.heydoctor.health) no llegan al Edge de Vercel.
+ *
+ * P2-A1: enterprise middleware always runs — no runtime escape hatch.
  */
 export function middleware(request: NextRequest) {
-  if (process.env.DISABLE_ENTERPRISE_MIDDLEWARE === "1") {
-    return NextResponse.next();
-  }
-
   const nonce = createNonce();
   const csp = buildCspForRequest(request, nonce);
   const requestHeaders = buildRequestHeaders(request, nonce, csp);

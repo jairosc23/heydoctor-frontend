@@ -162,58 +162,15 @@ describe("PR-8 M2 Composer Intake", () => {
     assert.equal(state.assistanceSession?.sourceAssetType, "clinical_protocol");
   });
 
-  it("confirmAndEmit is sole orchestrator: prescriptions then assist-confirmed", async () => {
-    const state = hydrateFromAssistDraft(protocolDraft(), {
-      actorDoctorId: "d1",
-      clinicId: "c1",
-      patientId: "p1",
-    });
-    const calls: string[] = [];
-    const result = await confirmAndEmit(
-      state,
-      { physicianConfirmation: true },
-      {
-        createPrescription: async (dto) => {
-          calls.push("create");
-          assert.equal(dto.patientId, "p1");
-          assert.equal(
-            "assistanceProvenance" in dto || "safetyDecision" in dto,
-            false,
-          );
-          return {
-            id: "55555555-5555-4555-8555-555555555555",
-            patientId: "p1",
-            medications: dto.medications,
-          };
-        },
-        postAssistConfirmed: async (_p, _v, body) => {
-          calls.push("assist-confirmed");
-          assert.equal(body.contentHash, "hash-1");
-          assert.equal(body.physicianEdited, false);
-          return { ok: true, persisted: true };
-        },
-      },
-    );
-    assert.deepEqual(calls, ["create", "assist-confirmed"]);
-    assert.equal(result.state.lifecycle, "EMITTED");
-    assert.equal(result.assistConfirmed?.persisted, true);
-  });
-
-  it("confirmAndEmit rejects emission without Confirmation Gate", async () => {
+  it("confirmAndEmit is removed (W1.1 C6)", async () => {
     const state = hydrateFromAssistDraft(protocolDraft(), {
       actorDoctorId: "d1",
       clinicId: "c1",
       patientId: "p1",
     });
     await assert.rejects(
-      () =>
-        confirmAndEmit(
-          state,
-          { physicianConfirmation: false } as unknown as {
-            physicianConfirmation: true;
-          },
-        ),
-      /confirmation_gate_required/,
+      () => confirmAndEmit(state, { physicianConfirmation: true }),
+      /LEGACY_CONFIRM_AND_EMIT_REMOVED/,
     );
   });
 });
