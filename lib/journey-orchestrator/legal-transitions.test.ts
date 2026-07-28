@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { isClientHardDeniedJourneyTransition } from "./legal-transitions.ts";
+import { isClientHardDeniedJourneyTransition } from "./legal-transitions";
 
 describe("journey legal-transitions (client mirror)", () => {
   it("denies Assisting → AwaitingConfirmation", () => {

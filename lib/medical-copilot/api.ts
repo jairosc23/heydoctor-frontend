@@ -2361,6 +2361,8 @@ export async function postMedicalCopilotGovernedSoapPersistenceExecution(
   sessionId: string,
   body: {
     draftApproved: true;
+    /** W1.1 — HAB Confirm id required for irreversible SOAP persist. */
+    habDecisionId: string;
     expectedVersion: string;
     patch: {
       reason?: string;
