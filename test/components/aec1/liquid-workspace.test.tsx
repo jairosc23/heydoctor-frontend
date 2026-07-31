@@ -1,8 +1,19 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LiquidClinicalWorkspaceShell } from "@/components/aec1/liquid/LiquidClinicalWorkspaceShell";
-import { renderWithProviders, screen } from "@/test/utils/render";
+import * as w5Api from "@/lib/aec1/w5-clinical-steward-api";
+import { renderWithProviders, screen, waitFor } from "@/test/utils/render";
 
 describe("AEC-1 M4 Liquid Clinical Workspace shell", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    vi.spyOn(w5Api, "w5ClinicalListInsights").mockResolvedValue({
+      insights: [],
+      code: "W5_FLAG_OR_AUTHORITY_DENIED",
+      authorityClass: "NON_AUTHORITY",
+      disclaimer: w5Api.W5_CLINICAL_DISCLAIMER,
+    });
+  });
+
   it("passthrough when soak OFF preserves ConsultationWorkspace children", () => {
     renderWithProviders(
       <LiquidClinicalWorkspaceShell
@@ -21,7 +32,7 @@ describe("AEC-1 M4 Liquid Clinical Workspace shell", () => {
     expect(screen.queryByTestId("aec1-liquid-clinical-workspace")).toBeNull();
   });
 
-  it("wraps work surface with HCX container when soak ON", () => {
+  it("wraps work surface with HCX container when soak ON", async () => {
     renderWithProviders(
       <LiquidClinicalWorkspaceShell
         consultationId="c1"
@@ -50,9 +61,36 @@ describe("AEC-1 M4 Liquid Clinical Workspace shell", () => {
       "NON_AUTHORITY",
     );
     expect(screen.getByTestId("aec1-liquid-interrupt-lane")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId("aec1-w5-advisory-cards")).toBeInTheDocument();
+    });
+    expect(screen.getByTestId("consultation-workspace-child")).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /Confirm|Emit|Emitir/i }),
     ).toBeNull();
+  });
+
+  it("M5: workspace survives W5 fail-closed and keeps single shell", async () => {
+    renderWithProviders(
+      <LiquidClinicalWorkspaceShell
+        consultationId="c1"
+        encounterStatus="in_progress"
+        enabled
+      >
+        <div data-testid="consultation-workspace-child">workspace</div>
+      </LiquidClinicalWorkspaceShell>,
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("aec1-w5-state-forbidden")).toBeInTheDocument();
+    });
+    expect(screen.getByTestId("consultation-workspace-child")).toBeInTheDocument();
+    expect(screen.getByTestId("aec1-liquid-clinical-workspace")).toHaveAttribute(
+      "data-shell",
+      "ConsultationWorkspace",
+    );
+    expect(screen.getAllByTestId("aec1-liquid-clinical-workspace")).toHaveLength(
+      1,
+    );
   });
 
   it("does not nest a second main landmark under PanelLayout main", () => {
