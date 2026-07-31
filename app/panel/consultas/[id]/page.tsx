@@ -959,6 +959,12 @@ export default function ConsultationDetailPage() {
       ref={workspaceRef}
       className="clinical-workspace mx-auto max-w-5xl space-y-hd-2 p-hd-3 md:p-hd-4 lg:p-hd-5 xl:max-w-none 2xl:mx-auto 2xl:max-w-[1600px]"
     >
+      {/*
+        AEC-1 M4: EncounterChromeShell stays OUTSIDE LiquidClinicalWorkspaceShell
+        intentionally. Chrome is route-level encounter identity (sticky header /
+        actions); Liquid WRAP/ADAPTs ConsultationWorkspace composition only.
+        Full chrome-in-Liquid is deferred (not an M4 composition defect).
+      */}
       <EncounterChromeShell
         workspaceRef={workspaceRef}
         className="clinical-encounter-chrome clinical-depth-1 sticky top-0 z-30 -mx-3 border-b border-hd-border-subtle bg-hd-surface-chrome/95 shadow-hd-2 backdrop-blur md:-mx-4 lg:-mx-5"

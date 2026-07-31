@@ -81,7 +81,14 @@ export function LiquidClinicalWorkspaceShell({
             : "false"
         }
       >
-        <HcxWorkspaceContainer label="Área de trabajo clínico">
+        {/*
+          PanelLayout already owns the page <main>. Liquid reuses HCX container
+          as composition surface only — never a nested primary landmark.
+        */}
+        <HcxWorkspaceContainer
+          label="Área de trabajo clínico"
+          asMainLandmark={false}
+        >
           {regions.interrupt.visible ? (
             <div
               data-testid="aec1-liquid-interrupt-lane"

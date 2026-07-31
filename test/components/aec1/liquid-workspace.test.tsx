@@ -38,6 +38,10 @@ describe("AEC-1 M4 Liquid Clinical Workspace shell", () => {
     expect(root).toHaveAttribute("data-assist-never-authority", "true");
     expect(root).toHaveAttribute("data-encounter-phase", "active");
     expect(screen.getByTestId("hcx-workspace-container")).toBeInTheDocument();
+    expect(screen.getByTestId("hcx-workspace-container")).toHaveAttribute(
+      "data-hcx-landmark",
+      "composition",
+    );
     expect(screen.getByTestId("aec1-liquid-work-surface")).toHaveTextContent(
       "workspace",
     );
@@ -49,6 +53,27 @@ describe("AEC-1 M4 Liquid Clinical Workspace shell", () => {
     expect(
       screen.queryByRole("button", { name: /Confirm|Emit|Emitir/i }),
     ).toBeNull();
+  });
+
+  it("does not nest a second main landmark under PanelLayout main", () => {
+    renderWithProviders(
+      <main data-testid="panel-layout-main" aria-label="Contenido del panel">
+        <LiquidClinicalWorkspaceShell
+          consultationId="c1"
+          encounterStatus="in_progress"
+          enabled
+        >
+          <div data-testid="consultation-workspace-child">workspace</div>
+        </LiquidClinicalWorkspaceShell>
+      </main>,
+    );
+    expect(screen.getAllByRole("main")).toHaveLength(1);
+    expect(screen.getByTestId("panel-layout-main")).toBeInTheDocument();
+    expect(screen.getByTestId("hcx-workspace-container").tagName).toBe("DIV");
+    expect(screen.getByTestId("hcx-workspace-container")).not.toHaveAttribute(
+      "role",
+      "main",
+    );
   });
 
   it("fail-closed hides assist plane when degraded", () => {
@@ -110,4 +135,50 @@ describe("AEC-1 M4 Liquid Clinical Workspace shell", () => {
       screen.getByRole("complementary", { name: /asistencia clínica/i }),
     ).toBeInTheDocument();
   });
+
+  it.each([
+    ["desktop", 1280],
+    ["tablet", 768],
+    ["mobile", 390],
+  ] as const)(
+    "responsive soak %s keeps work→assist hierarchy and single main",
+    (_label, width) => {
+      Object.defineProperty(window, "innerWidth", {
+        configurable: true,
+        value: width,
+      });
+      renderWithProviders(
+        <main aria-label="Contenido del panel">
+          <div
+            data-testid="encounter-chrome-shell"
+            style={{ position: "sticky", top: 0 }}
+          >
+            chrome
+          </div>
+          <LiquidClinicalWorkspaceShell
+            consultationId="c1"
+            encounterStatus="in_progress"
+            enabled
+          >
+            <div data-testid="consultation-workspace-child">
+              clinical work content
+            </div>
+          </LiquidClinicalWorkspaceShell>
+        </main>,
+      );
+      expect(screen.getAllByRole("main")).toHaveLength(1);
+      const work = screen.getByTestId("aec1-liquid-work-surface");
+      const assist = screen.getByTestId("aec1-liquid-assist-plane");
+      expect(work).toHaveTextContent("clinical work content");
+      expect(assist).toHaveAttribute("data-authority", "NON_AUTHORITY");
+      expect(
+        work.compareDocumentPosition(assist) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      expect(screen.getByTestId("encounter-chrome-shell")).toBeInTheDocument();
+      expect(
+        screen.queryByTestId("aec1-liquid-passthrough"),
+      ).not.toBeInTheDocument();
+    },
+  );
 });
