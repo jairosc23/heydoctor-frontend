@@ -87,6 +87,7 @@ import {
 import type { OrdersSubTab } from "./_components/OrdersTab";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
+import { LiquidClinicalWorkspaceShell } from "@/components/aec1/liquid/LiquidClinicalWorkspaceShell";
 import { isClinicalActionWorkspaceEnabled } from "@/lib/clinical-action-workspace";
 import { isSmartClinicalWorkspaceEnabled } from "@/lib/smart-clinical-workspace";
 import {
@@ -1184,7 +1185,14 @@ export default function ConsultationDetailPage() {
             />
           </div>
 
-          <ConsultationWorkspace
+          <LiquidClinicalWorkspaceShell
+            consultationId={id}
+            encounterStatus={status}
+            isSigned={isSigned}
+            isLocked={isLocked}
+            role="doctor"
+          >
+            <ConsultationWorkspace
         actionWorkspaceEnabled={clinicalActionWorkspaceEnabled}
         smartWorkspaceEnabled={smartClinicalWorkspaceEnabled}
         consultation={consultation}
@@ -1315,10 +1323,18 @@ export default function ConsultationDetailPage() {
         diagnosisCode={
           diagnosisState.diagnosisCode || diagnosisState.diagnosis || undefined
         }
-          />
+            />
+          </LiquidClinicalWorkspaceShell>
         </ConsultationClinicalProviders>
       ) : (
-        <ConsultationWorkspace
+        <LiquidClinicalWorkspaceShell
+          consultationId={id}
+          encounterStatus={status}
+          isSigned={isSigned}
+          isLocked={isLocked}
+          role="doctor"
+        >
+          <ConsultationWorkspace
           actionWorkspaceEnabled={clinicalActionWorkspaceEnabled}
         smartWorkspaceEnabled={smartClinicalWorkspaceEnabled}
           consultation={consultation}
@@ -1370,7 +1386,8 @@ export default function ConsultationDetailPage() {
           diagnosisCode={
             diagnosisState.diagnosisCode || diagnosisState.diagnosis || undefined
           }
-        />
+          />
+        </LiquidClinicalWorkspaceShell>
       )}
 
       {isLocked ? (
