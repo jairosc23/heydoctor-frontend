@@ -25,6 +25,9 @@ export type LiquidClinicalWorkspaceShellProps = {
   role?: LiquidClinicianRole;
   /** Override soak (tests). Default: HCX workspace shell flag. */
   enabled?: boolean;
+  /** Opens existing ClinicalCopilotDrawer (M6.2 CopilotPresence). */
+  onOpenCopilot?: () => void;
+  copilotOpen?: boolean;
 };
 
 /**
@@ -41,6 +44,8 @@ export function LiquidClinicalWorkspaceShell({
   degraded,
   role = "doctor",
   enabled,
+  onOpenCopilot,
+  copilotOpen,
 }: LiquidClinicalWorkspaceShellProps) {
   const on = enabled ?? isAec1LiquidSpineEnabled();
   const phase = resolveLiquidEncounterPhase({
@@ -111,11 +116,15 @@ export function LiquidClinicalWorkspaceShell({
             <LiquidAssistPlane
               phase={phase}
               consultationId={consultationId}
+              onOpenCopilot={onOpenCopilot}
+              copilotOpen={copilotOpen}
             />
           ) : (
             <LiquidAssistPlane
               phase="degraded"
               consultationId={consultationId}
+              onOpenCopilot={onOpenCopilot}
+              copilotOpen={copilotOpen}
             />
           )}
 

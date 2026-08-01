@@ -4,7 +4,7 @@ import { LiquidAssistPlane } from "@/components/aec1/liquid/LiquidAssistPlane";
 import * as w5Api from "@/lib/aec1/w5-clinical-steward-api";
 import { renderWithProviders, screen, waitFor } from "@/test/utils/render";
 
-describe("AEC-1 M6.1 Assist Orchestrator composition", () => {
+describe("AEC-1 Assist Orchestrator composition", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     vi.spyOn(w5Api, "w5ClinicalListInsights").mockResolvedValue({
@@ -14,12 +14,13 @@ describe("AEC-1 M6.1 Assist Orchestrator composition", () => {
     });
   });
 
-  it("registers DETERMINISTIC + MODEL and mounts W5 without MODEL cards", async () => {
+  it("registers DETERMINISTIC + MODEL and mounts W5 + CopilotPresence", async () => {
     renderWithProviders(
       <AssistOrchestrator
         phase="active"
         consultationId="c1"
         disclosure="expanded"
+        onOpenCopilot={() => undefined}
       />,
     );
 
@@ -27,16 +28,17 @@ describe("AEC-1 M6.1 Assist Orchestrator composition", () => {
     expect(root).toHaveAttribute("data-ssot", "AssistOrchestrator");
     expect(root).toHaveAttribute("data-registered", "DETERMINISTIC,MODEL");
     expect(root).toHaveAttribute("data-authority-outside", "true");
-    expect(root).toHaveAttribute("data-external-interface-only", "true");
-    expect(root).toHaveAttribute("data-assist-never-authority", "true");
+    expect(root).toHaveAttribute("data-max-one-model", "true");
 
     expect(screen.getByTestId("aec1-assist-slot-deterministic")).toHaveAttribute(
       "data-source",
       "DETERMINISTIC",
     );
-    const model = screen.getByTestId("aec1-assist-slot-model");
-    expect(model).toHaveAttribute("data-enabled", "false");
-    expect(model).toHaveAttribute("hidden");
+    expect(screen.getByTestId("aec1-assist-slot-model")).toHaveAttribute(
+      "data-enabled",
+      "true",
+    );
+    expect(screen.getByTestId("aec1-copilot-presence")).toBeInTheDocument();
 
     await waitFor(() => {
       expect(screen.getByTestId("aec1-w5-advisory-cards")).toBeInTheDocument();
