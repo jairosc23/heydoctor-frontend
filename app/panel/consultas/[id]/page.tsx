@@ -1197,6 +1197,11 @@ export default function ConsultationDetailPage() {
             isSigned={isSigned}
             isLocked={isLocked}
             role="doctor"
+            copilotOpen={copilotDrawerOpen}
+            onOpenCopilot={() => {
+              setDnaDrawerOpen(false);
+              setCopilotDrawerOpen(true);
+            }}
           >
             <ConsultationWorkspace
         actionWorkspaceEnabled={clinicalActionWorkspaceEnabled}
@@ -1339,6 +1344,11 @@ export default function ConsultationDetailPage() {
           isSigned={isSigned}
           isLocked={isLocked}
           role="doctor"
+          copilotOpen={copilotDrawerOpen}
+          onOpenCopilot={() => {
+            setDnaDrawerOpen(false);
+            setCopilotDrawerOpen(true);
+          }}
         >
           <ConsultationWorkspace
           actionWorkspaceEnabled={clinicalActionWorkspaceEnabled}

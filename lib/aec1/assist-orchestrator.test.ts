@@ -2,10 +2,13 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   ASSIST_ORCHESTRATOR_ASSERTIONS,
+  COPILOT_PRESENCE_CARD_ID,
   applyAssistFatigue,
   compareAssistCards,
   createAssistProviderRegistry,
+  createCopilotPresenceCard,
   createDefaultAssistProviders,
+  enforceSingleModelPresence,
   planAssistOrchestration,
   resolveAssistConflicts,
   resolveAssistDisclosure,
@@ -30,7 +33,7 @@ function card(
   };
 }
 
-describe("AEC-1 M6.1 Assist Orchestrator", () => {
+describe("AEC-1 M6 Assist Orchestrator", () => {
   it("registers MODEL + DETERMINISTIC and refuses EXTERNAL at runtime", () => {
     const providers: AssistProvider[] = [
       ...createDefaultAssistProviders(),
@@ -45,6 +48,30 @@ describe("AEC-1 M6.1 Assist Orchestrator", () => {
     assert.equal(reg.has("DETERMINISTIC"), true);
     assert.equal(reg.has("MODEL"), true);
     assert.equal(reg.has("EXTERNAL"), false);
+  });
+
+  it("MODEL default provider contributes exactly one CopilotPresence card", () => {
+    const model = createDefaultAssistProviders().find(
+      (p) => p.sourceClass === "MODEL",
+    );
+    const cards = model?.contribute({ phase: "active" }) ?? [];
+    assert.equal(cards.length, 1);
+    assert.equal(cards[0]?.id, COPILOT_PRESENCE_CARD_ID);
+    assert.equal(cards[0]?.kind, "model_presence");
+    assert.equal(createCopilotPresenceCard().id, COPILOT_PRESENCE_CARD_ID);
+  });
+
+  it("enforceSingleModelPresence keeps only one MODEL presence", () => {
+    const capped = enforceSingleModelPresence([
+      createCopilotPresenceCard(),
+      card({ id: "m2", sourceClass: "MODEL", kind: "model_presence" }),
+      card({ id: "d1", sourceClass: "DETERMINISTIC" }),
+    ]);
+    assert.equal(
+      capped.filter((c) => c.kind === "model_presence").length,
+      1,
+    );
+    assert.equal(capped.some((c) => c.id === "d1"), true);
   });
 
   it("disclosure policy mirrors Liquid phase rules", () => {
@@ -145,49 +172,54 @@ describe("AEC-1 M6.1 Assist Orchestrator", () => {
     assert.equal(visible.filter((c) => c.sourceClass === "MODEL").length, 1);
   });
 
-  it("planAssistOrchestration is SSOT and keeps AUTHORITY out of render slots", () => {
-    const plan = planAssistOrchestration({
-      phase: "active",
-      consultationId: "c1",
-      cards: [
-        card({
-          id: "d1",
-          sourceClass: "DETERMINISTIC",
-          themeId: "t",
-        }),
-        card({
-          id: "m1",
-          sourceClass: "MODEL",
-          themeId: "t",
-        }),
-      ],
-    });
-    assert.equal(plan.disclosure, "expanded");
-    assert.deepEqual(plan.registeredSources, ["DETERMINISTIC", "MODEL"]);
-    assert.equal(plan.assertions, ASSIST_ORCHESTRATOR_ASSERTIONS);
-    assert.equal(plan.assertions.authorityOutsideAssistRender, true);
-    assert.equal(plan.visibleCards.length, 1);
-    assert.equal(plan.visibleCards[0]?.id, "d1");
-    assert.deepEqual(
-      plan.renderSlots.map((s) => s.slot),
-      ["deterministic", "model_presence"],
-    );
-    const modelSlot = plan.renderSlots.find((s) => s.slot === "model_presence");
-    assert.equal(modelSlot && "enabled" in modelSlot && modelSlot.enabled, false);
+  it("plan enables MODEL presence when visible; disables when fatigued out", () => {
+    const active = planAssistOrchestration({ phase: "active" });
+    assert.equal(active.disclosure, "expanded");
+    assert.equal(active.assertions, ASSIST_ORCHESTRATOR_ASSERTIONS);
+    const modelSlot = active.renderSlots.find((s) => s.slot === "model_presence");
+    assert.equal(modelSlot && "enabled" in modelSlot && modelSlot.enabled, true);
     assert.equal(
-      plan.renderSlots.some((s) => (s as { sourceClass: string }).sourceClass === "AUTHORITY"),
+      active.visibleCards.some((c) => c.id === COPILOT_PRESENCE_CARD_ID),
+      true,
+    );
+
+    const fatigued = planAssistOrchestration({
+      phase: "active",
+      // Soft-cap full of Assist-eligible DETERMINISTIC (< clinical_alert) → MODEL dropped.
+      cards: [0, 1, 2, 3, 4].map((i) =>
+        card({
+          id: `d${i}`,
+          sourceClass: "DETERMINISTIC",
+          urgencyRank: LIQUID_URGENCY_RANK.deterministic_intel - i,
+        }),
+      ),
+      fatigue: { maxVisible: 5 },
+    });
+    assert.equal(
+      fatigued.visibleCards.filter((c) => c.sourceClass === "DETERMINISTIC")
+        .length,
+      5,
+    );
+    assert.equal(
+      fatigued.visibleCards.some((c) => c.sourceClass === "MODEL"),
+      false,
+    );
+    const fatiguedModel = fatigued.renderSlots.find(
+      (s) => s.slot === "model_presence",
+    );
+    assert.equal(
+      fatiguedModel && "enabled" in fatiguedModel && fatiguedModel.enabled,
       false,
     );
   });
 
-  it("hidden disclosure clears visible stream", () => {
+  it("hidden disclosure clears visible stream and disables MODEL slot", () => {
     const plan = planAssistOrchestration({
       phase: "degraded",
-      cards: [
-        card({ id: "d1", sourceClass: "DETERMINISTIC" }),
-      ],
     });
     assert.equal(plan.disclosure, "hidden");
     assert.equal(plan.visibleCards.length, 0);
+    const modelSlot = plan.renderSlots.find((s) => s.slot === "model_presence");
+    assert.equal(modelSlot && "enabled" in modelSlot && modelSlot.enabled, false);
   });
 });

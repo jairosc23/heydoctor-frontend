@@ -11,6 +11,8 @@ import { AssistOrchestrator } from "./AssistOrchestrator";
 export type LiquidAssistPlaneProps = {
   phase: LiquidEncounterPhase;
   consultationId?: string;
+  onOpenCopilot?: () => void;
+  copilotOpen?: boolean;
   /** Optional extra assist mounts (never a second Copilot chat). */
   children?: ReactNode;
 };
@@ -19,13 +21,13 @@ const SOURCE_HINTS: LiquidIntelSourceClass[] = ["MODEL", "DETERMINISTIC"];
 
 /**
  * Assist plane seam for the Liquid shell.
- * M6.1: AssistOrchestrator is SSOT for Assist composition.
- * Copilot remains ClinicalCopilotDrawer (MODEL plane).
- * W5 remains DETERMINISTIC via orchestrator slot — not clinical authority.
+ * AssistOrchestrator is SSOT; CopilotPresence opens existing ClinicalCopilotDrawer.
  */
 export function LiquidAssistPlane({
   phase,
   consultationId,
+  onOpenCopilot,
+  copilotOpen,
   children,
 }: LiquidAssistPlaneProps) {
   const disclosure = liquidAssistDisclosure(phase);
@@ -68,6 +70,8 @@ export function LiquidAssistPlane({
           phase={phase}
           consultationId={consultationId}
           disclosure={disclosure}
+          onOpenCopilot={onOpenCopilot}
+          copilotOpen={copilotOpen}
         >
           {children}
         </AssistOrchestrator>

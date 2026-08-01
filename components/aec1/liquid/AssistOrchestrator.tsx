@@ -6,20 +6,24 @@ import {
   planAssistOrchestration,
 } from "@/lib/aec1/assist-orchestrator";
 import type { LiquidEncounterPhase } from "@/lib/aec1/liquid-composition";
+import { CopilotPresence } from "./CopilotPresence";
 import { W5AdvisoryCards } from "./W5AdvisoryCards";
 
 export type AssistOrchestratorProps = {
   phase: LiquidEncounterPhase;
   consultationId?: string;
   disclosure: "collapsed" | "expanded";
+  /** Opens existing ClinicalCopilotDrawer (never a second drawer). */
+  onOpenCopilot?: () => void;
+  copilotOpen?: boolean;
   /** Optional extra assist mounts (never a second Copilot chat). */
   children?: ReactNode;
 };
 
 /**
- * M6.1 — Assist Orchestrator (SSOT) render composition.
+ * Assist Orchestrator (SSOT) render composition.
  * DETERMINISTIC → existing W5AdvisoryCards.
- * MODEL → registered, no presence cards yet (M6.2).
+ * MODEL → CopilotPresence (M6.2) — max one; opens existing drawer.
  * AUTHORITY → outside Assist rendering.
  * EXTERNAL → interface only.
  */
@@ -27,6 +31,8 @@ export function AssistOrchestrator({
   phase,
   consultationId,
   disclosure,
+  onOpenCopilot,
+  copilotOpen,
   children,
 }: AssistOrchestratorProps) {
   const plan = planAssistOrchestration({
@@ -53,6 +59,9 @@ export function AssistOrchestrator({
           ? "true"
           : "false"
       }
+      data-max-one-model={
+        ASSIST_ORCHESTRATOR_ASSERTIONS.maxOneModelPresence ? "true" : "false"
+      }
     >
       {plan.renderSlots.map((slot) => {
         if (slot.slot === "deterministic") {
@@ -70,16 +79,31 @@ export function AssistOrchestrator({
           );
         }
         if (slot.slot === "model_presence") {
-          // M6.1: provider registered; no MODEL cards / Copilot UX changes.
+          if (!slot.enabled) {
+            return (
+              <div
+                key="model"
+                data-testid="aec1-assist-slot-model"
+                data-source="MODEL"
+                data-enabled="false"
+                hidden
+                aria-hidden
+              />
+            );
+          }
           return (
             <div
               key="model"
               data-testid="aec1-assist-slot-model"
               data-source="MODEL"
-              data-enabled="false"
-              hidden
-              aria-hidden
-            />
+              data-enabled="true"
+            >
+              <CopilotPresence
+                disclosure={disclosure}
+                onOpenCopilot={onOpenCopilot}
+                copilotOpen={copilotOpen}
+              />
+            </div>
           );
         }
         return null;

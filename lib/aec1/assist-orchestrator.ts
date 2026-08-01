@@ -1,9 +1,10 @@
 /**
- * AEC-1 M6.1 — Assist Orchestrator (pure SSOT).
+ * AEC-1 M6.1 / M6.2 — Assist Orchestrator (pure SSOT).
  *
  * Owns: provider registration, ordering, priority, conflict resolution,
  * progressive disclosure policy, fatigue policy, render composition plan.
  *
+ * M6.2: MODEL provider contributes at most one CopilotPresence card.
  * Does NOT own AUTHORITY (HAB / PE / COS) — outside Assist rendering.
  * EXTERNAL is an interface extension point only (no runtime provider).
  */
@@ -81,7 +82,40 @@ export const ASSIST_ORCHESTRATOR_ASSERTIONS = {
   noSecondChat: true,
   noWriteBack: true,
   assistNeverConfirmsOrEmits: true,
+  maxOneModelPresence: true,
 } as const;
+
+/** Stable id for the single MODEL Copilot presence contribution. */
+export const COPILOT_PRESENCE_CARD_ID = "copilot-presence" as const;
+
+export function createCopilotPresenceCard(): AssistCard {
+  return {
+    id: COPILOT_PRESENCE_CARD_ID,
+    sourceClass: "MODEL",
+    kind: "model_presence",
+    urgencyRank: LIQUID_URGENCY_RANK.model_suggestion,
+    title: "Clinical Copilot",
+    summary: "Asistencia generativa (MODEL) · provisional",
+  };
+}
+
+/** Enforce maximum one MODEL presence card in the stream. */
+export function enforceSingleModelPresence(
+  cards: readonly AssistCard[],
+): AssistCard[] {
+  let seenModelPresence = false;
+  const out: AssistCard[] = [];
+  for (const card of cards) {
+    const isPresence =
+      card.sourceClass === "MODEL" && card.kind === "model_presence";
+    if (isPresence) {
+      if (seenModelPresence) continue;
+      seenModelPresence = true;
+    }
+    out.push(card);
+  }
+  return out;
+}
 
 const SOURCE_ORDER_FOR_RENDER: AssistProviderSourceClass[] = [
   "DETERMINISTIC",
@@ -103,7 +137,7 @@ export function createAssistProviderRegistry(
   return map;
 }
 
-/** Default M6.1 providers: DETERMINISTIC + MODEL (MODEL contributes no cards yet). */
+/** Default providers: DETERMINISTIC (W5 mount) + MODEL (single CopilotPresence). */
 export function createDefaultAssistProviders(): AssistProvider[] {
   return [
     {
@@ -112,7 +146,7 @@ export function createDefaultAssistProviders(): AssistProvider[] {
     },
     {
       sourceClass: "MODEL",
-      contribute: () => [],
+      contribute: () => [createCopilotPresenceCard()],
     },
   ];
 }
@@ -206,7 +240,7 @@ export function applyAssistFatigue(
 
 export type AssistRenderSlot =
   | { slot: "deterministic"; sourceClass: "DETERMINISTIC" }
-  | { slot: "model_presence"; sourceClass: "MODEL"; enabled: false }
+  | { slot: "model_presence"; sourceClass: "MODEL"; enabled: boolean }
   | { slot: "external"; sourceClass: "EXTERNAL"; enabled: false };
 
 export type AssistOrchestrationPlan = {
@@ -222,8 +256,8 @@ export type AssistOrchestrationPlan = {
 
 /**
  * Full orchestration pass (pure).
- * DETERMINISTIC UI still mounts W5AdvisoryCards (live fetch); card list here is
- * for policy/tests and future MODEL presence. M6.1 MODEL contributes [].
+ * DETERMINISTIC UI still mounts W5AdvisoryCards (live fetch).
+ * MODEL contributes at most one CopilotPresence card (M6.2).
  */
 export function planAssistOrchestration(input: {
   phase: LiquidEncounterPhase;
@@ -256,11 +290,16 @@ export function planAssistOrchestration(input: {
     contributed.push(...input.cards);
   }
 
-  const resolved = resolveAssistConflicts(contributed);
+  const capped = enforceSingleModelPresence(contributed);
+  const resolved = resolveAssistConflicts(capped);
   const ordered = [...resolved].sort(compareAssistCards);
   const { visible, hiddenCount } = applyAssistFatigue(
     disclosure === "hidden" ? [] : ordered,
     input.fatigue ?? DEFAULT_ASSIST_FATIGUE,
+  );
+
+  const modelPresenceVisible = visible.some(
+    (c) => c.sourceClass === "MODEL" && c.kind === "model_presence",
   );
 
   const renderSlots: AssistRenderSlot[] = [];
@@ -268,11 +307,10 @@ export function planAssistOrchestration(input: {
     renderSlots.push({ slot: "deterministic", sourceClass: "DETERMINISTIC" });
   }
   if (registry.has("MODEL")) {
-    // M6.1: registered, not rendered as cards (M6.2).
     renderSlots.push({
       slot: "model_presence",
       sourceClass: "MODEL",
-      enabled: false,
+      enabled: modelPresenceVisible && disclosure !== "hidden",
     });
   }
 
