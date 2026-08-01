@@ -6,10 +6,12 @@ import type {
   LiquidIntelSourceClass,
 } from "@/lib/aec1/liquid-composition";
 import { liquidAssistDisclosure } from "@/lib/aec1/liquid-composition";
+import { W5AdvisoryCards } from "./W5AdvisoryCards";
 
 export type LiquidAssistPlaneProps = {
   phase: LiquidEncounterPhase;
-  /** Future M5/M6 card mount — never a second Copilot chat. */
+  consultationId?: string;
+  /** Optional extra assist mounts (never a second Copilot chat). */
   children?: ReactNode;
 };
 
@@ -18,9 +20,13 @@ const SOURCE_HINTS: LiquidIntelSourceClass[] = ["MODEL", "DETERMINISTIC"];
 /**
  * Assist plane seam for the Liquid shell.
  * Copilot remains ClinicalCopilotDrawer (MODEL plane).
- * W5 deterministic cards mount here in M5 — not clinical authority.
+ * M5: W5 deterministic cards mount here — not clinical authority.
  */
-export function LiquidAssistPlane({ phase, children }: LiquidAssistPlaneProps) {
+export function LiquidAssistPlane({
+  phase,
+  consultationId,
+  children,
+}: LiquidAssistPlaneProps) {
   const disclosure = liquidAssistDisclosure(phase);
   if (disclosure === "hidden") {
     return (
@@ -52,11 +58,17 @@ export function LiquidAssistPlane({ phase, children }: LiquidAssistPlaneProps) {
       }}
     >
       <div data-testid="aec1-liquid-assist-boundary">
-        Assist plane · MODEL (Copilot drawer) + DETERMINISTIC (M5) · never Confirm/Emit
+        Assist plane · MODEL (Copilot drawer) + DETERMINISTIC (W5) · never
+        Confirm/Emit
       </div>
-      {disclosure === "expanded" && children ? (
-        <div data-testid="aec1-liquid-assist-cards">{children}</div>
-      ) : null}
+
+      <div data-testid="aec1-liquid-assist-cards">
+        <W5AdvisoryCards
+          consultationId={consultationId}
+          disclosure={disclosure}
+        />
+        {children}
+      </div>
     </aside>
   );
 }

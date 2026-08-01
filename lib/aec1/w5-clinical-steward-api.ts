@@ -20,6 +20,29 @@ export type W5ClinicalInsight = {
   status?: string;
   authorityClass?: string;
   disclaimer?: string;
+  /** Optional contract fields — render only when present (do not invent). */
+  priority?: number | string;
+  score?: number | string;
+  severity?: string;
+  explanation?: string;
+  explainability?:
+    | string
+    | {
+        summary?: string;
+        reasons?: string[];
+        detail?: string;
+      };
+  provenance?:
+    | string
+    | {
+        source?: string;
+        ruleId?: string;
+        origin?: string;
+      };
+  source?: string;
+  sourceClass?: string;
+  acknowledgedAt?: string | null;
+  dismissedAt?: string | null;
 };
 
 export type W5ClinicalListResponse = {

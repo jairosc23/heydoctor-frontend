@@ -108,9 +108,15 @@ export function LiquidClinicalWorkspaceShell({
           </div>
 
           {regions.assist.visible ? (
-            <LiquidAssistPlane phase={phase} />
+            <LiquidAssistPlane
+              phase={phase}
+              consultationId={consultationId}
+            />
           ) : (
-            <LiquidAssistPlane phase="degraded" />
+            <LiquidAssistPlane
+              phase="degraded"
+              consultationId={consultationId}
+            />
           )}
 
           {/* Authority mount stays HAB/ConfirmationMount outside this wrap — landmark only */}
