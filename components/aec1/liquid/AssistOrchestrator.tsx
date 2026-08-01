@@ -12,7 +12,6 @@ import { W5AdvisoryCards } from "./W5AdvisoryCards";
 export type AssistOrchestratorProps = {
   phase: LiquidEncounterPhase;
   consultationId?: string;
-  disclosure: "collapsed" | "expanded";
   /** Opens existing ClinicalCopilotDrawer (never a second drawer). */
   onOpenCopilot?: () => void;
   copilotOpen?: boolean;
@@ -22,15 +21,12 @@ export type AssistOrchestratorProps = {
 
 /**
  * Assist Orchestrator (SSOT) render composition.
- * DETERMINISTIC → existing W5AdvisoryCards.
- * MODEL → CopilotPresence (M6.2) — max one; opens existing drawer.
- * AUTHORITY → outside Assist rendering.
- * EXTERNAL → interface only.
+ * M6.3: disclosure + fatigue + MODEL/DETERMINISTIC visibility come from
+ * `planAssistOrchestration` only — no local policy duplicates.
  */
 export function AssistOrchestrator({
   phase,
   consultationId,
-  disclosure,
   onOpenCopilot,
   copilotOpen,
   children,
@@ -40,11 +36,30 @@ export function AssistOrchestrator({
     consultationId,
   });
 
+  if (!plan.planeVisible || plan.disclosure === "hidden") {
+    return (
+      <div
+        data-testid="aec1-assist-orchestrator"
+        data-ssot={ASSIST_ORCHESTRATOR_ASSERTIONS.ssot}
+        data-disclosure="hidden"
+        data-plane-visible="false"
+        hidden
+        aria-hidden
+      />
+    );
+  }
+
+  const disclosure = plan.disclosure;
+
   return (
     <div
       data-testid="aec1-assist-orchestrator"
       data-ssot={ASSIST_ORCHESTRATOR_ASSERTIONS.ssot}
       data-disclosure={disclosure}
+      data-plane-visible="true"
+      data-compact={plan.compact ? "true" : "false"}
+      data-expand-list={plan.expandList ? "true" : "false"}
+      data-fatigue-max={String(plan.deterministicMaxVisible)}
       data-registered={plan.registeredSources.join(",")}
       data-authority-outside={
         ASSIST_ORCHESTRATOR_ASSERTIONS.authorityOutsideAssistRender
@@ -62,9 +77,15 @@ export function AssistOrchestrator({
       data-max-one-model={
         ASSIST_ORCHESTRATOR_ASSERTIONS.maxOneModelPresence ? "true" : "false"
       }
+      data-disclosure-fatigue-ssot={
+        ASSIST_ORCHESTRATOR_ASSERTIONS.disclosureAndFatigueSsot
+          ? "true"
+          : "false"
+      }
     >
       {plan.renderSlots.map((slot) => {
         if (slot.slot === "deterministic") {
+          if (!plan.showDeterministicSlot) return null;
           return (
             <div
               key="deterministic"
@@ -74,12 +95,13 @@ export function AssistOrchestrator({
               <W5AdvisoryCards
                 consultationId={consultationId}
                 disclosure={disclosure}
+                maxVisible={plan.deterministicMaxVisible}
               />
             </div>
           );
         }
         if (slot.slot === "model_presence") {
-          if (!slot.enabled) {
+          if (!slot.enabled || !plan.showModelPresence) {
             return (
               <div
                 key="model"

@@ -1,10 +1,13 @@
 /**
- * AEC-1 M6.1 / M6.2 — Assist Orchestrator (pure SSOT).
+ * AEC-1 M6.1–M6.3 — Assist Orchestrator (pure SSOT).
  *
  * Owns: provider registration, ordering, priority, conflict resolution,
- * progressive disclosure policy, fatigue policy, render composition plan.
+ * progressive disclosure policy, fatigue policy, expand/collapse soft-cap,
+ * MODEL vs DETERMINISTIC visibility, render composition plan.
  *
- * M6.2: MODEL provider contributes at most one CopilotPresence card.
+ * M6.3: LiquidAssistPlane / W5 / CopilotPresence must not invent disclosure
+ * or fatigue defaults — consume plan fields from here.
+ *
  * Does NOT own AUTHORITY (HAB / PE / COS) — outside Assist rendering.
  * EXTERNAL is an interface extension point only (no runtime provider).
  */
@@ -59,13 +62,34 @@ export type AssistProvider = {
 };
 
 export type AssistFatiguePolicy = {
-  /** Soft-cap visible cards after ordering/conflict. */
+  /** Soft-cap for Assist stream / DETERMINISTIC list (expanded). */
   maxVisible: number;
+  /**
+   * Soft-cap when Assist disclosure is collapsed.
+   * Defaults to maxVisible — collapsed UX stays summary-first (W5), not a
+   * second competing list policy.
+   */
+  collapsedMaxVisible?: number;
 };
 
 export const DEFAULT_ASSIST_FATIGUE: AssistFatiguePolicy = {
   maxVisible: 5,
+  collapsedMaxVisible: 5,
 };
+
+function fatigueCollapsedMax(policy: AssistFatiguePolicy): number {
+  return policy.collapsedMaxVisible ?? policy.maxVisible;
+}
+
+/** Resolve effective soft-cap for a disclosure state (SSOT). */
+export function resolveAssistFatigueMaxVisible(
+  disclosure: AssistDisclosure,
+  policy: AssistFatiguePolicy = DEFAULT_ASSIST_FATIGUE,
+): number {
+  if (disclosure === "hidden") return 0;
+  if (disclosure === "collapsed") return fatigueCollapsedMax(policy);
+  return policy.maxVisible;
+}
 
 /** Source tie-break when urgencyRank is equal (higher first). */
 export const ASSIST_SOURCE_PRIORITY: Record<AssistProviderSourceClass, number> =
@@ -83,6 +107,7 @@ export const ASSIST_ORCHESTRATOR_ASSERTIONS = {
   noWriteBack: true,
   assistNeverConfirmsOrEmits: true,
   maxOneModelPresence: true,
+  disclosureAndFatigueSsot: true,
 } as const;
 
 /** Stable id for the single MODEL Copilot presence contribution. */
@@ -245,6 +270,17 @@ export type AssistRenderSlot =
 
 export type AssistOrchestrationPlan = {
   disclosure: AssistDisclosure;
+  /** Host plane should mount Assist content (false when degraded/hidden). */
+  planeVisible: boolean;
+  /** Compact chrome (collapsed disclosure). */
+  compact: boolean;
+  /** Whether expanded list UI + expand/more controls apply. */
+  expandList: boolean;
+  fatigue: AssistFatiguePolicy;
+  /** Soft-cap for DETERMINISTIC W5 list (and stream) for this disclosure. */
+  deterministicMaxVisible: number;
+  showDeterministicSlot: boolean;
+  showModelPresence: boolean;
   registeredSources: AssistProviderSourceClass[];
   cards: AssistCard[];
   visibleCards: AssistCard[];
@@ -255,8 +291,9 @@ export type AssistOrchestrationPlan = {
 };
 
 /**
- * Full orchestration pass (pure).
- * DETERMINISTIC UI still mounts W5AdvisoryCards (live fetch).
+ * Full orchestration pass (pure) — SSOT for disclosure + fatigue + visibility.
+ * DETERMINISTIC UI still mounts W5AdvisoryCards (live fetch) with
+ * `deterministicMaxVisible` from this plan.
  * MODEL contributes at most one CopilotPresence card (M6.2).
  */
 export function planAssistOrchestration(input: {
@@ -268,6 +305,15 @@ export function planAssistOrchestration(input: {
   fatigue?: AssistFatiguePolicy;
 }): AssistOrchestrationPlan {
   const disclosure = resolveAssistDisclosure(input.phase);
+  const fatigue = input.fatigue ?? DEFAULT_ASSIST_FATIGUE;
+  const planeVisible = disclosure !== "hidden";
+  const compact = disclosure === "collapsed";
+  const expandList = disclosure === "expanded";
+  const deterministicMaxVisible = resolveAssistFatigueMaxVisible(
+    disclosure,
+    fatigue,
+  );
+
   const registry = createAssistProviderRegistry(
     input.providers ?? createDefaultAssistProviders(),
   );
@@ -294,13 +340,19 @@ export function planAssistOrchestration(input: {
   const resolved = resolveAssistConflicts(capped);
   const ordered = [...resolved].sort(compareAssistCards);
   const { visible, hiddenCount } = applyAssistFatigue(
-    disclosure === "hidden" ? [] : ordered,
-    input.fatigue ?? DEFAULT_ASSIST_FATIGUE,
+    planeVisible ? ordered : [],
+    {
+      maxVisible: deterministicMaxVisible,
+      collapsedMaxVisible: fatigueCollapsedMax(fatigue),
+    },
   );
 
-  const modelPresenceVisible = visible.some(
-    (c) => c.sourceClass === "MODEL" && c.kind === "model_presence",
-  );
+  const showModelPresence =
+    planeVisible &&
+    visible.some(
+      (c) => c.sourceClass === "MODEL" && c.kind === "model_presence",
+    );
+  const showDeterministicSlot = planeVisible && registry.has("DETERMINISTIC");
 
   const renderSlots: AssistRenderSlot[] = [];
   if (registry.has("DETERMINISTIC")) {
@@ -310,12 +362,19 @@ export function planAssistOrchestration(input: {
     renderSlots.push({
       slot: "model_presence",
       sourceClass: "MODEL",
-      enabled: modelPresenceVisible && disclosure !== "hidden",
+      enabled: showModelPresence,
     });
   }
 
   return {
     disclosure,
+    planeVisible,
+    compact,
+    expandList,
+    fatigue,
+    deterministicMaxVisible,
+    showDeterministicSlot,
+    showModelPresence,
     registeredSources,
     cards: ordered,
     visibleCards: visible,
