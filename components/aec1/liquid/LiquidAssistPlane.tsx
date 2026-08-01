@@ -1,11 +1,11 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { resolveAssistDisclosure } from "@/lib/aec1/assist-orchestrator";
 import type {
   LiquidEncounterPhase,
   LiquidIntelSourceClass,
 } from "@/lib/aec1/liquid-composition";
-import { liquidAssistDisclosure } from "@/lib/aec1/liquid-composition";
 import { AssistOrchestrator } from "./AssistOrchestrator";
 
 export type LiquidAssistPlaneProps = {
@@ -20,8 +20,9 @@ export type LiquidAssistPlaneProps = {
 const SOURCE_HINTS: LiquidIntelSourceClass[] = ["MODEL", "DETERMINISTIC"];
 
 /**
- * Assist plane seam for the Liquid shell.
- * AssistOrchestrator is SSOT; CopilotPresence opens existing ClinicalCopilotDrawer.
+ * Assist plane host seam.
+ * Disclosure policy SSOT: `resolveAssistDisclosure` (Assist Orchestrator module).
+ * Fatigue / slot visibility SSOT: AssistOrchestrator → planAssistOrchestration.
  */
 export function LiquidAssistPlane({
   phase,
@@ -30,7 +31,7 @@ export function LiquidAssistPlane({
   copilotOpen,
   children,
 }: LiquidAssistPlaneProps) {
-  const disclosure = liquidAssistDisclosure(phase);
+  const disclosure = resolveAssistDisclosure(phase);
   if (disclosure === "hidden") {
     return (
       <aside
@@ -69,7 +70,6 @@ export function LiquidAssistPlane({
         <AssistOrchestrator
           phase={phase}
           consultationId={consultationId}
-          disclosure={disclosure}
           onOpenCopilot={onOpenCopilot}
           copilotOpen={copilotOpen}
         >

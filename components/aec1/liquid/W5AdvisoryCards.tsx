@@ -12,6 +12,7 @@ import {
   type W5ClinicalInsight,
   type W5ClinicalListResponse,
 } from "@/lib/aec1/w5-clinical-steward-api";
+import { DEFAULT_ASSIST_FATIGUE } from "@/lib/aec1/assist-orchestrator";
 import {
   formatW5Explainability,
   formatW5PriorityLabel,
@@ -29,22 +30,24 @@ export type W5AdvisoryCardsProps = {
   /** Test injection / soak overrides. */
   listInsights?: typeof w5ClinicalListInsights;
   autoLoad?: boolean;
-  /** Soft-cap to reduce alert fatigue. */
+  /**
+   * Soft-cap for expanded list. Prefer value from AssistOrchestrator plan
+   * (`deterministicMaxVisible`). Default aligns with Assist fatigue SSOT.
+   */
   maxVisible?: number;
 };
-
-const DEFAULT_MAX = 5;
 
 /**
  * M5 — governed W5 DETERMINISTIC advisory cards inside LiquidAssistPlane.
  * Reuses M1 steward client (list / dismiss / ack). Never Confirm / Emit / apply.
+ * Fatigue soft-cap is owned by AssistOrchestrator (M6.3); this component only applies it.
  */
 export function W5AdvisoryCards({
   consultationId,
   disclosure,
   listInsights = w5ClinicalListInsights,
   autoLoad = true,
-  maxVisible = DEFAULT_MAX,
+  maxVisible = DEFAULT_ASSIST_FATIGUE.maxVisible,
 }: W5AdvisoryCardsProps) {
   const [loading, setLoading] = useState(Boolean(autoLoad));
   const [response, setResponse] = useState<W5ClinicalListResponse | null>(null);

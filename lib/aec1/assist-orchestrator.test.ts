@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import {
   ASSIST_ORCHESTRATOR_ASSERTIONS,
   COPILOT_PRESENCE_CARD_ID,
+  DEFAULT_ASSIST_FATIGUE,
   applyAssistFatigue,
   compareAssistCards,
   createAssistProviderRegistry,
@@ -12,6 +13,7 @@ import {
   planAssistOrchestration,
   resolveAssistConflicts,
   resolveAssistDisclosure,
+  resolveAssistFatigueMaxVisible,
   urgencyForSource,
   type AssistCard,
   type AssistProvider,
@@ -79,6 +81,18 @@ describe("AEC-1 M6 Assist Orchestrator", () => {
     assert.equal(resolveAssistDisclosure("pre_encounter"), "collapsed");
     assert.equal(resolveAssistDisclosure("closing"), "collapsed");
     assert.equal(resolveAssistDisclosure("active"), "expanded");
+  });
+
+  it("fatigue maxVisible is SSOT by disclosure (M6.3)", () => {
+    assert.equal(resolveAssistFatigueMaxVisible("hidden"), 0);
+    assert.equal(
+      resolveAssistFatigueMaxVisible("expanded"),
+      DEFAULT_ASSIST_FATIGUE.maxVisible,
+    );
+    assert.equal(
+      resolveAssistFatigueMaxVisible("collapsed"),
+      DEFAULT_ASSIST_FATIGUE.collapsedMaxVisible,
+    );
   });
 
   it("orders by urgency then DETERMINISTIC before MODEL", () => {
@@ -175,9 +189,17 @@ describe("AEC-1 M6 Assist Orchestrator", () => {
   it("plan enables MODEL presence when visible; disables when fatigued out", () => {
     const active = planAssistOrchestration({ phase: "active" });
     assert.equal(active.disclosure, "expanded");
-    assert.equal(active.assertions, ASSIST_ORCHESTRATOR_ASSERTIONS);
+    assert.equal(active.planeVisible, true);
+    assert.equal(active.expandList, true);
+    assert.equal(active.compact, false);
+    assert.equal(
+      active.deterministicMaxVisible,
+      DEFAULT_ASSIST_FATIGUE.maxVisible,
+    );
+    assert.equal(active.assertions.disclosureAndFatigueSsot, true);
     const modelSlot = active.renderSlots.find((s) => s.slot === "model_presence");
     assert.equal(modelSlot && "enabled" in modelSlot && modelSlot.enabled, true);
+    assert.equal(active.showModelPresence, true);
     assert.equal(
       active.visibleCards.some((c) => c.id === COPILOT_PRESENCE_CARD_ID),
       true,
@@ -193,7 +215,7 @@ describe("AEC-1 M6 Assist Orchestrator", () => {
           urgencyRank: LIQUID_URGENCY_RANK.deterministic_intel - i,
         }),
       ),
-      fatigue: { maxVisible: 5 },
+      fatigue: { maxVisible: 5, collapsedMaxVisible: 5 },
     });
     assert.equal(
       fatigued.visibleCards.filter((c) => c.sourceClass === "DETERMINISTIC")
@@ -204,6 +226,7 @@ describe("AEC-1 M6 Assist Orchestrator", () => {
       fatigued.visibleCards.some((c) => c.sourceClass === "MODEL"),
       false,
     );
+    assert.equal(fatigued.showModelPresence, false);
     const fatiguedModel = fatigued.renderSlots.find(
       (s) => s.slot === "model_presence",
     );
@@ -213,13 +236,29 @@ describe("AEC-1 M6 Assist Orchestrator", () => {
     );
   });
 
+  it("collapsed plan keeps plane visible with compact policy (UX preserved)", () => {
+    const plan = planAssistOrchestration({ phase: "pre_encounter" });
+    assert.equal(plan.disclosure, "collapsed");
+    assert.equal(plan.planeVisible, true);
+    assert.equal(plan.compact, true);
+    assert.equal(plan.expandList, false);
+    assert.equal(
+      plan.deterministicMaxVisible,
+      DEFAULT_ASSIST_FATIGUE.collapsedMaxVisible,
+    );
+  });
+
   it("hidden disclosure clears visible stream and disables MODEL slot", () => {
     const plan = planAssistOrchestration({
       phase: "degraded",
     });
     assert.equal(plan.disclosure, "hidden");
+    assert.equal(plan.planeVisible, false);
+    assert.equal(plan.deterministicMaxVisible, 0);
     assert.equal(plan.visibleCards.length, 0);
+    assert.equal(plan.showModelPresence, false);
     const modelSlot = plan.renderSlots.find((s) => s.slot === "model_presence");
     assert.equal(modelSlot && "enabled" in modelSlot && modelSlot.enabled, false);
   });
 });
+

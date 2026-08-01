@@ -41,7 +41,6 @@ describe("AEC-1 M6.2 CopilotPresence", () => {
       <AssistOrchestrator
         phase="active"
         consultationId="c1"
-        disclosure="expanded"
         onOpenCopilot={onOpen}
       />,
     );
