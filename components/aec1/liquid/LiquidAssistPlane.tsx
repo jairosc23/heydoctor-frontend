@@ -6,7 +6,7 @@ import type {
   LiquidIntelSourceClass,
 } from "@/lib/aec1/liquid-composition";
 import { liquidAssistDisclosure } from "@/lib/aec1/liquid-composition";
-import { W5AdvisoryCards } from "./W5AdvisoryCards";
+import { AssistOrchestrator } from "./AssistOrchestrator";
 
 export type LiquidAssistPlaneProps = {
   phase: LiquidEncounterPhase;
@@ -19,8 +19,9 @@ const SOURCE_HINTS: LiquidIntelSourceClass[] = ["MODEL", "DETERMINISTIC"];
 
 /**
  * Assist plane seam for the Liquid shell.
+ * M6.1: AssistOrchestrator is SSOT for Assist composition.
  * Copilot remains ClinicalCopilotDrawer (MODEL plane).
- * M5: W5 deterministic cards mount here — not clinical authority.
+ * W5 remains DETERMINISTIC via orchestrator slot — not clinical authority.
  */
 export function LiquidAssistPlane({
   phase,
@@ -63,11 +64,13 @@ export function LiquidAssistPlane({
       </div>
 
       <div data-testid="aec1-liquid-assist-cards">
-        <W5AdvisoryCards
+        <AssistOrchestrator
+          phase={phase}
           consultationId={consultationId}
           disclosure={disclosure}
-        />
-        {children}
+        >
+          {children}
+        </AssistOrchestrator>
       </div>
     </aside>
   );
