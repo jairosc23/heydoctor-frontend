@@ -45,6 +45,7 @@ import {
   resolvePatientAge,
 } from "@/lib/patient-profile-display";
 import { getConsultationAccessErrorMessage } from "@/lib/consultation-access-errors";
+import { toPaymentUserMessage } from "@/lib/payment-user-errors";
 import { getWhatsAppUrlWithCustomMessage } from "@/lib/whatsapp-url";
 import {
   ConsultationConsentCard,
@@ -109,24 +110,10 @@ const clinicalActionWorkspaceEnabled = isClinicalActionWorkspaceEnabled();
 const smartClinicalWorkspaceEnabled = isSmartClinicalWorkspaceEnabled();
 
 function paymentFailureUserMessage(err: unknown): string {
-  if (err instanceof ApiError) {
-    if (err.status === 401) {
-      return "Tu sesión expiró. Inicia sesión de nuevo e inténtalo otra vez.";
-    }
-    if (err.status === 403) {
-      return "No tienes permiso para iniciar el pago de esta consulta.";
-    }
-    if (err.status === 404) {
-      return "No encontramos la consulta o el endpoint de pagos. Contacta soporte.";
-    }
-    if (err.status >= 500) {
-      return "El servicio de pagos no está disponible en este momento. Espera unos minutos e inténtalo de nuevo.";
-    }
-    const m = err.message?.trim();
-    if (m) return m;
-  }
-  if (err instanceof Error && err.message) return err.message;
-  return "No pudimos iniciar el pago. Revisa tu conexión e inténtalo de nuevo.";
+  return toPaymentUserMessage(
+    err,
+    "No pudimos iniciar el pago. Revisa tu conexión e inténtalo de nuevo.",
+  );
 }
 
 export default function ConsultationDetailPage() {

@@ -1,6 +1,7 @@
 import { apiFetch as fetchWithCredentials } from "@/lib/api-fetch-include";
 import { getApiBase } from "@/lib/api-base";
 import { fetchWithAuth } from "@/lib/heydoctor-api";
+import { PaymentCheckoutError } from "@/lib/payment-user-errors";
 
 export const GrowthTrackEvent = {
   VISIT_MARKETING: "VISIT_MARKETING",
@@ -186,7 +187,9 @@ export async function startGrowthPricingCheckout(
   });
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(`start-checkout HTTP ${res.status}: ${text.slice(0, 200)}`);
+    // Keep technical detail out of Error.message (UI must not render provider/config text).
+    console.error("[growth/start-checkout]", res.status, text.slice(0, 300));
+    throw new PaymentCheckoutError(res.status);
   }
   return (await res.json()) as { checkoutUrl: string; paymentId: string };
 }

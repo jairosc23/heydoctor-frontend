@@ -7,8 +7,9 @@ const FOOTER_COLUMNS = [
   {
     title: "Para pacientes",
     links: [
-      { href: "/consultar", label: "Consultar" },
+      { href: "/consultar", label: "Marketplace" },
       { href: "/consulta-rapida", label: "Consulta rápida" },
+      { href: "/pricing", label: "Planes PRO" },
     ],
   },
   {
