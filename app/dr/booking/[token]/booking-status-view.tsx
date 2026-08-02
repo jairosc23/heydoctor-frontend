@@ -15,6 +15,10 @@ import {
   PublicBookingError,
 } from "@/lib/services/public-booking";
 import { readPortalInvite } from "@/lib/services/portal-invite-storage";
+import {
+  PAYMENT_UNAVAILABLE_USER_MESSAGE,
+  toPaymentUserMessage,
+} from "@/lib/payment-user-errors";
 
 const FONT_HEADING = "Montserrat, sans-serif";
 
@@ -45,9 +49,12 @@ export function PublicBookingStatusView({
       }
     } catch (e) {
       setError(
-        e instanceof PublicBookingError
-          ? e.message
-          : "No se pudo cargar el estado de la cita.",
+        toPaymentUserMessage(
+          e,
+          e instanceof PublicBookingError
+            ? e.message
+            : "No se pudo cargar el estado de la cita.",
+        ),
       );
     }
   }, [token]);
@@ -81,11 +88,8 @@ export function PublicBookingStatusView({
         window.location.href = checkout.paymentUrl;
       }
     } catch (e) {
-      setError(
-        e instanceof PublicBookingError
-          ? e.message
-          : "No se pudo reiniciar el pago.",
-      );
+      console.error("[public-booking/resume-checkout]", e);
+      setError(toPaymentUserMessage(e, PAYMENT_UNAVAILABLE_USER_MESSAGE));
     } finally {
       setBusy(false);
     }
@@ -112,6 +116,22 @@ export function PublicBookingStatusView({
           <p className="mb-6 text-sm text-primaryDark/60">
             Guarda este enlace para volver a tu teleconsulta cuando esté lista.
           </p>
+
+          {paymentHint === "unavailable" ? (
+            <div
+              role="status"
+              className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950"
+              data-testid="booking-payment-unavailable"
+            >
+              <p className="mb-2">{PAYMENT_UNAVAILABLE_USER_MESSAGE}</p>
+              <Link
+                href="/consultar"
+                className="font-medium text-primary no-underline hover:underline"
+              >
+                Seguir explorando el Marketplace
+              </Link>
+            </div>
+          ) : null}
 
           {!status && !error ? (
             <p className="text-sm text-primaryDark/50">Cargando…</p>

@@ -5,9 +5,9 @@ import { BrandLogo } from "@/components/branding";
 import Container from "@/components/ui/Container";
 import { absoluteUrl, siteName } from "@/lib/seo";
 
-const title = "Planes HeyDoctor PRO | Marketplace clínico";
+const title = "Planes HeyDoctor PRO";
 const description =
-  "Explora planes HeyDoctor PRO para teleconsulta, toolkit clínico e infraestructura enterprise con activación comercial.";
+  "Planes HeyDoctor PRO para teleconsulta, toolkit clínico e infraestructura enterprise. Explorar médicos no requiere PRO.";
 
 export const metadata: Metadata = {
   title,

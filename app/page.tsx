@@ -110,7 +110,7 @@ const ENTERPRISE_CAPABILITIES = [
   {
     title: "Marketplace",
     description:
-      "Conexión directa con planes y activación comercial sin duplicar el flujo de Pricing.",
+      "Descubre especialidades y perfiles de médicos. Explorar no requiere plan PRO.",
   },
 ];
 
@@ -231,7 +231,7 @@ export default function LandingPage() {
                 <Button href="/demo/interactive" variant="primary" className="w-full">
                   Ver Demo Interactiva
                 </Button>
-                <Button href="/pricing" variant="secondary" className="w-full bg-white">
+                <Button href="/consultar" variant="secondary" className="w-full bg-white">
                   Explorar Marketplace
                 </Button>
               </div>

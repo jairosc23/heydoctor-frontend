@@ -12,6 +12,11 @@ import {
 import Container from "@/components/ui/Container";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
+import { PaymentErrorBoundary } from "@/components/payments/PaymentErrorBoundary";
+import {
+  PAYMENT_UNAVAILABLE_USER_MESSAGE,
+  toPaymentUserMessage,
+} from "@/lib/payment-user-errors";
 
 const EXPERIMENT_KEY = "pricing_upgrade_cta";
 const FONT_HEADING = "Montserrat, sans-serif";
@@ -60,7 +65,8 @@ function PricingContent() {
       window.location.href = checkoutUrl;
     } catch (e) {
       setBusy(false);
-      setError(e instanceof Error ? e.message : "No se pudo iniciar el pago");
+      console.error("[pricing/checkout]", e);
+      setError(toPaymentUserMessage(e, PAYMENT_UNAVAILABLE_USER_MESSAGE));
     }
   };
 
@@ -83,6 +89,12 @@ function PricingContent() {
             style={{ fontFamily: FONT_HEADING }}
           >
             Iniciar sesión
+          </Link>
+          <Link
+            href="/consultar"
+            className="rounded font-medium text-primary no-underline hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+          >
+            Marketplace
           </Link>
           <Link
             href="/panel"
@@ -126,9 +138,19 @@ function PricingContent() {
           </p>
 
           {error ? (
-            <p className="mb-3 text-sm text-red-600" role="alert">
-              {error}
-            </p>
+            <div
+              className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950"
+              role="alert"
+              data-testid="pricing-payment-error"
+            >
+              <p className="mb-2">{error}</p>
+              <Link
+                href="/consultar"
+                className="font-medium text-primary no-underline hover:underline"
+              >
+                Continuar explorando el Marketplace
+              </Link>
+            </div>
           ) : null}
 
           <Button
@@ -159,7 +181,9 @@ export default function PricingPage() {
         <p className="px-4 py-12 text-sm text-primaryDark/70">Cargando pricing…</p>
       }
     >
-      <PricingContent />
+      <PaymentErrorBoundary continueHref="/consultar" continueLabel="Ir al Marketplace">
+        <PricingContent />
+      </PaymentErrorBoundary>
     </Suspense>
   );
 }

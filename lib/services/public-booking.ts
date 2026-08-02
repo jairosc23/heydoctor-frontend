@@ -4,6 +4,11 @@
  */
 
 import { getApiBase } from "@/lib/api-base";
+import {
+  PAYMENT_UNAVAILABLE_USER_MESSAGE,
+  sanitizePaymentApiMessage,
+  toPaymentUserMessage,
+} from "@/lib/payment-user-errors";
 
 export type PublicAvailabilitySlot = {
   startsAt: string;
@@ -61,17 +66,32 @@ export class PublicBookingError extends Error {
 }
 
 async function parseError(res: Response): Promise<string> {
-  let message = `Error del servidor (${res.status}).`;
+  let raw: string | string[] | undefined;
   try {
     const body = (await res.json()) as { message?: string | string[] };
-    if (typeof body?.message === "string") message = body.message;
-    else if (Array.isArray(body?.message) && body.message.length > 0) {
-      message = body.message.join(" · ");
-    }
+    raw = body?.message;
   } catch {
     /* ignore */
   }
-  return message;
+  // Checkout / payment endpoints: never expose provider or HTTP internals.
+  if (res.url.includes("/checkout") || res.status >= 500) {
+    if (raw) {
+      console.error("[public-booking]", res.status, raw);
+    }
+    return sanitizePaymentApiMessage(raw, res.status);
+  }
+  if (typeof raw === "string" && raw.trim()) {
+    return toPaymentUserMessage({ status: res.status, message: raw }, raw);
+  }
+  if (Array.isArray(raw) && raw.length > 0) {
+    return toPaymentUserMessage(
+      { status: res.status, message: raw.join(" · ") },
+      "No se pudo completar la solicitud.",
+    );
+  }
+  return res.status >= 500
+    ? PAYMENT_UNAVAILABLE_USER_MESSAGE
+    : "No se pudo completar la solicitud.";
 }
 
 export async function fetchPublicDoctorSlots(

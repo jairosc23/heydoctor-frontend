@@ -129,9 +129,18 @@ export function PublicDoctorBooking({
       if (booking.portalInviteToken) {
         storePortalInvite(booking.bookingToken, booking.portalInviteToken);
       }
-      const checkout = await startPublicBookingCheckout(booking.bookingToken);
-      if (checkout.paymentUrl) {
-        window.location.href = checkout.paymentUrl;
+      try {
+        const checkout = await startPublicBookingCheckout(booking.bookingToken);
+        if (checkout.paymentUrl) {
+          window.location.href = checkout.paymentUrl;
+          return;
+        }
+      } catch (checkoutErr) {
+        // Booking is already created — degrade gracefully when payments are down.
+        console.error("[public-booking/checkout]", checkoutErr);
+        router.push(
+          `/dr/booking/${booking.bookingToken}?payment=unavailable`,
+        );
         return;
       }
       router.push(`/dr/booking/${booking.bookingToken}`);
