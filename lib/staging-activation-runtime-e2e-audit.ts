@@ -122,7 +122,7 @@ export type SmokeTestItem = {
 export const POST_DEPLOY_SMOKE_TESTS: SmokeTestItem[] = [
   {
     id: "smoke-copilot",
-    surface: "Clinical Copilot",
+    surface: "HeyDoctor Copilot",
     method: "e2e",
     status: "skipped",
     note: "P0-3 incluye apertura drawer — pendiente runtime",

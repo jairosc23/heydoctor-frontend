@@ -38,7 +38,7 @@ export function GovernedClinicalContextStagePanel() {
           <p className="mb-3 text-[11px] font-medium uppercase tracking-wide text-amber-800">
             READ ONLY · HITL · generatesNewClinicalContent=false · usesLlm=false · executesAction=false · writesEmr=false
           </p>
-          {!sessionId ? <p className="text-sm text-slate-500">Esperando sesión Medical Copilot…</p> : null}
+          {!sessionId ? <p className="text-sm text-slate-500">Esperando sesión HeyDoctor Copilot…</p> : null}
           {loading ? <p className="text-sm text-slate-500">Cargando…</p> : null}
           {error ? <p className="text-sm text-red-600" role="alert">{error}</p> : null}
           {result ? (

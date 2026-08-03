@@ -452,7 +452,7 @@ function ConsultasContent() {
             >
               El análisis clínico con IA está disponible en el workspace de
               detalle de consulta mediante{" "}
-              <strong>Clinical Copilot™</strong> (✨).
+              <strong>HeyDoctor Copilot</strong> (✨).
             </div>
             {consultationId && (
               <ChatPanel consultationId={consultationId} sender="doctor" />

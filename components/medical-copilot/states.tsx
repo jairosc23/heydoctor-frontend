@@ -32,7 +32,7 @@ export function MedicalCopilotEmptyState({
 }
 
 export function MedicalCopilotLoadingState({
-  label = "Cargando Medical Copilot…",
+  label = "Cargando HeyDoctor Copilot…",
   className,
 }: {
   label?: string;
@@ -105,7 +105,7 @@ export function MedicalCopilotInlineStatus({
 }
 
 export function MedicalCopilotErrorState({
-  title = "No se pudo cargar el Medical Copilot",
+  title = "No se pudo cargar HeyDoctor Copilot",
   message,
   onRetry,
   className,

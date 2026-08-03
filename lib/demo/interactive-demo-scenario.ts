@@ -333,7 +333,7 @@ export const interactiveDemoScenario: DemoScenario = {
     },
     {
       key: "clinical-copilot",
-      title: "Clinical Copilot",
+      title: "HeyDoctor Copilot",
       eyebrow: "4 / 6",
       description:
         "Se muestra cómo el futuro panel Copilot usaría contexto estructurado, prompt builder, adapter, governance y evaluación.",

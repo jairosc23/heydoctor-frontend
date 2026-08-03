@@ -119,7 +119,7 @@ export function createCopilotPresenceCard(): AssistCard {
     sourceClass: "MODEL",
     kind: "model_presence",
     urgencyRank: LIQUID_URGENCY_RANK.model_suggestion,
-    title: "Clinical Copilot",
+    title: "HeyDoctor Copilot",
     summary: "Asistencia generativa (MODEL) · provisional",
   };
 }

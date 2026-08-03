@@ -58,7 +58,7 @@ export function ClinicalCopilotSnapshotPanel() {
   return (
     <div data-testid="clinical-copilot-snapshot-panel">
       <ClinicalPanel depth={2}>
-        <ClinicalSection title="Clinical Copilot Snapshot (CI-6)">
+        <ClinicalSection title="HeyDoctor Copilot Snapshot">
           <p className="mb-3 text-xs text-slate-500">
             Vista unificada de Findings → Insights → Recommendations →
             Decisions → Reasoning. Requiere revisión médica · no ejecuta
@@ -67,7 +67,7 @@ export function ClinicalCopilotSnapshotPanel() {
 
           {!sessionId ? (
             <p className="text-sm text-slate-500">
-              Esperando sesión Medical Copilot…
+              Esperando sesión HeyDoctor Copilot…
             </p>
           ) : null}
 

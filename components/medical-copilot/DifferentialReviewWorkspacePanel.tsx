@@ -13,7 +13,7 @@ export function DifferentialReviewWorkspacePanel() {
       <ClinicalPanel depth={2}>
         <ClinicalSection title="Differential Review Workspace (AI-47)">
           <p className="mb-3 text-xs text-slate-500">Referencias estructurales del diferencial. Sin hipótesis nuevas · sin priorización clínica · HITL obligatorio.</p>
-          {!sessionId ? <p className="text-sm text-slate-500">Esperando sesión Medical Copilot…</p> : null}
+          {!sessionId ? <p className="text-sm text-slate-500">Esperando sesión HeyDoctor Copilot…</p> : null}
           {loading ? <p className="text-sm text-slate-500">Cargando…</p> : null}
           {error ? <p className="text-sm text-red-600" role="alert">{error}</p> : null}
           {model ? (

@@ -40,7 +40,7 @@ export function useGovernedClinicalIntelligenceFlow(
 
   const run = useCallback(() => {
     if (!sessionId) {
-      setError("Sesión Medical Copilot no disponible");
+      setError("Sesión HeyDoctor Copilot no disponible");
       setResult(null);
       return;
     }

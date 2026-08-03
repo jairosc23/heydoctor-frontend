@@ -28,7 +28,7 @@ export function ClinicalInsightsPanel() {
   return (
     <div data-testid="clinical-insights-panel">
       <ClinicalPanel depth={2}>
-        <ClinicalSection title="Clinical Insights (CI-2)">
+        <ClinicalSection title="Clinical Insights">
           <p className="mb-3 text-xs text-slate-500">
             Insights consolidados desde Clinical Findings. Requiere revisión
             médica · no ejecuta acciones · no persiste en EMR.
@@ -36,7 +36,7 @@ export function ClinicalInsightsPanel() {
 
           {!sessionId ? (
             <p className="text-sm text-slate-500">
-              Esperando sesión Medical Copilot…
+              Esperando sesión HeyDoctor Copilot…
             </p>
           ) : null}
 

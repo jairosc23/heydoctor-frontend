@@ -114,7 +114,7 @@ export function EncounterActionMenu({
             }}
           />
           <MenuItem
-            label="Análisis clínico con IA"
+            label="Analizar con HeyDoctor Copilot"
             icon="✨"
             loading={loading.ai}
             disabled={disabled.ai}

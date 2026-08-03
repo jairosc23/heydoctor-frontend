@@ -183,7 +183,7 @@ export function DemoClinicalWorkspace({ scenario }: { scenario: DemoScenario }) 
 
         <aside className="space-y-5">
           <WorkspaceCard
-            title="Clinical Copilot"
+            title="HeyDoctor Copilot"
             caption="DemoCopilotPanel con payload mock del escenario."
           >
             <DemoCopilotPanel data={workspace.copilot} />

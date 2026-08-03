@@ -12,7 +12,7 @@ export function DifferentialReasoningEnginePanel() {
       <ClinicalPanel depth={2}>
         <ClinicalSection title="Differential Reasoning Engine (AI-77)">
           <p className="mb-3 text-xs text-slate-500">Organización estructural de hipótesis existentes. Sin crear diagnósticos · HITL obligatorio.</p>
-          {!sessionId ? <p className="text-sm text-slate-500">Esperando sesión Medical Copilot…</p> : null}
+          {!sessionId ? <p className="text-sm text-slate-500">Esperando sesión HeyDoctor Copilot…</p> : null}
           {loading ? <p className="text-sm text-slate-500">Cargando…</p> : null}
           {error ? <p className="text-sm text-red-600" role="alert">{error}</p> : null}
           {model ? (

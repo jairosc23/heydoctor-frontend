@@ -13,7 +13,7 @@ import { ClinicalWorkflowStatus } from "./ClinicalWorkflowStatus";
 const PHASE_LABELS: Record<string, string> = {
   idle: "Inactivo",
   entering_consultation: "Ingreso a consulta",
-  bootstrapping: "Bootstrap Medical Copilot",
+  bootstrapping: "Bootstrap HeyDoctor Copilot",
   workspace_ready: "Workspace listo",
   dictation_ready: "Dictado clínico",
   voice_intelligence_active: "Voice Intelligence",
@@ -42,7 +42,7 @@ export function ClinicalWorkflowBanner() {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Medical Copilot · Flujo clínico
+              HeyDoctor Copilot · Flujo clínico
             </p>
             <h2 className="mt-1 text-lg font-semibold text-slate-900">
               {PHASE_LABELS[phase] ?? phase}

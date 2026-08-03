@@ -21,7 +21,7 @@ export function MedicalCopilotHeader({
     >
       <div>
         <p className="text-xs font-semibold uppercase tracking-wide text-primary">
-          Medical Copilot
+          HeyDoctor Copilot
         </p>
         <h1 className="mt-1 text-xl font-semibold text-slate-900 sm:text-2xl">
           Workspace clínico

@@ -166,14 +166,14 @@ export function W5AdvisoryCards({
           style={{ margin: 0, fontSize: 11, color: "#556" }}
         >
           {uiState === "loading"
-            ? "Cargando avisos W5…"
+            ? "Cargando avisos clínicos…"
             : uiState === "advisory"
               ? `${insights.length} aviso(s) advisory · DETERMINISTIC`
               : uiState === "forbidden"
-                ? "W5 no disponible (fail-closed)"
+                ? "Inteligencia clínica no disponible (fail-closed)"
                 : uiState === "error"
-                  ? "W5 degradado — el workspace clínico sigue usable"
-                  : "Sin avisos W5"}
+                  ? "Inteligencia clínica degradada — el workspace sigue usable"
+                  : "Sin avisos clínicos"}
         </p>
       ) : null}
 
@@ -193,7 +193,7 @@ export function W5AdvisoryCards({
 
           {uiState === "forbidden" ? (
             <p data-testid="aec1-w5-state-forbidden" style={{ margin: 0 }}>
-              W5 clinical intel OFF o sin autoridad (
+              Inteligencia clínica OFF o sin autoridad (
               <code>{response?.code ?? "W5_FLAG_OR_AUTHORITY_DENIED"}</code>).
               Assist degradado; el encuentro sigue usable.
             </p>
@@ -201,7 +201,7 @@ export function W5AdvisoryCards({
 
           {uiState === "error" ? (
             <p data-testid="aec1-w5-state-error" style={{ margin: 0 }}>
-              No se pudo cargar W5 (
+              No se pudo cargar inteligencia clínica (
               <code>{response?.code ?? "W5_CLINICAL_ERROR"}</code>). Workspace
               clínico intacto.
               <button

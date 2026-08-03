@@ -99,7 +99,7 @@ export function CopilotGenerativeSection({
         </span>
         <span className="min-w-0 flex-1">
           <span className={CLINICAL_SECTION_TITLE}>
-            Clinical AI Assistant™
+            Assistant
           </span>
           <span className="mt-0.5 block text-[11px] font-normal text-slate-500">
             Análisis generativo bajo demanda — colapsado por defecto

@@ -107,7 +107,10 @@ export interface EncounterHeaderProps {
   onOpenDoctorDna?: () => void;
   copilotDrawerOpen?: boolean;
   onOpenCopilot?: () => void;
-  /** AR-1 — Visible navigation to Medical Copilot GA surface. */
+  /**
+   * @deprecated Brand consolidation — Medical Copilot route remains internal;
+   * production AI entry is HeyDoctor Copilot drawer via onOpenCopilot.
+   */
   medicalCopilotHref?: string | null;
   hideModuleShortcuts?: boolean;
   className?: string;
@@ -144,7 +147,7 @@ export function EncounterHeader({
   onOpenDoctorDna,
   copilotDrawerOpen = false,
   onOpenCopilot,
-  medicalCopilotHref = null,
+  medicalCopilotHref: _medicalCopilotHref = null,
   hideModuleShortcuts = false,
   className,
 }: EncounterHeaderProps) {
@@ -193,18 +196,7 @@ export function EncounterHeader({
               {isEditing ? "Cerrar edición" : "Editar consulta"}
             </button>
           ) : null}
-          {medicalCopilotHref ? (
-            <a
-              href={medicalCopilotHref}
-              data-testid="encounter-medical-copilot-link"
-              aria-label="Abrir Medical Copilot"
-              title="Medical Copilot"
-              className="inline-flex h-8 items-center gap-1 rounded-md border border-slate-200 bg-white px-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-            >
-              <span aria-hidden>🩺</span>
-              <span className="hidden sm:inline">Medical Copilot</span>
-            </a>
-          ) : null}
+          {/* Brand SSOT: single AI entry → HeyDoctor Copilot drawer (route /medical-copilot preserved). */}
           <ClinicalCopilotTrigger
             onClick={() => onOpenCopilot?.()}
             active={copilotDrawerOpen}

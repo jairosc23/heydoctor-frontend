@@ -20,7 +20,7 @@ export function GovernedClinicalIntelligenceFlowPanel() {
           </p>
           {!sessionId ? (
             <p className="text-sm text-slate-500">
-              Esperando sesión Medical Copilot…
+              Esperando sesión HeyDoctor Copilot…
             </p>
           ) : (
             <div className="mb-3 flex flex-wrap gap-2">

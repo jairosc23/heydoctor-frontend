@@ -14,7 +14,7 @@ export function PhysicianReviewDashboardPanel() {
       <ClinicalPanel depth={2}>
         <ClinicalSection title="Physician Review Dashboard (AI-39)">
           <p className="mb-3 text-xs text-slate-500">Dashboard consolidado de revisión. Solo visualización · sin aprobación · HITL obligatorio.</p>
-          {!sessionId ? <p className="text-sm text-slate-500">Esperando sesión Medical Copilot…</p> : null}
+          {!sessionId ? <p className="text-sm text-slate-500">Esperando sesión HeyDoctor Copilot…</p> : null}
           <MedicalCopilotInlineStatus loading={loading} error={error} onRetry={refresh} />
           {model ? (
             <div className="space-y-3" data-testid="physician-review-dashboard">

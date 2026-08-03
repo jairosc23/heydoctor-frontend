@@ -154,7 +154,7 @@ export function EncounterRuntimeHost({
               contextBlocksAssist
             }
           >
-            {assistOpen ? "Ocultar Copilot Assist" : "Copilot Assist"}
+            {assistOpen ? "Ocultar Assistant" : "Assistant"}
           </button>
         ) : null}
         {initError ? (

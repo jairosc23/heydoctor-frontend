@@ -68,7 +68,7 @@ export function DemoCopilotPanel({
   return (
     <div className={`overflow-hidden rounded-lg border border-primary/20 bg-white ${className}`}>
       <div className="border-b border-primary/20 bg-primaryLight px-3 py-2">
-        <p className="text-sm font-semibold text-primaryDark">Asistencia del Copilot</p>
+        <p className="text-sm font-semibold text-primaryDark">HeyDoctor Copilot</p>
         <p className="mt-0.5 text-xs text-primaryMid">Sugerencias clínicas para revisión médica.</p>
       </div>
       <div className="space-y-3 p-3 text-sm">

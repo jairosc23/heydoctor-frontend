@@ -50,7 +50,7 @@ export function LiquidAssistPlane({
       data-disclosure={disclosure}
       data-authority="NON_AUTHORITY"
       data-planes={SOURCE_HINTS.join(",")}
-      aria-label="Asistencia clínica (advisory)"
+      aria-label="HeyDoctor Copilot (advisory)"
       role="complementary"
       style={{
         marginTop: 8,
@@ -62,8 +62,7 @@ export function LiquidAssistPlane({
       }}
     >
       <div data-testid="aec1-liquid-assist-boundary">
-        Assist plane · MODEL (Copilot drawer) + DETERMINISTIC (W5) · never
-        Confirm/Emit
+        HeyDoctor Copilot · MODEL + DETERMINISTIC · never Confirm/Emit
       </div>
 
       <div data-testid="aec1-liquid-assist-cards">

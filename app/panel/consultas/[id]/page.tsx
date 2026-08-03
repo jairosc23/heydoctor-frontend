@@ -896,7 +896,7 @@ export default function ConsultationDetailPage() {
     setGenerativeExpandToken((token) => token + 1);
     flashAction(
       "info",
-      "Abriendo Clinical Copilot™ — asistente generativo listo para analizar.",
+      "Abriendo HeyDoctor Copilot — asistencia generativa lista para analizar.",
       undefined,
       4000,
     );

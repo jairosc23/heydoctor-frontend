@@ -82,7 +82,7 @@ export function EncounterLeftPane({
             <div aria-label="Mensajería de consulta">
               <p className="mb-hd-3 text-[11px] text-slate-500">
                 Mensajería clínica. Para análisis con IA use{" "}
-                <span className="font-semibold text-primary">Clinical Copilot™</span>{" "}
+                <span className="font-semibold text-primary">HeyDoctor Copilot</span>{" "}
                 (✨ en la cabecera).
               </p>
               <ChatPanel consultationId={consultationId} sender="doctor" />

@@ -164,7 +164,7 @@ export function ConsultationActionBar({
           onClick={handlers.onToggleEdit}
         />
         <Chip
-          label="Análisis clínico con IA"
+          label="Analizar con HeyDoctor Copilot"
           icon="✨"
           variant="ai"
           loading={loading.ai}

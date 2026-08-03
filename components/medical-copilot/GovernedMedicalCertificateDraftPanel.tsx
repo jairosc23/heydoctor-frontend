@@ -51,7 +51,7 @@ export function GovernedMedicalCertificateDraftPanel() {
           </p>
           {!sessionId ? (
             <p className="text-sm text-slate-500">
-              Esperando sesión Medical Copilot…
+              Esperando sesión HeyDoctor Copilot…
             </p>
           ) : null}
           {loading ? <p className="text-sm text-slate-500">Cargando…</p> : null}

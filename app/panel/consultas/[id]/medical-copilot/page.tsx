@@ -669,7 +669,7 @@ export default function MedicalCopilotPage() {
             ← Volver a la consulta
           </Link>
           <span className="text-xs text-slate-500">
-            Medical Copilot v1.0 · GA
+            HeyDoctor Copilot · Workspace
           </span>
         </div>
       </div>
@@ -692,8 +692,8 @@ export default function MedicalCopilotPage() {
           data-testid="medical-copilot-kill-switch"
         >
           <MedicalCopilotErrorState
-            title="Medical Copilot deshabilitado"
-            message="El Medical Copilot está desactivado por kill switch / feature flag. La consulta clínica, el EMR y la autenticación no se ven afectados. Vuelva a la consulta para continuar el trabajo clínico."
+            title="HeyDoctor Copilot deshabilitado"
+            message="HeyDoctor Copilot está desactivado por kill switch / feature flag. La consulta clínica, el EMR y la autenticación no se ven afectados. Vuelva a la consulta para continuar el trabajo clínico."
           />
           <div className="mt-4">
             <Link
@@ -1033,7 +1033,7 @@ export default function MedicalCopilotPage() {
                       <MedicalCopilotDeferredPanel title="Governed Clinical Intelligence Runtime">
                         <GovernedClinicalIntelligenceRuntimePanel />
                       </MedicalCopilotDeferredPanel>
-                      <MedicalCopilotDeferredPanel title="Governed Clinical Assistance">
+                      <MedicalCopilotDeferredPanel title="Assistant">
                         <GovernedClinicalAssistancePanel />
                       </MedicalCopilotDeferredPanel>
                       <MedicalCopilotDeferredPanel title="Governed Clinical Draft">

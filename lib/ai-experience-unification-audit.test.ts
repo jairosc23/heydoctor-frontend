@@ -14,9 +14,9 @@ describe("ai-experience-unification-audit Phase 4.8.2", () => {
     assert.equal(AI_ENTRY_POINT_SUMMARY.targetMax, 2);
   });
 
-  it("Clinical Copilot es principal y LiveAiNotes contextual", () => {
+  it("HeyDoctor Copilot es principal y LiveAiNotes contextual", () => {
     const primary = AI_UNIFICATION_VERDICTS.find(
-      (v) => v.component.includes("Clinical Copilot"),
+      (v) => v.component.includes("HeyDoctor Copilot"),
     );
     const contextual = AI_UNIFICATION_VERDICTS.find(
       (v) => v.component.includes("LiveAiNoteSuggestions"),

@@ -30,9 +30,9 @@ function InsightCard({ insight }: { insight: CopilotInsight }) {
 
 export function CopilotInsightCards({ insights }: { insights: CopilotInsight[] }) {
   return (
-    <section aria-label="Clinical Insight Cards" className="space-y-hd-2">
+    <section aria-label="Clinical Insights" className="space-y-hd-2">
       <div>
-        <h3 className={CLINICAL_SECTION_TITLE}>Clinical Insight Cards™</h3>
+        <h3 className={CLINICAL_SECTION_TITLE}>Clinical Insights™</h3>
         <p className="text-[11px] text-slate-500">
           Observaciones contextuales — sin diagnósticos automáticos
         </p>

@@ -10,7 +10,7 @@ const COMPONENT_DEFS: Array<{
   label: string;
 }> = [
   { key: "documentationPackage", label: "Documentation Package" },
-  { key: "clinicalAssistance", label: "Clinical Assistance" },
+  { key: "clinicalAssistance", label: "Assistant" },
   { key: "intelligenceRuntime", label: "Intelligence Runtime" },
   { key: "clinicalContext", label: "Clinical Context" },
   { key: "clinicalPlan", label: "Clinical Plan" },

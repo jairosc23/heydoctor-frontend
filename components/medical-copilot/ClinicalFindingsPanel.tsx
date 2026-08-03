@@ -36,7 +36,7 @@ export function ClinicalFindingsPanel() {
 
         {!sessionId ? (
           <p className="text-sm text-slate-500">
-            Esperando sesión Medical Copilot…
+            Esperando sesión HeyDoctor Copilot…
           </p>
         ) : null}
 

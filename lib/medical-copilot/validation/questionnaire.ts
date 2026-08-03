@@ -13,7 +13,7 @@ export const DEFAULT_VALIDATION_QUESTIONNAIRE: ValidationQuestionnaire = {
   version: CLINICAL_VALIDATION_VERSION,
   title: "Validación clínica (Beta)",
   description:
-    "Cuestionario voluntario y anónimo sobre la experiencia de uso del Medical Copilot. No registre datos del paciente ni texto clínico.",
+    "Cuestionario voluntario y anónimo sobre la experiencia de uso de HeyDoctor Copilot. No registre datos del paciente ni texto clínico.",
   questions: [
     {
       id: "perceived_utility",
@@ -47,7 +47,7 @@ export const DEFAULT_VALIDATION_QUESTIONNAIRE: ValidationQuestionnaire = {
     },
     {
       id: "willingness_to_reuse",
-      prompt: "¿Volvería a utilizar el Medical Copilot en próximas consultas?",
+      prompt: "¿Volvería a utilizar HeyDoctor Copilot en próximas consultas?",
       helpText: "1 = definitivamente no · 5 = definitivamente sí",
     },
   ],
