@@ -6258,7 +6258,7 @@ async function mockConsultationApis(page: import("@playwright/test").Page) {
   });
 }
 
-test.describe("RC-2 Medical Copilot hardening", () => {
+test.describe("RC-2 HeyDoctor Copilot hardening", () => {
   test.beforeEach(async ({ page }) => {
     await injectPanelSessionCookie(page);
   });

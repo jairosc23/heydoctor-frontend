@@ -332,7 +332,7 @@ describe("RC-1.5 Chaos — Recuperación", () => {
 });
 
 describe("RC-1.5 Chaos — Kill switch isolation (contrato esperado)", () => {
-  it("Kill switch Medical Copilot existe (RC-2 P0-1)", () => {
+  it("Kill switch HeyDoctor Copilot existe (RC-2 P0-1)", () => {
     const storage = {
       store: new Map<string, string>(),
       getItem(key: string) {

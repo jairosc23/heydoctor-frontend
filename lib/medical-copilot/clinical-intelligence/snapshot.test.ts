@@ -6,7 +6,7 @@ import {
 } from "./snapshot";
 import { mapSnapshot, mapSnapshotEnvelope } from "./snapshot-mapper";
 
-describe("CI-6 Clinical Copilot Snapshot mapper", () => {
+describe("CI-6 HeyDoctor Copilot Snapshot mapper", () => {
   it("maps orchestrator envelope and preserves HITL governance", () => {
     const snapshot: ClinicalCopilotSnapshot = {
       findings: [{ id: "f1", category: "workspace", summary: "Finding" }],
