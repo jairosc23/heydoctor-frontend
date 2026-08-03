@@ -197,6 +197,7 @@ export const PatientAntecedentsSection = forwardRef<
   const draftRef = useRef(draft);
   const baselineKeyRef = useRef(baselineKey);
   const savingRef = useRef(false);
+  const patientIdRef = useRef(patientId);
 
   useEffect(() => {
     draftRef.current = draft;
@@ -207,8 +208,14 @@ export const PatientAntecedentsSection = forwardRef<
   }, [baselineKey]);
 
   useEffect(() => {
-    // Never clobber an in-progress dirty draft when profile props refresh.
-    if (draftKeyOf(draftRef.current) !== baselineKeyRef.current) {
+    const patientChanged = patientIdRef.current !== patientId;
+    patientIdRef.current = patientId;
+    // Always reload when the patient changes. Only protect dirty drafts
+    // against same-patient profile prop refreshes.
+    if (
+      !patientChanged &&
+      draftKeyOf(draftRef.current) !== baselineKeyRef.current
+    ) {
       return;
     }
     const next = draftFromProfile(profile);
