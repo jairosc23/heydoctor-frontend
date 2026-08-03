@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { toAiClinicalUserMessage } from "@/lib/ai-clinical-errors";
 import { cn } from "@/lib/utils";
 
 export function MedicalCopilotEmptyState({
@@ -112,6 +113,9 @@ export function MedicalCopilotErrorState({
   onRetry?: () => void;
   className?: string;
 }) {
+  const safeMessage = message
+    ? toAiClinicalUserMessage(message)
+    : undefined;
   return (
     <div
       className={cn(
@@ -121,7 +125,9 @@ export function MedicalCopilotErrorState({
       role="alert"
     >
       <p className="text-sm font-semibold text-rose-800">{title}</p>
-      {message ? <p className="mt-1 text-sm text-rose-700">{message}</p> : null}
+      {safeMessage ? (
+        <p className="mt-1 text-sm text-rose-700">{safeMessage}</p>
+      ) : null}
       {onRetry ? (
         <button
           type="button"

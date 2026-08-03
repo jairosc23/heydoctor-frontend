@@ -157,14 +157,33 @@ export function useClinicalSectionSpy(
       "(prefers-reduced-motion: reduce)",
     ).matches;
     setActiveIfChanged(sectionId);
-    element.scrollIntoView({
-      block: "start",
-      behavior: prefersReducedMotion ? "auto" : "smooth",
-    });
+
+    // Prefer nearest + chrome-aware offset to avoid abrupt jumps (esp. Signature).
+    const root = resolveScrollRoot(rootSelector);
+    const chromeOffset = resolveChromeOffset() + ACTIVE_OFFSET_PX;
+    if (root) {
+      const rootRect = root.getBoundingClientRect();
+      const elRect = element.getBoundingClientRect();
+      const delta = elRect.top - rootRect.top - chromeOffset;
+      // Only nudge when the section is meaningfully outside the readable band.
+      if (Math.abs(delta) > 8) {
+        root.scrollBy({
+          top: delta,
+          behavior: prefersReducedMotion ? "auto" : "smooth",
+        });
+      }
+    } else {
+      element.scrollIntoView({
+        block: "nearest",
+        inline: "nearest",
+        behavior: prefersReducedMotion ? "auto" : "smooth",
+      });
+    }
+
     window.setTimeout(() => {
       element.focus({ preventScroll: true });
     }, prefersReducedMotion ? 0 : 180);
-  }, [setActiveIfChanged]);
+  }, [rootSelector, setActiveIfChanged]);
 
   return { activeSectionId, navigateToSection };
 }

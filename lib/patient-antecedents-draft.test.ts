@@ -36,6 +36,15 @@ function personalDraftText(profile: {
   ).join("\n");
 }
 
+function draftKeyOf(draft: {
+  personalText: string;
+  medicationsText: string;
+  allergiesText: string;
+  familyText: string;
+}): string {
+  return JSON.stringify(draft);
+}
+
 describe("patient antecedents draft contract", () => {
   it("edit draft includes surgeries/disabilities that read-mode shows", () => {
     const profile = {
@@ -53,5 +62,35 @@ describe("patient antecedents draft contract", () => {
     const text = "HTA\nApendicectomía: 2019";
     const lines = textToJsonLines(text);
     assert.equal(jsonLinesToText(lines), text);
+  });
+
+  it("draft key changes when a line is removed", () => {
+    const before = draftKeyOf({
+      personalText: "HTA\nDM2",
+      medicationsText: "",
+      allergiesText: "",
+      familyText: "",
+    });
+    const after = draftKeyOf({
+      personalText: "HTA",
+      medicationsText: "",
+      allergiesText: "",
+      familyText: "",
+    });
+    assert.notEqual(before, after);
+  });
+
+  it("merged personales stay stable when surgeries are consolidated away", () => {
+    const before = personalDraftText({
+      chronicConditions: [{ label: "HTA" }],
+      surgeries: [{ label: "Apendicectomía" }],
+      disabilities: [],
+    });
+    const afterSave = personalDraftText({
+      chronicConditions: textToJsonLines(before),
+      surgeries: [],
+      disabilities: [],
+    });
+    assert.equal(afterSave, before);
   });
 });

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { CLINICAL_SECTION_TITLE } from "@/lib/clinical-design-tokens";
-import { humanizeAiClinicalError } from "@/lib/ai-clinical-errors";
+import { toAiClinicalUserMessage } from "@/lib/ai-clinical-errors";
 import {
   getConsultationAssist,
   type ConsultationAssistResponse,
@@ -12,7 +12,6 @@ import {
   type CopilotGenerativeContext,
   type CopilotGenerativeSectionView,
 } from "@/lib/copilot-generative-section";
-import { getApiErrorMessage } from "@/lib/heydoctor-api";
 import { cn } from "@/lib/utils";
 
 export type CopilotGenerativeSectionProps = CopilotGenerativeContext & {
@@ -65,15 +64,12 @@ export function CopilotGenerativeSection({
       });
       setUi({ status: "success", assist: data, view, requestId });
     } catch (error) {
-      const humanized = humanizeAiClinicalError(error);
       setUi({
         status: "error",
-        message:
-          humanized ??
-          getApiErrorMessage(
-            error,
-            "No se pudo generar el análisis clínico. Inténtalo de nuevo.",
-          ),
+        message: toAiClinicalUserMessage(
+          error,
+          "No se pudo generar el análisis clínico. Inténtalo de nuevo.",
+        ),
       });
     }
   }, [chiefComplaint, notes, diagnosis, treatment]);

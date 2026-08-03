@@ -82,12 +82,26 @@ export function EncounterHeaderActions({
               : ""}
           </span>
         ) : showSignPanel ? (
-          <a
-            href="#encounter-sign-panel"
+          <button
+            type="button"
             className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50"
+            onClick={() => {
+              const target =
+                document.getElementById("encounter-section-20") ??
+                document.getElementById("encounter-sign-panel");
+              if (!target) return;
+              const prefersReducedMotion = window.matchMedia(
+                "(prefers-reduced-motion: reduce)",
+              ).matches;
+              target.scrollIntoView({
+                block: "nearest",
+                inline: "nearest",
+                behavior: prefersReducedMotion ? "auto" : "smooth",
+              });
+            }}
           >
             Firmar consulta
-          </a>
+          </button>
         ) : null}
 
         {showPay ? (
@@ -144,7 +158,7 @@ export function EncounterHeaderActions({
 
       {showSignPanel ? (
         <div
-          id="encounter-sign-panel"
+          id="encounter-header-sign-panel"
           className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"
         >
           <p className="mb-2 text-xs text-slate-600">

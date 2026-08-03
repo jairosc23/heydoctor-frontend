@@ -136,6 +136,8 @@ export default function ConsultationDetailPage() {
   const [manualSaveStatus, setManualSaveStatus] = useState<
     "idle" | "saving" | "saved" | "error"
   >("idle");
+  const [manualLastSavedAt, setManualLastSavedAt] = useState<Date | null>(null);
+  const ignoreManualSaveDraftResetRef = useRef(false);
 
   const [transitioning, setTransitioning] = useState(false);
   const [signing, setSigning] = useState(false);
@@ -492,6 +494,15 @@ export default function ConsultationDetailPage() {
     save: persistSoapDraft,
   });
 
+  const effectiveLastSavedAt = (() => {
+    if (manualLastSavedAt && lastSavedAt) {
+      return manualLastSavedAt.getTime() >= lastSavedAt.getTime()
+        ? manualLastSavedAt
+        : lastSavedAt;
+    }
+    return manualLastSavedAt ?? lastSavedAt ?? null;
+  })();
+
   const hasUnsavedClinicalChanges =
     antecedentsDirty ||
     isDraftDirty ||
@@ -500,16 +511,33 @@ export default function ConsultationDetailPage() {
     manualSaveStatus === "saving";
 
   useEffect(() => {
-    setManualSaveStatus((status) =>
-      status === "saving" ? status : "idle",
-    );
+    // Keep success/error visible after save; ignore the draft-key bump caused by flush itself.
+    if (ignoreManualSaveDraftResetRef.current) {
+      ignoreManualSaveDraftResetRef.current = false;
+      return;
+    }
+    setManualSaveStatus((status) => {
+      if (status === "saving" || status === "error") return status;
+      if (status === "saved") return "idle";
+      return "idle";
+    });
   }, [soapDraftKey]);
+
+  useEffect(() => {
+    if (manualSaveStatus !== "saved") return;
+    const timer = window.setTimeout(() => {
+      setManualSaveStatus((status) => (status === "saved" ? "idle" : status));
+    }, 4000);
+    return () => window.clearTimeout(timer);
+  }, [manualSaveStatus]);
 
   // Persistencia determinística al ocultar/cerrar pestaña (antes de F5 / navegación).
   useEffect(() => {
     const persistAntecedents = () => {
       if (antecedentsRef.current?.isDirty()) {
-        void antecedentsRef.current.flush();
+        void antecedentsRef.current.flush().catch((err) => {
+          console.warn("[antecedents] flush on hide failed", err);
+        });
       }
     };
     const onVisibility = () => {
@@ -525,6 +553,7 @@ export default function ConsultationDetailPage() {
 
   async function handleManualSave() {
     if (!isEditable || !consultation) return;
+    if (manualSaveStatus === "saving") return;
     setManualSaveStatus("saving");
     const hadAntecedentsDirty =
       antecedentsDirty || Boolean(antecedentsRef.current?.isDirty());
@@ -533,6 +562,9 @@ export default function ConsultationDetailPage() {
       // Si el SOAP no cambió, flushNow puede no-op; forzar persistencia de antecedentes.
       const profileSaved = Boolean(await antecedentsRef.current?.flush());
       await clinicalFoundationState.reload();
+      ignoreManualSaveDraftResetRef.current = true;
+      const savedAt = new Date();
+      setManualLastSavedAt(savedAt);
       setManualSaveStatus("saved");
       setAntecedentsDirty(false);
       setSaveMsg(
@@ -609,7 +641,14 @@ export default function ConsultationDetailPage() {
       prevStatusRef.current = st;
       setConsultation(updated);
       consultationRef.current = updated;
-      setSaveMsg("Consulta firmada (cierre legal).");
+      setSaveMsg(
+        updated.signedAt
+          ? `Consulta firmada el ${new Date(updated.signedAt).toLocaleString("es-CL", {
+              dateStyle: "medium",
+              timeStyle: "short",
+            })}.`
+          : "Consulta firmada correctamente. Cierre legal registrado.",
+      );
       void clinicalFoundationState.reload();
     } catch (err) {
       setSaveMsg(err instanceof Error ? err.message : "Error al firmar");
@@ -1267,7 +1306,7 @@ export default function ConsultationDetailPage() {
           onToggleEdit: handleToggleEdit,
           antecedentsDirty,
           autosaveStatus,
-          lastSavedAt,
+          lastSavedAt: effectiveLastSavedAt,
           autosaveError,
           manualSaveStatus,
           onManualSave: handleManualSave,
@@ -1414,7 +1453,7 @@ export default function ConsultationDetailPage() {
             onToggleEdit: handleToggleEdit,
             antecedentsDirty,
             autosaveStatus,
-            lastSavedAt,
+            lastSavedAt: effectiveLastSavedAt,
             autosaveError,
             manualSaveStatus,
             onManualSave: handleManualSave,

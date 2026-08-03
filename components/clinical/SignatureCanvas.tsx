@@ -143,6 +143,7 @@ export function SignatureCanvas({
           type="button"
           onClick={handleConfirm}
           disabled={disabled || !hasContent}
+          data-testid="signature-confirm-button"
           style={{
             padding: "8px 16px",
             background: "#078a92",
@@ -154,7 +155,7 @@ export function SignatureCanvas({
             fontWeight: 600,
           }}
         >
-          Confirmar cierre legal
+          {disabled ? "Firmando…" : "Firmar consulta"}
         </button>
       </div>
     </div>

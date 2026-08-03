@@ -35,20 +35,21 @@ export function AutosaveIndicator({
 
   if (status === "saving" || status === "pending") {
     return (
-      <ClinicalStatusBadge
-        status={autosaveStatusToClinical(status)}
-        label="Guardado automático…"
-        className={cn(className)}
-      />
+      <span data-testid="autosave-syncing" className={cn(className)}>
+        <ClinicalStatusBadge
+          status={autosaveStatusToClinical(status)}
+          label="Sincronizando…"
+        />
+      </span>
     );
   }
 
   if (status === "error" && errorMessage) {
     return (
-      <span className={cn(className)} role="alert">
+      <span className={cn(className)} role="alert" data-testid="autosave-error">
         <ClinicalStatusBadge
           status="critical"
-          label={errorMessage}
+          label="No se pudo sincronizar. Use Guardar."
           showDot={false}
         />
       </span>
@@ -59,11 +60,12 @@ export function AutosaveIndicator({
     const ago = formatSecondsAgo(lastSavedAt);
     if (ago) {
       return (
-        <ClinicalStatusBadge
-          status={autosaveStatusToClinical("saved")}
-          label={`Guardado automático hace ${ago}`}
-          className={cn(className)}
-        />
+        <span data-testid="autosave-synced" className={cn(className)}>
+          <ClinicalStatusBadge
+            status={autosaveStatusToClinical("saved")}
+            label={`Sincronizado hace ${ago}`}
+          />
+        </span>
       );
     }
   }
