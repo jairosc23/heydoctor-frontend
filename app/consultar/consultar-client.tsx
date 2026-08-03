@@ -1,9 +1,8 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { BrandLogo } from "@/components/branding";
-import { useRouter } from "next/navigation";
 import type { DoctorProfile } from "@/lib/services/doctor-profiles";
 import {
   formatConsultationPrice,
@@ -12,53 +11,57 @@ import {
 import { useConsultationPrice } from "@/lib/hooks/useConsultationPrice";
 import { fetchPublicDoctors } from "@/lib/services/doctor-profiles";
 import Container from "@/components/ui/Container";
-import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 
 const FONT_HEADING = "Montserrat, sans-serif";
 
-/** Tokens CTA primario DS (Landing / Login / Consulta Rápida). */
 const CTA_PRIMARY =
-  "rounded-lg border-0 bg-primary shadow-none !shadow-[0_4px_12px_rgba(7,138,146,0.22)] hover:bg-primaryMid hover:scale-100 focus:outline-none focus:ring-2 focus:ring-primaryLight focus:ring-offset-2 disabled:hover:bg-primary disabled:hover:scale-100";
+  "rounded-lg border-0 bg-primary shadow-none !shadow-[0_4px_12px_rgba(7,138,146,0.22)] hover:bg-primaryMid hover:scale-100 focus:outline-none focus:ring-2 focus:ring-primaryLight focus:ring-offset-2";
 
 const FIELD =
-  "min-h-12 rounded-lg border-hd-border-default px-3 py-3 text-base text-primaryDark focus:border-primary focus:ring-2 focus:ring-primaryLight";
+  "min-h-11 rounded-lg border-hd-border-default px-3 py-2.5 text-sm text-primaryDark focus:border-primary focus:ring-2 focus:ring-primaryLight";
 
 export function ConsultarClient({
   initialDoctors,
 }: {
   initialDoctors?: DoctorProfile[];
 }) {
-  const router = useRouter();
   const [doctors, setDoctors] = useState<DoctorProfile[]>(
     initialDoctors ?? [],
   );
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [reason, setReason] = useState("");
-  const [selectedDoctor, setSelectedDoctor] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(
+    !(initialDoctors && initialDoctors.length > 0),
+  );
+  const [loadError, setLoadError] = useState(false);
+  const [query, setQuery] = useState("");
+  const [specialty, setSpecialty] = useState("");
   const consultationPrice = useConsultationPrice();
 
   useEffect(() => {
     let cancelled = false;
 
     if (initialDoctors && initialDoctors.length > 0) {
+      setLoading(false);
       return () => {
         cancelled = true;
       };
     }
 
+    setLoading(true);
+    setLoadError(false);
     fetchPublicDoctors()
       .then((profiles) => {
         if (!cancelled) {
           setDoctors(profiles);
+          setLoading(false);
         }
       })
       .catch(() => {
         if (!cancelled) {
           setDoctors([]);
+          setLoadError(true);
+          setLoading(false);
         }
       });
 
@@ -67,188 +70,261 @@ export function ConsultarClient({
     };
   }, [initialDoctors]);
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setSubmitting(true);
+  const specialties = useMemo(() => {
+    const set = new Set<string>();
+    for (const d of doctors) {
+      const s = d.specialty?.trim();
+      if (s) set.add(s);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "es"));
+  }, [doctors]);
 
-    const params = new URLSearchParams({
-      name: name.trim(),
-      email: email.trim(),
-      reason: reason.trim(),
-      ...(selectedDoctor ? { doctor: selectedDoctor } : {}),
-      redirect: "/panel/consultas",
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return doctors.filter((d) => {
+      if (specialty && d.specialty?.trim() !== specialty) return false;
+      if (!q) return true;
+      const hay = `${d.name} ${d.specialty} ${d.country} ${d.bio ?? ""}`.toLowerCase();
+      return hay.includes(q);
     });
+  }, [doctors, query, specialty]);
 
-    router.push(`/register?${params.toString()}`);
-  }
+  const priceLabel = consultationPrice.loading
+    ? "…"
+    : formatConsultationPrice(
+        consultationPrice.amount,
+        consultationPrice.currency,
+      );
 
   return (
     <div className="min-h-screen bg-hd-surface-base pb-[env(safe-area-inset-bottom)]">
-      <header className="border-b border-hd-border-subtle bg-hd-surface-chrome shadow-hd-1">
-        <Container className="flex h-16 items-center justify-between">
+      <header className="border-b border-hd-border-subtle bg-hd-surface-chrome">
+        <Container className="flex h-14 items-center justify-between sm:h-16">
           <Link href="/" className="no-underline">
             <BrandLogo variant="nav" priority />
           </Link>
-          <Link
-            href="/login"
-            className="inline-flex h-10 min-h-10 items-center rounded-lg border border-primary bg-hd-surface-chrome px-5 text-sm font-medium text-primary no-underline transition-colors duration-hd-base hover:bg-primaryLight focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-            style={{ fontFamily: FONT_HEADING }}
-          >
-            Ya tengo cuenta
-          </Link>
+          <div className="flex items-center gap-2">
+            <Button
+              href="/consulta-rapida"
+              variant="primary"
+              className={`hidden h-9 min-h-9 px-4 text-sm sm:inline-flex ${CTA_PRIMARY}`}
+            >
+              Consulta rápida
+            </Button>
+            <Link
+              href="/login"
+              className="inline-flex h-9 min-h-9 items-center rounded-lg border border-primary bg-hd-surface-chrome px-4 text-sm font-medium text-primary no-underline transition-colors duration-hd-base hover:bg-primaryLight focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+              style={{ fontFamily: FONT_HEADING }}
+            >
+              Ya tengo cuenta
+            </Link>
+          </div>
         </Container>
       </header>
 
-      <main className="py-8 sm:py-12">
-        <Container className="max-w-xl">
-          <div className="mb-8 text-center">
-            <div className="mb-6 flex w-full items-center justify-center">
-              <BrandLogo markOnly markSize={72} priority />
-            </div>
-            <h1
-              className="mb-3 text-3xl font-bold tracking-tight text-primary sm:text-4xl"
-              style={{ fontFamily: FONT_HEADING }}
-            >
-              Consulta médica online
-            </h1>
-            <p className="mx-auto max-w-md text-base leading-relaxed text-primaryDark/70 sm:text-lg">
-              Conecta con un especialista en minutos. Atención profesional
-              desde la comodidad de tu hogar.
-            </p>
-            <p
-              className="mt-4 text-[15px] font-bold text-primaryMid"
-              style={{ fontFamily: FONT_HEADING }}
-            >
-              {URGENCY_AVAILABLE_NOW}
-            </p>
-            <p className="mt-2 text-base text-primaryDark">
-              Consulta desde{" "}
-              <strong className="text-primary">
-                {consultationPrice.loading
-                  ? "…"
-                  : formatConsultationPrice(
-                      consultationPrice.amount,
-                      consultationPrice.currency,
-                    )}
-              </strong>
-            </p>
-          </div>
-
-          <Card className="p-6 shadow-premium sm:p-8">
-            <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-              <div>
-                <label
-                  htmlFor="consultar-name"
-                  className="mb-1 block text-sm font-semibold text-primaryDark"
+      <main>
+        {/* Above-the-fold marketplace hero */}
+        <section className="border-b border-hd-border-subtle bg-white">
+          <Container className="max-w-5xl py-6 sm:py-8">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              <div className="max-w-2xl">
+                <p
+                  className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-primaryMid"
                   style={{ fontFamily: FONT_HEADING }}
                 >
-                  Tu nombre <span className="text-red-600">*</span>
-                </label>
-                <Input
-                  id="consultar-name"
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                  placeholder="Nombre completo"
-                  autoComplete="name"
-                  disabled={submitting}
-                  className={FIELD}
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="consultar-email"
-                  className="mb-1 block text-sm font-semibold text-primaryDark"
+                  Marketplace clínico
+                </p>
+                <h1
+                  className="text-2xl font-bold tracking-tight text-primaryDark sm:text-3xl"
                   style={{ fontFamily: FONT_HEADING }}
                 >
-                  Correo electrónico <span className="text-red-600">*</span>
-                </label>
-                <Input
-                  id="consultar-email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  placeholder="tu@email.com"
-                  autoComplete="email"
-                  disabled={submitting}
-                  className={FIELD}
-                />
+                  Encuentra tu médico y reserva online
+                </h1>
+                <p className="mt-2 text-sm leading-relaxed text-primaryDark/70 sm:text-base">
+                  Explora especialidades y perfiles públicos. Sin plan PRO para
+                  descubrir médicos.
+                </p>
+                <p className="mt-3 text-sm text-primaryDark">
+                  <span className="font-semibold text-primaryMid">
+                    {URGENCY_AVAILABLE_NOW}
+                  </span>
+                  {" · "}
+                  Consultas desde{" "}
+                  <strong className="text-primary">{priceLabel}</strong>
+                </p>
               </div>
-
-              <div>
-                <label
-                  htmlFor="consultar-reason"
-                  className="mb-1 block text-sm font-semibold text-primaryDark"
-                  style={{ fontFamily: FONT_HEADING }}
-                >
-                  Motivo de la consulta <span className="text-red-600">*</span>
-                </label>
-                <textarea
-                  id="consultar-reason"
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                  required
-                  rows={3}
-                  placeholder="Describe brevemente tus síntomas o la razón de tu consulta..."
-                  disabled={submitting}
-                  className={`w-full resize-y outline-none transition-all duration-200 disabled:opacity-60 ${FIELD}`}
-                />
-              </div>
-
-              {doctors.length > 0 && (
-                <div>
-                  <label
-                    htmlFor="consultar-doctor"
-                    className="mb-1 block text-sm font-semibold text-primaryDark"
-                    style={{ fontFamily: FONT_HEADING }}
-                  >
-                    Seleccionar especialista (opcional)
-                  </label>
-                  <select
-                    id="consultar-doctor"
-                    value={selectedDoctor}
-                    onChange={(e) => setSelectedDoctor(e.target.value)}
-                    disabled={submitting}
-                    className={`w-full outline-none transition-all duration-200 disabled:opacity-60 ${FIELD}`}
-                  >
-                    <option value="">Primer disponible</option>
-                    {doctors.map((d) => (
-                      <option key={d.slug} value={d.slug}>
-                        {d.name} — {d.specialty}{" "}
-                        {d.rating > 0 ? `(${Number(d.rating).toFixed(1)})` : ""}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
               <Button
-                type="submit"
+                href="/consulta-rapida"
                 variant="primary"
-                disabled={submitting}
-                className={`w-full min-h-12 text-base ${CTA_PRIMARY}`}
+                className={`h-11 min-h-11 w-full px-5 text-sm sm:w-auto ${CTA_PRIMARY}`}
               >
-                {submitting ? "Preparando..." : "Hablar con médico ahora"}
+                Hablar con un médico ahora
               </Button>
-            </form>
-          </Card>
+            </div>
 
-          <div className="mt-8 text-center">
-            <p className="text-sm text-primaryDark/60">
-              ¿Eres médico?{" "}
-              <Link
-                href="/for-doctors/apply"
-                className="font-semibold text-primary no-underline hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-              >
-                Únete a HeyDoctor
+            <div className="mt-5 grid gap-3 sm:grid-cols-[1fr_220px]">
+              <label className="block">
+                <span className="sr-only">Buscar médico o especialidad</span>
+                <Input
+                  type="search"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Buscar por nombre, especialidad o país…"
+                  className={FIELD}
+                  autoComplete="off"
+                />
+              </label>
+              <label className="block">
+                <span className="sr-only">Filtrar especialidad</span>
+                <select
+                  value={specialty}
+                  onChange={(e) => setSpecialty(e.target.value)}
+                  className={`w-full outline-none transition-all duration-200 ${FIELD}`}
+                >
+                  <option value="">Todas las especialidades</option>
+                  {specialties.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          </Container>
+        </section>
+
+        <Container className="max-w-5xl py-6 sm:py-8">
+          {loading ? (
+            <p className="text-sm text-primaryDark/60">Cargando médicos…</p>
+          ) : null}
+
+          {loadError ? (
+            <div
+              role="alert"
+              className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950"
+            >
+              No pudimos cargar el listado ahora. Puedes intentar de nuevo o ir a{" "}
+              <Link href="/consulta-rapida" className="font-semibold text-primary">
+                consulta rápida
               </Link>
-            </p>
+              .
+            </div>
+          ) : null}
+
+          {!loading && !loadError && filtered.length === 0 ? (
+            <div className="rounded-lg border border-hd-border-subtle bg-white px-4 py-8 text-center">
+              <p className="text-sm font-semibold text-primaryDark">
+                No hay médicos con ese filtro
+              </p>
+              <p className="mt-1 text-sm text-primaryDark/60">
+                Prueba otra especialidad o limpia la búsqueda.
+              </p>
+              <Button
+                type="button"
+                variant="secondary"
+                className="mt-4"
+                onClick={() => {
+                  setQuery("");
+                  setSpecialty("");
+                }}
+              >
+                Limpiar filtros
+              </Button>
+            </div>
+          ) : null}
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {filtered.map((d) => (
+              <article
+                key={d.id || d.slug}
+                className="flex flex-col rounded-xl border border-hd-border-subtle bg-white p-4 shadow-sm"
+                data-testid="marketplace-doctor-card"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primaryLight text-sm font-bold text-primary">
+                    {d.avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={d.avatarUrl}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      initials(d.name)
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <h2
+                      className="truncate text-base font-bold text-primaryDark"
+                      style={{ fontFamily: FONT_HEADING }}
+                    >
+                      {d.name}
+                    </h2>
+                    <p className="truncate text-sm text-primary">
+                      {d.specialty || "Medicina general"}
+                    </p>
+                    <p className="mt-0.5 text-xs text-primaryDark/55">
+                      {d.country || "Online"}
+                      {d.rating > 0
+                        ? ` · ${Number(d.rating).toFixed(1)}★ (${d.ratingCount})`
+                        : ""}
+                    </p>
+                  </div>
+                </div>
+                {d.bio ? (
+                  <p className="mt-3 line-clamp-2 text-sm leading-snug text-primaryDark/70">
+                    {d.bio}
+                  </p>
+                ) : (
+                  <p className="mt-3 text-sm text-primaryDark/50">
+                    Perfil público disponible para reserva.
+                  </p>
+                )}
+                <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                  <Button
+                    href={`/dr/${encodeURIComponent(d.slug)}`}
+                    variant="primary"
+                    className={`h-10 min-h-10 flex-1 text-sm ${CTA_PRIMARY}`}
+                  >
+                    Ver perfil
+                  </Button>
+                  <Button
+                    href={`/dr/${encodeURIComponent(d.slug)}`}
+                    variant="secondary"
+                    className="h-10 min-h-10 flex-1 text-sm"
+                  >
+                    Reservar
+                  </Button>
+                </div>
+              </article>
+            ))}
           </div>
+
+          <p className="mt-8 text-center text-sm text-primaryDark/60">
+            ¿Eres médico?{" "}
+            <Link
+              href="/for-doctors/apply"
+              className="font-semibold text-primary no-underline hover:underline"
+            >
+              Únete a HeyDoctor
+            </Link>
+            {" · "}
+            <Link
+              href="/pricing"
+              className="font-semibold text-primary no-underline hover:underline"
+            >
+              Planes PRO
+            </Link>
+          </p>
         </Container>
       </main>
     </div>
   );
+}
+
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "MD";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0] ?? ""}${parts[1][0] ?? ""}`.toUpperCase();
 }

@@ -26,30 +26,30 @@ export function LandingHero({ whatsAppUrl }: LandingHeroProps) {
   return (
     <section
       aria-labelledby="landing-hero-title"
-      className="bg-white py-12 sm:py-14 lg:py-14"
+      className="bg-white py-8 sm:py-10 lg:py-12"
     >
       <Container>
-        <div className="grid items-center gap-10 md:grid-cols-[minmax(0,1.08fr)_minmax(360px,480px)] md:gap-10">
+        <div className="grid items-center gap-8 md:grid-cols-[minmax(0,1.08fr)_minmax(320px,440px)] md:gap-8">
           <div className="max-w-[520px]">
             <h1
               id="landing-hero-title"
-              className="mb-4 max-w-[480px] font-bold leading-[1.08] tracking-tight text-primaryDark"
+              className="mb-3 max-w-[480px] font-bold leading-[1.08] tracking-tight text-primaryDark"
               style={{
                 fontFamily: FONT_HEADING,
-                fontSize: "clamp(36px, 4.2vw, 48px)",
+                fontSize: "clamp(34px, 4vw, 46px)",
               }}
             >
               Médico online en menos de 1 minuto
             </h1>
 
             <p
-              className="mb-4 text-xl font-semibold text-primary"
+              className="mb-3 text-lg font-semibold text-primary sm:text-xl"
               style={{ fontFamily: FONT_HEADING }}
             >
               Atención médica online, sin esperas
             </p>
 
-            <p className="mb-8 max-w-lg text-base leading-7 text-gray-700">
+            <p className="mb-6 max-w-lg text-base leading-7 text-gray-700">
               Videollamada segura desde el navegador. Atención profesional cuando
               la necesitas, sin colas ni trámites eternos.
             </p>
@@ -60,7 +60,7 @@ export function LandingHero({ whatsAppUrl }: LandingHeroProps) {
                 {...(primaryExternal
                   ? { target: "_blank", rel: "noopener noreferrer" }
                   : {})}
-                className="inline-flex min-h-[48px] items-center justify-center gap-2.5 rounded-full bg-[#25D366] px-7 text-base font-semibold text-white no-underline shadow-[0_6px_16px_rgba(37,211,102,0.16)] transition-colors duration-200 hover:bg-[#20BD5A] focus:outline-none focus:ring-2 focus:ring-[#25D366] focus:ring-offset-2"
+                className="inline-flex min-h-[48px] items-center justify-center gap-2.5 rounded-full bg-[#25D366] px-7 text-base font-semibold text-white no-underline shadow-[0_4px_12px_rgba(37,211,102,0.18)] transition-colors duration-200 hover:bg-[#20BD5A] focus:outline-none focus:ring-2 focus:ring-[#25D366] focus:ring-offset-2"
               >
                 <WhatsappIcon size={20} />
                 Consulta por WhatsApp
@@ -93,9 +93,14 @@ function LandingHeroVisual({
   patientPipSrc: string | null;
 }) {
   return (
-    <div className="relative mx-auto w-full max-w-[440px] md:max-w-none">
+    <div className="relative mx-auto w-full max-w-[400px] md:max-w-none">
+      {/*
+        Composite hero JPG already includes white frame + PiP + controls.
+        Avoid a second chrome layer (slate pad / heavy shadow / double radius)
+        that reads as overlapping borders and green/white top glow.
+      */}
       <div
-        className="relative overflow-hidden rounded-[2rem] bg-slate-100 shadow-[0_16px_40px_rgba(2,44,44,0.10)]"
+        className="relative overflow-hidden rounded-2xl bg-white shadow-[0_10px_28px_rgba(2,44,44,0.08)] ring-1 ring-black/[0.04]"
         style={{ aspectRatio: "222 / 240" }}
       >
         <Image
@@ -103,15 +108,19 @@ function LandingHeroVisual({
           alt="Médico profesional de HeyDoctor listo para una videollamada segura"
           width={LANDING_HERO_DOCTOR_WIDTH}
           height={LANDING_HERO_DOCTOR_HEIGHT}
-          sizes="(max-width: 768px) 100vw, 480px"
-          className="h-full w-full object-cover object-center"
+          sizes="(max-width: 768px) 100vw, 440px"
+          className={
+            LANDING_HERO_MOCK_COMPOSITE
+              ? "h-full w-full scale-[1.035] object-cover object-center"
+              : "h-full w-full object-cover object-center"
+          }
           priority
           unoptimized
         />
 
         {!LANDING_HERO_MOCK_COMPOSITE && (
           <div
-            className="absolute overflow-hidden rounded-2xl border-[3px] border-white shadow-[0_10px_24px_rgba(0,0,0,0.18)]"
+            className="absolute overflow-hidden rounded-xl border-2 border-white shadow-[0_8px_18px_rgba(0,0,0,0.14)]"
             style={{
               right: "8%",
               bottom: "14%",

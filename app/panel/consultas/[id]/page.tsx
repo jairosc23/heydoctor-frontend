@@ -1386,6 +1386,85 @@ export default function ConsultationDetailPage() {
           ordersHighlight={ordersHighlight}
           ordersRefreshKey={ordersRefreshKey}
           ordersPanelExpandSignal={ordersPanelExpandSignal}
+          encounterChart={{
+            vitals,
+            onVitalsChange: setVitals,
+            physicalExam,
+            onPhysicalExamChange: setPhysicalExam,
+            presentIllnessHistory,
+            onPresentIllnessHistoryChange: setPresentIllnessHistory,
+            treatment,
+            onTreatmentChange: setTreatment,
+            clinicId: consultation.clinicId ?? ctxClinicId ?? null,
+            diagnosis: diagnosisState.diagnosis,
+            diagnosisCode: diagnosisState.diagnosisCode || null,
+            diagnosisDescription: diagnosisState.diagnosisDescription || null,
+            diagnosisSource: diagnosisState.source,
+            diagnosisError,
+            onDiagnosisConfirm: handleDiagnosisConfirm,
+            patientId: consultation.patientId,
+            encounterDiagnosis,
+            allergyLines: jsonLinesToList(patientProfile?.allergies),
+            clinicalMemory: effectiveClinicalMemory,
+            clinicalMemoryLoading: effectiveClinicalMemoryLoading,
+            clinicalMemoryError: effectiveClinicalMemoryError,
+            editable: isEditable && editMode,
+            canToggleEdit: isEditable,
+            isEditing: editMode,
+            onToggleEdit: handleToggleEdit,
+            antecedentsDirty,
+            autosaveStatus,
+            lastSavedAt,
+            autosaveError,
+            manualSaveStatus,
+            onManualSave: handleManualSave,
+            saveFeedbackMessage:
+              saveMsg && paymentStep !== "confirm" ? saveMsg : null,
+            closure: {
+              status,
+              isSigned,
+              isLocked,
+              canSign,
+              signing,
+              onSign: handleSign,
+              signedAt: consultation.signedAt,
+              doctorSignature: consultation.doctorSignature,
+              documentHandlers: {
+                onStartTeleconsultation: () => void handleStartCall(),
+                onOpenPrescription: handleOpenPrescription,
+                onGenerateInvoice: () => void handleGenerateInvoice(),
+                onDownloadPdf: () => void handleDownloadPdf(),
+                onToggleEdit: handleToggleEdit,
+                onAnalyzeWithAi: handleAnalyzeWithAi,
+                onDelete: () => void handleDeleteConsultation(),
+                onGenerateSignedPrescription: () =>
+                  void handleSignedPrescription(),
+                onGenerateSignedCertificate: () =>
+                  void handleSignedCertificate(),
+                onGenerateSignedReferral: () => void handleSignedReferral(),
+                onGeneratePremiumDocument: () => void handlePremiumDocument(),
+              },
+              documentLoading: actionLoading,
+              documentDisabled,
+              signMessage:
+                saveMsg && paymentStep !== "confirm" ? saveMsg : undefined,
+            },
+            longitudinal: {
+              patient: patientRow,
+              profile: patientProfile,
+              loading: patientContextLoading,
+              patientId: consultation.patientId,
+              editable: isEditable && editMode,
+              antecedentsRef,
+              onProfileSaved: setPatientProfile,
+              onAntecedentsDraftKeyChange: setAntecedentsDraftKey,
+              onAntecedentsDirtyChange: setAntecedentsDirty,
+              onAntecedentsPersistError: (message) => {
+                setManualSaveStatus("error");
+                setSaveMsg(message);
+              },
+            },
+          }}
           diagnosisCode={
             diagnosisState.diagnosisCode || diagnosisState.diagnosis || undefined
           }

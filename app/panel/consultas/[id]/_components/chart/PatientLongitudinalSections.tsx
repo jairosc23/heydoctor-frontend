@@ -54,8 +54,15 @@ type AntecedentsDraft = {
 };
 
 function draftFromProfile(profile: PatientProfile | null): AntecedentsDraft {
+  // Read-mode merges chronic + surgeries + disabilities under "personales".
+  // Editor must start from the same merged view or data looks "lost" on edit.
+  const personalLines = mergeLines(
+    jsonLinesToList(profile?.chronicConditions),
+    jsonLinesToList(profile?.surgeries),
+    jsonLinesToList(profile?.disabilities),
+  );
   return {
-    personalText: jsonLinesToText(profile?.chronicConditions),
+    personalText: personalLines.join("\n"),
     medicationsText: jsonLinesToText(profile?.medications),
     allergiesText: jsonLinesToText(profile?.allergies),
     familyText: jsonLinesToText(profile?.familyHistory),
@@ -200,10 +207,14 @@ export const PatientAntecedentsSection = forwardRef<
   }, [baselineKey]);
 
   useEffect(() => {
+    // Never clobber an in-progress dirty draft when profile props refresh.
+    if (draftKeyOf(draftRef.current) !== baselineKeyRef.current) {
+      return;
+    }
     const next = draftFromProfile(profile);
     setDraft(next);
     setBaselineKey(draftKeyOf(next));
-  }, [patientId, profileUpdatedAt]);
+  }, [patientId, profileUpdatedAt, profile]);
 
   const currentDraftKey = useMemo(() => draftKeyOf(draft), [draft]);
   const dirty = currentDraftKey !== baselineKey;
@@ -228,8 +239,12 @@ export const PatientAntecedentsSection = forwardRef<
     savingRef.current = true;
     setSaving(true);
     try {
+      // Consolidate "personales" into chronicConditions (schema-stable).
+      // Clear surgeries/disabilities so merged read-view does not duplicate lines.
       const updated = await upsertPatientProfile(patientId, {
         chronicConditions: textToJsonLines(current.personalText),
+        surgeries: [],
+        disabilities: [],
         medications: textToJsonLines(current.medicationsText),
         allergies: textToJsonLines(current.allergiesText),
         familyHistory: textToJsonLines(current.familyText),

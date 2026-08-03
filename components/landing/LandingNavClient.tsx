@@ -37,7 +37,7 @@ export function LandingNavClient() {
   const close = () => setOpen(false);
 
   return (
-    <header className="sticky top-0 z-50 box-border h-[72px] border-b border-[#E8EEF0] bg-white shadow-[0_1px_0_rgba(2,44,44,0.05)]">
+    <header className="sticky top-0 z-50 box-border h-[64px] border-b border-[#E8EEF0] bg-white">
       <Container className="flex h-full items-center">
         <Link
           href="/"
