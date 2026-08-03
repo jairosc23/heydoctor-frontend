@@ -2,11 +2,12 @@
 
 | Field | Value |
 |-------|-------|
-| **Status** | Official brand SSOT |
-| **Product** | HeyDoctor Copilot |
+| **Status** | **OFFICIAL · IDENTITY COMPLETE** |
+| **Product** | HeyDoctor Copilot — official product (not a renamed feature) |
 | **Baseline** | AEC-1 CLOSED / FROZEN |
-| **Scope** | Product identity, naming, authority posture |
-| **Out of scope** | Implementation, architecture changes, ADRs, code |
+| **Brand Promise** | **OFFICIAL · FROZEN** |
+| **Scope** | Permanent product identity for all future UX decisions |
+| **Out of scope** | Implementation, architecture, runtimes, backend, APIs, governance |
 
 This document is the single source of truth for the official identity of **HeyDoctor Copilot** as a product within the HeyDoctor ecosystem.
 
@@ -14,14 +15,49 @@ This document is the single source of truth for the official identity of **HeyDo
 
 # 1. Official Product Identity
 
-**Product Name:**  
-HeyDoctor Copilot
+HeyDoctor Copilot must always be presented as:
 
-**Official Subtitle:**  
-AI-First Clinical Intelligence
+**HeyDoctor Copilot**  
+**AI-First Clinical Intelligence**
+
+It is an **official product**, not a renamed feature.
 
 **Mission:**  
 The unified clinical intelligence platform that empowers physicians before, during, and after every patient encounter.
+
+---
+
+# 1A. Brand Promise — OFFICIAL / FROZEN
+
+| Field | Value |
+|-------|-------|
+| **Status** | **OFFICIAL** |
+| **Freeze** | **FROZEN** |
+| **Change control** | Future modifications require explicit **Product + Architecture** approval |
+
+**Immutable Brand Promise:**
+
+> The physician starts the encounter.  
+> HeyDoctor Copilot understands the clinical context.
+
+This sentence is part of the **official product identity**.
+
+- It is **NOT** a marketing slogan.  
+- It is **NOT** advertising copy.  
+- It **IS** the product philosophy.
+
+**Use consistently in:** brand SSOT, Product Experience, UX principles, first-impression identity framing, future presentations.  
+**Do not overuse in UI.** Identity framing — not every screen.
+
+### Why this promise defines HeyDoctor Copilot
+
+| Principle | How the Brand Promise expresses it |
+|-----------|--------------------------------------|
+| **AI-FIRST** | Intelligence is already oriented to clinical context when the encounter begins — value before the physician has to ask. |
+| **Human-in-the-Loop** | The physician **starts** the encounter. The product does not start, own, or close clinical action. |
+| **Clinical Intelligence** | The promise is understanding **clinical context**, not chatting or entertaining. |
+| **NON-AUTHORITY** | “Understands” is advisory comprehension — not decide, confirm, emit, or apply. |
+| **Physician remains in control** | Subject of the first sentence is the physician. Copilot is the second actor, in service of the first. |
 
 ---
 
@@ -124,6 +160,10 @@ AI-First Clinical Intelligence
 
 The unified clinical intelligence platform that empowers physicians before, during, and after every patient encounter.
 
+**Brand Promise — OFFICIAL / FROZEN**  
+The physician starts the encounter.  
+HeyDoctor Copilot understands the clinical context.
+
 NON-AUTHORITY  
 Human-in-the-Loop  
 Evidence-Driven
@@ -135,17 +175,53 @@ Inteligencia Clínica AI-First
 
 La plataforma unificada de inteligencia clínica que potencia a los médicos antes, durante y después de cada encuentro clínico con sus pacientes.
 
+**Promesa de producto — OFICIAL / CONGELADA**  
+El médico inicia el encuentro.  
+HeyDoctor Copilot comprende el contexto clínico.
+
 SIN AUTORIDAD CLÍNICA  
 Médico en el Centro de la Decisión  
 Basado en Evidencia
 
 ---
 
-# 9. Future Scope
+# 9. Future Product Rule
 
-This document becomes the **SSOT** for all future UX, branding, and product decisions related to HeyDoctor Copilot.
+Future AI capabilities **must extend HeyDoctor Copilot**.
 
-- No implementation roadmap in this document.
-- No architecture changes authorized by this document.
-- No ADR created by this document.
-- No code changes authorized by this document alone.
+- Do **not** create parallel AI brands.  
+- Do **not** introduce alternate clinician-facing AI product names.  
+- Everything must naturally fit under:
+
+**HeyDoctor Copilot**  
+**AI-First Clinical Intelligence**
+
+Internal runtimes and planes may keep engineering names; the **user-facing product** remains one.
+
+---
+
+# 10. Future Scope
+
+This document is the **permanent product identity SSOT** for all future UX, branding, and product decisions related to HeyDoctor Copilot.
+
+- Brand Promise is **OFFICIAL / FROZEN** (see §1A).  
+- No implementation roadmap in this document.  
+- No architecture, runtime, backend, API, or governance changes authorized by this document alone.  
+- AEC-1 remains CLOSED / FROZEN.
+
+---
+
+# 11. Brand Constitution
+
+Philosophical foundation of HeyDoctor Copilot. Permanent.
+
+- **One Product**
+- **One Identity**
+- **One Copilot**
+- **AI-First**
+- **Human-in-the-Loop**
+- **Evidence-Driven**
+- **NON-AUTHORITY**
+- **Physician Always in Control**
+
+Any future capability, surface, or UX decision that violates this constitution does not belong under HeyDoctor Copilot.
