@@ -7,6 +7,7 @@
 
 import { ClinicalPanel } from "@/components/clinical/design";
 import { useClinicalWorkflow } from "@/context/ClinicalWorkflowContext";
+import { toAiClinicalUserMessage } from "@/lib/ai-clinical-errors";
 import { ClinicalWorkflowStatus } from "./ClinicalWorkflowStatus";
 
 const PHASE_LABELS: Record<string, string> = {
@@ -103,7 +104,7 @@ export function ClinicalWorkflowBanner() {
             <p className="font-medium">
               Error recuperable · {error.code}
             </p>
-            <p className="mt-1">{error.message}</p>
+            <p className="mt-1">{toAiClinicalUserMessage(error.message)}</p>
             <div className="mt-2 flex flex-wrap gap-2">
               <button
                 type="button"

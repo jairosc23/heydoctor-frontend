@@ -68,8 +68,11 @@ export function EncounterClosureSection({
             {statusLabel}
           </span>
           {isSigned ? (
-            <span className="text-xs font-medium text-emerald-700">
-              Consulta firmada
+            <span
+              className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-800"
+              data-testid="encounter-signed-badge"
+            >
+              Firmada
             </span>
           ) : showSign ? (
             <span className="text-xs text-slate-600">
@@ -82,16 +85,15 @@ export function EncounterClosureSection({
           )}
         </div>
 
-        {isSigned && doctorSignature ? (
-          <div className="flex flex-wrap items-center gap-3 rounded-hd-md border border-emerald-200 bg-emerald-50/80 p-hd-2">
-            <Image
-              unoptimized
-              src={`data:image/png;base64,${doctorSignature}`}
-              alt="Firma del doctor"
-              width={160}
-              height={64}
-              className="h-auto max-h-[56px] w-auto max-w-[160px]"
-            />
+        {isSigned ? (
+          <div
+            className="space-y-hd-2 rounded-hd-md border border-emerald-200 bg-emerald-50/80 p-hd-3"
+            data-testid="encounter-signed-confirmation"
+            role="status"
+          >
+            <p className="text-sm font-semibold text-emerald-900">
+              Consulta firmada correctamente
+            </p>
             {signedAt ? (
               <p className="text-sm text-emerald-800">
                 Firmada el{" "}
@@ -100,6 +102,20 @@ export function EncounterClosureSection({
                   timeStyle: "short",
                 })}
               </p>
+            ) : (
+              <p className="text-sm text-emerald-800">
+                Cierre legal registrado. La edición clínica queda deshabilitada.
+              </p>
+            )}
+            {doctorSignature ? (
+              <Image
+                unoptimized
+                src={`data:image/png;base64,${doctorSignature}`}
+                alt="Firma del doctor"
+                width={160}
+                height={64}
+                className="h-auto max-h-[56px] w-auto max-w-[160px]"
+              />
             ) : null}
           </div>
         ) : null}

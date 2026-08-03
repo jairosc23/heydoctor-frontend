@@ -1,4 +1,5 @@
 "use client";
+import { toAiClinicalUserMessage } from "@/lib/ai-clinical-errors";
 import { useCallback, useState } from "react";
 import {
   governedClinicalIntelligenceFlowRunAdapter,
@@ -54,7 +55,7 @@ export function useGovernedClinicalIntelligenceFlow(
         }
       })
       .catch((err) => {
-        setError(err instanceof Error ? err.message : String(err));
+        setError(toAiClinicalUserMessage(err));
         setResult(null);
       })
       .finally(() => {

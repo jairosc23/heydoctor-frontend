@@ -1,4 +1,5 @@
 "use client";
+import { toAiClinicalUserMessage } from "@/lib/ai-clinical-errors";
 import { useCallback, useEffect, useState } from "react";
 import {
   governedConsultationPersistenceExecutionReadAdapter,
@@ -42,7 +43,7 @@ export function useGovernedConsultationPersistenceExecution(options: UseGoverned
       .then((next) => { if (!cancelled) setResult(next); })
       .catch((err) => {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : String(err));
+          setError(toAiClinicalUserMessage(err));
           setResult(null);
         }
       })

@@ -1,4 +1,5 @@
 "use client";
+import { toAiClinicalUserMessage } from "@/lib/ai-clinical-errors";
 import { useCallback, useEffect, useState } from "react";
 import { governedClinicalJustificationReadAdapter, type GovernedClinicalJustificationReadAdapter } from "./governed-clinical-justification-adapter";
 import type { GovernedClinicalJustificationResult } from "./governed-clinical-justification";
@@ -19,7 +20,7 @@ export function useGovernedClinicalJustification(options: UseGovernedClinicalJus
     setLoading(true); setError(null);
     void adapter.getGovernedClinicalJustification(sessionId)
       .then((next) => { if (!cancelled) setResult(next); })
-      .catch((err) => { if (!cancelled) { setError(err instanceof Error ? err.message : String(err)); setResult(null); } })
+      .catch((err) => { if (!cancelled) { setError(toAiClinicalUserMessage(err)); setResult(null); } })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [adapter, enabled, sessionId, tick]);

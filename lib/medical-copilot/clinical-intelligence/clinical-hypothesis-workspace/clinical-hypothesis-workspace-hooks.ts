@@ -1,4 +1,5 @@
 "use client";
+import { toAiClinicalUserMessage } from "@/lib/ai-clinical-errors";
 import { useCallback, useEffect, useState } from "react";
 import { clinicalHypothesisWorkspaceReadAdapter, type ClinicalHypothesisWorkspaceReadAdapter } from "./clinical-hypothesis-workspace-adapter";
 import type { ClinicalHypothesisWorkspaceBuilderResult } from "./clinical-hypothesis-workspace";
@@ -16,7 +17,7 @@ export function useClinicalHypothesisWorkspace(options: UseClinicalHypothesisWor
     let cancelled = false;
     setLoading(true); setError(null);
     void adapter.getClinicalHypothesisWorkspace(sessionId).then((next) => { if (!cancelled) setResult(next); })
-      .catch((err) => { if (!cancelled) { setError(err instanceof Error ? err.message : String(err)); setResult(null); } })
+      .catch((err) => { if (!cancelled) { setError(toAiClinicalUserMessage(err)); setResult(null); } })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [adapter, enabled, sessionId, tick]);

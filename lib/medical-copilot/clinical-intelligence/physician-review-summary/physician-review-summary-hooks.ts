@@ -1,4 +1,5 @@
 "use client";
+import { toAiClinicalUserMessage } from "@/lib/ai-clinical-errors";
 import { useCallback, useEffect, useState } from "react";
 import { reviewSummaryReadAdapter, type PhysicianReviewSummaryReadAdapter } from "./physician-review-summary-adapter";
 import type { PhysicianReviewSummaryBuilderResult } from "./physician-review-summary";
@@ -27,7 +28,7 @@ export function usePhysicianReviewSummary(options: UsePhysicianReviewSummaryOpti
     let cancelled = false;
     setLoading(true); setError(null);
     void adapter.getPhysicianReviewSummary(sessionId).then((next) => { if (!cancelled) setResult(next); })
-      .catch((err) => { if (!cancelled) { setError(err instanceof Error ? err.message : String(err)); setResult(null); } })
+      .catch((err) => { if (!cancelled) { setError(toAiClinicalUserMessage(err)); setResult(null); } })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [adapter, enabled, sessionId, tick]);

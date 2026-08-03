@@ -9,6 +9,7 @@ import type {
 } from "@/components/clinical/ConsultationActionBar";
 import { ClinicalSurface } from "@/components/clinical/design";
 import type { ActionResult } from "@/lib/services/consultation-actions";
+import { useIsMobile } from "@/lib/hooks/useIsMobile";
 import { EncounterLeftPane, type EncounterLeftPaneTab } from "./EncounterLeftPane";
 import { EncounterRightPane, type EncounterRightPaneTab } from "./EncounterRightPane";
 import { MobileConsultationWorkspace } from "./MobileConsultationWorkspace";
@@ -19,6 +20,9 @@ import type { ClinicalEncounterChartProps } from "./chart/ClinicalEncounterChart
 import { ClinicalNavigationRail } from "./ClinicalNavigationRail";
 import { buildClinicalNavigationIntelligence } from "./clinical-navigation-rail-model";
 import { useClinicalSectionSpy } from "@/hooks/useClinicalSectionSpy";
+
+/** Matches Tailwind `xl` — only one chart tree may mount at a time. */
+const ENCOUNTER_SPLIT_BREAKPOINT_PX = 1280;
 
 const DESKTOP_MODULE_WIDTH = "mx-auto w-full xl:max-w-[1280px]";
 
@@ -100,10 +104,13 @@ export function ConsultationWorkspace({
     navigationSections,
     { enabled: Boolean(encounterChart) },
   );
+  // Root cause: CSS dual-mount (xl:hidden + hidden xl:block) mounted two charts,
+  // racing antecedentsRef / dirty callbacks / duplicate section ids.
+  const isNarrowViewport = useIsMobile(ENCOUNTER_SPLIT_BREAKPOINT_PX);
 
   return (
     <div className="clinical-workspace">
-      <div className="xl:hidden">
+      {isNarrowViewport ? (
         <MobileConsultationWorkspace
           {...props}
           encounterChart={encounterChart}
@@ -115,70 +122,79 @@ export function ConsultationWorkspace({
           ordersRefreshKey={ordersRefreshKey}
           smartWorkspaceEnabled={smartWorkspaceEnabled}
         />
-      </div>
-      <div
-        className="hidden space-y-hd-4 xl:block"
-        data-testid="encounter-split-layout"
-        data-clinical-action-workspace={actionWorkspaceEnabled ? "true" : undefined}
-        data-columns="1"
-      >
-        <div className={`grid gap-hd-3 xl:grid-cols-[minmax(176px,220px)_minmax(0,1fr)] ${DESKTOP_MODULE_WIDTH}`}>
-          <ClinicalNavigationRail
-            sections={navigationSections}
-            progress={navigationIntelligence?.progress}
-            activeSectionId={activeSectionId}
-            onNavigate={navigateToSection}
-          />
-          <div className="min-w-0 space-y-hd-4">
-            <ClinicalContextPanels
-              {...patientContext}
-              smartWorkspaceEnabled={smartWorkspaceEnabled}
+      ) : (
+        <div
+          className="space-y-hd-4"
+          data-testid="encounter-split-layout"
+          data-clinical-action-workspace={
+            actionWorkspaceEnabled ? "true" : undefined
+          }
+          data-columns="1"
+        >
+          <div
+            className={`grid gap-hd-3 xl:grid-cols-[minmax(176px,220px)_minmax(0,1fr)] ${DESKTOP_MODULE_WIDTH}`}
+          >
+            <ClinicalNavigationRail
+              sections={navigationSections}
+              progress={navigationIntelligence?.progress}
+              activeSectionId={activeSectionId}
+              onNavigate={navigateToSection}
             />
-            <div data-smart-workspace={smartWorkspaceEnabled ? "true" : undefined}>
-              <ClinicalSurface
-                depth={3}
-                focusPrimary
-                className="soap-command-center-shell clinical-focus-primary min-w-0 p-hd-3 shadow-hd-3 ring-1 ring-primary/10"
+            <div className="min-w-0 space-y-hd-4">
+              <ClinicalContextPanels
+                {...patientContext}
+                smartWorkspaceEnabled={smartWorkspaceEnabled}
+              />
+              <div
+                data-smart-workspace={
+                  smartWorkspaceEnabled ? "true" : undefined
+                }
               >
-                <EncounterLeftPane
-                  consultation={consultation}
-                  consultationId={consultationId}
-                  activeTab={leftPaneTab}
-                  onTabChange={onLeftPaneTabChange}
-                  encounterChart={encounterChart}
-                />
-              </ClinicalSurface>
+                <ClinicalSurface
+                  depth={3}
+                  focusPrimary
+                  className="soap-command-center-shell clinical-focus-primary min-w-0 p-hd-3 shadow-hd-3 ring-1 ring-primary/10"
+                >
+                  <EncounterLeftPane
+                    consultation={consultation}
+                    consultationId={consultationId}
+                    activeTab={leftPaneTab}
+                    onTabChange={onLeftPaneTabChange}
+                    encounterChart={encounterChart}
+                  />
+                </ClinicalSurface>
+              </div>
             </div>
           </div>
-        </div>
 
-        <ClinicalCollapsiblePanel
-          title="Orders Command Center™"
-          eyebrow="Órdenes y documentos"
-          storageKey="clinical-encounter-panel-orders"
-          defaultExpanded={false}
-          expandSignal={ordersPanelExpandSignal}
-          className={DESKTOP_MODULE_WIDTH}
-        >
-          <div data-testid="orders-command-center-collapsible">
-            <EncounterRightPane
-              patientId={consultation.patientId}
-              consultationId={consultationId}
-              activeTab={rightPaneTab}
-              onTabChange={onRightPaneTabChange}
-              ordersSubTab={ordersSubTab}
-              onOrdersSubTabChange={onOrdersSubTabChange}
-              diagnosisCode={diagnosisCode}
-              documentHandlers={documentHandlers}
-              documentLoading={documentLoading}
-              documentDisabled={documentDisabled}
-              onLegacyInvoiceResult={onLegacyInvoiceResult}
-              ordersHighlight={ordersHighlight}
-              ordersRefreshKey={ordersRefreshKey}
-            />
-          </div>
-        </ClinicalCollapsiblePanel>
-      </div>
+          <ClinicalCollapsiblePanel
+            title="Orders Command Center™"
+            eyebrow="Órdenes y documentos"
+            storageKey="clinical-encounter-panel-orders"
+            defaultExpanded={false}
+            expandSignal={ordersPanelExpandSignal}
+            className={DESKTOP_MODULE_WIDTH}
+          >
+            <div data-testid="orders-command-center-collapsible">
+              <EncounterRightPane
+                patientId={consultation.patientId}
+                consultationId={consultationId}
+                activeTab={rightPaneTab}
+                onTabChange={onRightPaneTabChange}
+                ordersSubTab={ordersSubTab}
+                onOrdersSubTabChange={onOrdersSubTabChange}
+                diagnosisCode={diagnosisCode}
+                documentHandlers={documentHandlers}
+                documentLoading={documentLoading}
+                documentDisabled={documentDisabled}
+                onLegacyInvoiceResult={onLegacyInvoiceResult}
+                ordersHighlight={ordersHighlight}
+                ordersRefreshKey={ordersRefreshKey}
+              />
+            </div>
+          </ClinicalCollapsiblePanel>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,4 +1,5 @@
 "use client";
+import { toAiClinicalUserMessage } from "@/lib/ai-clinical-errors";
 import { useCallback, useEffect, useState } from "react";
 import { governedClinicalFunctionalIntelligencePackageReadAdapter, type GovernedClinicalFunctionalIntelligencePackageReadAdapter } from "./governed-clinical-functional-intelligence-package-adapter";
 import type { GovernedClinicalFunctionalIntelligencePackageResult } from "./governed-clinical-functional-intelligence-package";
@@ -14,7 +15,7 @@ export function useGovernedClinicalFunctionalIntelligencePackage(options: UseGov
   useEffect(() => {
     if (!enabled || !sessionId) { setResult(null); setError(null); setLoading(false); return; }
     let cancelled = false; setLoading(true); setError(null);
-    void adapter.getGovernedClinicalFunctionalIntelligencePackage(sessionId).then((next) => { if (!cancelled) setResult(next); }).catch((err) => { if (!cancelled) { setError(err instanceof Error ? err.message : String(err)); setResult(null); } }).finally(() => { if (!cancelled) setLoading(false); });
+    void adapter.getGovernedClinicalFunctionalIntelligencePackage(sessionId).then((next) => { if (!cancelled) setResult(next); }).catch((err) => { if (!cancelled) { setError(toAiClinicalUserMessage(err)); setResult(null); } }).finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [adapter, enabled, sessionId, tick]);
   return { loading, error, result, refresh };

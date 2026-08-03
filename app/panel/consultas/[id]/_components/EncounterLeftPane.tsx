@@ -67,10 +67,15 @@ export function EncounterLeftPane({
             </p>
           ) : null}
 
-          {activeTab === "soap" ? (
-            encounterChart ? (
+          {/* Keep chart mounted across tabs so antecedents draft/ref survive navigation. */}
+          {encounterChart ? (
+            <div
+              className={activeTab === "soap" ? undefined : "hidden"}
+              aria-hidden={activeTab !== "soap"}
+              data-testid="encounter-chart-host"
+            >
               <ClinicalEncounterChart {...encounterChart} />
-            ) : null
+            </div>
           ) : null}
 
           {activeTab === "chat" && patientId ? (

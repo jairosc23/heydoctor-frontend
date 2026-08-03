@@ -1,4 +1,5 @@
 "use client";
+import { toAiClinicalUserMessage } from "@/lib/ai-clinical-errors";
 import { useCallback, useEffect, useState } from "react";
 import { governedClinicalContextStageReadAdapter, type GovernedClinicalContextStageReadAdapter } from "./governed-clinical-context-stage-adapter";
 import type { GovernedClinicalContextStageResult } from "./governed-clinical-context-stage";
@@ -17,7 +18,7 @@ export function useGovernedClinicalContextStage(options: UseGovernedClinicalCont
     setLoading(true); setError(null);
     void adapter.getGovernedClinicalContextStage(sessionId)
       .then((next) => { if (!cancelled) setResult(next); })
-      .catch((err) => { if (!cancelled) { setError(err instanceof Error ? err.message : String(err)); setResult(null); } })
+      .catch((err) => { if (!cancelled) { setError(toAiClinicalUserMessage(err)); setResult(null); } })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [adapter, enabled, sessionId, tick]);

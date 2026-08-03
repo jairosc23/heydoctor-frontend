@@ -1,4 +1,5 @@
 "use client";
+import { toAiClinicalUserMessage } from "@/lib/ai-clinical-errors";
 import { useCallback, useEffect, useState } from "react";
 import { governedFollowUpOptimizationTherapeuticEngineReadAdapter, type GovernedFollowUpOptimizationTherapeuticEngineReadAdapter } from "./governed-follow-up-optimization-therapeutic-engine-adapter";
 import type { GovernedFollowUpOptimizationTherapeuticEngineResult } from "./governed-follow-up-optimization-therapeutic-engine";
@@ -15,7 +16,7 @@ export function useGovernedFollowUpOptimizationTherapeuticEngine(options: UseGov
     if (!enabled || !sessionId) { setResult(null); setError(null); setLoading(false); return; }
     let cancelled = false; setLoading(true); setError(null);
     void adapter.get(sessionId).then((next) => { if (!cancelled) setResult(next); })
-      .catch((err) => { if (!cancelled) { setError(err instanceof Error ? err.message : String(err)); setResult(null); } })
+      .catch((err) => { if (!cancelled) { setError(toAiClinicalUserMessage(err)); setResult(null); } })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [adapter, enabled, sessionId, tick]);

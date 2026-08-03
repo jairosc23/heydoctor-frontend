@@ -20,7 +20,6 @@ import {
 } from "@/lib/services/patients";
 import { cn } from "@/lib/utils";
 import { ClinicalEncounterSection } from "./ClinicalEncounterSection";
-import { ProfileTextBlock } from "./PatientProfileFields";
 
 const HABIT_FIELDS: { key: keyof PatientProfile; label: string }[] = [
   { key: "smokingStatus", label: "Tabaco" },
@@ -91,7 +90,7 @@ export interface PatientLongitudinalSectionsProps {
   onPersistError?: (message: string) => void;
 }
 
-function SectionSummary({
+function AntecedentChips({
   label,
   lines,
   emptyLabel,
@@ -105,19 +104,38 @@ function SectionSummary({
   return (
     <div
       className={cn(
-        "rounded-hd-md border border-hd-border-subtle bg-white px-hd-3 py-hd-2",
+        "rounded-hd-md border border-hd-border-subtle bg-white px-hd-3 py-hd-2.5",
         critical && "border-red-200 bg-red-50",
       )}
+      data-testid={`antecedents-group-${label.toLowerCase().replace(/\s+/g, "-")}`}
     >
       <p
         className={cn(
-          "mb-1 text-xs font-semibold uppercase tracking-wide text-slate-600",
+          "mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600",
           critical && "text-red-800",
         )}
       >
         {label}
       </p>
-      <ProfileTextBlock lines={lines} emptyLabel={emptyLabel} />
+      {lines.length === 0 ? (
+        <p className="text-sm text-slate-400">{emptyLabel}</p>
+      ) : (
+        <ul className="flex flex-wrap gap-1.5">
+          {lines.map((line) => (
+            <li
+              key={line}
+              className={cn(
+                "max-w-full rounded-full border px-2.5 py-1 text-xs font-medium leading-snug",
+                critical
+                  ? "border-red-200 bg-white text-red-900"
+                  : "border-slate-200 bg-slate-50 text-slate-800",
+              )}
+            >
+              <span className="break-words">{line}</span>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -196,7 +214,7 @@ export const PatientAntecedentsSection = forwardRef<
   const profileUpdatedAt = profile?.updatedAt ?? null;
   const draftRef = useRef(draft);
   const baselineKeyRef = useRef(baselineKey);
-  const savingRef = useRef(false);
+  const flushPromiseRef = useRef<Promise<boolean> | null>(null);
   const patientIdRef = useRef(patientId);
 
   useEffect(() => {
@@ -211,7 +229,7 @@ export const PatientAntecedentsSection = forwardRef<
     const patientChanged = patientIdRef.current !== patientId;
     patientIdRef.current = patientId;
     // Always reload when the patient changes. Only protect dirty drafts
-    // against same-patient profile prop refreshes.
+    // against same-patient profile prop refreshes (updatedAt / identity).
     if (
       !patientChanged &&
       draftKeyOf(draftRef.current) !== baselineKeyRef.current
@@ -220,7 +238,10 @@ export const PatientAntecedentsSection = forwardRef<
     }
     const next = draftFromProfile(profile);
     setDraft(next);
-    setBaselineKey(draftKeyOf(next));
+    const nextKey = draftKeyOf(next);
+    setBaselineKey(nextKey);
+    baselineKeyRef.current = nextKey;
+    draftRef.current = next;
   }, [patientId, profileUpdatedAt, profile]);
 
   const currentDraftKey = useMemo(() => draftKeyOf(draft), [draft]);
@@ -238,42 +259,59 @@ export const PatientAntecedentsSection = forwardRef<
     // Persistencia no depende de editMode: salir de edición / autosave / F5
     // deben poder escribir el draft dirty aunque la UI esté en solo lectura.
     if (!patientId) return false;
-    if (savingRef.current) return false;
+
+    // Coalesce concurrent flushes so manual save never no-ops while autosave runs.
+    if (flushPromiseRef.current) {
+      await flushPromiseRef.current;
+      if (draftKeyOf(draftRef.current) === baselineKeyRef.current) {
+        return false;
+      }
+    }
+
     const current = draftRef.current;
     const key = draftKeyOf(current);
     if (key === baselineKeyRef.current) return false;
 
-    savingRef.current = true;
-    setSaving(true);
+    const run = (async (): Promise<boolean> => {
+      setSaving(true);
+      try {
+        // Consolidate "personales" into chronicConditions (schema-stable).
+        // Clear surgeries/disabilities so merged read-view does not duplicate lines.
+        const updated = await upsertPatientProfile(patientId, {
+          chronicConditions: textToJsonLines(current.personalText),
+          surgeries: [],
+          disabilities: [],
+          medications: textToJsonLines(current.medicationsText),
+          allergies: textToJsonLines(current.allergiesText),
+          familyHistory: textToJsonLines(current.familyText),
+        });
+        const synced = draftFromProfile(updated);
+        setDraft(synced);
+        const syncedKey = draftKeyOf(synced);
+        setBaselineKey(syncedKey);
+        baselineKeyRef.current = syncedKey;
+        draftRef.current = synced;
+        onProfileSaved?.(updated);
+        return true;
+      } catch (err) {
+        onPersistError?.(
+          err instanceof Error
+            ? err.message
+            : "No se pudieron guardar los antecedentes. Intente Guardar de nuevo.",
+        );
+        throw err;
+      } finally {
+        setSaving(false);
+      }
+    })();
+
+    flushPromiseRef.current = run;
     try {
-      // Consolidate "personales" into chronicConditions (schema-stable).
-      // Clear surgeries/disabilities so merged read-view does not duplicate lines.
-      const updated = await upsertPatientProfile(patientId, {
-        chronicConditions: textToJsonLines(current.personalText),
-        surgeries: [],
-        disabilities: [],
-        medications: textToJsonLines(current.medicationsText),
-        allergies: textToJsonLines(current.allergiesText),
-        familyHistory: textToJsonLines(current.familyText),
-      });
-      const synced = draftFromProfile(updated);
-      setDraft(synced);
-      const syncedKey = draftKeyOf(synced);
-      setBaselineKey(syncedKey);
-      baselineKeyRef.current = syncedKey;
-      draftRef.current = synced;
-      onProfileSaved?.(updated);
-      return true;
-    } catch (err) {
-      onPersistError?.(
-        err instanceof Error
-          ? err.message
-          : "No se pudieron guardar los antecedentes. Intente Guardar de nuevo.",
-      );
-      throw err;
+      return await run;
     } finally {
-      savingRef.current = false;
-      setSaving(false);
+      if (flushPromiseRef.current === run) {
+        flushPromiseRef.current = null;
+      }
     }
   }, [onPersistError, onProfileSaved, patientId]);
 
@@ -377,7 +415,7 @@ export const PatientAntecedentsSection = forwardRef<
               disabled={saving}
               testId="antecedents-family"
             />
-            <SectionSummary
+            <AntecedentChips
               label="Hábitos"
               lines={habitLines}
               emptyLabel="Sin hábitos registrados."
@@ -392,28 +430,28 @@ export const PatientAntecedentsSection = forwardRef<
               antecedentes.
             </p>
           ) : null}
-          <SectionSummary
+          <AntecedentChips
             label="Antecedentes personales"
             lines={personalLines}
             emptyLabel="Sin antecedentes personales registrados."
           />
-          <SectionSummary
+          <AntecedentChips
             label="Medicamentos habituales"
             lines={medicationLines}
             emptyLabel="Sin medicamentos habituales registrados."
           />
-          <SectionSummary
+          <AntecedentChips
             label="Alergias"
             lines={allergyLines}
             emptyLabel="Sin alergias documentadas en la ficha del paciente."
             critical={hasAllergies}
           />
-          <SectionSummary
+          <AntecedentChips
             label="Hábitos"
             lines={habitLines}
             emptyLabel="Sin hábitos registrados."
           />
-          <SectionSummary
+          <AntecedentChips
             label="Antecedentes familiares"
             lines={familyLines}
             emptyLabel="Sin antecedentes familiares registrados."
