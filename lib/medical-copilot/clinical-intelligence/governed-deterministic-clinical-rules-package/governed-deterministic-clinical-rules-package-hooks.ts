@@ -1,4 +1,5 @@
 "use client";
+import { toAiClinicalUserMessage } from "@/lib/ai-clinical-errors";
 import { useCallback, useEffect, useState } from "react";
 import { governedDeterministicClinicalRulesPackageReadAdapter, type GovernedDeterministicClinicalRulesPackageReadAdapter } from "./governed-deterministic-clinical-rules-package-adapter";
 import type { GovernedDeterministicClinicalRulesPackageResult } from "./governed-deterministic-clinical-rules-package";
@@ -17,7 +18,7 @@ export function useGovernedDeterministicClinicalRulesPackage(options: UseGoverne
     setLoading(true); setError(null);
     void adapter.getGovernedDeterministicClinicalRulesPackage(sessionId)
       .then((next) => { if (!cancelled) setResult(next); })
-      .catch((err) => { if (!cancelled) { setError(err instanceof Error ? err.message : String(err)); setResult(null); } })
+      .catch((err) => { if (!cancelled) { setError(toAiClinicalUserMessage(err)); setResult(null); } })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [adapter, enabled, sessionId, tick]);

@@ -1,4 +1,5 @@
 "use client";
+import { toAiClinicalUserMessage } from "@/lib/ai-clinical-errors";
 import { useCallback, useEffect, useState } from "react";
 import { governedIdsaGuidelineEngineReadAdapter, type GovernedIdsaGuidelineEngineReadAdapter } from "./governed-idsa-guideline-engine-adapter";
 import type { GovernedIdsaGuidelineEngineResult } from "./governed-idsa-guideline-engine";
@@ -17,7 +18,7 @@ export function useGovernedIdsaGuidelineEngine(options: UseGovernedIdsaGuideline
     setLoading(true); setError(null);
     void adapter.get(sessionId)
       .then((next) => { if (!cancelled) setResult(next); })
-      .catch((err) => { if (!cancelled) { setError(err instanceof Error ? err.message : String(err)); setResult(null); } })
+      .catch((err) => { if (!cancelled) { setError(toAiClinicalUserMessage(err)); setResult(null); } })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [adapter, enabled, sessionId, tick]);

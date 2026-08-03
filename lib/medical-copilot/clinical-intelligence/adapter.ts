@@ -4,6 +4,10 @@
  */
 
 import {
+  AI_ASSIST_UNAVAILABLE_COPY,
+  toAiClinicalUserMessage,
+} from "@/lib/ai-clinical-errors";
+import {
   createMedicalCopilotSession,
   getMedicalCopilotActions,
   getMedicalCopilotMemory,
@@ -75,6 +79,12 @@ function withTimeout<T>(
 }
 
 function toError(err: unknown): ClinicalAnalysisError {
+  const technical =
+    err instanceof Error ? err.message : typeof err === "string" ? err : null;
+  if (technical) {
+    console.warn("[clinical-intelligence-adapter]", technical);
+  }
+
   const code =
     err && typeof err === "object" && "code" in err
       ? String((err as { code: unknown }).code)
@@ -83,38 +93,50 @@ function toError(err: unknown): ClinicalAnalysisError {
   if (code === "timeout") {
     return {
       code: "timeout",
-      message: "La solicitud de inteligencia clínica excedió el tiempo de espera",
-      details: err instanceof Error ? err.message : null,
+      message: AI_ASSIST_UNAVAILABLE_COPY,
+      details: technical,
     };
   }
   if (code === "facade") {
     return {
       code: "facade",
-      message: err instanceof Error ? err.message : "Error de Facade API",
-      details: null,
+      message: toAiClinicalUserMessage(err, AI_ASSIST_UNAVAILABLE_COPY),
+      details: technical,
     };
   }
   if (code === "invalid_request") {
     return {
       code: "invalid_request",
-      message: err instanceof Error ? err.message : "Solicitud inválida",
-      details: null,
+      message: toAiClinicalUserMessage(err, AI_ASSIST_UNAVAILABLE_COPY),
+      details: technical,
     };
   }
   if (err instanceof Error) {
     const msg = err.message.toLowerCase();
     if (msg.includes("timeout") || msg.includes("timed out")) {
-      return { code: "timeout", message: err.message, details: null };
+      return {
+        code: "timeout",
+        message: AI_ASSIST_UNAVAILABLE_COPY,
+        details: technical,
+      };
     }
     if (msg.includes("network") || msg.includes("fetch")) {
-      return { code: "network", message: err.message, details: null };
+      return {
+        code: "network",
+        message: AI_ASSIST_UNAVAILABLE_COPY,
+        details: technical,
+      };
     }
-    return { code: "unknown", message: err.message, details: null };
+    return {
+      code: "unknown",
+      message: toAiClinicalUserMessage(err, AI_ASSIST_UNAVAILABLE_COPY),
+      details: technical,
+    };
   }
   return {
     code: "unknown",
-    message: "Error desconocido en Clinical Intelligence Adapter",
-    details: String(err),
+    message: AI_ASSIST_UNAVAILABLE_COPY,
+    details: technical ?? String(err),
   };
 }
 

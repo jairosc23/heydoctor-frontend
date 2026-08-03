@@ -1,4 +1,5 @@
 "use client";
+import { toAiClinicalUserMessage } from "@/lib/ai-clinical-errors";
 import { useCallback, useEffect, useState } from "react";
 import {
   governedMedicalCertificateDraftReadAdapter,
@@ -51,7 +52,7 @@ export function useGovernedMedicalCertificateDraft(
       })
       .catch((err) => {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : String(err));
+          setError(toAiClinicalUserMessage(err));
           setResult(null);
         }
       })

@@ -1,4 +1,5 @@
 "use client";
+import { toAiClinicalUserMessage } from "@/lib/ai-clinical-errors";
 import { useCallback, useEffect, useState } from "react";
 import { governedPreventiveScreeningKnowledgeEngineReadAdapter, type GovernedPreventiveScreeningKnowledgeEngineReadAdapter } from "./governed-preventive-screening-knowledge-engine-adapter";
 import type { GovernedPreventiveScreeningKnowledgeEngineResult } from "./governed-preventive-screening-knowledge-engine";
@@ -17,7 +18,7 @@ export function useGovernedPreventiveScreeningKnowledgeEngine(options: UseGovern
     setLoading(true); setError(null);
     void adapter.get(sessionId)
       .then((next) => { if (!cancelled) setResult(next); })
-      .catch((err) => { if (!cancelled) { setError(err instanceof Error ? err.message : String(err)); setResult(null); } })
+      .catch((err) => { if (!cancelled) { setError(toAiClinicalUserMessage(err)); setResult(null); } })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [adapter, enabled, sessionId, tick]);

@@ -1,4 +1,5 @@
 "use client";
+import { toAiClinicalUserMessage } from "@/lib/ai-clinical-errors";
 import { useCallback, useEffect, useState } from "react";
 import { clinicalIntelligenceRuntimeReadAdapter, type ClinicalIntelligenceRuntimeReadAdapter } from "./clinical-intelligence-runtime-adapter";
 import type { ClinicalIntelligenceRuntimeBuilderResult } from "./clinical-intelligence-runtime";
@@ -16,7 +17,7 @@ export function useClinicalIntelligenceRuntime(options: UseClinicalIntelligenceR
     let cancelled = false;
     setLoading(true); setError(null);
     void adapter.getClinicalIntelligenceRuntime(sessionId).then((next) => { if (!cancelled) setResult(next); })
-      .catch((err) => { if (!cancelled) { setError(err instanceof Error ? err.message : String(err)); setResult(null); } })
+      .catch((err) => { if (!cancelled) { setError(toAiClinicalUserMessage(err)); setResult(null); } })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [adapter, enabled, sessionId, tick]);

@@ -1,4 +1,5 @@
 "use client";
+import { toAiClinicalUserMessage } from "@/lib/ai-clinical-errors";
 import { useCallback, useEffect, useState } from "react";
 import { governedSuggestionsAggregationStageReadAdapter, type GovernedSuggestionsAggregationStageReadAdapter } from "./governed-suggestions-aggregation-stage-adapter";
 import type { GovernedSuggestionsAggregationStageResult } from "./governed-suggestions-aggregation-stage";
@@ -17,7 +18,7 @@ export function useGovernedSuggestionsAggregationStage(options: UseGovernedSugge
     setLoading(true); setError(null);
     void adapter.getGovernedSuggestionsAggregationStage(sessionId)
       .then((next) => { if (!cancelled) setResult(next); })
-      .catch((err) => { if (!cancelled) { setError(err instanceof Error ? err.message : String(err)); setResult(null); } })
+      .catch((err) => { if (!cancelled) { setError(toAiClinicalUserMessage(err)); setResult(null); } })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [adapter, enabled, sessionId, tick]);

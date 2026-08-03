@@ -1,4 +1,5 @@
 "use client";
+import { toAiClinicalUserMessage } from "@/lib/ai-clinical-errors";
 import { useCallback, useEffect, useState } from "react";
 import { reviewWorkspaceV2ReadAdapter, type PhysicianReviewWorkspaceV2ReadAdapter } from "./physician-review-workspace-v2-adapter";
 import type { PhysicianReviewWorkspaceV2BuilderResult } from "./physician-review-workspace-v2";
@@ -27,7 +28,7 @@ export function usePhysicianReviewWorkspaceV2(options: UsePhysicianReviewWorkspa
     let cancelled = false;
     setLoading(true); setError(null);
     void adapter.getPhysicianReviewWorkspaceV2(sessionId).then((next) => { if (!cancelled) setResult(next); })
-      .catch((err) => { if (!cancelled) { setError(err instanceof Error ? err.message : String(err)); setResult(null); } })
+      .catch((err) => { if (!cancelled) { setError(toAiClinicalUserMessage(err)); setResult(null); } })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [adapter, enabled, sessionId, tick]);

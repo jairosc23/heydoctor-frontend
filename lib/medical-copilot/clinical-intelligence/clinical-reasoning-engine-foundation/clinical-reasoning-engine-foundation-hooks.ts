@@ -1,4 +1,5 @@
 "use client";
+import { toAiClinicalUserMessage } from "@/lib/ai-clinical-errors";
 import { useCallback, useEffect, useState } from "react";
 import { clinicalReasoningEngineFoundationReadAdapter, type ClinicalReasoningEngineFoundationReadAdapter } from "./clinical-reasoning-engine-foundation-adapter";
 import type { ClinicalReasoningEngineFoundationBuilderResult } from "./clinical-reasoning-engine-foundation";
@@ -16,7 +17,7 @@ export function useClinicalReasoningEngineFoundation(options: UseClinicalReasoni
     let cancelled = false;
     setLoading(true); setError(null);
     void adapter.getClinicalReasoningEngineFoundation(sessionId).then((next) => { if (!cancelled) setResult(next); })
-      .catch((err) => { if (!cancelled) { setError(err instanceof Error ? err.message : String(err)); setResult(null); } })
+      .catch((err) => { if (!cancelled) { setError(toAiClinicalUserMessage(err)); setResult(null); } })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [adapter, enabled, sessionId, tick]);

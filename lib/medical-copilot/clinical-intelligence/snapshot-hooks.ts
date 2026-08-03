@@ -4,6 +4,7 @@
 
 "use client";
 
+import { toAiClinicalUserMessage } from "@/lib/ai-clinical-errors";
 import { useCallback, useEffect, useState } from "react";
 import {
   clinicalCopilotSnapshotReadAdapter,
@@ -61,7 +62,7 @@ export function useClinicalCopilotSnapshot(
       })
       .catch((err) => {
         if (cancelled) return;
-        setError(err instanceof Error ? err.message : String(err));
+        setError(toAiClinicalUserMessage(err));
         setResult(null);
       })
       .finally(() => {

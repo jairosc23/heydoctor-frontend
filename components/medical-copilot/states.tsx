@@ -86,7 +86,9 @@ export function MedicalCopilotInlineStatus({
   if (error) {
     return (
       <div role="alert" className="space-y-1">
-        <p className="text-sm text-red-600">{error}</p>
+        <p className="text-sm text-red-600">
+          {toAiClinicalUserMessage(error)}
+        </p>
         {onRetry ? (
           <button
             type="button"

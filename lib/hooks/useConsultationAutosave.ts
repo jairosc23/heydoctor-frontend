@@ -13,6 +13,13 @@ export interface UseConsultationAutosaveOptions {
   save: () => Promise<void>;
 }
 
+export interface FlushNowResult {
+  /** True if this call invoked `save` and it resolved. */
+  wrote: boolean;
+  /** True if draft was already equal to last persisted fingerprint. */
+  alreadyPersisted: boolean;
+}
+
 export function useConsultationAutosave({
   enabled,
   draftKey,
@@ -24,6 +31,7 @@ export function useConsultationAutosave({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const hydratedRef = useRef(false);
   const savingRef = useRef(false);
+  const inFlightRef = useRef<Promise<FlushNowResult> | null>(null);
   const queuedKeyRef = useRef<string | null>(null);
   const saveRef = useRef(save);
   const lastSavedDraftKeyRef = useRef<string | null>(null);
@@ -32,41 +40,75 @@ export function useConsultationAutosave({
 
   const debouncedKey = useDebouncedValue(draftKey, debounceMs);
 
-  const runSave = useCallback(async (keyToSave: string) => {
-    if (!enabled) return;
-    if (savingRef.current) {
-      queuedKeyRef.current = keyToSave;
-      return;
-    }
-    if (lastSavedDraftKeyRef.current === keyToSave) {
-      return;
-    }
-
-    savingRef.current = true;
-    setStatus("saving");
-    setErrorMessage(null);
-    try {
-      await saveRef.current();
-      lastSavedDraftKeyRef.current = keyToSave;
-      setLastSavedAt(new Date());
-      setStatus("saved");
-    } catch (err) {
-      setStatus("error");
-      setErrorMessage(
-        err instanceof Error ? err.message : "Error al guardar automáticamente",
-      );
-    } finally {
-      savingRef.current = false;
-      const queued = queuedKeyRef.current;
-      queuedKeyRef.current = null;
-      if (queued && queued !== lastSavedDraftKeyRef.current) {
-        void runSave(queued);
+  const runSave = useCallback(
+    async (keyToSave: string): Promise<FlushNowResult> => {
+      if (!enabled) {
+        return { wrote: false, alreadyPersisted: true };
       }
-    }
-  }, [enabled]);
 
-  const flushNow = useCallback(async () => {
-    await runSave(draftKey);
+      // Await in-flight save, then re-evaluate (may still be dirty).
+      if (inFlightRef.current) {
+        await inFlightRef.current;
+      }
+
+      if (lastSavedDraftKeyRef.current === keyToSave) {
+        return { wrote: false, alreadyPersisted: true };
+      }
+
+      if (savingRef.current) {
+        queuedKeyRef.current = keyToSave;
+        if (inFlightRef.current) {
+          await inFlightRef.current;
+        }
+        if (lastSavedDraftKeyRef.current === keyToSave) {
+          return { wrote: false, alreadyPersisted: true };
+        }
+      }
+
+      savingRef.current = true;
+      setStatus("saving");
+      setErrorMessage(null);
+
+      const run = (async (): Promise<FlushNowResult> => {
+        try {
+          await saveRef.current();
+          lastSavedDraftKeyRef.current = keyToSave;
+          setLastSavedAt(new Date());
+          setStatus("saved");
+          return { wrote: true, alreadyPersisted: false };
+        } catch (err) {
+          setStatus("error");
+          setErrorMessage(
+            err instanceof Error
+              ? err.message
+              : "Error al guardar automáticamente",
+          );
+          throw err;
+        } finally {
+          savingRef.current = false;
+          const queued = queuedKeyRef.current;
+          queuedKeyRef.current = null;
+          if (queued && queued !== lastSavedDraftKeyRef.current) {
+            // Fire-and-forget follow-up; callers of flushNow await the primary write.
+            void runSave(queued);
+          }
+        }
+      })();
+
+      inFlightRef.current = run;
+      try {
+        return await run;
+      } finally {
+        if (inFlightRef.current === run) {
+          inFlightRef.current = null;
+        }
+      }
+    },
+    [enabled],
+  );
+
+  const flushNow = useCallback(async (): Promise<FlushNowResult> => {
+    return runSave(draftKey);
   }, [draftKey, runSave]);
 
   useEffect(() => {

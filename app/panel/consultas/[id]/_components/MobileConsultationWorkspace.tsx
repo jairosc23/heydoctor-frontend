@@ -87,21 +87,24 @@ export function MobileConsultationWorkspace({
         </p>
       ) : null}
 
-      {activeTab === "soap" ? (
-        encounterChart ? (
-          <>
-            {navigationSections.length > 0 && onNavigateSection ? (
-              <ClinicalNavigationRail
-                sections={navigationSections}
-                progress={navigationProgress}
-                activeSectionId={activeSectionId ?? null}
-                onNavigate={onNavigateSection}
-                orientation="horizontal"
-              />
-            ) : null}
-            <ClinicalEncounterChart {...encounterChart} />
-          </>
-        ) : null
+      {/* Keep chart mounted across tabs so antecedents draft/ref survive navigation. */}
+      {encounterChart ? (
+        <div
+          className={activeTab === "soap" ? "space-y-hd-3" : "hidden"}
+          aria-hidden={activeTab !== "soap"}
+          data-testid="encounter-chart-host-mobile"
+        >
+          {navigationSections.length > 0 && onNavigateSection ? (
+            <ClinicalNavigationRail
+              sections={navigationSections}
+              progress={navigationProgress}
+              activeSectionId={activeSectionId ?? null}
+              onNavigate={onNavigateSection}
+              orientation="horizontal"
+            />
+          ) : null}
+          <ClinicalEncounterChart {...encounterChart} />
+        </div>
       ) : null}
 
       {activeTab === "orders" && patientId ? (

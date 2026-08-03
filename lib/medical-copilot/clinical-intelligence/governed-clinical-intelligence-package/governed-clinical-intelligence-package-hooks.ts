@@ -1,4 +1,5 @@
 "use client";
+import { toAiClinicalUserMessage } from "@/lib/ai-clinical-errors";
 import { useCallback, useEffect, useState } from "react";
 import { governedClinicalIntelligencePackageReadAdapter, type GovernedClinicalIntelligencePackageReadAdapter } from "./governed-clinical-intelligence-package-adapter";
 import type { GovernedClinicalIntelligencePackageBuilderResult } from "./governed-clinical-intelligence-package";
@@ -19,7 +20,7 @@ export function useGovernedClinicalIntelligencePackage(options: UseGovernedClini
     setLoading(true); setError(null);
     void adapter.getGovernedClinicalIntelligencePackage(sessionId)
       .then((next) => { if (!cancelled) setResult(next); })
-      .catch((err) => { if (!cancelled) { setError(err instanceof Error ? err.message : String(err)); setResult(null); } })
+      .catch((err) => { if (!cancelled) { setError(toAiClinicalUserMessage(err)); setResult(null); } })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [adapter, enabled, sessionId, tick]);

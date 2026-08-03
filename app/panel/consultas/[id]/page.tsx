@@ -133,6 +133,8 @@ export default function ConsultationDetailPage() {
     useState<ConsultationDiagnosisState>(emptyDiagnosisState());
   const [treatment, setTreatment] = useState("");
   const [saveMsg, setSaveMsg] = useState("");
+  /** Signature feedback — never share lifecycle with manual save copy. */
+  const [signMsg, setSignMsg] = useState("");
   const [manualSaveStatus, setManualSaveStatus] = useState<
     "idle" | "saving" | "saved" | "error"
   >("idle");
@@ -287,13 +289,24 @@ export default function ConsultationDetailPage() {
 
     void (async () => {
       try {
-        const [patient, profile] = await Promise.all([
+        const [patient, profileResult] = await Promise.all([
           fetchPatientById(patientId),
-          fetchPatientProfile(patientId).catch(() => null),
+          fetchPatientProfile(patientId).then(
+            (profile) => ({ ok: true as const, profile }),
+            (err) => ({ ok: false as const, err }),
+          ),
         ]);
         if (cancelled) return;
         setPatientRow(patient);
-        setPatientProfile(profile);
+        if (profileResult.ok) {
+          setPatientProfile(profileResult.profile);
+        } else {
+          setPatientProfile(null);
+          console.warn("[encounter] patient profile load failed", profileResult.err);
+          setPatientContextError(
+            "No se pudo cargar la ficha del paciente. Los antecedentes pueden estar incompletos.",
+          );
+        }
       } catch (err) {
         if (cancelled) return;
         setPatientRow(null);
@@ -551,17 +564,50 @@ export default function ConsultationDetailPage() {
     };
   }, []);
 
+  async function persistAntecedentsOrThrow(hadDirty: boolean): Promise<boolean> {
+    const handle = antecedentsRef.current;
+    if (hadDirty && !handle) {
+      throw new Error(
+        "No se pudieron guardar los antecedentes (ficha no disponible). Recargue e intente Guardar.",
+      );
+    }
+    if (!handle) return false;
+    const profileSaved = Boolean(await handle.flush());
+    if (handle.isDirty()) {
+      throw new Error(
+        "Los antecedentes no se sincronizaron. Intente Guardar de nuevo.",
+      );
+    }
+    return profileSaved;
+  }
+
   async function handleManualSave() {
     if (!isEditable || !consultation) return;
     if (manualSaveStatus === "saving") return;
     setManualSaveStatus("saving");
     const hadAntecedentsDirty =
       antecedentsDirty || Boolean(antecedentsRef.current?.isDirty());
+    const hadSoapDirty = isDraftDirty;
     try {
-      await flushNow();
-      // Si el SOAP no cambió, flushNow puede no-op; forzar persistencia de antecedentes.
-      const profileSaved = Boolean(await antecedentsRef.current?.flush());
-      await clinicalFoundationState.reload();
+      const flushResult = await flushNow();
+      // Force antecedentes even if SOAP fingerprint was already clean.
+      const profileSaved = await persistAntecedentsOrThrow(hadAntecedentsDirty);
+      // Foundation reload is advisory — must not flip a verified write to failure.
+      try {
+        await clinicalFoundationState.reload();
+      } catch (foundationErr) {
+        console.warn("[encounter] foundation reload after save", foundationErr);
+      }
+      const verified =
+        flushResult.wrote ||
+        flushResult.alreadyPersisted ||
+        profileSaved ||
+        (!hadSoapDirty && !hadAntecedentsDirty);
+      if (!verified) {
+        throw new Error(
+          "No se confirmó la escritura. Intente Guardar de nuevo.",
+        );
+      }
       ignoreManualSaveDraftResetRef.current = true;
       const savedAt = new Date();
       setManualLastSavedAt(savedAt);
@@ -592,6 +638,12 @@ export default function ConsultationDetailPage() {
     if (!next) return;
     setTransitioning(true);
     try {
+      if (isEditable) {
+        await flushNow();
+      }
+      await persistAntecedentsOrThrow(
+        antecedentsDirty || Boolean(antecedentsRef.current?.isDirty()),
+      );
       const prev = consultation.status ?? prevStatusRef.current;
       const updated = await updateConsultation(id, { status: next });
       const st = updated.status ?? "";
@@ -609,17 +661,21 @@ export default function ConsultationDetailPage() {
     if (!consultation) return;
     // Unique legal-close writer: POST /consultations/:id/sign only.
     if (status !== "in_progress" && status !== "completed") {
-      setSaveMsg(
+      setSignMsg(
         `No se puede firmar la consulta en estado "${status}". Pásela a En progreso o Completada.`,
       );
       return;
     }
     setSigning(true);
-    setSaveMsg("");
+    setSignMsg("");
     try {
-      if (isEditable) {
+      // Always drain dirty drafts before legal close (even if edit session closed).
+      if (isEditable || isDraftDirty) {
         await flushNow();
       }
+      await persistAntecedentsOrThrow(
+        antecedentsDirty || Boolean(antecedentsRef.current?.isDirty()),
+      );
       const prev = consultation.status ?? prevStatusRef.current;
       // W1.1 C2/C5 — HAB Confirm then sign (no HAB bypass).
       const hab = await submitHabDecision({
@@ -641,7 +697,7 @@ export default function ConsultationDetailPage() {
       prevStatusRef.current = st;
       setConsultation(updated);
       consultationRef.current = updated;
-      setSaveMsg(
+      setSignMsg(
         updated.signedAt
           ? `Consulta firmada el ${new Date(updated.signedAt).toLocaleString("es-CL", {
               dateStyle: "medium",
@@ -651,7 +707,7 @@ export default function ConsultationDetailPage() {
       );
       void clinicalFoundationState.reload();
     } catch (err) {
-      setSaveMsg(err instanceof Error ? err.message : "Error al firmar");
+      setSignMsg(err instanceof Error ? err.message : "Error al firmar");
       throw err;
     } finally {
       setSigning(false);
@@ -1338,8 +1394,7 @@ export default function ConsultationDetailPage() {
             },
             documentLoading: actionLoading,
             documentDisabled,
-            signMessage:
-              saveMsg && paymentStep !== "confirm" ? saveMsg : undefined,
+            signMessage: signMsg || undefined,
           },
           longitudinal: {
             patient: patientRow,
@@ -1485,8 +1540,7 @@ export default function ConsultationDetailPage() {
               },
               documentLoading: actionLoading,
               documentDisabled,
-              signMessage:
-                saveMsg && paymentStep !== "confirm" ? saveMsg : undefined,
+              signMessage: signMsg || undefined,
             },
             longitudinal: {
               patient: patientRow,
