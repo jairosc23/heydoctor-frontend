@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LiquidClinicalWorkspaceShell } from "@/components/aec1/liquid/LiquidClinicalWorkspaceShell";
 import * as w5Api from "@/lib/aec1/w5-clinical-steward-api";
+import { HEYDOCTOR_COPILOT_COPY } from "@/lib/brand/heydoctor-copilot";
 import { renderWithProviders, screen, waitFor } from "@/test/utils/render";
 
 describe("AEC-1 M4 Liquid Clinical Workspace shell", () => {
@@ -170,9 +171,12 @@ describe("AEC-1 M4 Liquid Clinical Workspace shell", () => {
       screen.getByRole("region", { name: /superficie de trabajo clínico/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("complementary", { name: /asistencia clínica/i }),
+      screen.getByRole("complementary", {
+        name: HEYDOCTOR_COPILOT_COPY.assistPlaneAria,
+      }),
     ).toBeInTheDocument();
   });
+
 
   it.each([
     ["desktop", 1280],
