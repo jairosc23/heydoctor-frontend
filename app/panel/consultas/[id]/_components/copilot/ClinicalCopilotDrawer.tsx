@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useDoctorDna } from "@/hooks/useDoctorDna";
 import { EMPTY_PATIENT_CLINICAL_MEMORY } from "@/hooks/usePatientClinicalMemory";
 import { buildClinicalMemoryView } from "@/lib/clinical-memory";
@@ -30,6 +30,13 @@ import {
   CLINICAL_OVERLAY_BACKDROP_CLASS,
   CLINICAL_OVERLAY_PANEL_CLASS,
 } from "@/lib/clinical-overlay-contract";
+import {
+  HEYDOCTOR_COPILOT_BRAND,
+  HEYDOCTOR_COPILOT_CAPABILITIES,
+  HEYDOCTOR_COPILOT_COPY,
+  HEYDOCTOR_COPILOT_DEFAULT_SECTION,
+  type HeyDoctorCopilotSectionId,
+} from "@/lib/brand/heydoctor-copilot";
 import { CopilotActionSystem } from "./CopilotActionSystem";
 import { CopilotContextEngine } from "./CopilotContextEngine";
 import { CopilotDocumentationGaps } from "./CopilotDocumentationGaps";
@@ -321,8 +328,12 @@ export function ClinicalCopilotDrawer({
     intelligence.riskSignals.length === 0 &&
     displayedGaps.length === 0;
 
+  const [activeSection, setActiveSection] =
+    useState<HeyDoctorCopilotSectionId>(HEYDOCTOR_COPILOT_DEFAULT_SECTION);
+
   useEffect(() => {
     if (!open) return;
+    setActiveSection(HEYDOCTOR_COPILOT_DEFAULT_SECTION);
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
@@ -336,7 +347,7 @@ export function ClinicalCopilotDrawer({
     <>
       <button
         type="button"
-        aria-label="Cerrar Clinical Copilot"
+        aria-label={HEYDOCTOR_COPILOT_COPY.close}
         className={cn(
           "clinical-drawer-enter fixed inset-0 bg-slate-900/10",
           CLINICAL_OVERLAY_BACKDROP_CLASS.intelligence,
@@ -346,129 +357,265 @@ export function ClinicalCopilotDrawer({
       <aside
         role="dialog"
         aria-modal="false"
-        aria-label="Clinical Copilot"
+        aria-label={HEYDOCTOR_COPILOT_BRAND.productName}
         className={cn(
           "clinical-drawer-enter fixed inset-y-0 left-0 flex w-full max-w-md flex-col",
           "border-r border-hd-border-subtle bg-hd-surface-chrome shadow-hd-3",
           CLINICAL_OVERLAY_PANEL_CLASS.intelligence,
         )}
       >
-        <header className="shrink-0 border-b border-hd-border-subtle px-hd-4 py-hd-3">
-          <div className="heydoctor-presence">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-primary/80">
-              Clinical Copilot Daily Hub · Prep
+        {/* HERO — product identity (Brand Promise once here; not every screen) */}
+        <header
+          className="relative shrink-0 border-b border-hd-border-subtle px-hd-4 py-hd-4"
+          data-testid="heydoctor-copilot-hero"
+        >
+          <div className="heydoctor-presence pr-14">
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              <h2 className="text-base font-semibold tracking-tight text-slate-900">
+                {HEYDOCTOR_COPILOT_BRAND.productName}
+              </h2>
+              <span
+                className="inline-flex items-center rounded-full border border-amber-200/90 bg-amber-50 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-amber-900"
+                data-testid="heydoctor-copilot-non-authority-badge"
+              >
+                {HEYDOCTOR_COPILOT_BRAND.authorityBadge}
+              </span>
+            </div>
+            <p className="text-[12px] font-semibold text-primary">
+              {HEYDOCTOR_COPILOT_BRAND.subtitle}
             </p>
-            <h2 className="text-sm font-semibold text-slate-900">
-              Clinical Copilot™
-            </h2>
-            <p className="text-[10px] text-slate-500">
-              Contexto pre-consulta · solo lectura
+            <p
+              className="mt-2 text-[11px] leading-relaxed text-slate-600"
+              data-testid="heydoctor-copilot-brand-promise"
+            >
+              <span className="block">
+                {HEYDOCTOR_COPILOT_BRAND.brandPromiseLine1}
+              </span>
+              <span className="block font-medium text-slate-800">
+                {HEYDOCTOR_COPILOT_BRAND.brandPromiseLine2}
+              </span>
+            </p>
+            <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
+              {HEYDOCTOR_COPILOT_BRAND.mission}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Cerrar panel"
+            aria-label={HEYDOCTOR_COPILOT_COPY.close}
             className="clinical-interactive absolute right-3 top-3 inline-flex h-7 w-7 items-center justify-center rounded-hd-md text-slate-500 hover:bg-slate-100 hover:text-slate-800"
           >
             ✕
           </button>
         </header>
 
-        <div className="flex-1 space-y-hd-5 overflow-y-auto px-hd-4 py-hd-4">
-          {/* Prep/Live generative SSOT (UC-02B / UC-03C) — single surface */}
-          <CopilotSuggestedInterviewQuestions
-            batch={interviewQuestions.batch}
-            loading={interviewQuestions.loading}
-            error={interviewQuestions.error}
-            onRegenerate={() => {
-              void interviewQuestions.regenerate();
-            }}
-            onUpdate={interviewQuestions.updateSuggestion}
-            onDiscard={interviewQuestions.discardSuggestion}
-          />
-          <CopilotLiveClinicalInsights
-            batch={liveInsights.batch}
-            loading={liveInsights.loading}
-            error={liveInsights.error}
-            onRegenerate={() => {
-              void liveInsights.regenerate();
-            }}
-            onDiscard={liveInsights.discardInsight}
-          />
-          {/* Close SSOT — observational + H1 selection + preview + H2/H3/H4 */}
-          <CopilotClinicalReviewWorkspace
-            meta={clinicalReviewWorkspace}
-            agendaLoading={agendaLoading}
-            preVisitView={preVisitView}
-            clinicalSnapshot={preVisitClinicalSnapshot}
-            qualitySignals={preVisitQualitySignals}
-            documentationQuality={liveDocumentationQuality}
-            timelineView={liveTimeline.view}
-            timelineLoading={liveTimeline.loading}
-            timelineError={liveTimeline.error}
-            onTimelineRefresh={() => {
-              void liveTimeline.refresh();
-            }}
-            reviewState={reviewSelection.state}
-            reviewSummary={reviewSelection.summary}
-            onReviewAccept={(id) => {
-              void reviewSelection.accept(id);
-            }}
-            onReviewDiscard={(id) => {
-              void reviewSelection.discard(id);
-            }}
-            onReviewEdit={(id, text) => {
-              void reviewSelection.edit(id, text);
-            }}
-            reviewBusy={reviewSelection.busy}
-            reviewError={reviewSelection.error}
-            persistencePreview={persistencePreview}
-            closeAudit={closeHitl.audit}
-            closeGateOk={closeHitl.gateOk}
-            closeGateReason={closeHitl.gateReason}
-            closeBusy={closeHitl.busy}
-            closeError={closeHitl.error}
-            onCloseApproveH2={() => {
-              void closeHitl.approveH2();
-            }}
-            onCloseExecuteH3={() => {
-              void closeHitl.executeH3();
-            }}
-            onCloseSignH4={(signatureBase64) => {
-              void closeHitl.signH4(signatureBase64);
-            }}
-          />
-          <CopilotGovernanceBoundary />
-          {silenceMode ? (
-            <p
-              role="status"
-              className="rounded-hd-md border border-slate-200/80 bg-slate-50/80 px-hd-3 py-hd-2 text-[11px] text-slate-600"
+        <div className="flex min-h-0 flex-1 flex-col">
+          <div className="flex-1 space-y-hd-4 overflow-y-auto px-hd-4 py-hd-4">
+            {/* HOME first when Clinical Insights — intelligence before interaction */}
+            {activeSection === "clinical-insights" ? (
+              <section
+                aria-label={HEYDOCTOR_COPILOT_COPY.insightsHomeLabel}
+                data-testid="heydoctor-copilot-insights-home"
+              >
+                <div className="mb-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary">
+                    {HEYDOCTOR_COPILOT_COPY.insightsHomeLabel}
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-slate-500">
+                    {HEYDOCTOR_COPILOT_COPY.insightsHomeHint}
+                  </p>
+                </div>
+                <div className="space-y-hd-4">
+                  <CopilotLiveClinicalInsights
+                    batch={liveInsights.batch}
+                    loading={liveInsights.loading}
+                    error={liveInsights.error}
+                    onRegenerate={() => {
+                      void liveInsights.regenerate();
+                    }}
+                    onDiscard={liveInsights.discardInsight}
+                  />
+                  <CopilotInsightCards insights={displayedInsights} />
+                  <CopilotRiskSignals signals={intelligence.riskSignals} />
+                  <CopilotContextEngine context={intelligence.context} />
+                  {silenceMode ? (
+                    <p
+                      role="status"
+                      className="rounded-hd-md border border-slate-200/80 bg-slate-50/80 px-hd-3 py-hd-2 text-[11px] text-slate-600"
+                    >
+                      {COPILOT_SILENCE_MESSAGE}
+                    </p>
+                  ) : null}
+                </div>
+              </section>
+            ) : null}
+
+            {activeSection === "assistant" ? (
+              <section aria-label={HEYDOCTOR_COPILOT_COPY.assistAria}>
+                <div className="mb-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                    Assistant
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-slate-500">
+                    Capability of the same intelligence — not the home.
+                  </p>
+                </div>
+                <div className="space-y-hd-4">
+                  <CopilotSuggestedInterviewQuestions
+                    batch={interviewQuestions.batch}
+                    loading={interviewQuestions.loading}
+                    error={interviewQuestions.error}
+                    onRegenerate={() => {
+                      void interviewQuestions.regenerate();
+                    }}
+                    onUpdate={interviewQuestions.updateSuggestion}
+                    onDiscard={interviewQuestions.discardSuggestion}
+                  />
+                  <CopilotActionSystem />
+                </div>
+              </section>
+            ) : null}
+
+            {activeSection === "recommendations" ? (
+              <section aria-label="Recommendations" className="space-y-hd-4">
+                <CopilotDocumentationGaps
+                  gaps={displayedGaps}
+                  syncState={documentationGapsSyncState}
+                />
+                <CopilotDocumentationQuality
+                  quality={intelligence.documentationQuality}
+                />
+              </section>
+            ) : null}
+
+            {activeSection === "explainability" ? (
+              <section aria-label="Explainability" className="space-y-hd-4">
+                <CopilotGovernanceBoundary />
+                <section className="rounded-hd-md border border-amber-200/80 bg-amber-50/60 px-hd-3 py-hd-2 text-[11px] text-amber-950">
+                  <p className="font-semibold uppercase tracking-wide">
+                    {HEYDOCTOR_COPILOT_BRAND.authorityBadge}
+                  </p>
+                  <p className="mt-1 leading-relaxed">
+                    {HEYDOCTOR_COPILOT_BRAND.productName} is advisory. It does
+                    not confirm (HAB), emit (PE), or apply to the chart.
+                  </p>
+                </section>
+              </section>
+            ) : null}
+
+            {activeSection === "evidence" ? (
+              <section aria-label="Evidence" className="space-y-hd-4">
+                {foundationOutputs?.clinicalSummary ? (
+                  <section className="rounded-hd-md border border-primary/10 bg-primaryLight/40 px-hd-3 py-hd-2">
+                    <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                      Resumen clínico
+                    </p>
+                    <ul className="space-y-1 text-[11px] leading-relaxed text-slate-700">
+                      {foundationOutputs.clinicalSummary.lines
+                        .slice(0, 4)
+                        .map((line) => (
+                          <li key={line.id}>{line.text}</li>
+                        ))}
+                    </ul>
+                  </section>
+                ) : null}
+                <CopilotClinicalReviewWorkspace
+                  meta={clinicalReviewWorkspace}
+                  agendaLoading={agendaLoading}
+                  preVisitView={preVisitView}
+                  clinicalSnapshot={preVisitClinicalSnapshot}
+                  qualitySignals={preVisitQualitySignals}
+                  documentationQuality={liveDocumentationQuality}
+                  timelineView={liveTimeline.view}
+                  timelineLoading={liveTimeline.loading}
+                  timelineError={liveTimeline.error}
+                  onTimelineRefresh={() => {
+                    void liveTimeline.refresh();
+                  }}
+                  reviewState={reviewSelection.state}
+                  reviewSummary={reviewSelection.summary}
+                  onReviewAccept={(id) => {
+                    void reviewSelection.accept(id);
+                  }}
+                  onReviewDiscard={(id) => {
+                    void reviewSelection.discard(id);
+                  }}
+                  onReviewEdit={(id, text) => {
+                    void reviewSelection.edit(id, text);
+                  }}
+                  reviewBusy={reviewSelection.busy}
+                  reviewError={reviewSelection.error}
+                  persistencePreview={persistencePreview}
+                  closeAudit={closeHitl.audit}
+                  closeGateOk={closeHitl.gateOk}
+                  closeGateReason={closeHitl.gateReason}
+                  closeBusy={closeHitl.busy}
+                  closeError={closeHitl.error}
+                  onCloseApproveH2={() => {
+                    void closeHitl.approveH2();
+                  }}
+                  onCloseExecuteH3={() => {
+                    void closeHitl.executeH3();
+                  }}
+                  onCloseSignH4={(signatureBase64) => {
+                    void closeHitl.signH4(signatureBase64);
+                  }}
+                />
+              </section>
+            ) : null}
+
+            {/* Capability continuum — secondary; same intelligence, different views */}
+            <nav
+              aria-label={HEYDOCTOR_COPILOT_COPY.continuumAria}
+              className="border-t border-hd-border-subtle pt-hd-3"
+              data-testid="heydoctor-copilot-capability-continuum"
             >
-              {COPILOT_SILENCE_MESSAGE}
-            </p>
-          ) : null}
-          {foundationOutputs?.clinicalSummary ? (
-            <section className="rounded-hd-md border border-primary/10 bg-primaryLight/40 px-hd-3 py-hd-2">
-              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-primary">
-                Resumen clínico
+              <p className="mb-2 text-[10px] font-medium uppercase tracking-[0.12em] text-slate-400">
+                {HEYDOCTOR_COPILOT_COPY.continuumHint}
               </p>
-              <ul className="space-y-1 text-[11px] leading-relaxed text-slate-700">
-                {foundationOutputs.clinicalSummary.lines.slice(0, 4).map((line) => (
-                  <li key={line.id}>{line.text}</li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
-          <CopilotDocumentationQuality quality={intelligence.documentationQuality} />
-          <CopilotContextEngine context={intelligence.context} />
-          <CopilotInsightCards insights={displayedInsights} />
-          <CopilotRiskSignals signals={intelligence.riskSignals} />
-          <CopilotDocumentationGaps
-            gaps={displayedGaps}
-            syncState={documentationGapsSyncState}
-          />
-          <CopilotActionSystem />
+              <div className="flex flex-wrap gap-1.5">
+                {HEYDOCTOR_COPILOT_CAPABILITIES.map((capability) => {
+                  const selected = activeSection === capability.id;
+                  const isHome = capability.id === "clinical-insights";
+                  return (
+                    <button
+                      key={capability.id}
+                      type="button"
+                      onClick={() => setActiveSection(capability.id)}
+                      aria-pressed={selected}
+                      className={cn(
+                        "clinical-interactive rounded-full px-3 py-1.5 text-[11px] font-semibold transition-colors",
+                        selected
+                          ? isHome
+                            ? "bg-primary text-white"
+                            : "bg-primaryLight text-primary"
+                          : "bg-hd-surface-muted text-slate-600 hover:bg-slate-200/70",
+                      )}
+                    >
+                      {capability.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </nav>
+          </div>
+
+          {/* Persistent trust footer */}
+          <footer
+            className="shrink-0 border-t border-hd-border-subtle bg-hd-surface-raised px-hd-4 py-hd-2.5"
+            data-testid="heydoctor-copilot-trust-footer"
+          >
+            <p className="text-[10px] font-medium text-slate-700">
+              {HEYDOCTOR_COPILOT_COPY.trustFooter}
+            </p>
+            <p className="mt-0.5 text-[10px] leading-relaxed text-slate-500">
+              {HEYDOCTOR_COPILOT_BRAND.authorityBadge}
+              {" · "}
+              {HEYDOCTOR_COPILOT_BRAND.humanInTheLoop}
+              {" · "}
+              {HEYDOCTOR_COPILOT_BRAND.evidenceDriven}
+            </p>
+          </footer>
         </div>
       </aside>
     </>
@@ -488,8 +635,8 @@ export function ClinicalCopilotTrigger({
     <button
       type="button"
       onClick={onClick}
-      aria-label="Abrir Clinical Copilot"
-      title="Clinical Copilot"
+      aria-label={HEYDOCTOR_COPILOT_COPY.open}
+      title={HEYDOCTOR_COPILOT_BRAND.productName}
       className={cn(
         "clinical-interactive inline-flex h-8 items-center gap-1 rounded-hd-md border px-2 text-xs font-medium",
         active
@@ -499,7 +646,7 @@ export function ClinicalCopilotTrigger({
       )}
     >
       <span aria-hidden>✨</span>
-      <span className="hidden md:inline">Copilot</span>
+      <span className="hidden md:inline">{HEYDOCTOR_COPILOT_COPY.openShort}</span>
     </button>
   );
 }

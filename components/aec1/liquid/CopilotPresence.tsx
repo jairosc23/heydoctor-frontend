@@ -1,6 +1,9 @@
 "use client";
 
 import { W5_CLINICAL_AUTHORITY } from "@/lib/aec1/w5-clinical-steward-api";
+import {
+  HEYDOCTOR_COPILOT_COPY,
+} from "@/lib/brand/heydoctor-copilot";
 
 export type CopilotPresenceProps = {
   disclosure: "collapsed" | "expanded";
@@ -30,7 +33,7 @@ export function CopilotPresence({
       data-disclosure={disclosure}
       data-open={copilotOpen ? "true" : "false"}
       role="group"
-      aria-label="Presencia Copilot (MODEL, advisory)"
+      aria-label={HEYDOCTOR_COPILOT_COPY.presenceAria}
       style={{
         marginTop: compact ? 4 : 8,
         padding: compact ? "4px 8px" : "8px 10px",
@@ -79,7 +82,9 @@ export function CopilotPresence({
           fontWeight: 600,
         }}
       >
-        {copilotOpen ? "Copilot abierto" : "Abrir Copilot"}
+        {copilotOpen
+          ? HEYDOCTOR_COPILOT_COPY.opened
+          : HEYDOCTOR_COPILOT_COPY.open}
       </button>
     </div>
   );

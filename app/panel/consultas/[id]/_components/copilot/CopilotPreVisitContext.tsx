@@ -141,7 +141,7 @@ export function CopilotPreVisitContext({
           </p>
         )}
         <p className="mt-1 text-[11px] text-slate-500">
-          Medical Copilot Session: {sessionLabel(view.sessionStatus)}
+          HeyDoctor Copilot Session: {sessionLabel(view.sessionStatus)}
           {view.sessionId ? (
             <span className="ml-1 font-mono text-[10px] text-slate-400">
               ({view.sessionId.slice(0, 8)}…)

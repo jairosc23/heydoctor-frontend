@@ -29,14 +29,14 @@ export function GovernedClinicalAssistancePanel() {
   return (
     <div data-testid="governed-clinical-assistance-panel">
       <ClinicalPanel depth={2}>
-        <ClinicalSection title="Asistencia Clínica Gobernada (Fase 3)">
+        <ClinicalSection title="Assistant">
           <p className="mb-3 text-xs text-slate-500">
             Sesión de visualización · HITL obligatorio · Sin persistencia EMR ·
             Sin acciones automáticas.
           </p>
           {!sessionId ? (
             <p className="text-sm text-slate-500">
-              Esperando sesión Medical Copilot…
+              Esperando sesión HeyDoctor Copilot…
             </p>
           ) : null}
           {loading ? <p className="text-sm text-slate-500">Cargando…</p> : null}

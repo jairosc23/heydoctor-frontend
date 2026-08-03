@@ -196,7 +196,7 @@ export function ClinicalVoiceSuggestionsPanel(
             ) : null}
             {governedLoading ? (
               <p className="text-sm text-slate-500">
-                Consultando Medical Copilot Facade…
+                Consultando HeyDoctor Copilot…
               </p>
             ) : null}
             {governedSuggestions.length > 0 ? (

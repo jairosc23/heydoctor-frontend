@@ -226,7 +226,7 @@ export function ClinicalRecordPanel({
             )}
           >
             <span aria-hidden>✨</span>
-            {aiLoading ? "Generando con IA…" : "Autollenar con IA"}
+            {aiLoading ? "Generando con HeyDoctor Copilot…" : "Autollenar con HeyDoctor Copilot"}
           </button>
           <button
             type="button"

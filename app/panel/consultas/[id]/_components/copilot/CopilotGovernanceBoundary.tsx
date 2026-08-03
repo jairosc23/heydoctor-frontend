@@ -11,7 +11,7 @@ export function CopilotGovernanceBoundary() {
       data-testid="copilot-governance-boundary"
     >
       <p className="mb-hd-2 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-        AI Governance Boundary™
+        Governance
       </p>
       <ul className="mb-hd-2 space-y-1 rounded-md border border-slate-200 bg-white/70 px-2 py-1.5 text-[11px] text-slate-700">
         <li data-testid="hitl-seal-review">

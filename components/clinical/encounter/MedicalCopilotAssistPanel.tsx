@@ -43,11 +43,11 @@ export function MedicalCopilotAssistPanel({
     <section
       data-testid="gce-copilot-assist-panel"
       className="border-t border-hd-border-subtle bg-hd-surface-elevated/80 px-3 py-3"
-      aria-label="Medical Copilot Assist"
+      aria-label="HeyDoctor Copilot · Assistant"
     >
       <div className="mb-2 flex items-center justify-between gap-2">
         <h3 className="text-sm font-semibold text-hd-text">
-          Medical Copilot Assist
+          HeyDoctor Copilot · Assistant
         </h3>
         <span className="text-[11px] uppercase tracking-wide text-hd-text-muted">
           Dispose · no Confirm · no emisión

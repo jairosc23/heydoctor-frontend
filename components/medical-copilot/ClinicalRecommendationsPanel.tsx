@@ -28,7 +28,7 @@ export function ClinicalRecommendationsPanel() {
   return (
     <div data-testid="clinical-recommendations-panel">
       <ClinicalPanel depth={2}>
-        <ClinicalSection title="Clinical Recommendations (CI-3)">
+        <ClinicalSection title="Recommendations">
           <p className="mb-3 text-xs text-slate-500">
             Recomendaciones consolidadas desde Clinical Insights. Requiere
             revisión médica · no ejecuta acciones · no persiste en EMR.
@@ -36,7 +36,7 @@ export function ClinicalRecommendationsPanel() {
 
           {!sessionId ? (
             <p className="text-sm text-slate-500">
-              Esperando sesión Medical Copilot…
+              Esperando sesión HeyDoctor Copilot…
             </p>
           ) : null}
 

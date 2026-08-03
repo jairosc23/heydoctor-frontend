@@ -27,7 +27,7 @@ export function CopilotSuggestedInterviewQuestions({
       <div className="flex items-start justify-between gap-2">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-wide text-primary/80">
-            EPIC-3 · Prep · Propuesta Copilot
+            EPIC-3 · Prep · Propuesta HeyDoctor Copilot
           </p>
           <h3 className={CLINICAL_SECTION_TITLE}>
             Suggested Interview Questions

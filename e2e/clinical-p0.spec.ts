@@ -233,7 +233,7 @@ test.describe("Clinical P0 — workspace oficial (Action WS + Smart WS ON)", () 
 
     // Copilot hub accesible
     await page.getByRole("button", { name: /copilot|análisis clínico/i }).click();
-    await expect(page.getByText(/Clinical Copilot/i)).toBeVisible();
+    await expect(page.getByText(/HeyDoctor Copilot/i)).toBeVisible();
 
     await page.keyboard.press("Escape");
 

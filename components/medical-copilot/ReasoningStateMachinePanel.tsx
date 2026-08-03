@@ -13,7 +13,7 @@ export function ReasoningStateMachinePanel() {
       <ClinicalPanel depth={2}>
         <ClinicalSection title="Reasoning State Machine (AI-67)">
           <p className="mb-3 text-xs text-slate-500">Máquina de estados estructurales. Sin lógica clínica · HITL obligatorio.</p>
-          {!sessionId ? <p className="text-sm text-slate-500">Esperando sesión Medical Copilot…</p> : null}
+          {!sessionId ? <p className="text-sm text-slate-500">Esperando sesión HeyDoctor Copilot…</p> : null}
           <MedicalCopilotInlineStatus loading={loading} error={error} onRetry={refresh} />
           {model ? (
             <div className="space-y-3" data-testid="reasoning-state-machine">

@@ -33,14 +33,14 @@ export function ClinicalReviewPanel() {
       <ClinicalPanel depth={2}>
         <ClinicalSection title="Governed Clinical Review (CI-7)">
           <p className="mb-3 text-xs text-slate-500">
-            Revisión estructurada del Clinical Copilot Snapshot. Requiere
+            Revisión estructurada del snapshot HeyDoctor Copilot. Requiere
             revisión médica · no ejecuta acciones · no persiste en EMR · sin
             LLM.
           </p>
 
           {!sessionId ? (
             <p className="text-sm text-slate-500">
-              Esperando sesión Medical Copilot…
+              Esperando sesión HeyDoctor Copilot…
             </p>
           ) : null}
 

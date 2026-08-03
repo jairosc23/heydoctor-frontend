@@ -19,7 +19,7 @@ export class MedicalCopilotErrorBoundary extends Component<Props, State> {
   static getDerivedStateFromError(error: Error): State {
     return {
       hasError: true,
-      message: error.message || "Error inesperado en Medical Copilot",
+      message: error.message || "Error inesperado en HeyDoctor Copilot",
     };
   }
 
@@ -33,7 +33,7 @@ export class MedicalCopilotErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       return (
         <MedicalCopilotErrorState
-          title={this.props.fallbackTitle ?? "Error en Medical Copilot"}
+          title={this.props.fallbackTitle ?? "Error en HeyDoctor Copilot"}
           message={this.state.message ?? undefined}
           onRetry={() => this.setState({ hasError: false, message: null })}
         />

@@ -31,7 +31,7 @@ export type AiEntryPoint = {
 export const AI_ENTRY_POINTS_INVENTORY: AiEntryPoint[] = [
   {
     id: "ep-copilot-header",
-    label: "Clinical Copilot™ (header)",
+    label: "HeyDoctor Copilot (header)",
     route: "/panel/consultas/[id]",
     trigger: "Botón ✨ Copilot en EncounterHeader",
     component: "ClinicalCopilotDrawer.tsx",
@@ -147,7 +147,7 @@ export const AI_ENTRY_POINT_SUMMARY = {
     (e) => e.activeInProductionId && e.userInitiated,
   ).length,
   targetMax: 2,
-  targetPrimary: "Clinical Copilot™",
+  targetPrimary: "HeyDoctor Copilot",
   targetContextual: "LiveAiNoteSuggestions™",
 } as const;
 
@@ -293,7 +293,7 @@ export type AiComponentVerdict = {
 /** Respuestas explícitas a las 5 preguntas Phase 4.8.2 */
 export const AI_UNIFICATION_VERDICTS: AiComponentVerdict[] = [
   {
-    component: "Clinical Copilot™",
+    component: "HeyDoctor Copilot",
     category: "principal",
     rationale:
       "Único hub determinístico post-4.7D: quality, gaps, risks, insights, governance. Entry point canónico header.",
@@ -362,7 +362,7 @@ export const AI_TARGET_ARCHITECTURE = {
   layers: [
     {
       layer: "Principal",
-      surface: "Clinical Copilot™ drawer",
+      surface: "HeyDoctor Copilot drawer",
       contains: [
         "Documentation Quality + Gaps (determinístico)",
         "Risk Signals + Insight Cards (determinístico)",

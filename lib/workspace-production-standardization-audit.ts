@@ -288,7 +288,7 @@ export const OFFICIAL_WORKSPACE_PROPOSAL = {
   layout: "2-column desktop + Clinical Module Sheet™ + SOAP Command Center compacto",
   chrome:
     "EncounterChromeShell + PatientSnapshot compact + ClinicalActionBar + ClinicalCloseFlow",
-  ia: "Clinical Copilot™ hub único (4.8.3D) — independiente de flags workspace",
+  ia: "HeyDoctor Copilot hub único (4.8.3D) — independiente de flags workspace",
   mobile: "MobileConsultationWorkspace con Smart WS (sticky nav + tabs)",
   rationale: [
     "Experencia sobre la que corrieron auditorías 4.7C–4.8.4",

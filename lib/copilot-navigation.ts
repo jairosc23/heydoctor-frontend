@@ -5,7 +5,7 @@
 export type CopilotSectionId = "generative";
 
 export const COPILOT_HUB_CTA_COPY =
-  "Disponible también desde Clinical Copilot™";
+  "Disponible también desde HeyDoctor Copilot";
 
 export type CopilotRedirectEntryPoint = {
   id: string;
@@ -14,11 +14,11 @@ export type CopilotRedirectEntryPoint = {
   phase483dStatus?: "retired_unmounted" | "active_replacement";
 };
 
-/** Entry points migrados en 4.8.3C hacia Clinical Copilot™ generativo. */
+/** Entry points migrados en 4.8.3C hacia HeyDoctor Copilot generativo. */
 export const COPILOT_REDIRECT_ENTRY_POINTS: CopilotRedirectEntryPoint[] = [
   {
     id: "menu-analisis-clinico-ia",
-    label: "Menú ⋯ Análisis clínico con IA",
+    label: "Menú ⋯ Analizar con HeyDoctor Copilot",
     phase483cBehavior: "redirect_to_copilot_generative",
   },
   {
@@ -51,7 +51,7 @@ export const COPILOT_REDIRECT_ENTRY_POINTS: CopilotRedirectEntryPoint[] = [
   },
   {
     id: "ficha-autollenar",
-    label: "ClinicalRecordPanel → Autollenar con IA",
+    label: "ClinicalRecordPanel → Autollenar con HeyDoctor Copilot",
     phase483cBehavior: "unchanged",
   },
   {

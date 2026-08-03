@@ -7,7 +7,7 @@ export function CopilotActionSystem() {
   return (
     <section aria-label="Copilot Action System" className="space-y-hd-2">
       <div>
-        <h3 className={CLINICAL_SECTION_TITLE}>Copilot Action System™</h3>
+        <h3 className={CLINICAL_SECTION_TITLE}>Assistant actions</h3>
         <p className="text-[11px] text-slate-500">
           Acciones futuras — deshabilitadas en Phase 4.0
         </p>

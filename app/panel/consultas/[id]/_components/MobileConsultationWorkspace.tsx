@@ -132,7 +132,7 @@ export function MobileConsultationWorkspace({
         <div aria-label="Mensajería de consulta">
           <p className="mb-3 text-[11px] text-slate-500">
             Mensajería clínica. Para análisis con IA use{" "}
-            <span className="font-semibold text-primary">Clinical Copilot™</span>.
+            <span className="font-semibold text-primary">HeyDoctor Copilot</span>.
           </p>
           <ChatPanel consultationId={consultationId} sender="doctor" />
         </div>

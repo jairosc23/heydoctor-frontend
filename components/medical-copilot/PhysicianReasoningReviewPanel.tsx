@@ -13,7 +13,7 @@ export function PhysicianReasoningReviewPanel() {
       <ClinicalPanel depth={2}>
         <ClinicalSection title="Physician Reasoning Review (AI-84)">
           <p className="mb-3 text-xs text-slate-500">Vista integrada para revisión médica. Sin aprobación automática · HITL obligatorio.</p>
-          {!sessionId ? <p className="text-sm text-slate-500">Esperando sesión Medical Copilot…</p> : null}
+          {!sessionId ? <p className="text-sm text-slate-500">Esperando sesión HeyDoctor Copilot…</p> : null}
           <MedicalCopilotInlineStatus loading={loading} error={error} onRetry={refresh} />
           {model ? (
             <div className="space-y-3" data-testid="physician-reasoning-review">

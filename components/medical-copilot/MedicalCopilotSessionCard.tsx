@@ -31,7 +31,7 @@ export function MedicalCopilotSessionCard({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-sm font-semibold text-slate-900">
-            Sesión del Copiloto
+            Sesión HeyDoctor Copilot
           </h2>
           <p className="mt-1 text-xs text-slate-500">
             Contenedor clínico gobernado — no representa una conversación.

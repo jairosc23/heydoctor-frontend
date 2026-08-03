@@ -393,7 +393,7 @@ export function LiveAiNoteSuggestions({
               />
             )}
             <span style={{ fontSize: 10, color: "#64748b", fontWeight: 600 }}>
-              {fetching ? "IA…" : "💡 Sugerencias IA"}
+              {fetching ? "IA…" : "💡 Sugerencias HeyDoctor Copilot"}
             </span>
           </div>
           <style>{`@keyframes live-ai-pulse { 50% { opacity: 0.35; } }`}</style>

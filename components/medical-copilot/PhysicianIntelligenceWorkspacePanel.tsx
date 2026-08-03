@@ -12,7 +12,7 @@ export function PhysicianIntelligenceWorkspacePanel() {
       <ClinicalPanel depth={2}>
         <ClinicalSection title="Physician Intelligence Workspace (AI-91)">
           <p className="mb-3 text-xs text-slate-500">Workspace estructural para inteligencia clínica del médico. Sin aprobación automática · HITL obligatorio.</p>
-          {!sessionId ? <p className="text-sm text-slate-500">Esperando sesión Medical Copilot…</p> : null}
+          {!sessionId ? <p className="text-sm text-slate-500">Esperando sesión HeyDoctor Copilot…</p> : null}
           {loading ? <p className="text-sm text-slate-500">Cargando…</p> : null}
           {error ? <p className="text-sm text-red-600" role="alert">{error}</p> : null}
           {model ? (

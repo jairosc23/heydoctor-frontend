@@ -18,16 +18,16 @@ export function CopilotLiveClinicalInsights({
 }) {
   return (
     <section
-      aria-label="Real-Time Clinical Insights"
+      aria-label="Clinical Insights"
       data-testid="copilot-live-clinical-insights"
       className="space-y-hd-3"
     >
       <div className="flex items-start justify-between gap-2">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-wide text-primary/80">
-            EPIC-3 · Live · Propuesta Copilot
+            EPIC-3 · Live · Propuesta HeyDoctor Copilot
           </p>
-          <h3 className={CLINICAL_SECTION_TITLE}>Real-Time Clinical Insights</h3>
+          <h3 className={CLINICAL_SECTION_TITLE}>Clinical Insights</h3>
           <p className="text-[11px] text-slate-500">
             Solo sugerencias · descartables · no se guardan en el EMR
           </p>

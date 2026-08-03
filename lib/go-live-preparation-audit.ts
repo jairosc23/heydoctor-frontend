@@ -241,7 +241,7 @@ export const GO_LIVE_CHECK: GoLiveCheckItem[] = [
   { id: "gl-09", phase: "e2e", label: "P0-2 DM2 PASS (desktop)", required: true, automated: true },
   { id: "gl-10", phase: "e2e", label: "P0-3 Aguda PASS (desktop)", required: true, automated: true },
   { id: "gl-11", phase: "e2e", label: "P0-4 Pago PASS o documentado skip Payku", required: true, automated: true },
-  { id: "gl-12", phase: "smoke", label: "Clinical Copilot abre sin error", required: true, automated: true },
+  { id: "gl-12", phase: "smoke", label: "HeyDoctor Copilot abre sin error", required: true, automated: true },
   { id: "gl-13", phase: "smoke", label: "Autosave indicator saved tras edit SOAP", required: true, automated: true },
   { id: "gl-14", phase: "smoke", label: "Payment gate: botón pago NO visible en completed", required: true, automated: false },
   { id: "gl-15", phase: "smoke", label: "Signed docs gate: PDF disabled pre-firma", required: true, automated: false },
