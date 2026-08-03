@@ -39,21 +39,21 @@ export function DemoShell({
       >
         Saltar al contenido de la demo
       </a>
-      <div className="sticky top-0 z-40 border-b border-hd-border-subtle bg-hd-surface-chrome">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-5 py-3">
-          <div className="flex min-w-0 items-center gap-3">
+      <div className="sticky top-0 z-40 border-b border-hd-border-subtle bg-hd-surface-chrome shadow-hd-1">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-4">
+          <div className="flex min-w-0 items-center gap-4">
             <Link href="/" className="no-underline">
               <BrandLogo variant="nav" priority />
             </Link>
-            <div className="min-w-0 border-l border-hd-border-default pl-3">
+            <div className="min-w-0 border-l border-hd-border-default pl-4">
               <p
-                className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary"
+                className="text-xs font-semibold uppercase tracking-[0.2em] text-primary"
                 style={{ fontFamily: "Montserrat, sans-serif" }}
               >
-                Demo
+                Demo interactiva
               </p>
               <h1
-                className="mt-0.5 truncate text-base font-semibold text-primaryDark"
+                className="mt-0.5 truncate text-lg font-semibold text-primaryDark"
                 style={{ fontFamily: "Montserrat, sans-serif" }}
               >
                 {scenario.title}
@@ -61,14 +61,14 @@ export function DemoShell({
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            {scenario.signals.slice(0, 3).map((signal) => (
+            {scenario.signals.map((signal) => (
               <SignalBadge key={signal.label} signal={signal} />
             ))}
           </div>
         </div>
       </div>
 
-      <div id="demo-content" className="mx-auto max-w-7xl px-4 py-8 sm:px-5 sm:py-10">
+      <div id="demo-content" className="mx-auto max-w-7xl px-4 py-6 sm:px-5 sm:py-8">
         {children}
       </div>
     </main>
