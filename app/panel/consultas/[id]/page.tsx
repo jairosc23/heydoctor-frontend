@@ -72,6 +72,7 @@ import { PatientContextRail } from "./_components/PatientContextRail";
 import { EncounterHeader } from "./_components/EncounterHeader";
 import { StickyPatientHeader } from "./_components/StickyPatientHeader";
 import { ClinicalCopilotDrawer } from "./_components/copilot/ClinicalCopilotDrawer";
+import { HeyDoctorCopilotRuntimeProviders } from "@/components/copilot/HeyDoctorCopilotRuntimeProviders";
 import {
   DoctorDnaDrawer,
 } from "./_components/DoctorDnaDrawer";
@@ -183,6 +184,7 @@ export default function ConsultationDetailPage() {
   const [shareOpen, setShareOpen] = useState(false);
   const [dnaDrawerOpen, setDnaDrawerOpen] = useState(false);
   const [copilotDrawerOpen, setCopilotDrawerOpen] = useState(false);
+  const [continuityOpen, setContinuityOpen] = useState(false);
   const [generativeExpandToken, setGenerativeExpandToken] = useState(0);
   /** EPIC-3 UC-01: auto-open Daily Hub once per consultation mount for Prep context. */
   const preVisitAutoOpenedRef = useRef(false);
@@ -1037,6 +1039,11 @@ export default function ConsultationDetailPage() {
         setGenerativeExpandToken((token) => token + 1)
       }
     >
+    <HeyDoctorCopilotRuntimeProviders
+      consultationId={id}
+      patientId={consultation.patientId}
+      appointmentId={null}
+    >
     <div
       ref={workspaceRef}
       className="clinical-workspace mx-auto max-w-5xl space-y-hd-2 p-hd-3 md:p-hd-4 lg:p-hd-5 xl:max-w-none 2xl:mx-auto 2xl:max-w-[1600px]"
@@ -1141,6 +1148,8 @@ export default function ConsultationDetailPage() {
                 consultationId={id}
                 clinicId={consultation.clinicId ?? ctxClinicId ?? null}
                 ordersRefreshKey={ordersRefreshKey}
+                continuityOpen={continuityOpen}
+                onContinuityOpenChange={setContinuityOpen}
               />
             ) : null}
           </div>
@@ -1180,6 +1189,8 @@ export default function ConsultationDetailPage() {
       <ClinicalCopilotDrawer
         open={copilotDrawerOpen}
         onClose={() => setCopilotDrawerOpen(false)}
+        onOpenContinuity={() => setContinuityOpen(true)}
+        runtimeEnabled={Boolean(consultation.patientId)}
         generativeExpandToken={generativeExpandToken}
         consultation={consultation}
         consultationId={id}
@@ -1587,6 +1598,7 @@ export default function ConsultationDetailPage() {
         </p>
       ) : null}
     </div>
+    </HeyDoctorCopilotRuntimeProviders>
     </CopilotNavigationProvider>
     </ClinicalActionWorkspaceProvider>
   );
