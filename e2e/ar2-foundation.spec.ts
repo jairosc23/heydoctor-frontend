@@ -4,6 +4,9 @@
  */
 import { test, expect } from "@playwright/test";
 import {
+  HEYDOCTOR_COPILOT_BRAND,
+} from "../lib/brand/heydoctor-copilot";
+import {
   MEDICAL_COPILOT_API_VERSION,
   MEDICAL_COPILOT_GOVERNANCE,
 } from "../lib/medical-copilot/types";
@@ -111,7 +114,7 @@ function facadeEnvelope<T>(data: T) {
   };
 }
 
-test.describe("AR-2 Medical Copilot Foundation readiness", () => {
+test.describe("AR-2 HeyDoctor Copilot Foundation readiness", () => {
   test.beforeEach(async ({ page }) => {
     await injectPanelSessionCookie(page);
   });
@@ -171,7 +174,9 @@ test.describe("AR-2 Medical Copilot Foundation readiness", () => {
     await expect(page.getByTestId("medical-copilot-active-shell")).toHaveCount(
       0,
     );
-    await expect(page.getByText(/v1\.0 · GA/i)).toBeVisible();
+    await expect(
+      page.getByText(`${HEYDOCTOR_COPILOT_BRAND.productName} · Workspace`),
+    ).toBeVisible();
   });
 
   test("fallback runtime caído mantiene Copilot habilitado por env/local", async ({
@@ -5869,7 +5874,9 @@ test.describe("AR-2 Medical Copilot Foundation readiness", () => {
     await expect(page.getByTestId("medical-copilot-active-shell")).toBeVisible({
       timeout: 30_000,
     });
-    await expect(page.getByText(/v1\.0 · GA/i)).toBeVisible();
+    await expect(
+      page.getByText(`${HEYDOCTOR_COPILOT_BRAND.productName} · Workspace`),
+    ).toBeVisible();
     // Telemetry remote sink is best-effort; allow either hit or quiet failure.
     expect(typeof telemetryHit).toBe("boolean");
   });
@@ -5986,7 +5993,7 @@ test.describe("AR-2 Medical Copilot Foundation readiness", () => {
     await page.setContent(`
       <a data-testid="encounter-medical-copilot-link"
          href="/panel/consultas/${CONSULTATION_ID}/medical-copilot">
-        Medical Copilot
+        ${HEYDOCTOR_COPILOT_BRAND.productName}
       </a>
     `);
     const link = page.getByTestId("encounter-medical-copilot-link");

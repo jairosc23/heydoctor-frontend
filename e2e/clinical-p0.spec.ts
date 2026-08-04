@@ -7,6 +7,7 @@
  * En CI / E2E_STRICT faltan UUIDs → error explícito (no skip silencioso).
  */
 import { test, expect, configureP0Suite } from "./fixtures/p0";
+import { HEYDOCTOR_COPILOT_BRAND } from "../lib/brand/heydoctor-copilot";
 import { getConsultationId } from "./helpers/env";
 import {
   gotoConsultation,
@@ -233,7 +234,9 @@ test.describe("Clinical P0 — workspace oficial (Action WS + Smart WS ON)", () 
 
     // Copilot hub accesible
     await page.getByRole("button", { name: /copilot|análisis clínico/i }).click();
-    await expect(page.getByText(/HeyDoctor Copilot/i)).toBeVisible();
+    await expect(
+      page.getByText(HEYDOCTOR_COPILOT_BRAND.productName),
+    ).toBeVisible();
 
     await page.keyboard.press("Escape");
 

@@ -3,6 +3,7 @@ import { AssistOrchestrator } from "@/components/aec1/liquid/AssistOrchestrator"
 import { CopilotPresence } from "@/components/aec1/liquid/CopilotPresence";
 import { LiquidAssistPlane } from "@/components/aec1/liquid/LiquidAssistPlane";
 import * as w5Api from "@/lib/aec1/w5-clinical-steward-api";
+import { HEYDOCTOR_COPILOT_COPY } from "@/lib/brand/heydoctor-copilot";
 import { renderWithProviders, screen, waitFor } from "@/test/utils/render";
 
 describe("AEC-1 M6.2 CopilotPresence", () => {
@@ -28,6 +29,9 @@ describe("AEC-1 M6.2 CopilotPresence", () => {
       "data-plane",
       "MODEL",
     );
+    expect(
+      screen.getByRole("button", { name: HEYDOCTOR_COPILOT_COPY.open }),
+    ).toBeInTheDocument();
     screen.getByTestId("aec1-copilot-presence-open").click();
     expect(onOpen).toHaveBeenCalledTimes(1);
     expect(
