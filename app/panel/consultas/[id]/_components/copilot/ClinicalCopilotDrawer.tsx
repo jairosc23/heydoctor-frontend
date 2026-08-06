@@ -52,12 +52,18 @@ import { evaluateLiveDocumentationQuality } from "@/lib/epic3/live-documentation
 import { evaluatePreVisitQualitySignals } from "@/lib/epic3/pre-visit-quality-signals";
 import { CopilotSuggestedInterviewQuestions } from "./CopilotSuggestedInterviewQuestions";
 import { CopilotRiskSignals } from "./CopilotRiskSignals";
+import { ClinicalSnapshotPanel } from "./ClinicalSnapshotPanel";
 import {
   HeyDoctorCopilotContinuityCapability,
   HeyDoctorCopilotReviewSignCapability,
   HeyDoctorCopilotRuntimeStrip,
   HeyDoctorCopilotVoiceCapability,
 } from "./HeyDoctorCopilotWorkspaceRuntime";
+import { useClinicalSnapshot } from "@/hooks/useClinicalSnapshot";
+import {
+  formatClinicalVitalSignsForContext,
+  parseClinicalVitalSignsFromNotes,
+} from "@/lib/clinical-vital-signs-context";
 
 export interface ClinicalCopilotDrawerProps {
   open: boolean;
@@ -340,6 +346,27 @@ export function ClinicalCopilotDrawer({
     intelligence.riskSignals.length === 0 &&
     displayedGaps.length === 0;
 
+  const clinicalSnapshotSupplement = useMemo(() => {
+    const vitalsCtx = parseClinicalVitalSignsFromNotes(notes);
+    const medications = (clinicalMemoryData.currentMedications ?? [])
+      .map((m) => m.name)
+      .filter(Boolean);
+    // Allergies are not on PatientClinicalMemory P0; keep empty unless
+    // foundation findings explicitly label allergy signals (fail-closed).
+    const allergies = (foundationOutputs?.clinicalFindings ?? [])
+      .filter((f) => /alerg/i.test(`${f.category} ${f.label}`))
+      .map((f) => f.value || f.label)
+      .filter(Boolean);
+    return {
+      allergies,
+      medications,
+      vitalSignsSummary: formatClinicalVitalSignsForContext(vitalsCtx),
+      consultationReason: chiefComplaint?.trim() || null,
+    };
+  }, [chiefComplaint, clinicalMemoryData, foundationOutputs, notes]);
+
+  const clinicalSnapshot = useClinicalSnapshot(clinicalSnapshotSupplement);
+
   const [activeSection, setActiveSection] =
     useState<HeyDoctorCopilotSectionId>(HEYDOCTOR_COPILOT_DEFAULT_SECTION);
 
@@ -446,6 +473,7 @@ export function ClinicalCopilotDrawer({
                   </p>
                 </div>
                 <div className="space-y-hd-4">
+                  <ClinicalSnapshotPanel snapshot={clinicalSnapshot} />
                   <CopilotLiveClinicalInsights
                     batch={liveInsights.batch}
                     loading={liveInsights.loading}
@@ -487,6 +515,10 @@ export function ClinicalCopilotDrawer({
                   </p>
                 </div>
                 <div className="space-y-hd-4">
+                  <ClinicalSnapshotPanel
+                    snapshot={clinicalSnapshot}
+                    variant="compact"
+                  />
                   <CopilotSuggestedInterviewQuestions
                     batch={interviewQuestions.batch}
                     loading={interviewQuestions.loading}
@@ -504,6 +536,10 @@ export function ClinicalCopilotDrawer({
 
             {activeSection === "recommendations" ? (
               <section aria-label="Recommendations" className="space-y-hd-4">
+                <ClinicalSnapshotPanel
+                  snapshot={clinicalSnapshot}
+                  variant="compact"
+                />
                 <CopilotDocumentationGaps
                   gaps={displayedGaps}
                   syncState={documentationGapsSyncState}
@@ -516,6 +552,10 @@ export function ClinicalCopilotDrawer({
 
             {activeSection === "explainability" ? (
               <section aria-label="Explainability" className="space-y-hd-4">
+                <ClinicalSnapshotPanel
+                  snapshot={clinicalSnapshot}
+                  variant="compact"
+                />
                 <CopilotGovernanceBoundary />
                 <section className="rounded-hd-md border border-amber-200/80 bg-amber-50/60 px-hd-3 py-hd-2 text-[11px] text-amber-950">
                   <p className="font-semibold uppercase tracking-wide">
@@ -547,6 +587,10 @@ export function ClinicalCopilotDrawer({
 
             {activeSection === "evidence" ? (
               <section aria-label="Evidence" className="space-y-hd-4">
+                <ClinicalSnapshotPanel
+                  snapshot={clinicalSnapshot}
+                  variant="compact"
+                />
                 {foundationOutputs?.clinicalSummary ? (
                   <section className="rounded-hd-md border border-primary/10 bg-primaryLight/40 px-hd-3 py-hd-2">
                     <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-primary">
