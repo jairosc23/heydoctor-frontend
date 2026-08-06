@@ -1,6 +1,7 @@
 /**
  * HeyDoctor Copilot — user-facing brand strings (SSOT).
  * Source: docs/brand/HEYDOCTOR-COPILOT-BRAND.md
+ * Clinical OS: docs/brand/HEYDOCTOR-COPILOT-CLINICAL-OPERATING-SYSTEM.md
  *
  * Branding / product experience layer only.
  * Does not rename runtimes, APIs, routes, or contracts.
@@ -23,15 +24,19 @@ export const HEYDOCTOR_COPILOT_BRAND = {
   authorityBadgeEs: "SIN AUTORIDAD CLÍNICA",
   humanInTheLoop: "Human-in-the-Loop",
   evidenceDriven: "Evidence-Driven",
+  workspaceLabel: "Workspace",
 } as const;
 
 /** Capability continuum — views of one intelligence (not independent modules). */
 export const HEYDOCTOR_COPILOT_CAPABILITIES = [
   { id: "clinical-insights", label: "Clinical Insights", home: true },
+  { id: "voice-dictation", label: "Voice Dictation", home: false },
   { id: "assistant", label: "Assistant", home: false },
   { id: "recommendations", label: "Recommendations", home: false },
   { id: "explainability", label: "Explainability", home: false },
   { id: "evidence", label: "Evidence", home: false },
+  { id: "continuity", label: "Continuity", home: false },
+  { id: "review-sign", label: "Review & Sign", home: false },
 ] as const;
 
 /** @deprecated Use HEYDOCTOR_COPILOT_CAPABILITIES */
@@ -73,4 +78,10 @@ export const HEYDOCTOR_COPILOT_COPY = {
   continuumAria: "HeyDoctor Copilot capabilities",
   continuumHint: "Same intelligence · different views",
   trustFooter: "You remain in control",
+  workspaceAria: "HeyDoctor Copilot Workspace",
+  runtimeStripAria: "HeyDoctor Copilot runtime",
+  openContinuity: "Abrir Continuity",
+  goToSignature: "Ir a Firma",
+  reviewSignHint:
+    "HITL review and finish — you remain in control. Signature stays on the chart.",
 } as const;

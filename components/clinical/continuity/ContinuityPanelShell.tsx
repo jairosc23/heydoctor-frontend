@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
+import { createPortal } from "react-dom";
 import { useAuth } from "@/lib/context/AuthContext";
 import type { PassiveContinuityHint } from "@/lib/continuity-platform/types";
 import {
@@ -261,10 +268,15 @@ export function ContinuityPanelShell({
     model.error,
   );
 
-  return (
+  /**
+   * P0 Navigation SSOT: Continuity must NOT inflate sticky encounter chrome.
+   * Portal/sheet below chrome — same panel data/UX, single Continuity surface.
+   */
+  const panel = (
     <div
-      className="mt-2 space-y-3 rounded-hd-lg border border-slate-200 bg-slate-50/80 p-3"
+      className="pointer-events-auto mx-auto w-full max-w-5xl space-y-3 rounded-hd-lg border border-slate-200 bg-slate-50 p-3 shadow-hd-3"
       data-testid="continuity-panel-shell"
+      data-continuity-host="portal"
       data-ui-state={model.uiState}
       data-generation-id={model.generationId}
     >
@@ -322,6 +334,25 @@ export function ContinuityPanelShell({
         </p>
       ) : null}
     </div>
+  );
+
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
+    <div
+      className="fixed inset-x-0 z-[45] px-3 md:px-4 lg:px-5"
+      style={{
+        top: "calc(var(--encounter-chrome-h, 5.5rem) + 0.5rem)",
+        maxHeight:
+          "min(70vh, calc(100dvh - var(--encounter-chrome-h, 5.5rem) - 1rem))",
+      }}
+      data-testid="continuity-panel-portal"
+    >
+      <div className="max-h-[inherit] overflow-y-auto overscroll-contain pb-3">
+        {panel}
+      </div>
+    </div>,
+    document.body,
   );
 }
 

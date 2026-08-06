@@ -52,10 +52,26 @@ import { evaluateLiveDocumentationQuality } from "@/lib/epic3/live-documentation
 import { evaluatePreVisitQualitySignals } from "@/lib/epic3/pre-visit-quality-signals";
 import { CopilotSuggestedInterviewQuestions } from "./CopilotSuggestedInterviewQuestions";
 import { CopilotRiskSignals } from "./CopilotRiskSignals";
+import { ClinicalSnapshotPanel } from "./ClinicalSnapshotPanel";
+import {
+  HeyDoctorCopilotContinuityCapability,
+  HeyDoctorCopilotReviewSignCapability,
+  HeyDoctorCopilotRuntimeStrip,
+  HeyDoctorCopilotVoiceCapability,
+} from "./HeyDoctorCopilotWorkspaceRuntime";
+import { useClinicalSnapshot } from "@/hooks/useClinicalSnapshot";
+import {
+  formatClinicalVitalSignsForContext,
+  parseClinicalVitalSignsFromNotes,
+} from "@/lib/clinical-vital-signs-context";
 
 export interface ClinicalCopilotDrawerProps {
   open: boolean;
   onClose: () => void;
+  /** Opens the single Continuity portal (Action Bar / Workspace — same surface). */
+  onOpenContinuity?: () => void;
+  /** When true, runtime strip + workflow capabilities are available (providers mounted). */
+  runtimeEnabled?: boolean;
   consultation?: NestConsultation | null;
   consultationId?: string | null;
   patientId?: string | null;
@@ -124,6 +140,8 @@ function mapFoundationGapsToDocumentationGaps(
 export function ClinicalCopilotDrawer({
   open,
   onClose,
+  onOpenContinuity,
+  runtimeEnabled = false,
   consultation = null,
   consultationId,
   patientId,
@@ -328,6 +346,27 @@ export function ClinicalCopilotDrawer({
     intelligence.riskSignals.length === 0 &&
     displayedGaps.length === 0;
 
+  const clinicalSnapshotSupplement = useMemo(() => {
+    const vitalsCtx = parseClinicalVitalSignsFromNotes(notes);
+    const medications = (clinicalMemoryData.currentMedications ?? [])
+      .map((m) => m.name)
+      .filter(Boolean);
+    // Allergies are not on PatientClinicalMemory P0; keep empty unless
+    // foundation findings explicitly label allergy signals (fail-closed).
+    const allergies = (foundationOutputs?.clinicalFindings ?? [])
+      .filter((f) => /alerg/i.test(`${f.category} ${f.label}`))
+      .map((f) => f.value || f.label)
+      .filter(Boolean);
+    return {
+      allergies,
+      medications,
+      vitalSignsSummary: formatClinicalVitalSignsForContext(vitalsCtx),
+      consultationReason: chiefComplaint?.trim() || null,
+    };
+  }, [chiefComplaint, clinicalMemoryData, foundationOutputs, notes]);
+
+  const clinicalSnapshot = useClinicalSnapshot(clinicalSnapshotSupplement);
+
   const [activeSection, setActiveSection] =
     useState<HeyDoctorCopilotSectionId>(HEYDOCTOR_COPILOT_DEFAULT_SECTION);
 
@@ -340,6 +379,11 @@ export function ClinicalCopilotDrawer({
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [open, onClose]);
+
+  useEffect(() => {
+    if (!open || activeSection !== "continuity") return;
+    onOpenContinuity?.();
+  }, [activeSection, onOpenContinuity, open]);
 
   if (!open) return null;
 
@@ -357,9 +401,10 @@ export function ClinicalCopilotDrawer({
       <aside
         role="dialog"
         aria-modal="false"
-        aria-label={HEYDOCTOR_COPILOT_BRAND.productName}
+        aria-label={HEYDOCTOR_COPILOT_COPY.workspaceAria}
+        data-testid="heydoctor-copilot-workspace"
         className={cn(
-          "clinical-drawer-enter fixed inset-y-0 left-0 flex w-full max-w-md flex-col",
+          "clinical-drawer-enter fixed inset-y-0 left-0 flex w-full max-w-xl flex-col",
           "border-r border-hd-border-subtle bg-hd-surface-chrome shadow-hd-3",
           CLINICAL_OVERLAY_PANEL_CLASS.intelligence,
         )}
@@ -411,6 +456,8 @@ export function ClinicalCopilotDrawer({
 
         <div className="flex min-h-0 flex-1 flex-col">
           <div className="flex-1 space-y-hd-4 overflow-y-auto px-hd-4 py-hd-4">
+            {runtimeEnabled ? <HeyDoctorCopilotRuntimeStrip /> : null}
+
             {/* HOME first when Clinical Insights — intelligence before interaction */}
             {activeSection === "clinical-insights" ? (
               <section
@@ -426,6 +473,7 @@ export function ClinicalCopilotDrawer({
                   </p>
                 </div>
                 <div className="space-y-hd-4">
+                  <ClinicalSnapshotPanel snapshot={clinicalSnapshot} />
                   <CopilotLiveClinicalInsights
                     batch={liveInsights.batch}
                     loading={liveInsights.loading}
@@ -450,6 +498,12 @@ export function ClinicalCopilotDrawer({
               </section>
             ) : null}
 
+            {activeSection === "voice-dictation" && runtimeEnabled ? (
+              <section aria-label="Voice Dictation">
+                <HeyDoctorCopilotVoiceCapability />
+              </section>
+            ) : null}
+
             {activeSection === "assistant" ? (
               <section aria-label={HEYDOCTOR_COPILOT_COPY.assistAria}>
                 <div className="mb-3">
@@ -461,6 +515,10 @@ export function ClinicalCopilotDrawer({
                   </p>
                 </div>
                 <div className="space-y-hd-4">
+                  <ClinicalSnapshotPanel
+                    snapshot={clinicalSnapshot}
+                    variant="compact"
+                  />
                   <CopilotSuggestedInterviewQuestions
                     batch={interviewQuestions.batch}
                     loading={interviewQuestions.loading}
@@ -478,6 +536,10 @@ export function ClinicalCopilotDrawer({
 
             {activeSection === "recommendations" ? (
               <section aria-label="Recommendations" className="space-y-hd-4">
+                <ClinicalSnapshotPanel
+                  snapshot={clinicalSnapshot}
+                  variant="compact"
+                />
                 <CopilotDocumentationGaps
                   gaps={displayedGaps}
                   syncState={documentationGapsSyncState}
@@ -490,6 +552,10 @@ export function ClinicalCopilotDrawer({
 
             {activeSection === "explainability" ? (
               <section aria-label="Explainability" className="space-y-hd-4">
+                <ClinicalSnapshotPanel
+                  snapshot={clinicalSnapshot}
+                  variant="compact"
+                />
                 <CopilotGovernanceBoundary />
                 <section className="rounded-hd-md border border-amber-200/80 bg-amber-50/60 px-hd-3 py-hd-2 text-[11px] text-amber-950">
                   <p className="font-semibold uppercase tracking-wide">
@@ -503,8 +569,28 @@ export function ClinicalCopilotDrawer({
               </section>
             ) : null}
 
+            {activeSection === "continuity" ? (
+              <section aria-label="Continuity">
+                <HeyDoctorCopilotContinuityCapability
+                  onOpenContinuity={onOpenContinuity}
+                />
+              </section>
+            ) : null}
+
+            {activeSection === "review-sign" && runtimeEnabled ? (
+              <section aria-label="Review & Sign">
+                <HeyDoctorCopilotReviewSignCapability
+                  onOpenEvidence={() => setActiveSection("evidence")}
+                />
+              </section>
+            ) : null}
+
             {activeSection === "evidence" ? (
               <section aria-label="Evidence" className="space-y-hd-4">
+                <ClinicalSnapshotPanel
+                  snapshot={clinicalSnapshot}
+                  variant="compact"
+                />
                 {foundationOutputs?.clinicalSummary ? (
                   <section className="rounded-hd-md border border-primary/10 bg-primaryLight/40 px-hd-3 py-hd-2">
                     <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-primary">
@@ -574,7 +660,13 @@ export function ClinicalCopilotDrawer({
                 {HEYDOCTOR_COPILOT_COPY.continuumHint}
               </p>
               <div className="flex flex-wrap gap-1.5">
-                {HEYDOCTOR_COPILOT_CAPABILITIES.map((capability) => {
+                {HEYDOCTOR_COPILOT_CAPABILITIES.filter((capability) => {
+                  if (runtimeEnabled) return true;
+                  return (
+                    capability.id !== "voice-dictation" &&
+                    capability.id !== "review-sign"
+                  );
+                }).map((capability) => {
                   const selected = activeSection === capability.id;
                   const isHome = capability.id === "clinical-insights";
                   return (

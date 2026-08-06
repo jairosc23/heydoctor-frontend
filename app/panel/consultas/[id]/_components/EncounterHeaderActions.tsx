@@ -7,6 +7,7 @@ import {
   formatConsultationPrice,
   URGENCY_AVAILABLE_NOW,
 } from "@/lib/consultation-pricing";
+import { navigateToEncounterSection } from "@/lib/encounter/navigation/section-navigation";
 
 export interface EncounterHeaderActionsProps {
   canStartCall: boolean;
@@ -86,18 +87,9 @@ export function EncounterHeaderActions({
             type="button"
             className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50"
             onClick={() => {
-              const target =
-                document.getElementById("encounter-section-20") ??
-                document.getElementById("encounter-sign-panel");
-              if (!target) return;
-              const prefersReducedMotion = window.matchMedia(
-                "(prefers-reduced-motion: reduce)",
-              ).matches;
-              target.scrollIntoView({
-                block: "nearest",
-                inline: "nearest",
-                behavior: prefersReducedMotion ? "auto" : "smooth",
-              });
+              if (!navigateToEncounterSection("encounter-section-20")) {
+                navigateToEncounterSection("encounter-sign-panel");
+              }
             }}
           >
             Firmar consulta
