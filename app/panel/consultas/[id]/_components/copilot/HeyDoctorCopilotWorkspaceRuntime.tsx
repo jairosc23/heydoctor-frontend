@@ -8,6 +8,7 @@
 import { ClinicalDictationPanel } from "@/components/medical-copilot/ClinicalDictationPanel";
 import { ClinicalWorkflowBanner } from "@/components/medical-copilot/ClinicalWorkflowBanner";
 import { ClinicalVoiceSuggestionsPanel } from "@/components/medical-copilot/ClinicalVoiceSuggestionsPanel";
+import { useEncounterMemory } from "@/context/EncounterMemoryContext";
 import { useMedicalCopilot } from "@/context/MedicalCopilotContext";
 import { useClinicalWorkflow } from "@/context/ClinicalWorkflowContext";
 import {
@@ -19,6 +20,7 @@ import { navigateToEncounterSection } from "@/lib/encounter/navigation/section-n
 export function HeyDoctorCopilotRuntimeStrip() {
   const { phase, status, sessionId, progress } = useClinicalWorkflow();
   const { session, loading, ready } = useMedicalCopilot();
+  const { memory } = useEncounterMemory();
 
   return (
     <section
@@ -33,11 +35,11 @@ export function HeyDoctorCopilotRuntimeStrip() {
             {HEYDOCTOR_COPILOT_BRAND.workspaceLabel}
           </p>
           <p className="mt-0.5 text-[12px] font-semibold text-slate-900">
-            {phase.split("_").join(" ")}
+            {(memory.workflowPhase ?? phase).split("_").join(" ")}
           </p>
         </div>
         <div className="text-right text-[10px] text-slate-500">
-          <p>status · {status}</p>
+          <p>status · {memory.encounterStatus ?? status}</p>
           <p>
             session ·{" "}
             {sessionId
@@ -50,10 +52,21 @@ export function HeyDoctorCopilotRuntimeStrip() {
                     ? "ready"
                     : "pending"}
           </p>
+          <p>
+            memory · problems {memory.activeProblems.length} · pending{" "}
+            {memory.pendingActions.length} · dictation{" "}
+            {memory.dictationBufferRef?.draftLength ?? 0}c
+          </p>
           <p>{progress.percent}% · NON_AUTHORITY</p>
         </div>
       </div>
-      <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+      <div
+        className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-200"
+        data-testid="heydoctor-copilot-encounter-memory"
+        data-encounter-status={memory.encounterStatus ?? ""}
+        data-workflow-phase={memory.workflowPhase ?? ""}
+        data-problems={String(memory.activeProblems.length)}
+      >
         <div
           className="h-full rounded-full bg-slate-800 transition-all"
           style={{ width: `${progress.percent}%` }}
@@ -68,8 +81,13 @@ export function HeyDoctorCopilotRuntimeStrip() {
 }
 
 export function HeyDoctorCopilotVoiceCapability() {
+  const { memory } = useEncounterMemory();
   return (
     <div className="space-y-hd-3" data-testid="heydoctor-copilot-voice-capability">
+      <p className="text-[10px] text-slate-500">
+        Encounter Memory · dictation {memory.dictationBufferRef?.status ?? "idle"} ·{" "}
+        {memory.dictationBufferRef?.draftLength ?? 0} chars
+      </p>
       <ClinicalDictationPanel />
       <ClinicalVoiceSuggestionsPanel />
     </div>
@@ -81,6 +99,7 @@ export function HeyDoctorCopilotReviewSignCapability({
 }: {
   onOpenEvidence: () => void;
 }) {
+  const { memory } = useEncounterMemory();
   return (
     <div
       className="space-y-hd-3"
@@ -88,6 +107,11 @@ export function HeyDoctorCopilotReviewSignCapability({
     >
       <p className="text-[11px] leading-relaxed text-slate-600">
         {HEYDOCTOR_COPILOT_COPY.reviewSignHint}
+      </p>
+      <p className="text-[10px] text-slate-500">
+        Encounter Memory · phase {memory.workflowPhase ?? "—"} · pending{" "}
+        {memory.pendingActions.length} · decisions{" "}
+        {memory.encounterDecisions.length}
       </p>
       <ClinicalWorkflowBanner />
       <div className="flex flex-wrap gap-2">
@@ -117,6 +141,7 @@ export function HeyDoctorCopilotContinuityCapability({
 }: {
   onOpenContinuity?: () => void;
 }) {
+  const { memory } = useEncounterMemory();
   return (
     <div
       className="space-y-hd-3"
@@ -125,6 +150,12 @@ export function HeyDoctorCopilotContinuityCapability({
       <p className="text-[11px] leading-relaxed text-slate-600">
         Longitudinal continuity for this patient — same Continuity surface, not a
         second product.
+      </p>
+      <p className="text-[10px] text-slate-500">
+        Encounter Memory · active problems:{" "}
+        {memory.activeProblems.length
+          ? memory.activeProblems.join(", ")
+          : "none recorded"}
       </p>
       <button
         type="button"

@@ -1043,6 +1043,14 @@ export default function ConsultationDetailPage() {
       consultationId={id}
       patientId={consultation.patientId}
       appointmentId={null}
+      workspaceOpen={copilotDrawerOpen}
+      encounterStatus={status}
+      patientName={patientName}
+      patientAge={soapPatientAge}
+      patientSex={soapPatientSex}
+      activeProblems={encounterContextModel.continuity.activeProblems.visible.map(
+        (item) => item.label,
+      )}
     >
     <div
       ref={workspaceRef}

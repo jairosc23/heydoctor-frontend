@@ -101,6 +101,15 @@ Copilot **accompanies** the encounter. It does not start it, own it, or close cl
 
 # 3. Encounter Memory (SSOT)
 
+| Field | Value |
+|-------|-------|
+| **Implementation status** | **P0 MINIMAL LIFECYCLE — IMPLEMENTED** |
+| **P0 scope** | encounter status · patient context · active problems · decisions · workflow phase · dictation buffer ref · pending actions |
+| **Out of P0** | Longitudinal intelligence · persistence beyond Encounter unmount |
+
+Encounter Memory is **OFFICIAL** philosophy with a **minimal P0 runtime SSOT** (`EncounterMemoryProvider`).  
+Full depth (timeline/live projection unification) remains iterative — not a second product.
+
 ## 3.1 Definition
 
 **Encounter Memory** is the living, structured memory of **this** clinical encounter.
@@ -266,7 +275,7 @@ Timeline and Encounter Memory are complementary: Memory is the **state**; Timeli
 | **AI-First** | Intelligence before interaction; value on open. |
 | **One Product** | One brand · one Copilot · no parallel AI brands. |
 | **One Workspace** | HeyDoctor Copilot Workspace is the operating surface. |
-| **One Encounter Memory** | All capabilities consume the same living encounter state. |
+| **One Encounter Memory** | P0: minimal in-encounter SSOT. No longitudinal persistence. |
 | **One Navigation SSOT** | Encounter section navigation has a single owner (dynamic chrome offsets, re-subscribable observer, deterministic navigate). |
 
 ### Governing question (mandatory)
@@ -310,10 +319,12 @@ Encounter (ConsultationWorkspace — shell of record)
    ├─ Hero (identity · NON_AUTHORITY · Brand Promise sparingly)
    ├─ Runtime strip (status · session · HITL affordances)
    ├─ Capability continuum (views of one intelligence)
-   └─ Capability host → consumes Encounter Memory
-        + Clinical Timeline (events)
+   └─ Capability host → consumes Encounter Memory (P0 minimal SSOT)
+        + Clinical Timeline (events) — deepen post-P0
         + Live Intelligence (Insights HOME)
 ```
+
+**P0 note:** Runtime strip and Workspace capabilities read Encounter Memory for status/phase/problems/dictation ref/pending actions. Longitudinal depth stays out of scope.
 
 Navigation of chart sections (Continuity chrome, Signature, Foundation, future sections) obeys **One Navigation SSOT** so sticky chrome and observers never desync again.
 
