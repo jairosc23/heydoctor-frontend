@@ -19,7 +19,7 @@ import { ClinicalContextPanels } from "./ClinicalContextPanels";
 import type { ClinicalEncounterChartProps } from "./chart/ClinicalEncounterChart";
 import { ClinicalNavigationRail } from "./ClinicalNavigationRail";
 import { buildClinicalNavigationIntelligence } from "./clinical-navigation-rail-model";
-import { useClinicalSectionSpy } from "@/hooks/useClinicalSectionSpy";
+import { useEncounterSectionNavigation } from "@/hooks/useEncounterSectionNavigation";
 
 /** Matches Tailwind `xl` — only one chart tree may mount at a time. */
 const ENCOUNTER_SPLIT_BREAKPOINT_PX = 1280;
@@ -100,7 +100,7 @@ export function ConsultationWorkspace({
     [encounterChart],
   );
   const navigationSections = navigationIntelligence?.sections ?? [];
-  const { activeSectionId, navigateToSection } = useClinicalSectionSpy(
+  const { activeSectionId, navigateToSection } = useEncounterSectionNavigation(
     navigationSections,
     { enabled: Boolean(encounterChart) },
   );

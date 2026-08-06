@@ -20,6 +20,9 @@ export interface ClinicalActionBarProps {
   consultationId?: string;
   clinicId?: string | null;
   ordersRefreshKey?: number;
+  /** Controlled Continuity open (shared with HeyDoctor Copilot Workspace). */
+  continuityOpen?: boolean;
+  onContinuityOpenChange?: (open: boolean) => void;
 }
 
 export function ClinicalActionBar({
@@ -28,10 +31,15 @@ export function ClinicalActionBar({
   consultationId,
   clinicId,
   ordersRefreshKey = 0,
+  continuityOpen: continuityOpenControlled,
+  onContinuityOpenChange,
 }: ClinicalActionBarProps) {
   const { enabled, activeModule, sheetOpen, openModule } =
     useClinicalActionWorkspace();
-  const [continuityOpen, setContinuityOpen] = useState(false);
+  const [continuityOpenInternal, setContinuityOpenInternal] = useState(false);
+  const continuityOpen = continuityOpenControlled ?? continuityOpenInternal;
+  const setContinuityOpen =
+    onContinuityOpenChange ?? setContinuityOpenInternal;
 
   if (!enabled) return null;
 
