@@ -1042,27 +1042,8 @@ export default function ConsultationDetailPage() {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="p-6 text-slate-500">Cargando consulta...</div>
-    );
-  }
-
-  if (error || !consultation) {
-    return (
-      <div className="space-y-4 p-6">
-        <p className="text-red-600">{error || "Consulta no encontrada"}</p>
-        <Button variant="secondary" onClick={() => router.push("/panel/consultas")}>
-          Volver a consultas
-        </Button>
-      </div>
-    );
-  }
-
-  const soapPatientAge = patientRow ? resolvePatientAge(patientRow) : undefined;
-  const soapPatientSex = patientRow ? formatPatientSex(patientRow.sex) : undefined;
-
   /** One Clinical Snapshot supplement for the entire Encounter Shell. */
+  // Rules of Hooks: must run before any early return (loading / error / null).
   const clinicalSnapshotSupplement = useMemo((): ClinicalContextSupplement => {
     const vitalsCtx = parseClinicalVitalSignsFromNotes(notes);
     const medications = (effectiveClinicalMemory?.currentMedications ?? [])
@@ -1092,6 +1073,34 @@ export default function ConsultationDetailPage() {
     patientProfile?.allergies,
   ]);
 
+  const encounterActiveProblems = useMemo(
+    () =>
+      encounterContextModel.continuity.activeProblems.visible.map(
+        (item) => item.label,
+      ),
+    [encounterContextModel.continuity.activeProblems.visible],
+  );
+
+  if (loading) {
+    return (
+      <div className="p-6 text-slate-500">Cargando consulta...</div>
+    );
+  }
+
+  if (error || !consultation) {
+    return (
+      <div className="space-y-4 p-6">
+        <p className="text-red-600">{error || "Consulta no encontrada"}</p>
+        <Button variant="secondary" onClick={() => router.push("/panel/consultas")}>
+          Volver a consultas
+        </Button>
+      </div>
+    );
+  }
+
+  const soapPatientAge = patientRow ? resolvePatientAge(patientRow) : undefined;
+  const soapPatientSex = patientRow ? formatPatientSex(patientRow.sex) : undefined;
+
   const actionMsgClass =
     actionMsg?.kind === "success"
       ? "border-green-200 bg-green-50 text-green-800"
@@ -1100,14 +1109,6 @@ export default function ConsultationDetailPage() {
         : actionMsg?.kind === "error"
           ? "border-red-200 bg-red-50 text-red-800"
           : "border-blue-200 bg-blue-50 text-blue-900";
-
-  const encounterActiveProblems = useMemo(
-    () =>
-      encounterContextModel.continuity.activeProblems.visible.map(
-        (item) => item.label,
-      ),
-    [encounterContextModel.continuity.activeProblems.visible],
-  );
 
   return (
     <ClinicalActionWorkspaceProvider
