@@ -101,7 +101,10 @@ function LandingHeroVisual({
       */}
       <div
         className="relative overflow-hidden rounded-2xl bg-white shadow-[0_10px_28px_rgba(2,44,44,0.08)] ring-1 ring-black/[0.04]"
-        style={{ aspectRatio: "222 / 240" }}
+        style={{
+          // Container follows official SSOT intrinsic ratio — never crop the asset.
+          aspectRatio: `${LANDING_HERO_DOCTOR_WIDTH} / ${LANDING_HERO_DOCTOR_HEIGHT}`,
+        }}
       >
         <Image
           src={doctorImageSrc}
@@ -109,11 +112,7 @@ function LandingHeroVisual({
           width={LANDING_HERO_DOCTOR_WIDTH}
           height={LANDING_HERO_DOCTOR_HEIGHT}
           sizes="(max-width: 768px) 100vw, 440px"
-          className={
-            LANDING_HERO_MOCK_COMPOSITE
-              ? "h-full w-full scale-[1.035] object-cover object-center"
-              : "h-full w-full object-cover object-center"
-          }
+          className="h-full w-full object-contain object-center"
           priority
           unoptimized
         />
