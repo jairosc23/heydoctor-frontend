@@ -13,6 +13,7 @@ import { ClinicalValidationProvider } from "@/context/ClinicalValidationContext"
 import { ClinicalVoiceIntelligenceProvider } from "@/context/ClinicalVoiceIntelligenceContext";
 import { ClinicalWorkflowProvider } from "@/context/ClinicalWorkflowContext";
 import { EncounterMemoryProvider } from "@/context/EncounterMemoryContext";
+import { EncounterClinicalSnapshotProvider } from "@/context/EncounterClinicalSnapshotContext";
 import {
   MedicalCopilotProvider,
   useMedicalCopilot,
@@ -22,6 +23,7 @@ import {
   recordCopilotBootstrapStart,
 } from "@/lib/brand/heydoctor-copilot-bootstrap-metrics";
 import { isHeyDoctorCopilotEagerBootstrapEnabled } from "@/lib/brand/heydoctor-copilot-flags";
+import type { ClinicalContextSupplement } from "@/lib/clinical-context-engine";
 
 export type HeyDoctorCopilotRuntimeProvidersProps = {
   children: ReactNode;
@@ -35,6 +37,8 @@ export type HeyDoctorCopilotRuntimeProvidersProps = {
   patientAge?: string | number | null;
   patientSex?: string | null;
   activeProblems?: string[];
+  /** Shared Clinical Snapshot supplements (One Context for the Encounter Shell). */
+  clinicalSnapshotSupplement?: ClinicalContextSupplement;
 };
 
 /** Restore/create session + 4 panel GETs (parallel after session). */
@@ -115,6 +119,7 @@ export function HeyDoctorCopilotRuntimeProviders({
   patientAge = null,
   patientSex = null,
   activeProblems = [],
+  clinicalSnapshotSupplement,
 }: HeyDoctorCopilotRuntimeProvidersProps) {
   if (!patientId) {
     return <>{children}</>;
@@ -138,13 +143,17 @@ export function HeyDoctorCopilotRuntimeProviders({
                 patientSex={patientSex}
                 activeProblems={activeProblems}
               >
-                <HeyDoctorCopilotSessionBootstrap
-                  consultationId={consultationId}
-                  patientId={patientId}
-                  appointmentId={appointmentId}
-                  workspaceOpen={workspaceOpen}
-                />
-                {children}
+                <EncounterClinicalSnapshotProvider
+                  supplement={clinicalSnapshotSupplement}
+                >
+                  <HeyDoctorCopilotSessionBootstrap
+                    consultationId={consultationId}
+                    patientId={patientId}
+                    appointmentId={appointmentId}
+                    workspaceOpen={workspaceOpen}
+                  />
+                  {children}
+                </EncounterClinicalSnapshotProvider>
               </EncounterMemoryProvider>
             </ClinicalValidationProvider>
           </ClinicalWorkflowProvider>

@@ -60,10 +60,6 @@ import {
   HeyDoctorCopilotVoiceCapability,
 } from "./HeyDoctorCopilotWorkspaceRuntime";
 import { useClinicalSnapshot } from "@/hooks/useClinicalSnapshot";
-import {
-  formatClinicalVitalSignsForContext,
-  parseClinicalVitalSignsFromNotes,
-} from "@/lib/clinical-vital-signs-context";
 
 export interface ClinicalCopilotDrawerProps {
   open: boolean;
@@ -346,26 +342,8 @@ export function ClinicalCopilotDrawer({
     intelligence.riskSignals.length === 0 &&
     displayedGaps.length === 0;
 
-  const clinicalSnapshotSupplement = useMemo(() => {
-    const vitalsCtx = parseClinicalVitalSignsFromNotes(notes);
-    const medications = (clinicalMemoryData.currentMedications ?? [])
-      .map((m) => m.name)
-      .filter(Boolean);
-    // Allergies are not on PatientClinicalMemory P0; keep empty unless
-    // foundation findings explicitly label allergy signals (fail-closed).
-    const allergies = (foundationOutputs?.clinicalFindings ?? [])
-      .filter((f) => /alerg/i.test(`${f.category} ${f.label}`))
-      .map((f) => f.value || f.label)
-      .filter(Boolean);
-    return {
-      allergies,
-      medications,
-      vitalSignsSummary: formatClinicalVitalSignsForContext(vitalsCtx),
-      consultationReason: chiefComplaint?.trim() || null,
-    };
-  }, [chiefComplaint, clinicalMemoryData, foundationOutputs, notes]);
-
-  const clinicalSnapshot = useClinicalSnapshot(clinicalSnapshotSupplement);
+  // One Clinical Snapshot from Encounter Shell SSOT (provider) — no local copy.
+  const clinicalSnapshot = useClinicalSnapshot();
 
   const [activeSection, setActiveSection] =
     useState<HeyDoctorCopilotSectionId>(HEYDOCTOR_COPILOT_DEFAULT_SECTION);

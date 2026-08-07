@@ -160,16 +160,16 @@ export function HeyDoctorCopilotContinuityCapability({
     >
       <ClinicalSnapshotPanel snapshot={snapshot} variant="compact" />
       <p className="text-[11px] leading-relaxed text-slate-600">
-        Continuidad longitudinal del paciente — misma superficie Continuity del
-        encuentro, no un módulo aislado. Comparte Encounter Memory y Clinical
-        Snapshot con Insights, Voice y Review.
+        Encounter Timeline — continuidad del mismo encuentro clínico. No es otro
+        producto: abre la línea de tiempo Continuity sobre el Clinical Snapshot
+        compartido (Memory · Insights · Voice · Review).
       </p>
       <button
         type="button"
         className="clinical-interactive rounded-hd-md border border-primary/30 bg-primaryLight px-3 py-1.5 text-[11px] font-semibold text-primary"
         onClick={() => onOpenContinuity?.()}
       >
-        {HEYDOCTOR_COPILOT_COPY.openContinuity}
+        Abrir Encounter Timeline
       </button>
     </ClinicalPanelFrame>
   );

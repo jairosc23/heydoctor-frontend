@@ -102,6 +102,11 @@ import { useEncounterFullRecordNavigation } from "@/hooks/useEncounterFullRecord
 import { EncounterFullRecordOverlay } from "@/components/encounter/EncounterFullRecordOverlay";
 import { pushEncounterFullRecordState } from "@/lib/encounter/full-record-navigation";
 import {
+  formatClinicalVitalSignsForContext,
+  parseClinicalVitalSignsFromNotes,
+} from "@/lib/clinical-vital-signs-context";
+import type { ClinicalContextSupplement } from "@/lib/clinical-context-engine";
+import {
   ClinicalActionWorkspaceProvider,
   type ClinicalActionWorkspaceContextValue,
 } from "./_components/action-workspace/ClinicalActionWorkspaceProvider";
@@ -1031,6 +1036,36 @@ export default function ConsultationDetailPage() {
   const soapPatientAge = patientRow ? resolvePatientAge(patientRow) : undefined;
   const soapPatientSex = patientRow ? formatPatientSex(patientRow.sex) : undefined;
 
+  /** One Clinical Snapshot supplement for the entire Encounter Shell. */
+  const clinicalSnapshotSupplement = useMemo((): ClinicalContextSupplement => {
+    const vitalsCtx = parseClinicalVitalSignsFromNotes(notes);
+    const medications = (effectiveClinicalMemory?.currentMedications ?? [])
+      .map((m) => m.name)
+      .filter(Boolean);
+    const allergiesFromProfile = jsonLinesToList(patientProfile?.allergies);
+    const allergiesFromFoundation = (
+      clinicalFoundationOutputs?.clinicalFindings ?? []
+    )
+      .filter((f) => /alerg/i.test(`${f.category} ${f.label}`))
+      .map((f) => f.value || f.label)
+      .filter(Boolean);
+    return {
+      allergies:
+        allergiesFromProfile.length > 0
+          ? allergiesFromProfile
+          : allergiesFromFoundation,
+      medications,
+      vitalSignsSummary: formatClinicalVitalSignsForContext(vitalsCtx),
+      consultationReason: chiefComplaintDraft.trim() || null,
+    };
+  }, [
+    chiefComplaintDraft,
+    clinicalFoundationOutputs,
+    effectiveClinicalMemory,
+    notes,
+    patientProfile?.allergies,
+  ]);
+
   const actionMsgClass =
     actionMsg?.kind === "success"
       ? "border-green-200 bg-green-50 text-green-800"
@@ -1065,6 +1100,7 @@ export default function ConsultationDetailPage() {
       activeProblems={encounterContextModel.continuity.activeProblems.visible.map(
         (item) => item.label,
       )}
+      clinicalSnapshotSupplement={clinicalSnapshotSupplement}
     >
     <div
       ref={workspaceRef}

@@ -88,13 +88,14 @@ export function EncounterFullRecordOverlay({
         <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-3">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-primary">
-              Ficha clínica completa
+              Encounter · Ficha clínica completa
             </p>
             <p className="text-[13px] font-semibold text-slate-900">
               {displayName}
             </p>
             <p className="text-[11px] text-slate-500">
-              Dentro del encuentro — el runtime clínico permanece activo
+              Expansión del Encounter Shell — mismo runtime, misma Memory, mismo
+              Clinical Snapshot
             </p>
           </div>
           <button
