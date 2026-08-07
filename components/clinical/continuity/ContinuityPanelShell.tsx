@@ -38,10 +38,13 @@ import {
   reduceContinuityPanel,
 } from "./continuity-panel-state";
 import type { ContinuityPanelProps } from "./continuity-panel.types";
+import { useClinicalSnapshot } from "@/hooks/useClinicalSnapshot";
+import { ClinicalSnapshotPanel } from "@/components/encounter/ClinicalSnapshotPanel";
 
 /**
  * Owns state machine, memory cache apply, generationId + AbortController.
  * Read-only Continuity Context surface — no Composer / emit / Renew.
+ * Consumes the shared Clinical Snapshot (CCE) — same Encounter Memory as Workspace.
  */
 export function ContinuityPanelShell({
   patientId,
@@ -50,6 +53,7 @@ export function ContinuityPanelShell({
   onOpenChange,
 }: ContinuityPanelProps) {
   const { user } = useAuth();
+  const clinicalSnapshot = useClinicalSnapshot();
   const [model, dispatch] = useReducer(
     reduceContinuityPanel,
     createInitialContinuityPanelModel(patientId, encounterId),
@@ -278,6 +282,9 @@ export function ContinuityPanelShell({
       data-testid="continuity-panel-shell"
       data-continuity-host="portal"
       data-ui-state={model.uiState}
+      data-panel-contract={
+        loading ? "loading" : model.uiState === "Empty" ? "empty" : "ready"
+      }
       data-generation-id={model.generationId}
     >
       <ContinuityToolbar
@@ -286,6 +293,9 @@ export function ContinuityPanelShell({
         onDismiss={handleDismiss}
         onRetry={handleRetry}
       />
+
+      {/* Same Clinical Snapshot as Workspace capabilities — not a second context. */}
+      <ClinicalSnapshotPanel snapshot={clinicalSnapshot} variant="compact" />
 
       {model.uiState === "Error" ? (
         <div

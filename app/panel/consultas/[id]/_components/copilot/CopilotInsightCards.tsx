@@ -38,11 +38,19 @@ export function CopilotInsightCards({ insights }: { insights: CopilotInsight[] }
         </p>
       </div>
       {insights.length === 0 ? (
-        <p className="text-[11px] text-slate-500">
-          Sin observaciones contextuales adicionales.
-        </p>
+        <div
+          role="status"
+          data-ui-state="empty"
+          className="rounded-hd-md border border-dashed border-slate-200 bg-slate-50/80 px-hd-3 py-hd-2 text-[11px] text-slate-500"
+        >
+          <p className="font-medium text-slate-700">Sin insights clínicos</p>
+          <p className="mt-1 leading-relaxed">
+            No hay observaciones contextuales adicionales para este encuentro.
+            El Clinical Snapshot compartido sigue siendo la fuente de contexto.
+          </p>
+        </div>
       ) : (
-        <div className="space-y-hd-2">
+        <div className="space-y-hd-2" data-ui-state="ready">
           {insights.map((insight) => (
             <InsightCard key={insight.id} insight={insight} />
           ))}

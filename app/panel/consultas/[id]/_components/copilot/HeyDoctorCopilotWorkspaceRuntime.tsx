@@ -1,71 +1,63 @@
 "use client";
 
 /**
- * P0 — Workspace runtime strip + capability hosts reused from existing surfaces.
- * Requires HeyDoctorCopilotRuntimeProviders (Encounter-scoped).
+ * Workspace runtime strip + capability hosts.
+ * Capabilities consume the shared Clinical Snapshot (CCE) — no local context copies.
  */
 
 import { ClinicalDictationPanel } from "@/components/medical-copilot/ClinicalDictationPanel";
 import { ClinicalWorkflowBanner } from "@/components/medical-copilot/ClinicalWorkflowBanner";
 import { ClinicalVoiceSuggestionsPanel } from "@/components/medical-copilot/ClinicalVoiceSuggestionsPanel";
-import { useEncounterMemory } from "@/context/EncounterMemoryContext";
+import { ClinicalPanelFrame } from "@/components/encounter/ClinicalPanelFrame";
+import { useEncounterMemoryOptional } from "@/context/EncounterMemoryContext";
 import { useMedicalCopilot } from "@/context/MedicalCopilotContext";
 import { useClinicalWorkflow } from "@/context/ClinicalWorkflowContext";
+import { useClinicalSnapshot } from "@/hooks/useClinicalSnapshot";
 import {
   HEYDOCTOR_COPILOT_BRAND,
   HEYDOCTOR_COPILOT_COPY,
 } from "@/lib/brand/heydoctor-copilot";
+import { resolveClinicalPanelUiState } from "@/lib/encounter/clinical-panel-ui";
 import { navigateToEncounterSection } from "@/lib/encounter/navigation/section-navigation";
+import { ClinicalSnapshotPanel } from "@/components/encounter/ClinicalSnapshotPanel";
 
 export function HeyDoctorCopilotRuntimeStrip() {
-  const { phase, status, sessionId, progress } = useClinicalWorkflow();
-  const { session, loading, ready } = useMedicalCopilot();
-  const { memory } = useEncounterMemory();
+  const { phase, status, progress } = useClinicalWorkflow();
+  const { loading, ready } = useMedicalCopilot();
+  const memoryCtx = useEncounterMemoryOptional();
+  const memory = memoryCtx?.memory;
 
   return (
     <section
       aria-label={HEYDOCTOR_COPILOT_COPY.runtimeStripAria}
       data-testid="heydoctor-copilot-runtime-strip"
+      data-ui-state={
+        loading ? "loading" : ready || memory ? "ready" : "empty"
+      }
       className="rounded-hd-md border border-slate-200 bg-slate-50/90 px-hd-3 py-hd-2"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-            {HEYDOCTOR_COPILOT_BRAND.productName} ·{" "}
             {HEYDOCTOR_COPILOT_BRAND.workspaceLabel}
           </p>
           <p className="mt-0.5 text-[12px] font-semibold text-slate-900">
-            {(memory.workflowPhase ?? phase).split("_").join(" ")}
+            {(memory?.workflowPhase ?? phase).split("_").join(" ")}
           </p>
         </div>
         <div className="text-right text-[10px] text-slate-500">
-          <p>status · {memory.encounterStatus ?? status}</p>
           <p>
-            session ·{" "}
-            {sessionId
-              ? `${sessionId.slice(0, 10)}…`
-              : session?.sessionId
-                ? `${session.sessionId.slice(0, 10)}…`
-                : loading
-                  ? "bootstrapping…"
-                  : ready
-                    ? "ready"
-                    : "pending"}
+            {memory?.encounterStatus ?? status}
+            {loading ? " · bootstrapping" : ready ? " · ready" : ""}
           </p>
-          <p>
-            memory · problems {memory.activeProblems.length} · pending{" "}
-            {memory.pendingActions.length} · dictation{" "}
-            {memory.dictationBufferRef?.draftLength ?? 0}c
-          </p>
-          <p>{progress.percent}% · NON_AUTHORITY</p>
         </div>
       </div>
       <div
         className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-200"
         data-testid="heydoctor-copilot-encounter-memory"
-        data-encounter-status={memory.encounterStatus ?? ""}
-        data-workflow-phase={memory.workflowPhase ?? ""}
-        data-problems={String(memory.activeProblems.length)}
+        data-encounter-status={memory?.encounterStatus ?? ""}
+        data-workflow-phase={memory?.workflowPhase ?? ""}
+        data-problems={String(memory?.activeProblems.length ?? 0)}
       >
         <div
           className="h-full rounded-full bg-slate-800 transition-all"
@@ -74,6 +66,7 @@ export function HeyDoctorCopilotRuntimeStrip() {
           aria-valuenow={progress.percent}
           aria-valuemin={0}
           aria-valuemax={100}
+          aria-label="Progreso del encuentro"
         />
       </div>
     </section>
@@ -81,16 +74,30 @@ export function HeyDoctorCopilotRuntimeStrip() {
 }
 
 export function HeyDoctorCopilotVoiceCapability() {
-  const { memory } = useEncounterMemory();
+  const { loading } = useMedicalCopilot();
+  const snapshot = useClinicalSnapshot();
+  const uiState = resolveClinicalPanelUiState({
+    loading: loading && !snapshot,
+    hasData: snapshot != null,
+  });
+
   return (
-    <div className="space-y-hd-3" data-testid="heydoctor-copilot-voice-capability">
-      <p className="text-[10px] text-slate-500">
-        Encounter Memory · dictation {memory.dictationBufferRef?.status ?? "idle"} ·{" "}
-        {memory.dictationBufferRef?.draftLength ?? 0} chars
-      </p>
+    <ClinicalPanelFrame
+      state={uiState === "loading" ? "loading" : "ready"}
+      label="Voice Dictation"
+      testId="heydoctor-copilot-voice-capability"
+      loadingLabel="Preparando Voice Dictation y Clinical Snapshot…"
+      emptyTitle="Voice Dictation no disponible"
+      emptyDescription="El runtime del encuentro aún no expone dictado para esta sesión."
+    >
+      <ClinicalSnapshotPanel
+        snapshot={snapshot}
+        variant="compact"
+        loading={loading && !snapshot}
+      />
       <ClinicalDictationPanel />
       <ClinicalVoiceSuggestionsPanel />
-    </div>
+    </ClinicalPanelFrame>
   );
 }
 
@@ -99,19 +106,19 @@ export function HeyDoctorCopilotReviewSignCapability({
 }: {
   onOpenEvidence: () => void;
 }) {
-  const { memory } = useEncounterMemory();
+  const snapshot = useClinicalSnapshot();
+
   return (
-    <div
-      className="space-y-hd-3"
-      data-testid="heydoctor-copilot-review-sign-capability"
+    <ClinicalPanelFrame
+      state="ready"
+      label="Review & Sign"
+      testId="heydoctor-copilot-review-sign-capability"
+      emptyTitle="Sin Clinical Snapshot para cierre"
+      emptyDescription="Review & Sign necesita Encounter Memory montado para compartir el mismo contexto clínico del encuentro."
     >
+      <ClinicalSnapshotPanel snapshot={snapshot} variant="compact" />
       <p className="text-[11px] leading-relaxed text-slate-600">
         {HEYDOCTOR_COPILOT_COPY.reviewSignHint}
-      </p>
-      <p className="text-[10px] text-slate-500">
-        Encounter Memory · phase {memory.workflowPhase ?? "—"} · pending{" "}
-        {memory.pendingActions.length} · decisions{" "}
-        {memory.encounterDecisions.length}
       </p>
       <ClinicalWorkflowBanner />
       <div className="flex flex-wrap gap-2">
@@ -132,7 +139,7 @@ export function HeyDoctorCopilotReviewSignCapability({
           Evidence · Close HITL
         </button>
       </div>
-    </div>
+    </ClinicalPanelFrame>
   );
 }
 
@@ -141,21 +148,21 @@ export function HeyDoctorCopilotContinuityCapability({
 }: {
   onOpenContinuity?: () => void;
 }) {
-  const { memory } = useEncounterMemory();
+  const snapshot = useClinicalSnapshot();
+
   return (
-    <div
-      className="space-y-hd-3"
-      data-testid="heydoctor-copilot-continuity-capability"
+    <ClinicalPanelFrame
+      state="ready"
+      label="Continuity"
+      testId="heydoctor-copilot-continuity-capability"
+      emptyTitle="Continuity sin contexto de encuentro"
+      emptyDescription="Continuity es una capability del mismo Encounter — requiere Encounter Memory / Clinical Snapshot compartido."
     >
+      <ClinicalSnapshotPanel snapshot={snapshot} variant="compact" />
       <p className="text-[11px] leading-relaxed text-slate-600">
-        Longitudinal continuity for this patient — same Continuity surface, not a
-        second product.
-      </p>
-      <p className="text-[10px] text-slate-500">
-        Encounter Memory · active problems:{" "}
-        {memory.activeProblems.length
-          ? memory.activeProblems.join(", ")
-          : "none recorded"}
+        Continuidad longitudinal del paciente — misma superficie Continuity del
+        encuentro, no un módulo aislado. Comparte Encounter Memory y Clinical
+        Snapshot con Insights, Voice y Review.
       </p>
       <button
         type="button"
@@ -164,6 +171,6 @@ export function HeyDoctorCopilotContinuityCapability({
       >
         {HEYDOCTOR_COPILOT_COPY.openContinuity}
       </button>
-    </div>
+    </ClinicalPanelFrame>
   );
 }
