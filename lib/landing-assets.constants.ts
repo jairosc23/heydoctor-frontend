@@ -10,8 +10,9 @@ export const LANDING_HERO_DOCTOR_FALLBACK = "/og-image.jpg";
 /** Official patient PiP image (drop-in when design provides the file). */
 export const LANDING_PATIENT_PIP_OFFICIAL_BASENAME = "patient-pip";
 
-export const LANDING_HERO_DOCTOR_WIDTH = 640;
-export const LANDING_HERO_DOCTOR_HEIGHT = 691;
+/** Intrinsic size of the official Landing Hero SSOT asset (do not crop). */
+export const LANDING_HERO_DOCTOR_WIDTH = 1024;
+export const LANDING_HERO_DOCTOR_HEIGHT = 768;
 
 export const LANDING_PATIENT_PIP_WIDTH = 128;
 export const LANDING_PATIENT_PIP_HEIGHT = 170;
