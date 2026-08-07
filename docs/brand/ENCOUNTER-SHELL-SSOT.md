@@ -12,12 +12,17 @@
 | **Providers** | **SINGLE MOUNT** |
 | **Bootstrap** | **SINGLE** |
 | **Product** | **HeyDoctor Copilot** — Clinical Operating System |
-| **Architecture review** | **GO** — baseline after merge gates |
+| **Architecture review** | **FINAL GO FOR MERGE** |
+| **Enterprise baseline** | After merge gates GREEN |
+| **Next phase** | **Clinical Intelligence** (extends this foundation) |
 | **Change control** | Requires explicit Product + Architecture approval |
 
-This document freezes the **Encounter Shell** as the sole clinical operating surface of the patient encounter.
+This document freezes the **Encounter Shell** as the sole clinical operating surface of the HeyDoctor Clinical Workspace.
 
-After merge gates (CI GREEN · Preview · Smoke), Encounter Shell is the **official baseline architecture**. Future work builds on this foundation — it does not replace it.
+**FINAL GO FOR MERGE** (Architecture Review).  
+When CI · Preview · Smoke are GREEN, Encounter Shell becomes the **official enterprise baseline**. Architecture is **FROZEN**.
+
+Future work must **extend** this foundation without introducing parallel runtimes, providers, navigation systems, or context sources.
 
 ---
 
@@ -145,5 +150,21 @@ A physician completes an entire consultation inside **one** Encounter Shell:
 | Preview | Validation pass |
 | Smoke | Encounter interaction pass |
 
-**If all gates pass → GO FOR MERGE.**  
-Post-merge: Encounter Shell = official baseline (OFFICIAL · FROZEN · STABLE · Production READY).
+**If all gates pass → FINAL GO FOR MERGE.**
+
+Post-merge enterprise baseline:
+
+| Field | Value |
+|-------|-------|
+| Encounter Shell | **OFFICIAL** |
+| Architecture | **FROZEN** |
+| Runtime | **STABLE** · SSOT |
+| Production | **READY** |
+| Next phase | **Clinical Intelligence** |
+
+Aligned documentation:
+
+- `ENCOUNTER-SHELL-SSOT.md` (this document)
+- `HEYDOCTOR-COPILOT-CLINICAL-OPERATING-SYSTEM.md`
+- Brand SSOT (`HEYDOCTOR-COPILOT-BRAND.md`)
+- `LANDING-HERO-SSOT.md`
