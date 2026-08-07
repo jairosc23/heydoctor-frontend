@@ -1,58 +1,28 @@
 "use client";
 
 /**
- * In-encounter Full Clinical Record navigation.
- * Preserves Encounter Runtime — never remounts providers.
+ * In-encounter Full Clinical Record — React-only surface (Encounter Shell SSOT).
  *
- * Close path is optimistic + replaceState (not history.back), so returning
- * to consultation always restores the shell even when Next rewrites history.state.
+ * Same ownership model as Continuity: open/close mutates React state only.
+ * No History API, no ?ficha, no popstate — Runtime stays mounted.
  */
 
-import { useCallback, useEffect, useState } from "react";
-import {
-  isEncounterFullRecordOpenFromSearch,
-  pushEncounterFullRecordState,
-  replaceEncounterFullRecordState,
-} from "@/lib/encounter/full-record-navigation";
-
-function readOpenFromLocation(): boolean {
-  if (typeof window === "undefined") return false;
-  return isEncounterFullRecordOpenFromSearch(window.location.search);
-}
+import { useCallback, useState } from "react";
 
 export function useEncounterFullRecordNavigation() {
   const [fullRecordOpen, setFullRecordOpen] = useState(false);
 
-  useEffect(() => {
-    setFullRecordOpen(readOpenFromLocation());
-    const onPopState = () => {
-      setFullRecordOpen(readOpenFromLocation());
-    };
-    window.addEventListener("popstate", onPopState);
-    return () => window.removeEventListener("popstate", onPopState);
-  }, []);
-
   const openFullRecord = useCallback(() => {
     setFullRecordOpen(true);
-    if (!readOpenFromLocation()) {
-      pushEncounterFullRecordState(true);
-    }
   }, []);
 
   const closeFullRecord = useCallback(() => {
-    // Optimistic UI close — shell restores immediately.
     setFullRecordOpen(false);
-    if (readOpenFromLocation()) {
-      replaceEncounterFullRecordState(false);
-    }
   }, []);
 
-  /** Exit Encounter: close overlay + strip ?ficha without history.back(). */
+  /** Exit Encounter: close overlay without touching router/History. */
   const dismissFullRecordForExit = useCallback(() => {
     setFullRecordOpen(false);
-    if (readOpenFromLocation()) {
-      replaceEncounterFullRecordState(false);
-    }
   }, []);
 
   return {
