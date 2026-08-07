@@ -4,7 +4,7 @@
  * In-encounter Full Clinical Record — React-only surface (Encounter Shell SSOT).
  *
  * Same ownership model as Continuity: open/close mutates React state only.
- * No History API, no ?ficha, no popstate — Runtime stays mounted.
+ * No History API, no overlay query param, no popstate — Runtime stays mounted.
  */
 
 import { useCallback, useState } from "react";
