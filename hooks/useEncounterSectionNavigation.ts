@@ -25,7 +25,8 @@ export interface UseEncounterSectionNavigationOptions {
 
 export interface UseEncounterSectionNavigationResult {
   activeSectionId: string | null;
-  navigateToSection: (sectionId: string) => void;
+  /** Returns false when the section is not laid out yet (e.g. chart still hidden). */
+  navigateToSection: (sectionId: string) => boolean;
   chromeMetrics: EncounterChromeMetrics;
 }
 
@@ -147,14 +148,15 @@ export function useEncounterSectionNavigation(
   ]);
 
   const navigateToSection = useCallback(
-    (sectionId: string) => {
+    (sectionId: string): boolean => {
       activeRef.current = sectionId;
       setActiveSectionId(sectionId);
       navigatingLockRef.current = true;
-      navigateToEncounterSection(sectionId, { rootSelector });
+      const ok = navigateToEncounterSection(sectionId, { rootSelector });
       window.setTimeout(() => {
         navigatingLockRef.current = false;
       }, 400);
+      return ok;
     },
     [rootSelector],
   );

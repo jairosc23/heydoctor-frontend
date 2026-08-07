@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 
 /**
- * Opt-in entry chip for Continuity Panel (C1).
+ * Opt-in entry chip for Continuity / Encounter Timeline.
  * Does not fetch — only toggles open state.
  */
 export function ContinuityEntry({
@@ -21,14 +21,8 @@ export function ContinuityEntry({
       data-testid="continuity-entry"
       aria-pressed={open}
       disabled={disabled}
-      onClick={(event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        try {
-          onOpenChange(!open);
-        } catch {
-          // Fail-closed: never throw out of Continuity entry.
-        }
+      onClick={() => {
+        onOpenChange(!open);
       }}
       className={cn(
         "clinical-chip clinical-interactive inline-flex items-center gap-1 rounded-hd-md border px-2.5 py-1.5 text-xs font-medium",

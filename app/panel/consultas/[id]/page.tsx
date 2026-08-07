@@ -100,7 +100,6 @@ import type { ClinicalActionModuleId } from "@/lib/clinical-action-workspace";
 import { ClinicalActionBar } from "./_components/action-workspace/ClinicalActionBar";
 import { useEncounterFullRecordNavigation } from "@/hooks/useEncounterFullRecordNavigation";
 import { EncounterFullRecordOverlay } from "@/components/encounter/EncounterFullRecordOverlay";
-import { pushEncounterFullRecordState } from "@/lib/encounter/full-record-navigation";
 import {
   formatClinicalVitalSignsForContext,
   parseClinicalVitalSignsFromNotes,
@@ -197,13 +196,40 @@ export default function ConsultationDetailPage() {
     fullRecordOpen,
     openFullRecord: openFullRecordNav,
     closeFullRecord,
+    dismissFullRecordForExit,
   } = useEncounterFullRecordNavigation();
+
+  /** Tear down every Encounter surface overlay without remounting Runtime. */
+  const closeEncounterOverlays = useCallback(() => {
+    setContinuityOpen(false);
+    setCopilotDrawerOpen(false);
+    setDnaDrawerOpen(false);
+    setShareOpen(false);
+    clinicalActionWorkspaceNavRef.current?.closeSheet();
+    dismissFullRecordForExit();
+  }, [dismissFullRecordForExit]);
+
   const openFullRecord = useCallback(() => {
     setContinuityOpen(false);
     setCopilotDrawerOpen(false);
     setDnaDrawerOpen(false);
+    clinicalActionWorkspaceNavRef.current?.closeSheet();
     openFullRecordNav();
   }, [openFullRecordNav]);
+
+  const handleContinuityOpenChange = useCallback(
+    (open: boolean) => {
+      if (open) {
+        setCopilotDrawerOpen(false);
+        setDnaDrawerOpen(false);
+        clinicalActionWorkspaceNavRef.current?.closeSheet();
+        closeFullRecord();
+      }
+      setContinuityOpen(open);
+    },
+    [closeFullRecord],
+  );
+
   const [generativeExpandToken, setGenerativeExpandToken] = useState(0);
   /** EPIC-3 UC-01: auto-open Daily Hub once per consultation mount for Prep context. */
   const preVisitAutoOpenedRef = useRef(false);
@@ -1075,6 +1101,14 @@ export default function ConsultationDetailPage() {
           ? "border-red-200 bg-red-50 text-red-800"
           : "border-blue-200 bg-blue-50 text-blue-900";
 
+  const encounterActiveProblems = useMemo(
+    () =>
+      encounterContextModel.continuity.activeProblems.visible.map(
+        (item) => item.label,
+      ),
+    [encounterContextModel.continuity.activeProblems.visible],
+  );
+
   return (
     <ClinicalActionWorkspaceProvider
       enabled={clinicalActionWorkspaceEnabled}
@@ -1097,9 +1131,7 @@ export default function ConsultationDetailPage() {
       patientName={patientName}
       patientAge={soapPatientAge}
       patientSex={soapPatientSex}
-      activeProblems={encounterContextModel.continuity.activeProblems.visible.map(
-        (item) => item.label,
-      )}
+      activeProblems={encounterActiveProblems}
       clinicalSnapshotSupplement={clinicalSnapshotSupplement}
     >
     <div
@@ -1122,15 +1154,7 @@ export default function ConsultationDetailPage() {
             status={status}
             transitioning={transitioning}
             onBack={() => {
-              // Close overlays first so Continuity portal / drawers don't orphan.
-              setContinuityOpen(false);
-              setCopilotDrawerOpen(false);
-              setDnaDrawerOpen(false);
-              setShareOpen(false);
-              clinicalActionWorkspaceNavRef.current?.closeSheet();
-              if (fullRecordOpen) {
-                pushEncounterFullRecordState(false);
-              }
+              closeEncounterOverlays();
               router.push("/panel/consultas");
             }}
             onShare={() => setShareOpen(true)}
@@ -1218,7 +1242,7 @@ export default function ConsultationDetailPage() {
                 clinicId={consultation.clinicId ?? ctxClinicId ?? null}
                 ordersRefreshKey={ordersRefreshKey}
                 continuityOpen={continuityOpen}
-                onContinuityOpenChange={setContinuityOpen}
+                onContinuityOpenChange={handleContinuityOpenChange}
               />
             ) : null}
           </div>
@@ -1258,7 +1282,7 @@ export default function ConsultationDetailPage() {
       <ClinicalCopilotDrawer
         open={copilotDrawerOpen}
         onClose={() => setCopilotDrawerOpen(false)}
-        onOpenContinuity={() => setContinuityOpen(true)}
+        onOpenContinuity={() => handleContinuityOpenChange(true)}
         runtimeEnabled={Boolean(consultation.patientId)}
         generativeExpandToken={generativeExpandToken}
         consultation={consultation}

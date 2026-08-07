@@ -2,9 +2,10 @@
 
 /**
  * Full Clinical Record surface inside the Encounter route.
- * Does not navigate away — preserves Encounter Runtime / Memory / providers.
+ * Portaled to document.body — preserves Encounter Runtime / Memory / providers.
  */
 
+import { createPortal } from "react-dom";
 import {
   formatPatientDocument,
   formatPatientSex,
@@ -16,6 +17,7 @@ import {
   type PatientProfile,
   type PatientRow,
 } from "@/lib/services/patients";
+import { CLINICAL_OVERLAY_Z } from "@/lib/clinical-overlay-contract";
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
@@ -70,14 +72,16 @@ export function EncounterFullRecordOverlay({
   error?: string | null;
 }) {
   if (!open) return null;
+  if (typeof document === "undefined") return null;
 
   const displayName = patient
     ? formatPatientDisplayName(patient)
     : fallbackName;
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-[46] flex flex-col bg-hd-surface-chrome"
+      className="clinical-overlay-full-record fixed inset-0 flex flex-col bg-hd-surface-chrome"
+      style={{ zIndex: CLINICAL_OVERLAY_Z.fullRecord }}
       data-testid="encounter-full-record-overlay"
       data-encounter-runtime="preserved"
       role="dialog"
@@ -140,9 +144,7 @@ export function EncounterFullRecordOverlay({
             />
             <Field
               label="Teléfono"
-              value={
-                patient?.mobilePhone || patient?.phone || "—"
-              }
+              value={patient?.mobilePhone || patient?.phone || "—"}
             />
             <Field label="Correo" value={patient?.email ?? "—"} />
             <Field
@@ -177,6 +179,7 @@ export function EncounterFullRecordOverlay({
           />
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

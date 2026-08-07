@@ -1,14 +1,20 @@
 /**
- * Phase 4.2 — Overlay stacking contract (Clinical Action Workspace™).
- * Chrome < Module Sheet < Intelligence < System modals.
+ * Encounter Shell overlay stacking contract.
+ * Chrome < Continuity < Module Sheet < Intelligence < Full Record < System.
+ *
+ * Continuity must sit ABOVE chrome menus but BELOW module sheet, and its
+ * portal shell must use pointer-events:none so the rail/chart stay clickable.
  */
 
 export const CLINICAL_OVERLAY_Z = {
   chrome: 30,
+  continuity: 36,
   moduleBackdrop: 45,
   modulePanel: 46,
   intelligenceBackdrop: 40,
   intelligencePanel: 50,
+  /** In-shell Full Clinical Record — above intelligence drawer, below system. */
+  fullRecord: 55,
   system: 60,
 } as const;
 
