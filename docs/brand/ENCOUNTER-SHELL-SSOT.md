@@ -2,18 +2,22 @@
 
 | Field | Value |
 |-------|-------|
-| **Status** | **OFFICIAL · FROZEN** |
+| **Status** | **OFFICIAL** |
 | **Architecture** | **FROZEN** |
-| **Runtime** | **SINGLE** |
+| **Runtime** | **STABLE** · **SINGLE** |
+| **Production** | **READY** (subject to CI · Preview · Smoke) |
 | **Navigation** | **SSOT** |
 | **Clinical Snapshot** | **SINGLE SOURCE OF CONTEXT** |
 | **Encounter Memory** | **SINGLE** |
 | **Providers** | **SINGLE MOUNT** |
 | **Bootstrap** | **SINGLE** |
 | **Product** | **HeyDoctor Copilot** — Clinical Operating System |
+| **Architecture review** | **GO** — baseline after merge gates |
 | **Change control** | Requires explicit Product + Architecture approval |
 
 This document freezes the **Encounter Shell** as the sole clinical operating surface of the patient encounter.
+
+After merge gates (CI GREEN · Preview · Smoke), Encounter Shell is the **official baseline architecture**. Future work builds on this foundation — it does not replace it.
 
 ---
 
@@ -130,3 +134,16 @@ A physician completes an entire consultation inside **one** Encounter Shell:
 - One Clinical Snapshot  
 - One Navigation  
 - One Clinical Operating System — **HeyDoctor Copilot**
+
+---
+
+## Merge gates (pre-baseline)
+
+| Gate | Required |
+|------|----------|
+| CI | GREEN |
+| Preview | Validation pass |
+| Smoke | Encounter interaction pass |
+
+**If all gates pass → GO FOR MERGE.**  
+Post-merge: Encounter Shell = official baseline (OFFICIAL · FROZEN · STABLE · Production READY).
