@@ -18,9 +18,16 @@ export function CopilotRiskSignals({ signals }: { signals: ClinicalRiskSignal[] 
         </p>
       </div>
       {signals.length === 0 ? (
-        <p className="text-[11px] text-slate-500">{COPILOT_RISK_EMPTY_MESSAGE}</p>
+        <div
+          role="status"
+          data-ui-state="empty"
+          className="rounded-hd-md border border-dashed border-slate-200 bg-slate-50/80 px-hd-3 py-hd-2 text-[11px] text-slate-500"
+        >
+          <p className="font-medium text-slate-700">Sin señales de riesgo</p>
+          <p className="mt-1 leading-relaxed">{COPILOT_RISK_EMPTY_MESSAGE}</p>
+        </div>
       ) : (
-        <ul className="space-y-hd-2">
+        <ul className="space-y-hd-2" data-ui-state="ready">
           {signals.map((signal) => {
           const styles = getRiskLevelStyles(signal.level);
           return (

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import {
   formatPatientDocument,
   formatPatientSex,
@@ -55,6 +54,7 @@ export function ClinicalContextPanels({
   clinicalFoundationOutputs,
   clinicalFoundationLoading,
   clinicalFoundationError,
+  onOpenFullRecord,
 }: PatientContextRailProps) {
   if (!patientId) return null;
 
@@ -87,12 +87,16 @@ export function ClinicalContextPanels({
           {ageLabel} · {sexLabel}
           {documentLabel !== "—" ? ` · ${documentLabel}` : ""}
         </p>
-        <Link
-          href={`/panel/pacientes/${patientId}`}
-          className="font-semibold text-primary hover:underline"
-        >
-          Ver ficha completa
-        </Link>
+        {onOpenFullRecord ? (
+          <button
+            type="button"
+            onClick={onOpenFullRecord}
+            className="font-semibold text-primary hover:underline"
+            data-testid="encounter-open-full-record"
+          >
+            Ver ficha completa
+          </button>
+        ) : null}
       </div>
 
       {error ? (

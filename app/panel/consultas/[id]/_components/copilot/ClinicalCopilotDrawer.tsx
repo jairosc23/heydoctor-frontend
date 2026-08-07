@@ -52,7 +52,7 @@ import { evaluateLiveDocumentationQuality } from "@/lib/epic3/live-documentation
 import { evaluatePreVisitQualitySignals } from "@/lib/epic3/pre-visit-quality-signals";
 import { CopilotSuggestedInterviewQuestions } from "./CopilotSuggestedInterviewQuestions";
 import { CopilotRiskSignals } from "./CopilotRiskSignals";
-import { ClinicalSnapshotPanel } from "./ClinicalSnapshotPanel";
+import { ClinicalSnapshotPanel } from "@/components/encounter/ClinicalSnapshotPanel";
 import {
   HeyDoctorCopilotContinuityCapability,
   HeyDoctorCopilotReviewSignCapability,
@@ -557,15 +557,6 @@ export function ClinicalCopilotDrawer({
                   variant="compact"
                 />
                 <CopilotGovernanceBoundary />
-                <section className="rounded-hd-md border border-amber-200/80 bg-amber-50/60 px-hd-3 py-hd-2 text-[11px] text-amber-950">
-                  <p className="font-semibold uppercase tracking-wide">
-                    {HEYDOCTOR_COPILOT_BRAND.authorityBadge}
-                  </p>
-                  <p className="mt-1 leading-relaxed">
-                    {HEYDOCTOR_COPILOT_BRAND.productName} is advisory. It does
-                    not confirm (HAB), emit (PE), or apply to the chart.
-                  </p>
-                </section>
               </section>
             ) : null}
 
@@ -592,7 +583,10 @@ export function ClinicalCopilotDrawer({
                   variant="compact"
                 />
                 {foundationOutputs?.clinicalSummary ? (
-                  <section className="rounded-hd-md border border-primary/10 bg-primaryLight/40 px-hd-3 py-hd-2">
+                  <section
+                    className="rounded-hd-md border border-primary/10 bg-primaryLight/40 px-hd-3 py-hd-2"
+                    data-ui-state="ready"
+                  >
                     <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-primary">
                       Resumen clínico
                     </p>
@@ -604,7 +598,23 @@ export function ClinicalCopilotDrawer({
                         ))}
                     </ul>
                   </section>
-                ) : null}
+                ) : (
+                  <section
+                    role="status"
+                    data-ui-state="empty"
+                    data-testid="evidence-foundation-summary-empty"
+                    className="rounded-hd-md border border-dashed border-slate-200 bg-slate-50/80 px-hd-3 py-hd-2 text-[11px] text-slate-500"
+                  >
+                    <p className="font-medium text-slate-700">
+                      Sin resumen de Foundation
+                    </p>
+                    <p className="mt-1 leading-relaxed">
+                      Clinical Foundation aún no aportó un clinical summary para
+                      este encuentro. Evidence sigue usando el Clinical Snapshot
+                      compartido y el workspace de revisión.
+                    </p>
+                  </section>
+                )}
                 <CopilotClinicalReviewWorkspace
                   meta={clinicalReviewWorkspace}
                   agendaLoading={agendaLoading}

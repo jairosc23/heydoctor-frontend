@@ -123,7 +123,11 @@ export function ConsultationActionBar({
   isEditing,
   patientId,
   onOpenDocuments,
-}: ConsultationActionBarProps) {
+  onOpenFullRecord,
+}: ConsultationActionBarProps & {
+  /** Prefer in-encounter Full Record over /panel/pacientes navigation. */
+  onOpenFullRecord?: () => void;
+}) {
   const [moreOpen, setMoreOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
 
@@ -243,7 +247,16 @@ export function ConsultationActionBar({
           ) : null}
         </div>
       </div>
-      {patientId ? (
+      {patientId && onOpenFullRecord ? (
+        <button
+          type="button"
+          onClick={onOpenFullRecord}
+          className="mt-2 inline-block text-sm font-semibold text-primary hover:underline"
+          data-testid="encounter-open-full-record"
+        >
+          Ver ficha del paciente →
+        </button>
+      ) : patientId ? (
         <Link
           href={`/panel/pacientes/${patientId}`}
           className="mt-2 inline-block text-sm font-semibold text-primary hover:underline"

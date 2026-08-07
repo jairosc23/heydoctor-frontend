@@ -21,7 +21,15 @@ export function ContinuityEntry({
       data-testid="continuity-entry"
       aria-pressed={open}
       disabled={disabled}
-      onClick={() => onOpenChange(!open)}
+      onClick={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        try {
+          onOpenChange(!open);
+        } catch {
+          // Fail-closed: never throw out of Continuity entry.
+        }
+      }}
       className={cn(
         "clinical-chip clinical-interactive inline-flex items-center gap-1 rounded-hd-md border px-2.5 py-1.5 text-xs font-medium",
         open
