@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import type { NestConsultation } from "@/lib/services/consultations";
 import type { OrdersSubTab } from "./OrdersTab";
 import type {
@@ -86,6 +86,8 @@ export function ConsultationWorkspace({
   const {
     consultation,
     consultationId,
+    activeTab,
+    onTabChange,
     ordersSubTab,
     onOrdersSubTabChange,
     documentHandlers,
@@ -104,6 +106,34 @@ export function ConsultationWorkspace({
     navigationSections,
     { enabled: Boolean(encounterChart) },
   );
+  /**
+   * Chart uses Tailwind `hidden` on non-soap tabs (display:none → no client rects).
+   * Force Ficha Clínica / soap workspace visible before Navigation SSOT scrolls.
+   */
+  const navigateToEncounterChartSection = useCallback(
+    (sectionId: string) => {
+      const needsWorkspaceSoap = activeTab !== "soap";
+      const needsLeftSoap = leftPaneTab !== "soap";
+      if (needsWorkspaceSoap) onTabChange("soap");
+      if (needsLeftSoap) onLeftPaneTabChange("soap");
+      if (needsWorkspaceSoap || needsLeftSoap) {
+        window.requestAnimationFrame(() => {
+          window.requestAnimationFrame(() => {
+            navigateToSection(sectionId);
+          });
+        });
+        return;
+      }
+      navigateToSection(sectionId);
+    },
+    [
+      activeTab,
+      leftPaneTab,
+      navigateToSection,
+      onLeftPaneTabChange,
+      onTabChange,
+    ],
+  );
   // Root cause: CSS dual-mount (xl:hidden + hidden xl:block) mounted two charts,
   // racing antecedentsRef / dirty callbacks / duplicate section ids.
   const isNarrowViewport = useIsMobile(ENCOUNTER_SPLIT_BREAKPOINT_PX);
@@ -117,7 +147,7 @@ export function ConsultationWorkspace({
           navigationSections={navigationSections}
           navigationProgress={navigationIntelligence?.progress}
           activeSectionId={activeSectionId}
-          onNavigateSection={navigateToSection}
+          onNavigateSection={navigateToEncounterChartSection}
           ordersHighlight={ordersHighlight}
           ordersRefreshKey={ordersRefreshKey}
           smartWorkspaceEnabled={smartWorkspaceEnabled}
@@ -138,7 +168,7 @@ export function ConsultationWorkspace({
               sections={navigationSections}
               progress={navigationIntelligence?.progress}
               activeSectionId={activeSectionId}
-              onNavigate={navigateToSection}
+              onNavigate={navigateToEncounterChartSection}
             />
             <div className="min-w-0 space-y-hd-4">
               <ClinicalContextPanels

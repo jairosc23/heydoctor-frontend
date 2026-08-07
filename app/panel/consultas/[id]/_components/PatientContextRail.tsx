@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import {
   formatPatientDocument,
   formatPatientSex,
@@ -38,6 +37,11 @@ export interface PatientContextRailProps {
   clinicalFoundationOutputs?: ClinicalFoundationOutputs | null;
   clinicalFoundationLoading?: boolean;
   clinicalFoundationError?: string | null;
+  /**
+   * Open Full Clinical Record inside the Encounter (History API).
+   * When set, never navigates away to /panel/pacientes.
+   */
+  onOpenFullRecord?: () => void;
 }
 
 function RailSkeleton() {
@@ -75,6 +79,7 @@ export function PatientContextRail({
   clinicalFoundationOutputs,
   clinicalFoundationLoading,
   clinicalFoundationError,
+  onOpenFullRecord,
 }: PatientContextRailProps) {
   if (!patientId) return null;
 
@@ -101,12 +106,16 @@ export function PatientContextRail({
         <p className={CLINICAL_SECTION_TITLE}>
           Contexto
         </p>
-        <Link
-          href={`/panel/pacientes/${patientId}`}
-          className="shrink-0 text-[11px] font-semibold text-primary hover:underline"
-        >
-          Ver ficha
-        </Link>
+        {onOpenFullRecord ? (
+          <button
+            type="button"
+            onClick={onOpenFullRecord}
+            className="shrink-0 text-[11px] font-semibold text-primary hover:underline"
+            data-testid="encounter-open-full-record"
+          >
+            Ver ficha
+          </button>
+        ) : null}
       </div>
 
       {error ? (

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import {
   formatPatientDocument,
   formatPatientSex,
@@ -53,12 +52,15 @@ export interface PatientIdentificationSectionProps {
   patient: PatientRow | null;
   loading?: boolean;
   patientId?: string | null;
+  /** In-encounter Full Record — never leave the Encounter Runtime. */
+  onOpenFullRecord?: () => void;
 }
 
 export function PatientIdentificationSection({
   patient,
   loading = false,
   patientId,
+  onOpenFullRecord,
 }: PatientIdentificationSectionProps) {
   return (
     <ClinicalEncounterSection sectionNumber={1} title="Identificación del paciente">
@@ -106,14 +108,16 @@ export function PatientIdentificationSection({
           </ProfileFieldGrid>
         </>
       )}
-      {patientId ? (
+      {patientId && onOpenFullRecord ? (
         <p className="mt-hd-3 text-xs">
-          <Link
-            href={`/panel/pacientes/${patientId}`}
+          <button
+            type="button"
+            onClick={onOpenFullRecord}
             className="font-medium text-primary hover:underline"
+            data-testid="encounter-open-full-record"
           >
             Datos demográficos del paciente →
-          </Link>
+          </button>
         </p>
       ) : null}
     </ClinicalEncounterSection>

@@ -98,6 +98,14 @@ import {
 } from "@/lib/consultation-production-gates";
 import type { ClinicalActionModuleId } from "@/lib/clinical-action-workspace";
 import { ClinicalActionBar } from "./_components/action-workspace/ClinicalActionBar";
+import { useEncounterFullRecordNavigation } from "@/hooks/useEncounterFullRecordNavigation";
+import { EncounterFullRecordOverlay } from "@/components/encounter/EncounterFullRecordOverlay";
+import { pushEncounterFullRecordState } from "@/lib/encounter/full-record-navigation";
+import {
+  formatClinicalVitalSignsForContext,
+  parseClinicalVitalSignsFromNotes,
+} from "@/lib/clinical-vital-signs-context";
+import type { ClinicalContextSupplement } from "@/lib/clinical-context-engine";
 import {
   ClinicalActionWorkspaceProvider,
   type ClinicalActionWorkspaceContextValue,
@@ -185,6 +193,17 @@ export default function ConsultationDetailPage() {
   const [dnaDrawerOpen, setDnaDrawerOpen] = useState(false);
   const [copilotDrawerOpen, setCopilotDrawerOpen] = useState(false);
   const [continuityOpen, setContinuityOpen] = useState(false);
+  const {
+    fullRecordOpen,
+    openFullRecord: openFullRecordNav,
+    closeFullRecord,
+  } = useEncounterFullRecordNavigation();
+  const openFullRecord = useCallback(() => {
+    setContinuityOpen(false);
+    setCopilotDrawerOpen(false);
+    setDnaDrawerOpen(false);
+    openFullRecordNav();
+  }, [openFullRecordNav]);
   const [generativeExpandToken, setGenerativeExpandToken] = useState(0);
   /** EPIC-3 UC-01: auto-open Daily Hub once per consultation mount for Prep context. */
   const preVisitAutoOpenedRef = useRef(false);
@@ -1017,6 +1036,36 @@ export default function ConsultationDetailPage() {
   const soapPatientAge = patientRow ? resolvePatientAge(patientRow) : undefined;
   const soapPatientSex = patientRow ? formatPatientSex(patientRow.sex) : undefined;
 
+  /** One Clinical Snapshot supplement for the entire Encounter Shell. */
+  const clinicalSnapshotSupplement = useMemo((): ClinicalContextSupplement => {
+    const vitalsCtx = parseClinicalVitalSignsFromNotes(notes);
+    const medications = (effectiveClinicalMemory?.currentMedications ?? [])
+      .map((m) => m.name)
+      .filter(Boolean);
+    const allergiesFromProfile = jsonLinesToList(patientProfile?.allergies);
+    const allergiesFromFoundation = (
+      clinicalFoundationOutputs?.clinicalFindings ?? []
+    )
+      .filter((f) => /alerg/i.test(`${f.category} ${f.label}`))
+      .map((f) => f.value || f.label)
+      .filter(Boolean);
+    return {
+      allergies:
+        allergiesFromProfile.length > 0
+          ? allergiesFromProfile
+          : allergiesFromFoundation,
+      medications,
+      vitalSignsSummary: formatClinicalVitalSignsForContext(vitalsCtx),
+      consultationReason: chiefComplaintDraft.trim() || null,
+    };
+  }, [
+    chiefComplaintDraft,
+    clinicalFoundationOutputs,
+    effectiveClinicalMemory,
+    notes,
+    patientProfile?.allergies,
+  ]);
+
   const actionMsgClass =
     actionMsg?.kind === "success"
       ? "border-green-200 bg-green-50 text-green-800"
@@ -1051,6 +1100,7 @@ export default function ConsultationDetailPage() {
       activeProblems={encounterContextModel.continuity.activeProblems.visible.map(
         (item) => item.label,
       )}
+      clinicalSnapshotSupplement={clinicalSnapshotSupplement}
     >
     <div
       ref={workspaceRef}
@@ -1071,7 +1121,18 @@ export default function ConsultationDetailPage() {
             key={id}
             status={status}
             transitioning={transitioning}
-            onBack={() => router.push("/panel/consultas")}
+            onBack={() => {
+              // Close overlays first so Continuity portal / drawers don't orphan.
+              setContinuityOpen(false);
+              setCopilotDrawerOpen(false);
+              setDnaDrawerOpen(false);
+              setShareOpen(false);
+              clinicalActionWorkspaceNavRef.current?.closeSheet();
+              if (fullRecordOpen) {
+                pushEncounterFullRecordState(false);
+              }
+              router.push("/panel/consultas");
+            }}
             onShare={() => setShareOpen(true)}
             onTransition={
               status === "draft" || status === "in_progress"
@@ -1289,6 +1350,7 @@ export default function ConsultationDetailPage() {
               clinicalFoundationOutputs={clinicalFoundationOutputs}
               clinicalFoundationLoading={clinicalFoundationState.loading}
               clinicalFoundationError={clinicalFoundationState.error}
+              onOpenFullRecord={openFullRecord}
             />
           </div>
 
@@ -1331,6 +1393,7 @@ export default function ConsultationDetailPage() {
           clinicalFoundationOutputs,
           clinicalFoundationLoading: clinicalFoundationState.loading,
           clinicalFoundationError: clinicalFoundationState.error,
+          onOpenFullRecord: openFullRecord,
         }}
         ordersSubTab={ordersSubTab}
         onOrdersSubTabChange={setOrdersSubTab}
@@ -1354,6 +1417,7 @@ export default function ConsultationDetailPage() {
         ordersRefreshKey={ordersRefreshKey}
         ordersPanelExpandSignal={ordersPanelExpandSignal}
         encounterChart={{
+          onOpenFullRecord: openFullRecord,
           vitals,
           onVitalsChange: setVitals,
           physicalExam,
@@ -1477,6 +1541,7 @@ export default function ConsultationDetailPage() {
             clinicalFoundationOutputs,
             clinicalFoundationLoading: clinicalFoundationState.loading,
             clinicalFoundationError: clinicalFoundationState.error,
+            onOpenFullRecord: openFullRecord,
           }}
           ordersSubTab={ordersSubTab}
           onOrdersSubTabChange={setOrdersSubTab}
@@ -1500,6 +1565,7 @@ export default function ConsultationDetailPage() {
           ordersRefreshKey={ordersRefreshKey}
           ordersPanelExpandSignal={ordersPanelExpandSignal}
           encounterChart={{
+            onOpenFullRecord: openFullRecord,
             vitals,
             onVitalsChange: setVitals,
             physicalExam,
@@ -1605,6 +1671,16 @@ export default function ConsultationDetailPage() {
           {saveMsg}
         </p>
       ) : null}
+
+      <EncounterFullRecordOverlay
+        open={fullRecordOpen}
+        onClose={closeFullRecord}
+        patient={patientRow}
+        profile={patientProfile}
+        fallbackName={patientName}
+        loading={patientContextLoading}
+        error={patientContextError}
+      />
     </div>
     </HeyDoctorCopilotRuntimeProviders>
     </CopilotNavigationProvider>

@@ -84,6 +84,8 @@ export interface ClinicalEncounterChartProps {
   headerExtra?: ReactNode;
   closure?: EncounterClosureSectionProps;
   longitudinal?: PatientLongitudinalProps;
+  /** Open Full Clinical Record without leaving Encounter Runtime. */
+  onOpenFullRecord?: () => void;
   className?: string;
 }
 
@@ -123,6 +125,7 @@ export function ClinicalEncounterChart({
   headerExtra,
   closure,
   longitudinal,
+  onOpenFullRecord,
   className,
 }: ClinicalEncounterChartProps) {
   const profileProps = {
@@ -292,6 +295,7 @@ export function ClinicalEncounterChart({
           patient={longitudinal?.patient ?? null}
           loading={longitudinal?.loading}
           patientId={longitudinal?.patientId ?? patientId}
+          onOpenFullRecord={onOpenFullRecord}
         />
         <PatientAntecedentsSection
           ref={longitudinal?.antecedentsRef}

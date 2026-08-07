@@ -25,9 +25,11 @@ export function ContinuityToolbar({
       data-testid="continuity-toolbar"
     >
       <div>
-        <p className="text-sm font-semibold text-slate-800">Continuity</p>
+        <p className="text-sm font-semibold text-slate-800">
+          Encounter Timeline
+        </p>
         <p className="text-[11px] text-slate-500">
-          Contexto clínico informativo · solo lectura
+          Continuity del encuentro · mismo Clinical Snapshot · solo lectura
         </p>
       </div>
       <div className="flex items-center gap-1.5">
