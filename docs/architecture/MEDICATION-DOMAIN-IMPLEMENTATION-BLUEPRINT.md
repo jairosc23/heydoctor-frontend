@@ -26,7 +26,7 @@ MedicationCatalog
 |---|---|---|---|
 | **P0** | Domain types, jurisdiction catalogs, `PosologyRenderer`, `PosologyFields` / Preview, flag | Fields/Preview only | No |
 | **P0.1** | Clinical completeness on `MedicationOrder` only | **No** | No |
-| **P1** | `MedicationOrderBuilder` + legacy adapter + flag in Panel/Orders | Yes | No |
+| **P1** | `MedicationOrderBuilder` + legacy adapter + calc bridge + flag in `PrescriptionPanel` (Orders / Module Sheet reuse the panel) | Yes (flag) | No |
 | **P2** | GA ambulatory; deprecate `SelectedMedication` path | Yes | No |
 | **P3+** | Dispense/Admin seams, Hospital/ED, FHIR, AI | Progressive | P6 for PDF/DTO |
 
