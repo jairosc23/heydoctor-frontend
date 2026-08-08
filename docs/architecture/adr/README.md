@@ -13,6 +13,7 @@
 |---|---|---|---|---|
 | [ADR-000](./000-adr-policy.md) | ADR Policy | Accepted | 2026-07-04 | Fase 19 · D7 |
 | [ADR-019](./019-clinical-workspace-observability-contract.md) | Clinical Workspace Observability Contract | Accepted | 2026-07-04 | Fase 19 · T4, S1, T2 |
+| [ADR-020](./020-medication-domain.md) | Medication Domain | Accepted | 2026-08-08 | Enterprise Prescription Builder |
 
 ---
 

@@ -46,6 +46,12 @@ import {
   type ContinuityHandoffResult,
 } from "@/lib/composer-intake";
 import { PrescriptionComposer } from "./PrescriptionComposer";
+import { MedicationOrderBuilder } from "@/components/medication-order";
+import {
+  isMedicationOrderBuilderEnabled,
+  orderLinesFromSelectedMedications,
+  selectedMedicationsFromOrderLines,
+} from "@/lib/medication-domain";
 import { OrdersEmptyState } from "./orders/OrdersEmptyState";
 import { UnifiedOrderCard } from "./orders/UnifiedOrderCard";
 
@@ -554,26 +560,53 @@ export function PrescriptionPanel({
             </div>
           ) : null}
 
-          <PrescriptionComposer
-            lines={draftLines}
-            onChange={handleLinesChange}
-            patientId={patientId}
-            consultationId={consultationId}
-            diagnosis={diagnosis}
-            onDiagnosisChange={handleDiagnosisChange}
-            notes={notes}
-            onNotesChange={handleNotesChange}
-            error={error}
-            saving={creating || hydrating}
-            editing={Boolean(editingId)}
-            onSave={() => void handleSave()}
-            onCancelEdit={editingId ? resetForm : undefined}
-            onSafetyDecisionStateChange={handleSafetyDecisionStateChange}
-            assistSession={assistBanner}
-            assistEmitMode={assistActive && !editingId}
-            confirmationGateChecked={confirmationGateChecked}
-            onConfirmationGateChange={setConfirmationGateChecked}
-          />
+          {isMedicationOrderBuilderEnabled() ? (
+            <MedicationOrderBuilder
+              lines={orderLinesFromSelectedMedications(draftLines)}
+              onChange={(orderLines) =>
+                handleLinesChange(
+                  selectedMedicationsFromOrderLines(orderLines),
+                )
+              }
+              patientId={patientId}
+              consultationId={consultationId}
+              diagnosis={diagnosis}
+              onDiagnosisChange={handleDiagnosisChange}
+              notes={notes}
+              onNotesChange={handleNotesChange}
+              error={error}
+              saving={creating || hydrating}
+              editing={Boolean(editingId)}
+              onSave={() => void handleSave()}
+              onCancelEdit={editingId ? resetForm : undefined}
+              onSafetyDecisionStateChange={handleSafetyDecisionStateChange}
+              assistSession={assistBanner}
+              assistEmitMode={assistActive && !editingId}
+              confirmationGateChecked={confirmationGateChecked}
+              onConfirmationGateChange={setConfirmationGateChecked}
+            />
+          ) : (
+            <PrescriptionComposer
+              lines={draftLines}
+              onChange={handleLinesChange}
+              patientId={patientId}
+              consultationId={consultationId}
+              diagnosis={diagnosis}
+              onDiagnosisChange={handleDiagnosisChange}
+              notes={notes}
+              onNotesChange={handleNotesChange}
+              error={error}
+              saving={creating || hydrating}
+              editing={Boolean(editingId)}
+              onSave={() => void handleSave()}
+              onCancelEdit={editingId ? resetForm : undefined}
+              onSafetyDecisionStateChange={handleSafetyDecisionStateChange}
+              assistSession={assistBanner}
+              assistEmitMode={assistActive && !editingId}
+              confirmationGateChecked={confirmationGateChecked}
+              onConfirmationGateChange={setConfirmationGateChecked}
+            />
+          )}
         </>
       )}
     </section>
