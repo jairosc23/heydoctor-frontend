@@ -22,13 +22,43 @@ export type MedicationOrderIntent =
   | "PROPOSAL"
   | "REFILL";
 
+/** Clinical urgency — STAT is priority, never a frequency workaround. */
+export type OrderPriority = "ROUTINE" | "ASAP" | "STAT";
+
 export type MedicationOrderStatus =
   | "drafting"
   | "safety_review"
   | "ready_to_issue"
   | "issued"
   | "amended"
+  /** Temporary clinical hold — distinct from cancelled. */
+  | "suspended"
+  | "on_hold"
   | "cancelled";
+
+/**
+ * When the order is clinically in force or planned to start.
+ * Supports future scheduled treatment without free-text workarounds.
+ */
+export type EffectivePeriod = {
+  /** ISO-8601 instant or date — planned/actual start. */
+  startAt?: string;
+  /** ISO-8601 instant or date — planned/actual end (optional). */
+  endAt?: string;
+};
+
+/** Reconciliation / renewal decision relative to prior therapy. */
+export type ReconcileAction = "continue" | "stop" | "modify";
+
+/**
+ * Therapy lineage — links renewals, amendments, and medication reconciliation.
+ * Does not replace MedicationOrder as SSOT; expresses relationship only.
+ */
+export type TherapyLineage = {
+  priorOrderId?: string;
+  replacesOrderId?: string;
+  reconcileAction?: ReconcileAction;
+};
 
 /** Controlled vocabulary entry (code + localized labels). */
 export type CatalogEntry = {
@@ -116,9 +146,15 @@ export type MedicationOrder = {
   status: MedicationOrderStatus;
   careSetting: CareSetting;
   intent: MedicationOrderIntent;
+  /** Default ROUTINE when omitted. */
+  priority?: OrderPriority;
   jurisdictionCode: JurisdictionCode;
   patientId: string;
   encounterId?: string | null;
+  /** Alias convenience — same as effectivePeriod.startAt when only a start is known. */
+  scheduledStartAt?: string;
+  effectivePeriod?: EffectivePeriod;
+  lineage?: TherapyLineage;
   lines: MedicationOrderLine[];
   globalNotes?: string;
   issueSnapshotAt?: string;

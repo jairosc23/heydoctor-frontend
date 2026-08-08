@@ -76,6 +76,11 @@ El dominio es el SSOT clínico. UI, PDF, Orders, Hospitalización, Urgencias, Ma
 | **Projection** | Representación derivada (PDF, FHIR, print, marketplace) — no SSOT. |
 | **Jurisdiction** | Parámetro de país/mercado (`CL`, `CO`, `US`, `ES`, …); el motor no asume un solo país. |
 | **careSetting** | Ámbito: `AMBULATORY` \| `HOSPITAL` \| `ED` \| `HOME` \| `TELEHEALTH` \| `MARKETPLACE`. |
+| **OrderPriority** | Urgencia clínica: `ROUTINE` \| `ASAP` \| `STAT` (STAT ≠ frecuencia). |
+| **EffectivePeriod** | Vigencia / inicio planificado (`startAt` / `endAt`); `scheduledStartAt` como atajo. |
+| **TherapyLineage** | Linaje terapéutico: `priorOrderId`, `replacesOrderId`, `reconcileAction`. |
+| **ReconcileAction** | Decisión de reconciliación: `continue` \| `stop` \| `modify`. |
+| **suspended / on_hold** | Estados de retención temporal — distintos de `cancelled`. |
 
 ---
 
@@ -84,13 +89,14 @@ El dominio es el SSOT clínico. UI, PDF, Orders, Hospitalización, Urgencias, Ma
 | Aggregate | Responsabilidad | Notas |
 |---|---|---|
 | **MedicationCatalog** | Resolver productos y vocabularios por jurisdicción | Read-model / knowledge |
-| **MedicationOrder** | Ciclo de vida de la orden (draft → issue → amend/cancel) | Aggregate raíz de prescripción/órdenes |
+| **MedicationOrder** | Ciclo de vida de la orden (incl. hold/suspensión, prioridad, vigencia, linaje) | Aggregate raíz de prescripción/órdenes |
 | **MedicationDispense** | Dispensación vinculada a una orden/línea | Fase hospitalaria / farmacia |
 | **MedicationAdministration** | Administración documentada | Fase eMAR / FHIR |
 
 **MedicationProduct** es entidad de catálogo (o snapshot dentro de la línea), no un aggregate de escritura clínica independiente.
 
-Estados de `MedicationOrder` (resumen): `drafting` → `safety_review` → `ready_to_issue` → `issued` → (`amended` \| `cancelled`).
+Estados de `MedicationOrder` (resumen):  
+`drafting` → `safety_review` → `ready_to_issue` → `issued` → (`amended` \| `suspended` \| `on_hold` \| `cancelled`).
 
 ---
 
@@ -105,6 +111,10 @@ Estados de `MedicationOrder` (resumen): `drafting` → `safety_review` → `read
 | `RouteCode` | Oral, IV, IM, SC, … (alineable FHIR) |
 | `TimingInstructionCode` | Con alimentos, PRN, en ayunas, … |
 | `JurisdictionCode` | CL, CO, US, ES, … |
+| `OrderPriority` | `ROUTINE` \| `ASAP` \| `STAT` |
+| `EffectivePeriod` | `{ startAt?, endAt? }` |
+| `TherapyLineage` | `{ priorOrderId?, replacesOrderId?, reconcileAction? }` |
+| `ReconcileAction` | `continue` \| `stop` \| `modify` |
 | `QuantitySpec` | Cantidad a dispensar / ciclo |
 | `IssueSnapshot` | Producto + posología congelados al emitir |
 | `StructuredPosology` | Composición de dose + frequency + duration + route + timing (+ asNeeded) |
@@ -122,6 +132,9 @@ Estados de `MedicationOrder` (resumen): `drafting` → `safety_review` → `read
 7. **Country-independent:** jurisdicción es parámetro.
 8. **Cadena ordenada:** Catalog → Product → Order → Dispense → Administration; no saltar eslabones semánticos.
 9. **Encounter Isolation:** este bounded context no remonta Runtime/Memory/Snapshot del Encounter Shell.
+10. **STAT is priority:** `OrderPriority.STAT` — nunca frecuencia/timing CUSTOM.
+11. **Suspension ≠ cancellation:** `suspended` / `on_hold` son retención temporal; `cancelled` es anulación.
+12. **Lineage is relational:** `TherapyLineage` no sustituye el aggregate; expresa continuidad terapéutica.
 
 ---
 
@@ -146,7 +159,9 @@ Estados de `MedicationOrder` (resumen): `drafting` → `safety_review` → `read
 
 | Fase | Evolución |
 |---|---|
-| **P0–P2** | FE Domain + Builder ambulatorio + vocabularios + renderer; bridge a DTO legacy |
+| **P0** | Domain + catalogs + renderer + PosologyFields |
+| **P0.1** | OrderPriority · suspended/on_hold · effectivePeriod · TherapyLineage (domain-only) |
+| **P1–P2** | Builder ambulatorio + bridge a DTO legacy |
 | **P3** | Contratos FE `MedicationDispense` / `MedicationAdministration`; seams Hospital/ED |
 | **P4** | FHIR `MedicationRequest` (+ dispense/admin cuando aplique) |
 | **P5** | Clinical AI Domain-native |
@@ -178,6 +193,15 @@ P0+ sigue el Implementation Blueprint aprobado; feature-flag hasta parity Orders
 ### D4 — Backend diferido
 
 Cambios Nest/PDF tipados requieren autorización explícita (P6); P0–P1 son FE + adapters.
+
+### D5 — P0.1 clinical completeness (Accepted)
+
+El núcleo de `MedicationOrder` incluye, sin workarounds semánticos:
+
+1. `OrderPriority` (`ROUTINE` \| `ASAP` \| `STAT`)
+2. Lifecycle `suspended` / `on_hold` (≠ `cancelled`)
+3. `effectivePeriod` / `scheduledStartAt`
+4. `TherapyLineage` (`priorOrderId`, `replacesOrderId`, `reconcileAction`)
 
 ## Alternatives considered
 
@@ -228,3 +252,4 @@ Cambios Nest/PDF tipados requieren autorización explícita (P6); P0–P1 son FE
 | 2026-08-08 | Creation — Proposed | Architecture |
 | 2026-08-08 | Add binding Clinical Principle (MedicationOrder SSOT) | Product / Architecture |
 | 2026-08-08 | Status → Accepted — Medication Domain frozen SSOT | Product Owner |
+| 2026-08-08 | P0.1 — priority, hold/suspend, effectivePeriod, therapy lineage | Product / Architecture |

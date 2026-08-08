@@ -14,6 +14,7 @@ export type {
   DoseAmount,
   DoseFormCode,
   DurationSpec,
+  EffectivePeriod,
   FrequencySpec,
   IssueSnapshot,
   JurisdictionCode,
@@ -24,10 +25,13 @@ export type {
   MedicationOrderLine,
   MedicationOrderStatus,
   MedicationProductRef,
+  OrderPriority,
   PosologyRenderBlock,
   QuantitySpec,
+  ReconcileAction,
   RouteCode,
   StructuredPosology,
+  TherapyLineage,
   TimingInstructionCode,
 } from "./types";
 
