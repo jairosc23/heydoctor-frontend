@@ -93,10 +93,23 @@ export function MedicationOrderBuilder({
   return (
     <div
       id="prescription-form"
-      className="space-y-3"
+      className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50/40 p-4"
       data-testid="medication-order-builder"
       data-medication-domain="1"
     >
+      <div className="flex flex-wrap items-end justify-between gap-2 border-b border-slate-200/80 pb-3">
+        <div>
+          <h3 className="text-sm font-semibold text-slate-900">
+            Prescription Builder
+          </h3>
+          <p className="text-xs text-slate-500">
+            Orden farmacológica estructurada · catálogo clínico
+          </p>
+        </div>
+        <span className="rounded-full bg-teal-700 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white">
+          Enterprise
+        </span>
+      </div>
       {assistSession ? (
         <div
           className="rounded-md border border-teal-200 bg-teal-50 px-3 py-2 text-xs text-teal-900"

@@ -1,7 +1,7 @@
 /**
  * Controlled vocabularies — shared codes; labels by locale.
- * Jurisdiction selects which catalog pack to expose (P0: same clinical set for CL/CO/US/ES).
- * Implements ADR-020.
+ * Jurisdiction selects which catalog pack to expose (CL populated; CO/US/ES ready).
+ * Implements ADR-020 — do not change Domain types.
  */
 
 import type { CatalogEntry } from "../types";
@@ -17,6 +17,7 @@ export const DOSE_FORMS: CatalogEntry[] = [
   { code: "suspension", labelEs: "Suspensión", labelEn: "Suspension" },
   { code: "drops", labelEs: "Gotas", labelEn: "Drops" },
   { code: "cream", labelEs: "Crema", labelEn: "Cream" },
+  { code: "ointment", labelEs: "Pomada", labelEn: "Ointment" },
   { code: "gel", labelEs: "Gel", labelEn: "Gel" },
   { code: "spray", labelEs: "Spray", labelEn: "Spray" },
   { code: "inhaler", labelEs: "Inhalador", labelEn: "Inhaler" },
@@ -33,6 +34,7 @@ export const DOSE_UNITS: CatalogEntry[] = [
   { code: "puff", labelEs: "puff", labelEn: "puff" },
   { code: "ampoule", labelEs: "ampolla", labelEn: "ampoule" },
   { code: "vial", labelEs: "vial", labelEn: "vial" },
+  { code: "sachet", labelEs: "sobre", labelEn: "sachet" },
   { code: "patch", labelEs: "parche", labelEn: "patch" },
   { code: "application", labelEs: "aplicación", labelEn: "application" },
 ];
@@ -41,14 +43,18 @@ export const DOSE_AMOUNT_PRESETS: Array<{ amount: number; unit: string }> = [
   { amount: 0.5, unit: "tablet" },
   { amount: 1, unit: "tablet" },
   { amount: 2, unit: "tablet" },
+  { amount: 1, unit: "capsule" },
+  { amount: 2, unit: "capsule" },
   { amount: 5, unit: "mL" },
   { amount: 10, unit: "mL" },
+  { amount: 15, unit: "mL" },
   { amount: 20, unit: "drop" },
   { amount: 1, unit: "ampoule" },
+  { amount: 1, unit: "sachet" },
   { amount: 2, unit: "puff" },
 ];
 
-/** Frequency catalog codes map to FrequencySpec via parseFrequencyCode. */
+/** Frequency catalog codes map to FrequencySpec via frequencySpecFromCode. */
 export const FREQUENCIES: CatalogEntry[] = [
   { code: "EVERY_4_HOURS", labelEs: "Cada 4 horas", labelEn: "Every 4 hours" },
   { code: "EVERY_6_HOURS", labelEs: "Cada 6 horas", labelEn: "Every 6 hours" },
@@ -62,11 +68,12 @@ export const FREQUENCIES: CatalogEntry[] = [
   { code: "THREE_TIMES_DAILY", labelEs: "Tres veces al día", labelEn: "Three times daily" },
   { code: "FOUR_TIMES_DAILY", labelEs: "Cuatro veces al día", labelEn: "Four times daily" },
   { code: "EVERY_OTHER_DAY", labelEs: "Día por medio", labelEn: "Every other day" },
-  { code: "SATURDAY_ONLY", labelEs: "Solo sábados", labelEn: "Saturdays only" },
-  { code: "WEEKEND_ONLY", labelEs: "Sábados y domingos", labelEn: "Weekends only" },
   { code: "WEEKLY", labelEs: "Cada semana", labelEn: "Weekly" },
+  { code: "WEEKEND_ONLY", labelEs: "Sábados y domingos", labelEn: "Weekends only" },
+  { code: "SATURDAY_ONLY", labelEs: "Solo sábados", labelEn: "Saturdays only" },
   { code: "EVERY_2_WEEKS", labelEs: "Cada 15 días", labelEn: "Every 2 weeks" },
   { code: "MONTHLY", labelEs: "Cada mes", labelEn: "Monthly" },
+  { code: "PRN", labelEs: "PRN (según necesidad)", labelEn: "PRN (as needed)" },
 ];
 
 export const DURATIONS: CatalogEntry[] = [
@@ -77,10 +84,12 @@ export const DURATIONS: CatalogEntry[] = [
   { code: "DAYS_14", labelEs: "14 días", labelEn: "14 days" },
   { code: "DAYS_21", labelEs: "21 días", labelEn: "21 days" },
   { code: "DAYS_30", labelEs: "30 días", labelEn: "30 days" },
+  { code: "MONTHS_1", labelEs: "1 mes", labelEn: "1 month" },
+  { code: "MONTHS_3", labelEs: "3 meses", labelEn: "3 months" },
   { code: "WEEKS_6", labelEs: "6 semanas", labelEn: "6 weeks" },
   { code: "MONTHS_2", labelEs: "2 meses", labelEn: "2 months" },
-  { code: "MONTHS_3", labelEs: "3 meses", labelEn: "3 months" },
-  { code: "CONTINUOUS", labelEs: "Uso continuo", labelEn: "Continuous use" },
+  { code: "CONTINUOUS", labelEs: "Continuo", labelEn: "Continuous" },
+  { code: "UNTIL_ORDER", labelEs: "Hasta nuevo control", labelEn: "Until further notice" },
 ];
 
 export const ROUTES: CatalogEntry[] = [

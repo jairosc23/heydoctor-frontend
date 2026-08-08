@@ -1,3 +1,5 @@
+export { CatalogCombobox } from "./CatalogCombobox";
+export type { CatalogComboboxProps } from "./CatalogCombobox";
 export { PosologyFields } from "./PosologyFields";
 export type { PosologyFieldsProps } from "./PosologyFields";
 export { PosologyPreview } from "./PosologyPreview";

@@ -1,8 +1,7 @@
 "use client";
 
 /**
- * Semantic posology preview — one field per block (ADR-020).
- * Never renders ambiguous "1, 8 HORAS" concatenations.
+ * Semantic posology preview — hospital-grade clinical blocks (ADR-020).
  */
 
 import {
@@ -37,28 +36,49 @@ export function PosologyPreview({
 
   if (blocks.length === 0) {
     return (
-      <p
-        className="text-xs text-slate-500"
+      <div
+        className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-3"
         data-testid="medication-posology-preview-empty"
       >
-        Complete la posología para ver la vista previa clínica.
-      </p>
+        <p className="text-xs font-medium text-slate-500">
+          Vista clínica
+        </p>
+        <p className="mt-1 text-sm text-slate-400">
+          Complete presentación, dosis, frecuencia, duración y vía para ver la
+          orden estructurada.
+        </p>
+      </div>
     );
   }
 
   return (
-    <dl
-      className="space-y-1 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+    <div
+      className="overflow-hidden rounded-xl border border-slate-200 bg-gradient-to-b from-white to-slate-50 shadow-sm"
       data-testid="medication-posology-preview"
     >
-      {blocks.map((b) => (
-        <div key={b.key} className="grid grid-cols-[7rem_1fr] gap-2">
-          <dt className="text-xs font-medium text-slate-500">{b.label}</dt>
-          <dd className="text-slate-900" data-testid={`posology-block-${b.key}`}>
-            {b.value}
-          </dd>
-        </div>
-      ))}
-    </dl>
+      <div className="border-b border-slate-100 bg-teal-700/95 px-4 py-2">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-teal-50">
+          Orden clínica
+        </p>
+      </div>
+      <dl className="divide-y divide-slate-100">
+        {blocks.map((b) => (
+          <div
+            key={b.key}
+            className="grid grid-cols-[8.5rem_1fr] gap-3 px-4 py-2.5"
+          >
+            <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              {b.label}
+            </dt>
+            <dd
+              className="text-sm font-medium text-slate-900"
+              data-testid={`posology-block-${b.key}`}
+            >
+              {b.value}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </div>
   );
 }

@@ -107,6 +107,8 @@ export function frequencySpecFromCode(code: string): FrequencySpec | null {
       return { kind: "EVERY_N_WEEKS", weeks: 2 };
     case "MONTHLY":
       return { kind: "MONTHLY" };
+    case "PRN":
+      return { kind: "CUSTOM", code: "PRN" };
     default:
       return { kind: "CUSTOM", code };
   }
