@@ -66,3 +66,21 @@ export {
 } from "./renderers/posology-renderer";
 
 export type { RenderPosologyInput } from "./renderers/posology-renderer";
+
+export {
+  calculateFromOrderLine,
+} from "./adapters/calculation-bridge";
+
+export {
+  legacyStringsFromPosology,
+  medicationItemFromOrderLine,
+  orderLineFromMedicationItem,
+  orderLineFromSelectedMedication,
+  orderLinesFromSelectedMedications,
+  posologyFromLegacyStrings,
+  productFromSelectedMedication,
+  selectedMedicationFromOrderLine,
+  selectedMedicationsFromOrderLines,
+} from "./adapters/legacy-medication";
+
+export type { LegacyPosologyStrings } from "./adapters/legacy-medication";
