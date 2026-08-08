@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Status** | Proposed |
+| **Status** | Accepted |
 | **Date** | 2026-08-08 |
 | **Authors** | Architecture / Product |
 | **Reviewers** | SAVAC-HeyDoctor · Product Owner |
@@ -210,8 +210,8 @@ Cambios Nest/PDF tipados requieren autorización explícita (P6); P0–P1 son FE
 
 - PRs del Builder referencian `Implements ADR-020`.
 - Ningún PR nuevo introduce `join` de posología como SSOT.
-- Índice ADR actualizado; estado → **Accepted** al merge a `main`.
-- P0 no inicia sin este ADR Accepted (o go explícito de Product sobre Proposed mergeado).
+- Índice ADR actualizado; estado **Accepted**.
+- P0+ debe referenciar `Implements ADR-020`.
 
 ## References
 
@@ -226,3 +226,5 @@ Cambios Nest/PDF tipados requieren autorización explícita (P6); P0–P1 son FE
 | Date | Change | Author |
 |---|---|---|
 | 2026-08-08 | Creation — Proposed | Architecture |
+| 2026-08-08 | Add binding Clinical Principle (MedicationOrder SSOT) | Product / Architecture |
+| 2026-08-08 | Status → Accepted — Medication Domain frozen SSOT | Product Owner |
