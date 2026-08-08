@@ -30,8 +30,10 @@ export function Providers({ children }: { children: ReactNode }) {
       <AuthProvider>
         <OpsTelemetryBootstrap />
         <MagicLinkSessionBootstrap>{children}</MagicLinkSessionBootstrap>
+        {process.env.NODE_ENV !== "production" && (
+          <DevSessionDiagnosticsPanel />
+        )}
       </AuthProvider>
-      {process.env.NODE_ENV !== "production" && <DevSessionDiagnosticsPanel />}
     </QueryClientProvider>
   );
 }

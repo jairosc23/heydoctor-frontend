@@ -189,6 +189,11 @@ export function CatalogCombobox({
             setOpen(true);
             setQuery("");
           }}
+          onClick={() => {
+            // Re-open when the input kept focus after Enter/Esc (focus won't re-fire).
+            if (disabled) return;
+            setOpen(true);
+          }}
           onChange={(e) => {
             setQuery(e.target.value);
             setOpen(true);
