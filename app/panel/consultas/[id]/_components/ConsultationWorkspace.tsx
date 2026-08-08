@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { NestConsultation } from "@/lib/services/consultations";
 import type { OrdersSubTab } from "./OrdersTab";
 import type {
@@ -108,8 +108,38 @@ export function ConsultationWorkspace({
   );
   /**
    * Chart uses Tailwind `hidden` on non-soap tabs (display:none → no client rects).
-   * Force Ficha Clínica / soap workspace visible before Navigation SSOT scrolls.
+   * Queue navigation until soap is laid out — never scroll a hidden node.
    */
+  const [pendingSectionId, setPendingSectionId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!pendingSectionId) return;
+    if (activeTab !== "soap" || leftPaneTab !== "soap") return;
+
+    let cancelled = false;
+    let attempts = 0;
+
+    const tryNavigate = () => {
+      if (cancelled) return;
+      attempts += 1;
+      if (navigateToSection(pendingSectionId)) {
+        setPendingSectionId(null);
+        return;
+      }
+      if (attempts >= 12) {
+        setPendingSectionId(null);
+        return;
+      }
+      window.requestAnimationFrame(tryNavigate);
+    };
+
+    const timer = window.setTimeout(tryNavigate, 0);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [activeTab, leftPaneTab, navigateToSection, pendingSectionId]);
+
   const navigateToEncounterChartSection = useCallback(
     (sectionId: string) => {
       const needsWorkspaceSoap = activeTab !== "soap";
@@ -117,14 +147,12 @@ export function ConsultationWorkspace({
       if (needsWorkspaceSoap) onTabChange("soap");
       if (needsLeftSoap) onLeftPaneTabChange("soap");
       if (needsWorkspaceSoap || needsLeftSoap) {
-        window.requestAnimationFrame(() => {
-          window.requestAnimationFrame(() => {
-            navigateToSection(sectionId);
-          });
-        });
+        setPendingSectionId(sectionId);
         return;
       }
-      navigateToSection(sectionId);
+      if (!navigateToSection(sectionId)) {
+        setPendingSectionId(sectionId);
+      }
     },
     [
       activeTab,

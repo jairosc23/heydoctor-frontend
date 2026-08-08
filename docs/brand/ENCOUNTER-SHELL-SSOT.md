@@ -93,11 +93,23 @@ All of the following consume **exactly** the shared Clinical Snapshot:
 - Foundation (context feed into Snapshot supplements)
 - Clinical Insights
 - Assistant
-- Continuity (Encounter Timeline)
+- Continuity (Encounter Timeline — React-only in-shell surface)
 - Voice
 - Review & Sign
 - Evidence
-- Full Clinical Record (in-shell expansion — never another product)
+- Full Clinical Record (React-only in-shell surface — same ownership model as Continuity)
+
+---
+
+## Full Record ownership (frozen)
+
+| Rule | Value |
+|------|-------|
+| Model | **React-only** in-shell surface (same as Continuity) |
+| Open / close | React state only — no route change |
+| History API | **Forbidden** — no `pushState` / `replaceState` / `popstate` |
+| URL overlay param | **Forbidden** — no overlay query param on the Encounter URL |
+| Runtime / Memory / Snapshot | Remain mounted for the entire Encounter lifetime |
 
 ---
 
@@ -106,6 +118,7 @@ All of the following consume **exactly** the shared Clinical Snapshot:
 | Forbidden | Why |
 |-----------|-----|
 | Navigating Full Record to `/panel/pacientes/*` from the encounter | Destroys Runtime / Memory / Snapshot |
+| History API / overlay query param / `popstate` for Full Record | Triple ownership; corrupts Encounter Runtime vs App Router |
 | Second MedicalCopilot / Memory / Snapshot trees for Daily Hub capabilities | Duplicated state |
 | Ad-hoc section scroll bypassing Navigation SSOT | Offset / sticky regressions |
 | Treating Continuity as a separate product | Breaks One Workspace |
@@ -122,8 +135,8 @@ All of the following consume **exactly** the shared Clinical Snapshot:
 | `context/EncounterClinicalSnapshotContext.tsx` | Clinical Snapshot SSOT |
 | `hooks/useClinicalSnapshot.ts` | Shared Snapshot consumer |
 | `lib/encounter/navigation/*` | Navigation SSOT |
-| `lib/encounter/full-record-navigation.ts` | In-shell Full Record (History API) |
-| `components/encounter/EncounterFullRecordOverlay.tsx` | Full Record expansion |
+| `hooks/useEncounterFullRecordNavigation.ts` | Full Record open/close (React-only; same model as Continuity) |
+| `components/encounter/EncounterFullRecordOverlay.tsx` | Full Record in-shell surface |
 | `components/clinical/continuity/ContinuityPanelShell.tsx` | Continuity / Encounter Timeline |
 | `app/panel/consultas/[id]/page.tsx` | Encounter Shell host |
 

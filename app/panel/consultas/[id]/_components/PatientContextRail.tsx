@@ -38,7 +38,7 @@ export interface PatientContextRailProps {
   clinicalFoundationLoading?: boolean;
   clinicalFoundationError?: string | null;
   /**
-   * Open Full Clinical Record inside the Encounter (History API).
+   * Open Full Clinical Record inside the Encounter (React-only in-shell surface).
    * When set, never navigates away to /panel/pacientes.
    */
   onOpenFullRecord?: () => void;

@@ -27,7 +27,10 @@ export function resolveEncounterScrollRoot(
   return root instanceof HTMLElement ? root : null;
 }
 
-/** Prefer the visible mount when dual trees briefly race. */
+/**
+ * Prefer a visible mount. Never fall back to display:none nodes —
+ * scrolling a hidden section is a silent no-op (dead rail links).
+ */
 export function resolveEncounterSectionElement(
   sectionId: string,
 ): HTMLElement | null {
@@ -35,7 +38,7 @@ export function resolveEncounterSectionElement(
   const candidates = Array.from(
     document.querySelectorAll(`[id="${sectionId}"]`),
   ).filter((element): element is HTMLElement => element instanceof HTMLElement);
-  return candidates.find(isRendered) ?? candidates[0] ?? null;
+  return candidates.find(isRendered) ?? null;
 }
 
 export function resolveEncounterSectionElements(
@@ -53,6 +56,7 @@ export function getEncounterChromeOffsetPx(): number {
 /**
  * Canonical programmatic navigation for encounter sections.
  * Uses live chrome metrics + scroll root — never ad-hoc scrollIntoView for sections.
+ * Returns false when the target is not laid out yet (caller should retry after soap tab).
  */
 export function navigateToEncounterSection(
   sectionId: string,
@@ -60,7 +64,7 @@ export function navigateToEncounterSection(
 ): boolean {
   if (typeof window === "undefined") return false;
   const element = resolveEncounterSectionElement(sectionId);
-  if (!element) return false;
+  if (!element || !isRendered(element)) return false;
 
   const prefersReducedMotion = window.matchMedia(
     "(prefers-reduced-motion: reduce)",
@@ -80,11 +84,8 @@ export function navigateToEncounterSection(
       root.scrollBy({ top: delta, behavior });
     }
   } else {
-    // Last resort: still avoid block:start under sticky chrome.
     const top =
-      element.getBoundingClientRect().top +
-      window.scrollY -
-      chromeOffset;
+      element.getBoundingClientRect().top + window.scrollY - chromeOffset;
     window.scrollTo({ top, behavior });
   }
 
