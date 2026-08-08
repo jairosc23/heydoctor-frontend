@@ -11,6 +11,18 @@
 
 ---
 
+## Clinical Principle
+
+> **MedicationOrder** is the single source of truth for every medication-related workflow in HeyDoctor.
+>
+> All UI, PDF, FHIR, Clinical AI and Marketplace projections MUST derive from the Medication Domain.
+>
+> No clinical workflow may reconstruct medication semantics from concatenated strings.
+
+Este principio es **vinculante** para P0+ y para cualquier proyección futura (Hospitalización, Urgencias, Orders, ePrescription, FHIR, Clinical AI).
+
+---
+
 ## Purpose
 
 Establecer el **Medication Domain** como arquitectura oficial de HeyDoctor para cualquier acto farmacológico en la plataforma.
