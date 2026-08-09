@@ -80,15 +80,16 @@ describe("patient antecedents draft contract", () => {
     assert.notEqual(before, after);
   });
 
-  it("merged personales stay stable when surgeries are consolidated away", () => {
+  it("merged personales stay stable when surgeries are preserved (PR-A)", () => {
     const before = personalDraftText({
       chronicConditions: [{ label: "HTA" }],
       surgeries: [{ label: "Apendicectomía" }],
       disabilities: [],
     });
+    // After PR-A flush: surgery line stays in surgeries; chronic keeps HTA only.
     const afterSave = personalDraftText({
-      chronicConditions: textToJsonLines(before),
-      surgeries: [],
+      chronicConditions: [{ label: "HTA" }],
+      surgeries: [{ label: "Apendicectomía" }],
       disabilities: [],
     });
     assert.equal(afterSave, before);

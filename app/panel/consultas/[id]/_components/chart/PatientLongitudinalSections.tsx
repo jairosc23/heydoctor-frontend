@@ -9,10 +9,10 @@ import {
   useRef,
   useState,
 } from "react";
+import { buildAntecedentsFlushPayload } from "@/lib/patient-antecedents-flush";
 import {
   jsonLinesToList,
   jsonLinesToText,
-  textToJsonLines,
 } from "@/lib/patient-profile-display";
 import {
   upsertPatientProfile,
@@ -216,6 +216,8 @@ export const PatientAntecedentsSection = forwardRef<
   const baselineKeyRef = useRef(baselineKey);
   const flushPromiseRef = useRef<Promise<boolean> | null>(null);
   const patientIdRef = useRef(patientId);
+  const profileRef = useRef(profile);
+  profileRef.current = profile;
 
   useEffect(() => {
     draftRef.current = draft;
@@ -275,16 +277,12 @@ export const PatientAntecedentsSection = forwardRef<
     const run = (async (): Promise<boolean> => {
       setSaving(true);
       try {
-        // Consolidate "personales" into chronicConditions (schema-stable).
-        // Clear surgeries/disabilities so merged read-view does not duplicate lines.
-        const updated = await upsertPatientProfile(patientId, {
-          chronicConditions: textToJsonLines(current.personalText),
-          surgeries: [],
-          disabilities: [],
-          medications: textToJsonLines(current.medicationsText),
-          allergies: textToJsonLines(current.allergiesText),
-          familyHistory: textToJsonLines(current.familyText),
-        });
+        // PR-A: partition merged personales — never wipe surgeries/disabilities
+        // that still appear in the editor (backend omits only when undefined).
+        const updated = await upsertPatientProfile(
+          patientId,
+          buildAntecedentsFlushPayload(current, profileRef.current),
+        );
         const synced = draftFromProfile(updated);
         setDraft(synced);
         const syncedKey = draftKeyOf(synced);
