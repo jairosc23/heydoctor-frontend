@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { usePatientProfilePersistFeedback } from "@/hooks/usePatientProfilePersistFeedback";
 import { buildAntecedentsFlushPayload } from "@/lib/patient-antecedents-flush";
 import {
   jsonLinesToList,
@@ -211,6 +212,7 @@ export const PatientAntecedentsSection = forwardRef<
     draftKeyOf(draftFromProfile(profile)),
   );
   const [saving, setSaving] = useState(false);
+  const persist = usePatientProfilePersistFeedback();
   const profileUpdatedAt = profile?.updatedAt ?? null;
   const draftRef = useRef(draft);
   const baselineKeyRef = useRef(baselineKey);
@@ -257,6 +259,10 @@ export const PatientAntecedentsSection = forwardRef<
     onDirtyChange?.(dirty);
   }, [dirty, onDirtyChange]);
 
+  useEffect(() => {
+    if (dirty) persist.markDirty();
+  }, [dirty, persist.markDirty]);
+
   const flush = useCallback(async (): Promise<boolean> => {
     // Persistencia no depende de editMode: salir de edición / autosave / F5
     // deben poder escribir el draft dirty aunque la UI esté en solo lectura.
@@ -276,6 +282,7 @@ export const PatientAntecedentsSection = forwardRef<
 
     const run = (async (): Promise<boolean> => {
       setSaving(true);
+      persist.beginPersist();
       try {
         // PR-A: partition merged personales — never wipe surgeries/disabilities
         // that still appear in the editor (backend omits only when undefined).
@@ -290,13 +297,15 @@ export const PatientAntecedentsSection = forwardRef<
         baselineKeyRef.current = syncedKey;
         draftRef.current = synced;
         onProfileSaved?.(updated);
+        persist.completeSuccess();
         return true;
       } catch (err) {
-        onPersistError?.(
+        const message =
           err instanceof Error
             ? err.message
-            : "No se pudieron guardar los antecedentes. Intente Guardar de nuevo.",
-        );
+            : "No se pudieron guardar los antecedentes. Intente Guardar de nuevo.";
+        persist.fail(message);
+        onPersistError?.(message);
         throw err;
       } finally {
         setSaving(false);
@@ -311,7 +320,14 @@ export const PatientAntecedentsSection = forwardRef<
         flushPromiseRef.current = null;
       }
     }
-  }, [onPersistError, onProfileSaved, patientId]);
+  }, [
+    onPersistError,
+    onProfileSaved,
+    patientId,
+    persist.beginPersist,
+    persist.completeSuccess,
+    persist.fail,
+  ]);
 
   useImperativeHandle(
     ref,
@@ -353,17 +369,22 @@ export const PatientAntecedentsSection = forwardRef<
             <span className="rounded-hd-md border border-primary/20 bg-primaryLight/40 px-2 py-0.5 font-semibold text-primary">
               Antecedentes — editable
             </span>
-            {dirty && !saving ? (
+            {persist.phase !== "clean" && persist.label ? (
               <span
-                className="font-semibold text-amber-700"
-                data-testid="antecedents-dirty-badge"
+                className={cn(
+                  "font-semibold",
+                  persist.phase === "error"
+                    ? "text-red-700"
+                    : persist.phase === "pending" ||
+                        persist.phase === "pending_again"
+                      ? "text-amber-700"
+                      : "text-teal-800",
+                )}
+                data-testid="antecedents-persist-status"
+                data-persist-phase={persist.phase}
               >
-                Hay cambios sin guardar en antecedentes
-              </span>
-            ) : null}
-            {saving ? (
-              <span className="font-semibold text-slate-600">
-                Guardando en la ficha del paciente…
+                {persist.label}
+                {persist.phase === "error" ? " — Reintentar con Guardar" : ""}
               </span>
             ) : null}
           </div>
