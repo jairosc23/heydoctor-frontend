@@ -140,13 +140,13 @@ export function ClinicalEncounterChart({
   };
 
   const idleSaveLabel = antecedentsDirty
-    ? "Guardar consulta y antecedentes"
+    ? "Cambios pendientes — Guardar consulta y antecedentes"
     : "Guardar";
   const manualSaveLabel =
     manualSaveStatus === "saving"
       ? "Guardando…"
       : manualSaveStatus === "saved"
-        ? "Guardado"
+        ? "Información guardada"
         : manualSaveStatus === "error"
           ? "Reintentar"
           : idleSaveLabel;
@@ -255,7 +255,7 @@ export function ClinicalEncounterChart({
             className="text-xs font-semibold text-amber-700"
             data-testid="encounter-antecedents-dirty-hint"
           >
-            Hay cambios sin guardar en antecedentes.
+            Cambios pendientes en antecedentes.
           </p>
         ) : null}
         {(manualSaveStatus === "saved" || manualSaveStatus === "error") &&

@@ -8,6 +8,7 @@ import {
   GlobalAddressFields,
   NationalityField,
 } from "@/components/global-address";
+import { usePatientProfilePersistFeedback } from "@/hooks/usePatientProfilePersistFeedback";
 import { getApiErrorMessage } from "@/lib/heydoctor-api";
 import {
   addressSelectionToPatientFields,
@@ -99,11 +100,10 @@ export default function PatientDetailPage() {
 
   const [tab, setTab] = useState<TabId>("datos");
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const [patient, setPatient] = useState<PatientRow | null>(null);
   const [profile, setProfile] = useState<PatientProfile | null>(null);
+  const persist = usePatientProfilePersistFeedback();
 
   const [form, setForm] = useState<UpdatePatientDto>({});
   const [address, setAddress] = useState<AddressSelection>(() =>
@@ -180,14 +180,22 @@ export default function PatientDetailPage() {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    if (persist.phase !== "saved" && persist.phase !== "updated") return;
+    const t = window.setTimeout(() => persist.ackIdle(), 3500);
+    return () => window.clearTimeout(t);
+  }, [persist.phase, persist.ackIdle]);
+
   function updateField<K extends keyof UpdatePatientDto>(
     key: K,
     value: UpdatePatientDto[K]
   ) {
+    markFormDirty();
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
   function updateAddress(next: AddressSelection) {
+    markFormDirty();
     setAddress(next);
     const mapped = addressSelectionToPatientFields(next);
     setForm((prev) => ({
@@ -203,10 +211,13 @@ export default function PatientDetailPage() {
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
-    if (!patientId) return;
-    setSaving(true);
+    if (!patientId || persist.inFlight) return;
     setError("");
-    setSuccess("");
+    if (persist.phase === "error") {
+      persist.retryPersist();
+    } else {
+      persist.beginPersist();
+    }
     try {
       if (tab === "antecedentes") {
         const updatedProfile = await upsertPatientProfile(patientId, {
@@ -220,12 +231,17 @@ export default function PatientDetailPage() {
         const updated = await updatePatient(patientId, form);
         setPatient(updated);
       }
-      setSuccess("Cambios guardados correctamente.");
+      // Success only after confirmed API response.
+      persist.completeSuccess();
     } catch (err) {
-      setError(getApiErrorMessage(err, "Error al guardar los cambios."));
-    } finally {
-      setSaving(false);
+      const message = getApiErrorMessage(err, "Error al guardar los cambios.");
+      setError(message);
+      persist.fail(message);
     }
+  }
+
+  function markFormDirty() {
+    persist.markDirty();
   }
 
   if (!patientId) {
@@ -347,16 +363,34 @@ export default function PatientDetailPage() {
         ))}
       </div>
 
-      {error && (
+      {persist.phase === "error" || error ? (
         <p className="text-red-500 text-sm" role="alert" style={{ marginBottom: 12 }}>
-          {error}
+          {persist.errorMessage || error}
         </p>
-      )}
-      {success && (
-        <p style={{ color: "#078A92", fontSize: 14, marginBottom: 12 }} role="status">
-          {success}
+      ) : null}
+      {persist.phase === "pending" ||
+      persist.phase === "pending_again" ||
+      persist.phase === "saving" ||
+      persist.phase === "updating" ||
+      persist.phase === "saved" ||
+      persist.phase === "updated" ? (
+        <p
+          style={{
+            color:
+              persist.phase === "pending" || persist.phase === "pending_again"
+                ? "#b45309"
+                : "#078A92",
+            fontSize: 14,
+            marginBottom: 12,
+            fontWeight: 600,
+          }}
+          role="status"
+          data-testid="profile-persist-status"
+          data-persist-phase={persist.phase}
+        >
+          {persist.label}
         </p>
-      )}
+      ) : null}
 
       <form
         onSubmit={handleSave}
@@ -592,7 +626,10 @@ export default function PatientDetailPage() {
               <textarea
                 style={{ ...inputStyle, minHeight: 90, resize: "vertical" }}
                 value={allergiesText}
-                onChange={(e) => setAllergiesText(e.target.value)}
+                onChange={(e) => {
+                  markFormDirty();
+                  setAllergiesText(e.target.value);
+                }}
                 placeholder="Penicilina: rash cutáneo"
               />
             </Field>
@@ -600,21 +637,30 @@ export default function PatientDetailPage() {
               <textarea
                 style={{ ...inputStyle, minHeight: 90, resize: "vertical" }}
                 value={medicationsText}
-                onChange={(e) => setMedicationsText(e.target.value)}
+                onChange={(e) => {
+                  markFormDirty();
+                  setMedicationsText(e.target.value);
+                }}
               />
             </Field>
             <Field label="Condiciones crónicas (una por línea)">
               <textarea
                 style={{ ...inputStyle, minHeight: 90, resize: "vertical" }}
                 value={chronicText}
-                onChange={(e) => setChronicText(e.target.value)}
+                onChange={(e) => {
+                  markFormDirty();
+                  setChronicText(e.target.value);
+                }}
               />
             </Field>
             <Field label="Notas clínicas generales">
               <textarea
                 style={{ ...inputStyle, minHeight: 120, resize: "vertical" }}
                 value={profileNotes}
-                onChange={(e) => setProfileNotes(e.target.value)}
+                onChange={(e) => {
+                  markFormDirty();
+                  setProfileNotes(e.target.value);
+                }}
               />
             </Field>
             {profile?.updatedAt && (
@@ -628,19 +674,20 @@ export default function PatientDetailPage() {
         <div style={{ marginTop: 20 }}>
           <button
             type="submit"
-            disabled={saving}
+            disabled={persist.inFlight}
+            data-testid="profile-persist-submit"
             style={{
               padding: "10px 22px",
               background: TEAL,
               color: "white",
               border: "none",
               borderRadius: 8,
-              cursor: saving ? "not-allowed" : "pointer",
+              cursor: persist.inFlight ? "not-allowed" : "pointer",
               fontSize: 14,
               fontWeight: 600,
             }}
           >
-            {saving ? "Guardando..." : "Guardar cambios"}
+            {persist.buttonLabel}
           </button>
         </div>
       </form>
