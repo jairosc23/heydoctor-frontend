@@ -31,6 +31,7 @@ export function useConsultationAutosave({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const hydratedRef = useRef(false);
   const savingRef = useRef(false);
+  const abandonedRef = useRef(false);
   const inFlightRef = useRef<Promise<FlushNowResult> | null>(null);
   const queuedKeyRef = useRef<string | null>(null);
   const saveRef = useRef(save);
@@ -38,17 +39,26 @@ export function useConsultationAutosave({
 
   saveRef.current = save;
 
+  const abandon = useCallback(() => {
+    abandonedRef.current = true;
+    queuedKeyRef.current = null;
+  }, []);
+
   const debouncedKey = useDebouncedValue(draftKey, debounceMs);
 
   const runSave = useCallback(
     async (keyToSave: string): Promise<FlushNowResult> => {
-      if (!enabled) {
-        return { wrote: false, alreadyPersisted: true };
+      if (abandonedRef.current || !enabled) {
+        return { wrote: false, alreadyPersisted: abandonedRef.current ? false : true };
       }
 
       // Await in-flight save, then re-evaluate (may still be dirty).
       if (inFlightRef.current) {
         await inFlightRef.current;
+      }
+
+      if (abandonedRef.current) {
+        return { wrote: false, alreadyPersisted: false };
       }
 
       if (lastSavedDraftKeyRef.current === keyToSave) {
@@ -71,6 +81,9 @@ export function useConsultationAutosave({
 
       const run = (async (): Promise<FlushNowResult> => {
         try {
+          if (abandonedRef.current) {
+            return { wrote: false, alreadyPersisted: false };
+          }
           await saveRef.current();
           lastSavedDraftKeyRef.current = keyToSave;
           setLastSavedAt(new Date());
@@ -88,7 +101,11 @@ export function useConsultationAutosave({
           savingRef.current = false;
           const queued = queuedKeyRef.current;
           queuedKeyRef.current = null;
-          if (queued && queued !== lastSavedDraftKeyRef.current) {
+          if (
+            !abandonedRef.current &&
+            queued &&
+            queued !== lastSavedDraftKeyRef.current
+          ) {
             // Fire-and-forget follow-up; callers of flushNow await the primary write.
             void runSave(queued);
           }
@@ -112,6 +129,9 @@ export function useConsultationAutosave({
   }, [draftKey, runSave]);
 
   useEffect(() => {
+    if (abandonedRef.current) {
+      return;
+    }
     if (!enabled) {
       hydratedRef.current = false;
       lastSavedDraftKeyRef.current = null;
@@ -134,5 +154,5 @@ export function useConsultationAutosave({
     lastSavedDraftKeyRef.current != null &&
     draftKey !== lastSavedDraftKeyRef.current;
 
-  return { lastSavedAt, status, errorMessage, flushNow, isDraftDirty };
+  return { lastSavedAt, status, errorMessage, flushNow, isDraftDirty, abandon };
 }

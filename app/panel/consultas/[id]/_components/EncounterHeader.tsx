@@ -163,7 +163,7 @@ export function EncounterHeader({
           aria-label="Volver a consultas"
           title="Volver a consultas"
           data-testid="encounter-back-to-consultations"
-          className="relative z-[51] inline-flex h-7 shrink-0 items-center gap-1 text-xs font-medium text-slate-500 hover:text-primary"
+          className="inline-flex h-7 shrink-0 items-center gap-1 text-xs font-medium text-slate-500 hover:text-primary"
         >
           <span aria-hidden>←</span>
           <span className="hidden sm:inline">Consultas</span>

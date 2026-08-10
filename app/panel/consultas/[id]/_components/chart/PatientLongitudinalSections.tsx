@@ -78,6 +78,8 @@ export type PatientAntecedentsSectionHandle = {
   flush: () => Promise<boolean>;
   getDraftKey: () => string;
   isDirty: () => boolean;
+  /** Blocks further PUT flushes (literal "Salir sin guardar"). */
+  abandon: () => void;
 };
 
 export interface PatientLongitudinalSectionsProps {
@@ -217,6 +219,7 @@ export const PatientAntecedentsSection = forwardRef<
   const draftRef = useRef(draft);
   const baselineKeyRef = useRef(baselineKey);
   const flushPromiseRef = useRef<Promise<boolean> | null>(null);
+  const skipFlushRef = useRef(false);
   const patientIdRef = useRef(patientId);
   const profileRef = useRef(profile);
   profileRef.current = profile;
@@ -263,14 +266,20 @@ export const PatientAntecedentsSection = forwardRef<
     if (dirty) persist.markDirty();
   }, [dirty, persist.markDirty]);
 
+  const abandon = useCallback(() => {
+    skipFlushRef.current = true;
+  }, []);
+
   const flush = useCallback(async (): Promise<boolean> => {
     // Persistencia no depende de editMode: salir de edición / autosave / F5
     // deben poder escribir el draft dirty aunque la UI esté en solo lectura.
+    if (skipFlushRef.current) return false;
     if (!patientId) return false;
 
     // Coalesce concurrent flushes so manual save never no-ops while autosave runs.
     if (flushPromiseRef.current) {
       await flushPromiseRef.current;
+      if (skipFlushRef.current) return false;
       if (draftKeyOf(draftRef.current) === baselineKeyRef.current) {
         return false;
       }
@@ -281,6 +290,7 @@ export const PatientAntecedentsSection = forwardRef<
     if (key === baselineKeyRef.current) return false;
 
     const run = (async (): Promise<boolean> => {
+      if (skipFlushRef.current) return false;
       setSaving(true);
       persist.beginPersist();
       try {
@@ -333,10 +343,11 @@ export const PatientAntecedentsSection = forwardRef<
     ref,
     () => ({
       flush,
+      abandon,
       getDraftKey: () => draftKeyOf(draftRef.current),
       isDirty: () => draftKeyOf(draftRef.current) !== baselineKeyRef.current,
     }),
-    [flush],
+    [abandon, flush],
   );
 
   const chronic = jsonLinesToList(profile?.chronicConditions);

@@ -10,6 +10,7 @@ import {
   UnsavedChangesGuardProvider,
   useUnsavedChangesGuard,
 } from "@/lib/unsaved-changes-guard/unsaved-changes-guard-context";
+import { isUnmodifiedLeftClick } from "@/lib/unsaved-changes-guard/is-unmodified-left-click";
 import { cn } from "@/lib/utils";
 import { trackRedirectToLogin } from "@/lib/session-analytics";
 
@@ -163,8 +164,10 @@ function PanelLayoutShell({
   }
 
   async function handleLogout() {
-    await logout();
-    router.push("/login");
+    requestNavigation(async () => {
+      await logout();
+      router.push("/login");
+    });
   }
 
   /** Teleconsulta a pantalla completa: montar siempre (la sesión gestiona loaders y auth). */
@@ -192,7 +195,7 @@ function PanelLayoutShell({
 
       <aside
         className={cn(
-          "fixed bottom-0 left-0 top-0 z-[51] flex h-screen w-64 flex-col border-r border-hd-border-subtle bg-hd-surface-chrome p-4 shadow-hd-2 transition-transform duration-hd-base",
+          "fixed bottom-0 left-0 top-0 z-40 flex h-screen w-64 flex-col border-r border-hd-border-subtle bg-hd-surface-chrome p-4 shadow-hd-2 transition-transform duration-hd-base",
           navOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
         )}
         data-testid="panel-sidebar"
@@ -206,6 +209,7 @@ function PanelLayoutShell({
               key={item.href}
               href={item.href}
               onClick={(event) => {
+                if (!isUnmodifiedLeftClick(event)) return;
                 event.preventDefault();
                 setNavOpen(false);
                 requestNavigation(item.href);

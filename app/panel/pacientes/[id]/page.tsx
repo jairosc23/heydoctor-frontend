@@ -27,6 +27,7 @@ import {
   PATIENT_HABIT_FIELDS,
   type PatientHabitDraft,
 } from "@/lib/patient-profile-habits";
+import { isUnmodifiedLeftClick } from "@/lib/unsaved-changes-guard/is-unmodified-left-click";
 import { useUnsavedChangesGuard } from "@/lib/unsaved-changes-guard/unsaved-changes-guard-context";
 import {
   fetchPatientById,
@@ -366,6 +367,7 @@ export default function PatientDetailPage() {
           <Link
             href="/panel/pacientes"
             onClick={(event) => {
+              if (!isUnmodifiedLeftClick(event)) return;
               event.preventDefault();
               requestNavigation("/panel/pacientes");
             }}

@@ -33,6 +33,7 @@ import {
 import { useConsultationPrice } from "@/lib/hooks/useConsultationPrice";
 import { useConsultationAutosave } from "@/lib/hooks/useConsultationAutosave";
 import { ApiError, getApiErrorMessage } from "@/lib/heydoctor-api";
+import { createPersistGate } from "@/lib/unsaved-changes-guard/persist-gate";
 import { useUnsavedChangesGuard } from "@/lib/unsaved-changes-guard/unsaved-changes-guard-context";
 import {
   fetchPatientById,
@@ -232,7 +233,10 @@ export default function ConsultationDetailPage() {
   );
 
   const [generativeExpandToken, setGenerativeExpandToken] = useState(0);
+  /** EPIC-3 UC-01: auto-open Daily Hub once per consultation mount for Prep context. */
+  const preVisitAutoOpenedRef = useRef(false);
   const { register, requestNavigation } = useUnsavedChangesGuard();
+  const persistGateRef = useRef(createPersistGate());
 
   const [patientRow, setPatientRow] = useState<PatientRow | null>(null);
   const [patientProfile, setPatientProfile] = useState<PatientProfile | null>(
@@ -248,6 +252,7 @@ export default function ConsultationDetailPage() {
     flush: () => Promise<boolean>;
     getDraftKey: () => string;
     isDirty: () => boolean;
+    abandon: () => void;
   } | null>(null);
 
   const paymentResult = searchParams.get("payment");
@@ -432,6 +437,14 @@ export default function ConsultationDetailPage() {
   const effectiveClinicalMemory =
     clinicalFoundation?.memory ?? patientClinicalMemoryState.data;
 
+  // UC-01: surface Prep context automatically in Daily Hub (read-only). No generative expand.
+  useEffect(() => {
+    if (preVisitAutoOpenedRef.current) return;
+    if (!consultation?.id) return;
+    if (clinicalFoundationState.loading) return;
+    preVisitAutoOpenedRef.current = true;
+    setCopilotDrawerOpen(true);
+  }, [consultation?.id, clinicalFoundationState.loading]);
   const effectiveClinicalMemoryLoading =
     clinicalFoundationState.loading && !clinicalFoundation
       ? true
@@ -473,6 +486,7 @@ export default function ConsultationDetailPage() {
 
   const persistSoapDraft = useCallback(
     async (diagnosisOverride?: ConsultationDiagnosisState) => {
+      if (!persistGateRef.current.shouldPersist()) return;
       const currentConsultation = consultationRef.current;
       if (!currentConsultation || !isEditable) return;
       const diagnosis = diagnosisOverride ?? diagnosisState;
@@ -486,6 +500,7 @@ export default function ConsultationDetailPage() {
       const soapUnchanged =
         patchFingerprint === lastPersistedPatchRef.current;
       if (!soapUnchanged) {
+        if (!persistGateRef.current.shouldPersist()) return;
         const updated = await updateConsultation(id, patch);
         lastPersistedPatchRef.current = patchFingerprint;
         setConsultation(updated);
@@ -505,6 +520,7 @@ export default function ConsultationDetailPage() {
           return prevKey === nextKey ? prev : nextDiagnosis;
         });
       }
+      if (!persistGateRef.current.shouldPersist()) return;
       // Patient profile SoT (antecedentes) — independent of SOAP fingerprint.
       const profileSaved = Boolean(await antecedentsRef.current?.flush());
       // Recalculate Documentation Gaps / UC-03B from persisted notes SoT.
@@ -539,6 +555,7 @@ export default function ConsultationDetailPage() {
     errorMessage: autosaveError,
     flushNow,
     isDraftDirty,
+    abandon: abandonAutosave,
   } = useConsultationAutosave({
     enabled: isEditable && Boolean(consultation),
     draftKey: soapDraftKey,
@@ -586,6 +603,7 @@ export default function ConsultationDetailPage() {
   // Persistencia determinística al ocultar/cerrar pestaña (antes de F5 / navegación).
   useEffect(() => {
     const persistAntecedents = () => {
+      if (!persistGateRef.current.shouldPersist()) return;
       if (antecedentsRef.current?.isDirty()) {
         void antecedentsRef.current.flush().catch((err) => {
           console.warn("[antecedents] flush on hide failed", err);
@@ -604,6 +622,7 @@ export default function ConsultationDetailPage() {
   }, []);
 
   async function persistAntecedentsOrThrow(hadDirty: boolean): Promise<boolean> {
+    if (!persistGateRef.current.shouldPersist()) return false;
     const handle = antecedentsRef.current;
     if (hadDirty && !handle) {
       throw new Error(
@@ -710,6 +729,11 @@ export default function ConsultationDetailPage() {
         if (hadAntecedentsDirty) {
           await persistAntecedentsOrThrow(true);
         }
+      },
+      discard: () => {
+        persistGateRef.current.discard();
+        antecedentsRef.current?.abandon();
+        abandonAutosave();
       },
     });
   });
@@ -1186,7 +1210,7 @@ export default function ConsultationDetailPage() {
       */}
       <EncounterChromeShell
         workspaceRef={workspaceRef}
-        className="clinical-encounter-chrome clinical-depth-1 sticky top-0 z-[51] -mx-3 border-b border-hd-border-subtle bg-hd-surface-chrome/95 shadow-hd-2 backdrop-blur md:-mx-4 lg:-mx-5"
+        className="clinical-encounter-chrome clinical-depth-1 sticky top-0 z-30 -mx-3 border-b border-hd-border-subtle bg-hd-surface-chrome/95 shadow-hd-2 backdrop-blur md:-mx-4 lg:-mx-5"
       >
         <div className="clinical-depth-2 px-3 md:px-4 lg:px-5">
           <EncounterHeader

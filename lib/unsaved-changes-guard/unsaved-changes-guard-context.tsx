@@ -16,14 +16,16 @@ import { resolveUnsavedNavigation } from "@/lib/unsaved-changes-guard/resolve-na
 export type UnsavedChangesHandlers = {
   isDirty: () => boolean;
   save: () => Promise<void>;
+  /** Sync: block every persist path before "Salir sin guardar" navigates. */
+  discard?: () => void;
 };
 
 type PendingNavigation =
   | { kind: "href"; href: string }
-  | { kind: "run"; run: () => void };
+  | { kind: "run"; run: () => void | Promise<void> };
 
 type UnsavedChangesGuardContextValue = {
-  requestNavigation: (target: string | (() => void)) => void;
+  requestNavigation: (target: string | (() => void | Promise<void>)) => void;
   register: (handlers: UnsavedChangesHandlers) => () => void;
 };
 
@@ -76,7 +78,7 @@ export function UnsavedChangesGuardProvider({
   );
 
   const requestNavigation = useCallback(
-    (target: string | (() => void)) => {
+    (target: string | (() => void | Promise<void>)) => {
       const nav: PendingNavigation =
         typeof target === "string"
           ? { kind: "href", href: target }
@@ -122,6 +124,7 @@ export function UnsavedChangesGuardProvider({
         onExitWithoutSaving={() => {
           if (!pending || saving) return;
           const nav = pending;
+          handlersRef.current?.discard?.();
           setPending(null);
           setError(null);
           completeNavigation(nav);
