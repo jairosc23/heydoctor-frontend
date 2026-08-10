@@ -351,7 +351,7 @@ export function ContinuityPanelShell({
 
   return createPortal(
     <div
-      className="clinical-overlay-continuity pointer-events-none fixed inset-x-0 px-3 md:px-4 lg:px-5"
+      className="clinical-overlay-continuity pointer-events-none fixed left-0 right-0 md:left-64 px-3 md:px-4 lg:px-5"
       style={{
         zIndex: CLINICAL_OVERLAY_Z.continuity,
         top: "calc(var(--encounter-chrome-h, 5.5rem) + 0.5rem)",
