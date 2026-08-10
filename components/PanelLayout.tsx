@@ -6,6 +6,10 @@ import { useState, useEffect } from "react";
 import { Moon, Sun } from "lucide-react";
 import { useAuth } from "@/lib/context/AuthContext";
 import { BrandLogo } from "@/components/branding";
+import {
+  UnsavedChangesGuardProvider,
+  useUnsavedChangesGuard,
+} from "@/lib/unsaved-changes-guard/unsaved-changes-guard-context";
 import { cn } from "@/lib/utils";
 import { trackRedirectToLogin } from "@/lib/session-analytics";
 
@@ -50,6 +54,21 @@ export default function PanelLayout({
   children: React.ReactNode;
   title?: string;
 }) {
+  return (
+    <UnsavedChangesGuardProvider>
+      <PanelLayoutShell title={title}>{children}</PanelLayoutShell>
+    </UnsavedChangesGuardProvider>
+  );
+}
+
+function PanelLayoutShell({
+  children,
+  title,
+}: {
+  children: React.ReactNode;
+  title?: string;
+}) {
+  const { requestNavigation } = useUnsavedChangesGuard();
   const pathname = usePathname();
   const displayTitle =
     title ??
@@ -173,9 +192,10 @@ export default function PanelLayout({
 
       <aside
         className={cn(
-          "fixed bottom-0 left-0 top-0 z-40 flex h-screen w-64 flex-col border-r border-hd-border-subtle bg-hd-surface-chrome p-4 shadow-hd-2 transition-transform duration-hd-base",
+          "fixed bottom-0 left-0 top-0 z-[51] flex h-screen w-64 flex-col border-r border-hd-border-subtle bg-hd-surface-chrome p-4 shadow-hd-2 transition-transform duration-hd-base",
           navOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
         )}
+        data-testid="panel-sidebar"
       >
         <div className="mb-8 flex flex-col items-center">
           <BrandLogo variant="nav" markSize={56} className="flex-col items-center gap-1" />
@@ -185,7 +205,11 @@ export default function PanelLayout({
             <Link
               key={item.href}
               href={item.href}
-              onClick={() => setNavOpen(false)}
+              onClick={(event) => {
+                event.preventDefault();
+                setNavOpen(false);
+                requestNavigation(item.href);
+              }}
               className={cn(
                 "mb-2 rounded-lg px-4 py-2 text-[15px] font-medium text-primaryDark no-underline transition-colors duration-hd-base hover:bg-hd-surface-muted hover:text-primary",
                 isMenuActive(pathname, item.href) && "bg-primaryLight text-primary",

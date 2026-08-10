@@ -33,6 +33,7 @@ import {
 import { useConsultationPrice } from "@/lib/hooks/useConsultationPrice";
 import { useConsultationAutosave } from "@/lib/hooks/useConsultationAutosave";
 import { ApiError, getApiErrorMessage } from "@/lib/heydoctor-api";
+import { useUnsavedChangesGuard } from "@/lib/unsaved-changes-guard/unsaved-changes-guard-context";
 import {
   fetchPatientById,
   fetchPatientProfile,
@@ -231,8 +232,7 @@ export default function ConsultationDetailPage() {
   );
 
   const [generativeExpandToken, setGenerativeExpandToken] = useState(0);
-  /** EPIC-3 UC-01: auto-open Daily Hub once per consultation mount for Prep context. */
-  const preVisitAutoOpenedRef = useRef(false);
+  const { register, requestNavigation } = useUnsavedChangesGuard();
 
   const [patientRow, setPatientRow] = useState<PatientRow | null>(null);
   const [patientProfile, setPatientProfile] = useState<PatientProfile | null>(
@@ -432,14 +432,6 @@ export default function ConsultationDetailPage() {
   const effectiveClinicalMemory =
     clinicalFoundation?.memory ?? patientClinicalMemoryState.data;
 
-  // UC-01: surface Prep context automatically in Daily Hub (read-only). No generative expand.
-  useEffect(() => {
-    if (preVisitAutoOpenedRef.current) return;
-    if (!consultation?.id) return;
-    if (clinicalFoundationState.loading) return;
-    preVisitAutoOpenedRef.current = true;
-    setCopilotDrawerOpen(true);
-  }, [consultation?.id, clinicalFoundationState.loading]);
   const effectiveClinicalMemoryLoading =
     clinicalFoundationState.loading && !clinicalFoundation
       ? true
@@ -674,6 +666,53 @@ export default function ConsultationDetailPage() {
       );
     }
   }
+
+  useEffect(() => {
+    return register({
+      isDirty: () =>
+        antecedentsDirty ||
+        Boolean(antecedentsRef.current?.isDirty()) ||
+        isDraftDirty ||
+        autosaveStatus === "pending" ||
+        autosaveStatus === "saving" ||
+        manualSaveStatus === "saving",
+      save: async () => {
+        if (!consultation) return;
+        const hadAntecedentsDirty =
+          antecedentsDirty || Boolean(antecedentsRef.current?.isDirty());
+        if (isEditable) {
+          const flushResult = await flushNow();
+          await persistAntecedentsOrThrow(hadAntecedentsDirty);
+          try {
+            await clinicalFoundationState.reload();
+          } catch (foundationErr) {
+            console.warn(
+              "[encounter] foundation reload after exit-save",
+              foundationErr,
+            );
+          }
+          if (hadAntecedentsDirty && antecedentsRef.current?.isDirty()) {
+            throw new Error(
+              "Los antecedentes no se sincronizaron. Intente Guardar de nuevo.",
+            );
+          }
+          if (
+            isDraftDirty &&
+            !flushResult.wrote &&
+            !flushResult.alreadyPersisted
+          ) {
+            throw new Error(
+              "No se confirmó la escritura. Intente Guardar de nuevo.",
+            );
+          }
+          return;
+        }
+        if (hadAntecedentsDirty) {
+          await persistAntecedentsOrThrow(true);
+        }
+      },
+    });
+  });
 
   async function handleTransition() {
     if (!consultation) return;
@@ -1147,7 +1186,7 @@ export default function ConsultationDetailPage() {
       */}
       <EncounterChromeShell
         workspaceRef={workspaceRef}
-        className="clinical-encounter-chrome clinical-depth-1 sticky top-0 z-30 -mx-3 border-b border-hd-border-subtle bg-hd-surface-chrome/95 shadow-hd-2 backdrop-blur md:-mx-4 lg:-mx-5"
+        className="clinical-encounter-chrome clinical-depth-1 sticky top-0 z-[51] -mx-3 border-b border-hd-border-subtle bg-hd-surface-chrome/95 shadow-hd-2 backdrop-blur md:-mx-4 lg:-mx-5"
       >
         <div className="clinical-depth-2 px-3 md:px-4 lg:px-5">
           <EncounterHeader
@@ -1155,8 +1194,10 @@ export default function ConsultationDetailPage() {
             status={status}
             transitioning={transitioning}
             onBack={() => {
-              closeEncounterOverlays();
-              router.push("/panel/consultas");
+              requestNavigation(() => {
+                closeEncounterOverlays();
+                router.push("/panel/consultas");
+              });
             }}
             onShare={() => setShareOpen(true)}
             onTransition={

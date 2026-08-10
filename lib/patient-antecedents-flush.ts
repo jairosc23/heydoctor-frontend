@@ -8,6 +8,10 @@ import {
   jsonLinesToList,
   textToJsonLines,
 } from "@/lib/patient-profile-display";
+import {
+  habitsToPayload,
+  type PatientHabitDraft,
+} from "@/lib/patient-profile-habits";
 import type { PatientProfile } from "@/lib/services/patients";
 
 export type AntecedentsFlushDraft = {
@@ -15,7 +19,7 @@ export type AntecedentsFlushDraft = {
   medicationsText: string;
   allergiesText: string;
   familyText: string;
-};
+} & PatientHabitDraft;
 
 export type AntecedentsFlushProfileSlice = Pick<
   PatientProfile,
@@ -75,6 +79,10 @@ export function buildAntecedentsFlushPayload(
   | "medications"
   | "allergies"
   | "familyHistory"
+  | "smokingStatus"
+  | "alcoholUse"
+  | "drugUse"
+  | "exerciseFrequency"
 > {
   const personal = partitionPersonalAntecedents(draft.personalText, profile);
   return {
@@ -82,5 +90,6 @@ export function buildAntecedentsFlushPayload(
     medications: textToJsonLines(draft.medicationsText),
     allergies: textToJsonLines(draft.allergiesText),
     familyHistory: textToJsonLines(draft.familyText),
+    ...habitsToPayload(draft),
   };
 }

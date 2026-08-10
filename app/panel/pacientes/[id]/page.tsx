@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import {
   AgeFromBirthDateField,
   GlobalAddressFields,
@@ -20,6 +20,14 @@ import {
   jsonLinesToText,
   textToJsonLines,
 } from "@/lib/patient-profile-display";
+import {
+  emptyHabitDraft,
+  habitsFromProfile,
+  habitsToPayload,
+  PATIENT_HABIT_FIELDS,
+  type PatientHabitDraft,
+} from "@/lib/patient-profile-habits";
+import { useUnsavedChangesGuard } from "@/lib/unsaved-changes-guard/unsaved-changes-guard-context";
 import {
   fetchPatientById,
   fetchPatientProfile,
@@ -95,7 +103,6 @@ function Field({
 
 export default function PatientDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const patientId = typeof params.id === "string" ? params.id : "";
 
   const [tab, setTab] = useState<TabId>("datos");
@@ -104,6 +111,7 @@ export default function PatientDetailPage() {
   const [patient, setPatient] = useState<PatientRow | null>(null);
   const [profile, setProfile] = useState<PatientProfile | null>(null);
   const persist = usePatientProfilePersistFeedback();
+  const { register, requestNavigation } = useUnsavedChangesGuard();
 
   const [form, setForm] = useState<UpdatePatientDto>({});
   const [address, setAddress] = useState<AddressSelection>(() =>
@@ -112,7 +120,11 @@ export default function PatientDetailPage() {
   const [allergiesText, setAllergiesText] = useState("");
   const [medicationsText, setMedicationsText] = useState("");
   const [chronicText, setChronicText] = useState("");
+  const [familyHistoryText, setFamilyHistoryText] = useState("");
+  const [habitDraft, setHabitDraft] = useState<PatientHabitDraft>(emptyHabitDraft);
   const [profileNotes, setProfileNotes] = useState("");
+  const [profileBaseline, setProfileBaseline] = useState("");
+  const [formBaseline, setFormBaseline] = useState("");
 
   const load = useCallback(async () => {
     if (!patientId) return;
@@ -125,7 +137,7 @@ export default function PatientDetailPage() {
       ]);
       setPatient(p);
       setProfile(prof);
-      setForm({
+      const nextForm: UpdatePatientDto = {
         firstName: p.firstName ?? p.firstname ?? "",
         middleName: p.middleName ?? "",
         lastName: p.lastName ?? p.lastname ?? "",
@@ -152,7 +164,8 @@ export default function PatientDetailPage() {
         emergencyContactName: p.emergencyContactName ?? "",
         emergencyContactPhone: p.emergencyContactPhone ?? "",
         emergencyRelationship: p.emergencyRelationship ?? "",
-      });
+      };
+      setForm(nextForm);
       setAddress(
         patientFieldsToAddressSelection({
           country: p.country ?? "CL",
@@ -163,12 +176,29 @@ export default function PatientDetailPage() {
           postalCode: p.postalCode ?? "",
         }),
       );
-      if (prof) {
-        setAllergiesText(jsonLinesToText(prof.allergies));
-        setMedicationsText(jsonLinesToText(prof.medications));
-        setChronicText(jsonLinesToText(prof.chronicConditions));
-        setProfileNotes(prof.notes ?? "");
-      }
+      const nextAllergies = prof ? jsonLinesToText(prof.allergies) : "";
+      const nextMedications = prof ? jsonLinesToText(prof.medications) : "";
+      const nextChronic = prof ? jsonLinesToText(prof.chronicConditions) : "";
+      const nextFamily = prof ? jsonLinesToText(prof.familyHistory) : "";
+      const nextHabits = habitsFromProfile(prof);
+      const nextNotes = prof?.notes ?? "";
+      setAllergiesText(nextAllergies);
+      setMedicationsText(nextMedications);
+      setChronicText(nextChronic);
+      setFamilyHistoryText(nextFamily);
+      setHabitDraft(nextHabits);
+      setProfileNotes(nextNotes);
+      setFormBaseline(JSON.stringify(nextForm));
+      setProfileBaseline(
+        JSON.stringify({
+          allergiesText: nextAllergies,
+          medicationsText: nextMedications,
+          chronicText: nextChronic,
+          familyHistoryText: nextFamily,
+          habitDraft: nextHabits,
+          profileNotes: nextNotes,
+        }),
+      );
     } catch (err) {
       setError(getApiErrorMessage(err, "No se pudo cargar la ficha del paciente."));
     } finally {
@@ -209,9 +239,33 @@ export default function PatientDetailPage() {
     }));
   }
 
-  async function handleSave(e: React.FormEvent) {
-    e.preventDefault();
-    if (!patientId || persist.inFlight) return;
+  function currentProfileSnapshot() {
+    return JSON.stringify({
+      allergiesText,
+      medicationsText,
+      chronicText,
+      familyHistoryText,
+      habitDraft,
+      profileNotes,
+    });
+  }
+
+  function isFichaDirty() {
+    return (
+      currentProfileSnapshot() !== profileBaseline ||
+      JSON.stringify(form) !== formBaseline
+    );
+  }
+
+  async function persistAll() {
+    if (!patientId) return;
+    if (persist.inFlight) {
+      throw new Error("Guardado en curso. Espere e intente de nuevo.");
+    }
+    const profileDirty = currentProfileSnapshot() !== profileBaseline;
+    const demoDirty = JSON.stringify(form) !== formBaseline;
+    if (!profileDirty && !demoDirty) return;
+
     setError("");
     if (persist.phase === "error") {
       persist.retryPersist();
@@ -219,30 +273,51 @@ export default function PatientDetailPage() {
       persist.beginPersist();
     }
     try {
-      if (tab === "antecedentes") {
+      if (profileDirty) {
         const updatedProfile = await upsertPatientProfile(patientId, {
           allergies: textToJsonLines(allergiesText),
           medications: textToJsonLines(medicationsText),
           chronicConditions: textToJsonLines(chronicText),
+          familyHistory: textToJsonLines(familyHistoryText),
+          ...habitsToPayload(habitDraft),
           notes: profileNotes.trim() || null,
         });
         setProfile(updatedProfile);
-      } else {
+        setProfileBaseline(currentProfileSnapshot());
+      }
+      if (demoDirty) {
         const updated = await updatePatient(patientId, form);
         setPatient(updated);
+        setFormBaseline(JSON.stringify(form));
       }
-      // Success only after confirmed API response.
       persist.completeSuccess();
     } catch (err) {
       const message = getApiErrorMessage(err, "Error al guardar los cambios.");
       setError(message);
       persist.fail(message);
+      throw err;
+    }
+  }
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    try {
+      await persistAll();
+    } catch {
+      // persistAll already surfaced the error in UI / FSM.
     }
   }
 
   function markFormDirty() {
     persist.markDirty();
   }
+
+  useEffect(() => {
+    return register({
+      isDirty: () => isFichaDirty(),
+      save: persistAll,
+    });
+  });
 
   if (!patientId) {
     return (
@@ -290,6 +365,10 @@ export default function PatientDetailPage() {
         <div>
           <Link
             href="/panel/pacientes"
+            onClick={(event) => {
+              event.preventDefault();
+              requestNavigation("/panel/pacientes");
+            }}
             style={{ color: TEAL, fontSize: 14, textDecoration: "none" }}
           >
             ← Pacientes
@@ -315,7 +394,7 @@ export default function PatientDetailPage() {
         <button
           type="button"
           onClick={() =>
-            router.push(`/panel/consultas?patientId=${patientId}`)
+            requestNavigation(`/panel/consultas?patientId=${patientId}`)
           }
           style={{
             padding: "10px 18px",
@@ -653,6 +732,54 @@ export default function PatientDetailPage() {
                 }}
               />
             </Field>
+            <Field label="Antecedentes familiares (una por línea)">
+              <textarea
+                style={{ ...inputStyle, minHeight: 90, resize: "vertical" }}
+                value={familyHistoryText}
+                onChange={(e) => {
+                  markFormDirty();
+                  setFamilyHistoryText(e.target.value);
+                }}
+                placeholder="DM padre"
+                data-testid="profile-family-history"
+              />
+            </Field>
+            <div
+              style={{
+                marginBottom: 14,
+                padding: 12,
+                border: "1px solid #dfe6e8",
+                borderRadius: 8,
+              }}
+              data-testid="profile-habits"
+            >
+              <p style={{ ...labelStyle, marginBottom: 10 }}>Hábitos</p>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                  gap: 12,
+                }}
+              >
+                {PATIENT_HABIT_FIELDS.map(({ key, label }) => (
+                  <Field key={key} label={label}>
+                    <input
+                      style={inputStyle}
+                      value={habitDraft[key]}
+                      onChange={(e) => {
+                        markFormDirty();
+                        setHabitDraft((prev) => ({
+                          ...prev,
+                          [key]: e.target.value,
+                        }));
+                      }}
+                      placeholder="Ej. nunca, ocasional, diario"
+                      data-testid={`profile-habit-${key}`}
+                    />
+                  </Field>
+                ))}
+              </div>
+            </div>
             <Field label="Notas clínicas generales">
               <textarea
                 style={{ ...inputStyle, minHeight: 120, resize: "vertical" }}
