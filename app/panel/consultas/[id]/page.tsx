@@ -33,6 +33,8 @@ import {
 import { useConsultationPrice } from "@/lib/hooks/useConsultationPrice";
 import { useConsultationAutosave } from "@/lib/hooks/useConsultationAutosave";
 import { ApiError, getApiErrorMessage } from "@/lib/heydoctor-api";
+import { createPersistGate } from "@/lib/unsaved-changes-guard/persist-gate";
+import { useUnsavedChangesGuard } from "@/lib/unsaved-changes-guard/unsaved-changes-guard-context";
 import {
   fetchPatientById,
   fetchPatientProfile,
@@ -233,6 +235,8 @@ export default function ConsultationDetailPage() {
   const [generativeExpandToken, setGenerativeExpandToken] = useState(0);
   /** EPIC-3 UC-01: auto-open Daily Hub once per consultation mount for Prep context. */
   const preVisitAutoOpenedRef = useRef(false);
+  const { register, requestNavigation } = useUnsavedChangesGuard();
+  const persistGateRef = useRef(createPersistGate());
 
   const [patientRow, setPatientRow] = useState<PatientRow | null>(null);
   const [patientProfile, setPatientProfile] = useState<PatientProfile | null>(
@@ -248,6 +252,7 @@ export default function ConsultationDetailPage() {
     flush: () => Promise<boolean>;
     getDraftKey: () => string;
     isDirty: () => boolean;
+    abandon: () => void;
   } | null>(null);
 
   const paymentResult = searchParams.get("payment");
@@ -481,6 +486,7 @@ export default function ConsultationDetailPage() {
 
   const persistSoapDraft = useCallback(
     async (diagnosisOverride?: ConsultationDiagnosisState) => {
+      if (!persistGateRef.current.shouldPersist()) return;
       const currentConsultation = consultationRef.current;
       if (!currentConsultation || !isEditable) return;
       const diagnosis = diagnosisOverride ?? diagnosisState;
@@ -494,6 +500,7 @@ export default function ConsultationDetailPage() {
       const soapUnchanged =
         patchFingerprint === lastPersistedPatchRef.current;
       if (!soapUnchanged) {
+        if (!persistGateRef.current.shouldPersist()) return;
         const updated = await updateConsultation(id, patch);
         lastPersistedPatchRef.current = patchFingerprint;
         setConsultation(updated);
@@ -513,6 +520,7 @@ export default function ConsultationDetailPage() {
           return prevKey === nextKey ? prev : nextDiagnosis;
         });
       }
+      if (!persistGateRef.current.shouldPersist()) return;
       // Patient profile SoT (antecedentes) — independent of SOAP fingerprint.
       const profileSaved = Boolean(await antecedentsRef.current?.flush());
       // Recalculate Documentation Gaps / UC-03B from persisted notes SoT.
@@ -547,6 +555,7 @@ export default function ConsultationDetailPage() {
     errorMessage: autosaveError,
     flushNow,
     isDraftDirty,
+    abandon: abandonAutosave,
   } = useConsultationAutosave({
     enabled: isEditable && Boolean(consultation),
     draftKey: soapDraftKey,
@@ -594,6 +603,7 @@ export default function ConsultationDetailPage() {
   // Persistencia determinística al ocultar/cerrar pestaña (antes de F5 / navegación).
   useEffect(() => {
     const persistAntecedents = () => {
+      if (!persistGateRef.current.shouldPersist()) return;
       if (antecedentsRef.current?.isDirty()) {
         void antecedentsRef.current.flush().catch((err) => {
           console.warn("[antecedents] flush on hide failed", err);
@@ -612,6 +622,7 @@ export default function ConsultationDetailPage() {
   }, []);
 
   async function persistAntecedentsOrThrow(hadDirty: boolean): Promise<boolean> {
+    if (!persistGateRef.current.shouldPersist()) return false;
     const handle = antecedentsRef.current;
     if (hadDirty && !handle) {
       throw new Error(
@@ -674,6 +685,58 @@ export default function ConsultationDetailPage() {
       );
     }
   }
+
+  useEffect(() => {
+    return register({
+      isDirty: () =>
+        antecedentsDirty ||
+        Boolean(antecedentsRef.current?.isDirty()) ||
+        isDraftDirty ||
+        autosaveStatus === "pending" ||
+        autosaveStatus === "saving" ||
+        manualSaveStatus === "saving",
+      save: async () => {
+        if (!consultation) return;
+        const hadAntecedentsDirty =
+          antecedentsDirty || Boolean(antecedentsRef.current?.isDirty());
+        if (isEditable) {
+          const flushResult = await flushNow();
+          await persistAntecedentsOrThrow(hadAntecedentsDirty);
+          try {
+            await clinicalFoundationState.reload();
+          } catch (foundationErr) {
+            console.warn(
+              "[encounter] foundation reload after exit-save",
+              foundationErr,
+            );
+          }
+          if (hadAntecedentsDirty && antecedentsRef.current?.isDirty()) {
+            throw new Error(
+              "Los antecedentes no se sincronizaron. Intente Guardar de nuevo.",
+            );
+          }
+          if (
+            isDraftDirty &&
+            !flushResult.wrote &&
+            !flushResult.alreadyPersisted
+          ) {
+            throw new Error(
+              "No se confirmó la escritura. Intente Guardar de nuevo.",
+            );
+          }
+          return;
+        }
+        if (hadAntecedentsDirty) {
+          await persistAntecedentsOrThrow(true);
+        }
+      },
+      discard: () => {
+        persistGateRef.current.discard();
+        antecedentsRef.current?.abandon();
+        abandonAutosave();
+      },
+    });
+  });
 
   async function handleTransition() {
     if (!consultation) return;
@@ -1155,8 +1218,10 @@ export default function ConsultationDetailPage() {
             status={status}
             transitioning={transitioning}
             onBack={() => {
-              closeEncounterOverlays();
-              router.push("/panel/consultas");
+              requestNavigation(() => {
+                closeEncounterOverlays();
+                router.push("/panel/consultas");
+              });
             }}
             onShare={() => setShareOpen(true)}
             onTransition={

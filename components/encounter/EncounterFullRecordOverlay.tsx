@@ -12,6 +12,7 @@ import {
   jsonLinesToList,
   resolvePatientAge,
 } from "@/lib/patient-profile-display";
+import { habitLinesFromProfile } from "@/lib/patient-profile-habits";
 import {
   formatPatientDisplayName,
   type PatientProfile,
@@ -176,6 +177,10 @@ export function EncounterFullRecordOverlay({
           <ListBlock
             label="Antecedentes familiares"
             items={jsonLinesToList(profile?.familyHistory)}
+          />
+          <ListBlock
+            label="Hábitos"
+            items={habitLinesFromProfile(profile)}
           />
         </div>
       </div>

@@ -16,18 +16,17 @@ import {
   jsonLinesToText,
 } from "@/lib/patient-profile-display";
 import {
+  habitLinesFromProfile,
+  habitsFromProfile,
+  PATIENT_HABIT_FIELDS,
+  type PatientHabitDraft,
+} from "@/lib/patient-profile-habits";
+import {
   upsertPatientProfile,
   type PatientProfile,
 } from "@/lib/services/patients";
 import { cn } from "@/lib/utils";
 import { ClinicalEncounterSection } from "./ClinicalEncounterSection";
-
-const HABIT_FIELDS: { key: keyof PatientProfile; label: string }[] = [
-  { key: "smokingStatus", label: "Tabaco" },
-  { key: "alcoholUse", label: "Alcohol" },
-  { key: "drugUse", label: "Drogas" },
-  { key: "exerciseFrequency", label: "Actividad física" },
-];
 
 const TEXTAREA_CLASS =
   "min-h-[88px] w-full rounded-hd-md border border-slate-300 bg-white px-hd-3 py-hd-2 text-sm text-slate-800 shadow-sm placeholder:text-slate-400 disabled:bg-slate-50 disabled:text-slate-500";
@@ -51,7 +50,7 @@ type AntecedentsDraft = {
   medicationsText: string;
   allergiesText: string;
   familyText: string;
-};
+} & PatientHabitDraft;
 
 function draftFromProfile(profile: PatientProfile | null): AntecedentsDraft {
   // Read-mode merges chronic + surgeries + disabilities under "personales".
@@ -66,6 +65,7 @@ function draftFromProfile(profile: PatientProfile | null): AntecedentsDraft {
     medicationsText: jsonLinesToText(profile?.medications),
     allergiesText: jsonLinesToText(profile?.allergies),
     familyText: jsonLinesToText(profile?.familyHistory),
+    ...habitsFromProfile(profile),
   };
 }
 
@@ -78,6 +78,8 @@ export type PatientAntecedentsSectionHandle = {
   flush: () => Promise<boolean>;
   getDraftKey: () => string;
   isDirty: () => boolean;
+  /** Blocks further PUT flushes (literal "Salir sin guardar"). */
+  abandon: () => void;
 };
 
 export interface PatientLongitudinalSectionsProps {
@@ -217,6 +219,7 @@ export const PatientAntecedentsSection = forwardRef<
   const draftRef = useRef(draft);
   const baselineKeyRef = useRef(baselineKey);
   const flushPromiseRef = useRef<Promise<boolean> | null>(null);
+  const skipFlushRef = useRef(false);
   const patientIdRef = useRef(patientId);
   const profileRef = useRef(profile);
   profileRef.current = profile;
@@ -263,14 +266,20 @@ export const PatientAntecedentsSection = forwardRef<
     if (dirty) persist.markDirty();
   }, [dirty, persist.markDirty]);
 
+  const abandon = useCallback(() => {
+    skipFlushRef.current = true;
+  }, []);
+
   const flush = useCallback(async (): Promise<boolean> => {
     // Persistencia no depende de editMode: salir de edición / autosave / F5
     // deben poder escribir el draft dirty aunque la UI esté en solo lectura.
+    if (skipFlushRef.current) return false;
     if (!patientId) return false;
 
     // Coalesce concurrent flushes so manual save never no-ops while autosave runs.
     if (flushPromiseRef.current) {
       await flushPromiseRef.current;
+      if (skipFlushRef.current) return false;
       if (draftKeyOf(draftRef.current) === baselineKeyRef.current) {
         return false;
       }
@@ -281,6 +290,7 @@ export const PatientAntecedentsSection = forwardRef<
     if (key === baselineKeyRef.current) return false;
 
     const run = (async (): Promise<boolean> => {
+      if (skipFlushRef.current) return false;
       setSaving(true);
       persist.beginPersist();
       try {
@@ -333,10 +343,11 @@ export const PatientAntecedentsSection = forwardRef<
     ref,
     () => ({
       flush,
+      abandon,
       getDraftKey: () => draftKeyOf(draftRef.current),
       isDirty: () => draftKeyOf(draftRef.current) !== baselineKeyRef.current,
     }),
-    [flush],
+    [abandon, flush],
   );
 
   const chronic = jsonLinesToList(profile?.chronicConditions);
@@ -345,11 +356,7 @@ export const PatientAntecedentsSection = forwardRef<
   const personalLines = mergeLines(chronic, surgeries, trauma);
   const medicationLines = jsonLinesToList(profile?.medications);
   const allergyLines = jsonLinesToList(profile?.allergies);
-  const habitLines = HABIT_FIELDS.map(({ key, label }) => {
-    const raw = profile?.[key];
-    const value = typeof raw === "string" ? raw.trim() : "";
-    return value ? `${label}: ${value}` : null;
-  }).filter((line): line is string => Boolean(line));
+  const habitLines = habitLinesFromProfile(profile);
   const familyLines = jsonLinesToList(profile?.familyHistory);
   const hasAllergies =
     allergyLines.length > 0 || draft.allergiesText.trim().length > 0;
@@ -434,11 +441,40 @@ export const PatientAntecedentsSection = forwardRef<
               disabled={saving}
               testId="antecedents-family"
             />
-            <AntecedentChips
-              label="Hábitos"
-              lines={habitLines}
-              emptyLabel="Sin hábitos registrados."
-            />
+            <div
+              className="rounded-hd-md border border-slate-300 bg-white px-hd-3 py-hd-2 shadow-sm md:col-span-2"
+              data-testid="antecedents-habits-editor"
+            >
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-700">
+                Hábitos
+              </p>
+              <div className="grid gap-hd-2 sm:grid-cols-2">
+                {PATIENT_HABIT_FIELDS.map(({ key, label }) => (
+                  <label key={key} className="block">
+                    <span className="mb-1 block text-[11px] font-semibold text-slate-600">
+                      {label}
+                    </span>
+                    <input
+                      className="w-full rounded-hd-md border border-slate-300 bg-white px-hd-3 py-hd-2 text-sm text-slate-800 shadow-sm placeholder:text-slate-400 disabled:bg-slate-50"
+                      value={draft[key]}
+                      onChange={(e) =>
+                        setDraft((prev) => ({
+                          ...prev,
+                          [key]: e.target.value,
+                        }))
+                      }
+                      placeholder="Ej. nunca, ocasional, diario"
+                      disabled={saving}
+                      data-testid={`antecedents-habit-${key}`}
+                    />
+                  </label>
+                ))}
+              </div>
+              <p className="mt-1 text-[11px] text-slate-500">
+                Texto libre. Se guarda en la ficha del paciente (no como lista
+                JSONB).
+              </p>
+            </div>
           </div>
         </div>
       ) : (

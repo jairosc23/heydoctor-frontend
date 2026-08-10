@@ -51,10 +51,40 @@ describe("partitionPersonalAntecedents (PR-A)", () => {
         medicationsText: "Losartán",
         allergiesText: "",
         familyText: "",
+        smokingStatus: "",
+        alcoholUse: "",
+        drugUse: "",
+        exerciseFrequency: "",
       },
       { surgeries: [{ label: "Apendicectomía" }], disabilities: [] },
     );
     assert.deepEqual(jsonLinesToList(payload.surgeries), ["Apendicectomía"]);
     assert.notEqual(payload.surgeries?.length, 0);
+  });
+
+  it("persists familyHistory as {label} objects and habits as strings", () => {
+    const payload = buildAntecedentsFlushPayload(
+      {
+        personalText: "HTA",
+        medicationsText: "LOSARTAN",
+        allergiesText: "PENICILINA",
+        familyText: "DM padre",
+        smokingStatus: "ocasional",
+        alcoholUse: "",
+        drugUse: "",
+        exerciseFrequency: "3x semana",
+      },
+      { surgeries: [], disabilities: [] },
+    );
+    assert.deepEqual(payload.allergies, [{ label: "PENICILINA" }]);
+    assert.deepEqual(payload.medications, [{ label: "LOSARTAN" }]);
+    assert.deepEqual(payload.chronicConditions, [{ label: "HTA" }]);
+    assert.deepEqual(payload.familyHistory, [{ label: "DM padre" }]);
+    assert.equal(payload.smokingStatus, "ocasional");
+    assert.equal(payload.exerciseFrequency, "3x semana");
+    assert.equal(payload.alcoholUse, null);
+    assert.notDeepEqual(payload.allergies, [[]]);
+    assert.notDeepEqual(payload.familyHistory, [[]]);
+    assert.equal(Array.isArray(payload.smokingStatus), false);
   });
 });

@@ -162,6 +162,7 @@ export function EncounterHeader({
           onClick={onBack}
           aria-label="Volver a consultas"
           title="Volver a consultas"
+          data-testid="encounter-back-to-consultations"
           className="inline-flex h-7 shrink-0 items-center gap-1 text-xs font-medium text-slate-500 hover:text-primary"
         >
           <span aria-hidden>←</span>

@@ -36,11 +36,24 @@ function personalDraftText(profile: {
   ).join("\n");
 }
 
+function emptyHabits() {
+  return {
+    smokingStatus: "",
+    alcoholUse: "",
+    drugUse: "",
+    exerciseFrequency: "",
+  };
+}
+
 function draftKeyOf(draft: {
   personalText: string;
   medicationsText: string;
   allergiesText: string;
   familyText: string;
+  smokingStatus: string;
+  alcoholUse: string;
+  drugUse: string;
+  exerciseFrequency: string;
 }): string {
   return JSON.stringify(draft);
 }
@@ -70,12 +83,33 @@ describe("patient antecedents draft contract", () => {
       medicationsText: "",
       allergiesText: "",
       familyText: "",
+      ...emptyHabits(),
     });
     const after = draftKeyOf({
       personalText: "HTA",
       medicationsText: "",
       allergiesText: "",
       familyText: "",
+      ...emptyHabits(),
+    });
+    assert.notEqual(before, after);
+  });
+
+  it("draft key changes when a habit string changes", () => {
+    const before = draftKeyOf({
+      personalText: "HTA",
+      medicationsText: "LOSARTAN",
+      allergiesText: "PENICILINA",
+      familyText: "DM padre",
+      ...emptyHabits(),
+    });
+    const after = draftKeyOf({
+      personalText: "HTA",
+      medicationsText: "LOSARTAN",
+      allergiesText: "PENICILINA",
+      familyText: "DM padre",
+      ...emptyHabits(),
+      smokingStatus: "ocasional",
     });
     assert.notEqual(before, after);
   });
