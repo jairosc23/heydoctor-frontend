@@ -692,8 +692,6 @@ export default function ConsultationDetailPage() {
         antecedentsDirty ||
         Boolean(antecedentsRef.current?.isDirty()) ||
         isDraftDirty ||
-        autosaveStatus === "pending" ||
-        autosaveStatus === "saving" ||
         manualSaveStatus === "saving",
       save: async () => {
         if (!consultation) return;
