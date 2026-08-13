@@ -307,6 +307,15 @@ export function buildClinicalNavigationIntelligence(
       required: true,
     },
     {
+      id: "encounter-section-21",
+      sectionNumber: 21,
+      label: "Clinical Documents",
+      shortLabel: "CDE",
+      group: "documentation",
+      completion: "completed",
+      helperText: "Preview y PDF del Clinical Documents Engine",
+    },
+    {
       id: "encounter-section-20",
       sectionNumber: 20,
       label: "Firma",

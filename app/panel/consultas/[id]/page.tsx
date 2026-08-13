@@ -1506,6 +1506,7 @@ export default function ConsultationDetailPage() {
         ordersPanelExpandSignal={ordersPanelExpandSignal}
         encounterChart={{
           onOpenFullRecord: openFullRecord,
+          consultationId: consultation.id,
           vitals,
           onVitalsChange: setVitals,
           physicalExam,
@@ -1654,6 +1655,7 @@ export default function ConsultationDetailPage() {
           ordersPanelExpandSignal={ordersPanelExpandSignal}
           encounterChart={{
             onOpenFullRecord: openFullRecord,
+            consultationId: consultation.id,
             vitals,
             onVitalsChange: setVitals,
             physicalExam,
