@@ -13,6 +13,7 @@ import { ActiveProblemsSection } from "./ActiveProblemsSection";
 import { AnamnesisSection } from "./AnamnesisSection";
 import { DiagnosisSection } from "./DiagnosisSection";
 import { PhysicalExamSection } from "./PhysicalExamSection";
+import { ClinicalDocumentsSection } from "./ClinicalDocumentsSection";
 import { TreatmentSection } from "./TreatmentSection";
 import { VitalSignsSection } from "./VitalSignsSection";
 import {
@@ -86,6 +87,8 @@ export interface ClinicalEncounterChartProps {
   longitudinal?: PatientLongitudinalProps;
   /** Open Full Clinical Record without leaving Encounter Runtime. */
   onOpenFullRecord?: () => void;
+  /** UUID de la consulta para el Clinical Documents Engine. */
+  consultationId?: string | null;
   className?: string;
 }
 
@@ -126,6 +129,7 @@ export function ClinicalEncounterChart({
   closure,
   longitudinal,
   onOpenFullRecord,
+  consultationId = null,
   className,
 }: ClinicalEncounterChartProps) {
   const profileProps = {
@@ -228,9 +232,7 @@ export function ClinicalEncounterChart({
                   data-testid="encounter-manual-save-spinner"
                 />
               ) : null}
-              {manualSaveStatus === "saved" ? (
-                <span aria-hidden>✓</span>
-              ) : null}
+              {manualSaveStatus === "saved" ? <span aria-hidden>✓</span> : null}
               {manualSaveLabel}
             </button>
             {editable && autosaveStatus ? (
@@ -339,6 +341,7 @@ export function ClinicalEncounterChart({
           onChange={onTreatmentChange}
           editable={editable}
         />
+        <ClinicalDocumentsSection consultationId={consultationId} />
         {closure ? <EncounterClosureSection {...closure} /> : null}
       </div>
     </div>
