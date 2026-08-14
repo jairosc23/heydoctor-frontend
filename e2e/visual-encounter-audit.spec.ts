@@ -57,6 +57,7 @@ test.describe("Visual audit — Clinical Encounter Hito 5", () => {
     { id: "encounter-section-11", file: "diagnostico" },
     { id: "encounter-section-13", file: "tratamiento" },
     { id: "encounter-section-21", file: "clinical-documents" },
+    { id: "encounter-section-23", file: "clinical-orders" },
     { id: "encounter-section-20", file: "firma" },
     { id: "encounter-section-22", file: "documentos" },
   ];
