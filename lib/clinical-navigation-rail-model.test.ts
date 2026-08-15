@@ -191,11 +191,15 @@ test("buildClinicalNavigationIntelligence completes signed encounters", () => {
 test("buildClinicalNavigationSections keeps backwards-compatible section output", () => {
   const sections = buildClinicalNavigationSections(chartFixture());
 
-  assert.equal(sections.length, 11);
+  assert.equal(sections.length, 12);
   assert.equal(sections[0]?.completion, "completed");
   assert.equal(sections.at(-1)?.sectionNumber, 22);
   assert.equal(
     sections.find((section) => section.sectionNumber === 21)?.id,
     "encounter-section-21",
+  );
+  assert.equal(
+    sections.find((section) => section.sectionNumber === 23)?.id,
+    "encounter-section-23",
   );
 });

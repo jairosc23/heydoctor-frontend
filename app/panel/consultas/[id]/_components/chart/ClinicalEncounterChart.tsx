@@ -14,6 +14,7 @@ import { AnamnesisSection } from "./AnamnesisSection";
 import { DiagnosisSection } from "./DiagnosisSection";
 import { PhysicalExamSection } from "./PhysicalExamSection";
 import { ClinicalDocumentsSection } from "./ClinicalDocumentsSection";
+import { ClinicalOrdersSection } from "./ClinicalOrdersSection";
 import { TreatmentSection } from "./TreatmentSection";
 import { VitalSignsSection } from "./VitalSignsSection";
 import {
@@ -87,7 +88,7 @@ export interface ClinicalEncounterChartProps {
   longitudinal?: PatientLongitudinalProps;
   /** Open Full Clinical Record without leaving Encounter Runtime. */
   onOpenFullRecord?: () => void;
-  /** UUID de la consulta para el Clinical Documents Engine. */
+  /** UUID de la consulta para Clinical Documents y Clinical Orders Engine. */
   consultationId?: string | null;
   className?: string;
 }
@@ -342,6 +343,7 @@ export function ClinicalEncounterChart({
           editable={editable}
         />
         <ClinicalDocumentsSection consultationId={consultationId} />
+        <ClinicalOrdersSection consultationId={consultationId} />
         {closure ? <EncounterClosureSection {...closure} /> : null}
       </div>
     </div>
