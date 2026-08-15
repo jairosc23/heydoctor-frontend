@@ -15,6 +15,7 @@ import { DiagnosisSection } from "./DiagnosisSection";
 import { PhysicalExamSection } from "./PhysicalExamSection";
 import { ClinicalDocumentsSection } from "./ClinicalDocumentsSection";
 import { ClinicalOrdersSection } from "./ClinicalOrdersSection";
+import { ClinicalDecisionsSection } from "./ClinicalDecisionsSection";
 import { TreatmentSection } from "./TreatmentSection";
 import { VitalSignsSection } from "./VitalSignsSection";
 import {
@@ -344,6 +345,7 @@ export function ClinicalEncounterChart({
         />
         <ClinicalDocumentsSection consultationId={consultationId} />
         <ClinicalOrdersSection consultationId={consultationId} />
+        <ClinicalDecisionsSection consultationId={consultationId} />
         {closure ? <EncounterClosureSection {...closure} /> : null}
       </div>
     </div>

@@ -325,6 +325,15 @@ export function buildClinicalNavigationIntelligence(
       helperText: "Preview HTTP del Clinical Orders Engine",
     },
     {
+      id: "encounter-section-24",
+      sectionNumber: 24,
+      label: "Clinical Decisions",
+      shortLabel: "CDS",
+      group: "documentation",
+      completion: "completed",
+      helperText: "Preview HTTP del Clinical Decision Support Engine",
+    },
+    {
       id: "encounter-section-20",
       sectionNumber: 20,
       label: "Firma",
