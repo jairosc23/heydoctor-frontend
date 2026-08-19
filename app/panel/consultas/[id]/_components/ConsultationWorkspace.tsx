@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { NestConsultation } from "@/lib/services/consultations";
 import type { OrdersSubTab } from "./OrdersTab";
 import type {
@@ -10,27 +10,41 @@ import type {
 import { ClinicalSurface } from "@/components/clinical/design";
 import type { ActionResult } from "@/lib/services/consultation-actions";
 import { useIsMobile } from "@/lib/hooks/useIsMobile";
-import { EncounterLeftPane, type EncounterLeftPaneTab } from "./EncounterLeftPane";
-import { EncounterRightPane, type EncounterRightPaneTab } from "./EncounterRightPane";
+import {
+  EncounterLeftPane,
+  type EncounterLeftPaneTab,
+} from "./EncounterLeftPane";
+import {
+  EncounterRightPane,
+  type EncounterRightPaneTab,
+} from "./EncounterRightPane";
 import { MobileConsultationWorkspace } from "./MobileConsultationWorkspace";
 import type { PatientContextRailProps } from "./PatientContextRail";
-import { ClinicalCollapsiblePanel } from "./ClinicalCollapsiblePanel";
 import { ClinicalContextPanels } from "./ClinicalContextPanels";
 import type { ClinicalEncounterChartProps } from "./chart/ClinicalEncounterChart";
 import { ClinicalNavigationRail } from "./ClinicalNavigationRail";
-import { buildClinicalNavigationIntelligence } from "./clinical-navigation-rail-model";
+import { EncounterCarePathOffer } from "./EncounterCarePathOffer";
+import {
+  ENCOUNTER_CIC_ID,
+  ENCOUNTER_HAB_ID,
+  ENCOUNTER_OFFER_ID,
+  buildClinicalNavigationIntelligence,
+  isEncounterCarePathLandmark,
+  isEncounterOfferLandmark,
+  shouldExpandDisclosureForSectionId,
+  type ClinicalNavigationSection,
+} from "./clinical-navigation-rail-model";
 import { useEncounterSectionNavigation } from "@/hooks/useEncounterSectionNavigation";
+import { useEncounterHotPathObservability } from "./useEncounterHotPathObservability";
+
+const EMPTY_NAV_SECTIONS: ClinicalNavigationSection[] = [];
 
 /** Matches Tailwind `xl` — only one chart tree may mount at a time. */
 const ENCOUNTER_SPLIT_BREAKPOINT_PX = 1280;
 
 const DESKTOP_MODULE_WIDTH = "mx-auto w-full xl:max-w-[1280px]";
 
-export type WorkspaceTab =
-  | "soap"
-  | "orders"
-  | "documents"
-  | "chat";
+export type WorkspaceTab = "soap" | "orders" | "documents" | "chat";
 
 export type { EncounterLeftPaneTab, EncounterRightPaneTab };
 
@@ -98,14 +112,47 @@ export function ConsultationWorkspace({
   } = props;
   const navigationIntelligence = useMemo(
     () =>
-      encounterChart ? buildClinicalNavigationIntelligence(encounterChart) : null,
+      encounterChart
+        ? buildClinicalNavigationIntelligence(encounterChart)
+        : null,
     [encounterChart],
   );
-  const navigationSections = navigationIntelligence?.sections ?? [];
+  const navigationSections =
+    navigationIntelligence?.sections ?? EMPTY_NAV_SECTIONS;
+  const navigationSectionIdKey = useMemo(
+    () => navigationSections.map((section) => section.id).join("|"),
+    [navigationSections],
+  );
+  const navigationSectionsRef = useRef(navigationSections);
+  navigationSectionsRef.current = navigationSections;
+  const [disclosureExpanded, setDisclosureExpanded] = useState(false);
+  useEncounterHotPathObservability(Boolean(encounterChart));
+  const [offerExpandNonce, setOfferExpandNonce] = useState(0);
+  const [offerExpanded, setOfferExpanded] = useState(false);
+  const isNarrowViewport = useIsMobile(ENCOUNTER_SPLIT_BREAKPOINT_PX);
+  const offerExpandSignal = (ordersPanelExpandSignal ?? 0) + offerExpandNonce;
+  const navigationSpySections = useMemo(
+    () => [
+      ...navigationSections,
+      { id: ENCOUNTER_CIC_ID },
+      { id: ENCOUNTER_OFFER_ID },
+      { id: ENCOUNTER_HAB_ID },
+    ],
+    [navigationSections],
+  );
   const { activeSectionId, navigateToSection } = useEncounterSectionNavigation(
-    navigationSections,
+    navigationSpySections,
     { enabled: Boolean(encounterChart) },
   );
+  const chartWithDisclosure = useMemo(() => {
+    if (!encounterChart) return encounterChart;
+    return {
+      ...encounterChart,
+      disclosureExpanded,
+      onDisclosureExpandedChange: setDisclosureExpanded,
+      offerExpanded,
+    };
+  }, [encounterChart, disclosureExpanded, offerExpanded]);
   /**
    * Chart uses Tailwind `hidden` on non-soap tabs (display:none → no client rects).
    * Queue navigation until soap is laid out — never scroll a hidden node.
@@ -113,8 +160,44 @@ export function ConsultationWorkspace({
   const [pendingSectionId, setPendingSectionId] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!navigationSectionIdKey) return;
+
+    const syncDisclosureHash = () => {
+      const sectionId = window.location.hash.replace(/^#/, "");
+      if (isEncounterOfferLandmark(sectionId)) {
+        setOfferExpandNonce((value) => value + 1);
+        setPendingSectionId(sectionId);
+        return;
+      }
+      if (isEncounterCarePathLandmark(sectionId)) {
+        setPendingSectionId(sectionId);
+        return;
+      }
+      if (
+        !shouldExpandDisclosureForSectionId(
+          navigationSectionsRef.current,
+          sectionId,
+        )
+      ) {
+        return;
+      }
+      setDisclosureExpanded(true);
+      setPendingSectionId(sectionId);
+    };
+
+    syncDisclosureHash();
+    window.addEventListener("hashchange", syncDisclosureHash);
+    return () => window.removeEventListener("hashchange", syncDisclosureHash);
+  }, [navigationSectionIdKey]);
+
+  useEffect(() => {
     if (!pendingSectionId) return;
-    if (activeTab !== "soap" || leftPaneTab !== "soap") return;
+    const offerLandmark = isEncounterOfferLandmark(pendingSectionId);
+    if (offerLandmark && isNarrowViewport) {
+      if (activeTab !== "orders") return;
+    } else if (activeTab !== "soap" || leftPaneTab !== "soap") {
+      return;
+    }
 
     let cancelled = false;
     let attempts = 0;
@@ -138,10 +221,27 @@ export function ConsultationWorkspace({
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [activeTab, leftPaneTab, navigateToSection, pendingSectionId]);
+  }, [
+    activeTab,
+    isNarrowViewport,
+    leftPaneTab,
+    navigateToSection,
+    pendingSectionId,
+  ]);
 
   const navigateToEncounterChartSection = useCallback(
     (sectionId: string) => {
+      if (shouldExpandDisclosureForSectionId(navigationSections, sectionId)) {
+        setDisclosureExpanded(true);
+      }
+      if (isEncounterOfferLandmark(sectionId)) {
+        setOfferExpandNonce((value) => value + 1);
+        if (isNarrowViewport) {
+          if (activeTab !== "orders") onTabChange("orders");
+          setPendingSectionId(sectionId);
+          return;
+        }
+      }
       const needsWorkspaceSoap = activeTab !== "soap";
       const needsLeftSoap = leftPaneTab !== "soap";
       if (needsWorkspaceSoap) onTabChange("soap");
@@ -156,23 +256,24 @@ export function ConsultationWorkspace({
     },
     [
       activeTab,
+      isNarrowViewport,
       leftPaneTab,
+      navigationSections,
       navigateToSection,
       onLeftPaneTabChange,
       onTabChange,
     ],
   );
-  // Root cause: CSS dual-mount (xl:hidden + hidden xl:block) mounted two charts,
-  // racing antecedentsRef / dirty callbacks / duplicate section ids.
-  const isNarrowViewport = useIsMobile(ENCOUNTER_SPLIT_BREAKPOINT_PX);
-
   return (
-    <div className="clinical-workspace">
+    <div className="clinical-workspace" data-testid="clinical-workspace">
       {isNarrowViewport ? (
         <MobileConsultationWorkspace
           {...props}
-          encounterChart={encounterChart}
+          ordersPanelExpandSignal={offerExpandSignal}
+          encounterChart={chartWithDisclosure}
           navigationSections={navigationSections}
+          disclosureExpanded={disclosureExpanded}
+          onDisclosureExpandedChange={setDisclosureExpanded}
           navigationProgress={navigationIntelligence?.progress}
           activeSectionId={activeSectionId}
           onNavigateSection={navigateToEncounterChartSection}
@@ -197,6 +298,8 @@ export function ConsultationWorkspace({
               progress={navigationIntelligence?.progress}
               activeSectionId={activeSectionId}
               onNavigate={navigateToEncounterChartSection}
+              disclosureExpanded={disclosureExpanded}
+              onDisclosureExpandedChange={setDisclosureExpanded}
             />
             <div className="min-w-0 space-y-hd-4">
               <ClinicalContextPanels
@@ -218,39 +321,40 @@ export function ConsultationWorkspace({
                     consultationId={consultationId}
                     activeTab={leftPaneTab}
                     onTabChange={onLeftPaneTabChange}
-                    encounterChart={encounterChart}
+                    encounterChart={
+                      chartWithDisclosure
+                        ? {
+                            ...chartWithDisclosure,
+                            afterSoap: (
+                              <EncounterCarePathOffer
+                                expandSignal={offerExpandSignal}
+                                onExpandedChange={setOfferExpanded}
+                              >
+                                <EncounterRightPane
+                                  patientId={consultation.patientId}
+                                  consultationId={consultationId}
+                                  activeTab={rightPaneTab}
+                                  onTabChange={onRightPaneTabChange}
+                                  ordersSubTab={ordersSubTab}
+                                  onOrdersSubTabChange={onOrdersSubTabChange}
+                                  diagnosisCode={diagnosisCode}
+                                  documentHandlers={documentHandlers}
+                                  documentLoading={documentLoading}
+                                  documentDisabled={documentDisabled}
+                                  onLegacyInvoiceResult={onLegacyInvoiceResult}
+                                  ordersHighlight={ordersHighlight}
+                                  ordersRefreshKey={ordersRefreshKey}
+                                />
+                              </EncounterCarePathOffer>
+                            ),
+                          }
+                        : null
+                    }
                   />
                 </ClinicalSurface>
               </div>
             </div>
           </div>
-
-          <ClinicalCollapsiblePanel
-            title="Orders Command Center™"
-            eyebrow="Órdenes y documentos"
-            storageKey="clinical-encounter-panel-orders"
-            defaultExpanded={false}
-            expandSignal={ordersPanelExpandSignal}
-            className={DESKTOP_MODULE_WIDTH}
-          >
-            <div data-testid="orders-command-center-collapsible">
-              <EncounterRightPane
-                patientId={consultation.patientId}
-                consultationId={consultationId}
-                activeTab={rightPaneTab}
-                onTabChange={onRightPaneTabChange}
-                ordersSubTab={ordersSubTab}
-                onOrdersSubTabChange={onOrdersSubTabChange}
-                diagnosisCode={diagnosisCode}
-                documentHandlers={documentHandlers}
-                documentLoading={documentLoading}
-                documentDisabled={documentDisabled}
-                onLegacyInvoiceResult={onLegacyInvoiceResult}
-                ordersHighlight={ordersHighlight}
-                ordersRefreshKey={ordersRefreshKey}
-              />
-            </div>
-          </ClinicalCollapsiblePanel>
         </div>
       )}
     </div>

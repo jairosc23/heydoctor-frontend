@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDebouncedValue } from "@/lib/hooks/useDebouncedValue";
+import { toClinicalUserError } from "@/lib/clinical-user-error";
 
 export type AutosaveStatus = "idle" | "pending" | "saving" | "saved" | "error";
 
@@ -49,7 +50,10 @@ export function useConsultationAutosave({
   const runSave = useCallback(
     async (keyToSave: string): Promise<FlushNowResult> => {
       if (abandonedRef.current || !enabled) {
-        return { wrote: false, alreadyPersisted: abandonedRef.current ? false : true };
+        return {
+          wrote: false,
+          alreadyPersisted: abandonedRef.current ? false : true,
+        };
       }
 
       // Await in-flight save, then re-evaluate (may still be dirty).
@@ -92,9 +96,7 @@ export function useConsultationAutosave({
         } catch (err) {
           setStatus("error");
           setErrorMessage(
-            err instanceof Error
-              ? err.message
-              : "Error al guardar automáticamente",
+            toClinicalUserError(err, "Error al guardar automáticamente"),
           );
           throw err;
         } finally {

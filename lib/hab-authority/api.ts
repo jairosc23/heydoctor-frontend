@@ -53,3 +53,21 @@ export async function listHabDecisions(
   );
   return res.data;
 }
+
+export async function confirmEmitClassForPersist(input: {
+  consultationId?: string | null;
+  actKind: HabActKind;
+}): Promise<string> {
+  const consultationId = input.consultationId?.trim();
+  if (!consultationId) {
+    throw new Error(
+      "Se requiere una consulta para emitir. Confirme autoridad (HAB) desde el encuentro.",
+    );
+  }
+  const hab = await submitHabDecision({
+    consultationId,
+    kind: "confirm",
+    actKind: input.actKind,
+  });
+  return hab.decisionId;
+}

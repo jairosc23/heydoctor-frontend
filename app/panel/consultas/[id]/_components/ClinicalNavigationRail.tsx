@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useRef, type RefObject } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import { cn } from "@/lib/utils";
 import {
-  clinicalNavigationGroupLabel,
+  DISCLOSURE_RAIL_LABEL,
+  buildSignatureReadyRailGroups,
+  flattenSignatureReadyRailEntries,
   type ClinicalNavigationCompletion,
-  type ClinicalNavigationGroup,
   type ClinicalNavigationProgress,
+  type ClinicalNavigationRailEntry,
   type ClinicalNavigationRisk,
   type ClinicalNavigationSection,
 } from "./clinical-navigation-rail-model";
@@ -87,6 +89,8 @@ export interface ClinicalNavigationRailProps {
   progress?: ClinicalNavigationProgress;
   orientation?: "vertical" | "horizontal";
   className?: string;
+  disclosureExpanded?: boolean;
+  onDisclosureExpandedChange?: (expanded: boolean) => void;
 }
 
 const COMPLETION_LABELS: Record<ClinicalNavigationCompletion, string> = {
@@ -103,20 +107,6 @@ const RISK_LABELS: Record<ClinicalNavigationRisk, string> = {
   info: "Informativo",
 };
 
-function groupedSections(sections: ClinicalNavigationSection[]) {
-  return sections.reduce<
-    Array<{ group: ClinicalNavigationGroup; sections: ClinicalNavigationSection[] }>
-  >((groups, section) => {
-    const current = groups[groups.length - 1];
-    if (current?.group === section.group) {
-      current.sections.push(section);
-      return groups;
-    }
-    groups.push({ group: section.group, sections: [section] });
-    return groups;
-  }, []);
-}
-
 function completionDotClass(
   completion: ClinicalNavigationCompletion,
   risk?: ClinicalNavigationRisk,
@@ -131,6 +121,19 @@ function completionDotClass(
   if (completion === "completed") return "border-emerald-200 bg-emerald-500";
   if (completion === "in_progress") return "border-blue-200 bg-blue-500";
   return "border-slate-200 bg-slate-300";
+}
+
+function useDisclosureExpanded(
+  controlled: boolean | undefined,
+  onChange?: (expanded: boolean) => void,
+) {
+  const [uncontrolled, setUncontrolled] = useState(false);
+  const expanded = controlled ?? uncontrolled;
+  const setExpanded = (next: boolean) => {
+    if (controlled === undefined) setUncontrolled(next);
+    onChange?.(next);
+  };
+  return [expanded, setExpanded] as const;
 }
 
 function NavigationRailItem({
@@ -156,6 +159,7 @@ function NavigationRailItem({
       }.${riskLabel}${helperLabel}`}
       data-testid={`clinical-navigation-item-${section.sectionNumber}`}
       data-section-id={section.id}
+      data-lane={section.lane}
       data-completion={section.completion}
       data-risk={section.risk}
       data-validation={section.validationCode}
@@ -193,6 +197,132 @@ function NavigationRailItem({
         {section.risk ? `. ${RISK_LABELS[section.risk]}` : ""}
       </span>
     </button>
+  );
+}
+
+function DisclosureToggle({
+  count,
+  expanded,
+  orientation,
+  onToggle,
+}: {
+  count: number;
+  expanded: boolean;
+  orientation: "vertical" | "horizontal";
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      data-testid="clinical-navigation-disclosure-toggle"
+      aria-expanded={expanded}
+      aria-controls="encounter-disclosure-panel"
+      onClick={onToggle}
+      className={cn(
+        "clinical-interactive min-w-0 rounded-hd-md border text-left font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+        orientation === "vertical"
+          ? "flex w-full items-center gap-2 px-2.5 py-2 text-[11px]"
+          : "inline-flex min-h-11 shrink-0 items-center gap-1.5 px-3 py-2 text-xs",
+        expanded
+          ? "border-primary/25 bg-primaryLight text-primary"
+          : "border-transparent bg-transparent text-slate-600 hover:border-hd-border-subtle hover:bg-hd-surface-muted",
+      )}
+    >
+      <span className="min-w-0 truncate">{DISCLOSURE_RAIL_LABEL}</span>
+      <span className="ml-auto shrink-0 text-[10px] text-slate-400">
+        {expanded ? "Ocultar" : `${count}`}
+      </span>
+    </button>
+  );
+}
+
+function CarePathLandmark({
+  entry,
+  active,
+  orientation,
+  onNavigate,
+}: {
+  entry: Extract<ClinicalNavigationRailEntry, { type: "care-path-landmark" }>;
+  active: boolean;
+  orientation: "vertical" | "horizontal";
+  onNavigate: (sectionId: string) => void;
+}) {
+  const label = orientation === "horizontal" ? entry.shortLabel : entry.label;
+  return (
+    <button
+      type="button"
+      aria-current={active ? "location" : undefined}
+      aria-label={`Ir a ${entry.label}`}
+      data-testid={`clinical-navigation-${entry.step}`}
+      data-section-id={entry.id}
+      data-care-path-step={entry.step}
+      onClick={() => onNavigate(entry.id)}
+      className={cn(
+        "clinical-interactive min-w-0 rounded-hd-md border text-left font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+        orientation === "vertical"
+          ? "flex w-full items-center gap-2 px-2.5 py-2 text-[11px]"
+          : "inline-flex min-h-11 shrink-0 items-center gap-1.5 px-3 py-2 text-xs",
+        active
+          ? "border-primary/25 bg-primaryLight text-primary"
+          : "border-transparent bg-transparent text-slate-600 hover:border-hd-border-subtle hover:bg-hd-surface-muted",
+      )}
+    >
+      <span className="min-w-0 truncate">{label}</span>
+    </button>
+  );
+}
+
+function RailEntries({
+  entries,
+  activeSectionId,
+  orientation,
+  disclosureExpanded,
+  onNavigate,
+  onToggleDisclosure,
+}: {
+  entries: ClinicalNavigationRailEntry[];
+  activeSectionId: string | null;
+  orientation: "vertical" | "horizontal";
+  disclosureExpanded: boolean;
+  onNavigate: (sectionId: string) => void;
+  onToggleDisclosure: () => void;
+}) {
+  return (
+    <>
+      {entries.map((entry, index) => {
+        if (entry.type === "disclosure-toggle") {
+          return (
+            <DisclosureToggle
+              key={`disclosure-toggle-${index}`}
+              count={entry.count}
+              expanded={disclosureExpanded}
+              orientation={orientation}
+              onToggle={onToggleDisclosure}
+            />
+          );
+        }
+        if (entry.type === "care-path-landmark") {
+          return (
+            <CarePathLandmark
+              key={entry.id}
+              entry={entry}
+              active={entry.id === activeSectionId}
+              orientation={orientation}
+              onNavigate={onNavigate}
+            />
+          );
+        }
+        return (
+          <NavigationRailItem
+            key={entry.section.id}
+            section={entry.section}
+            active={entry.section.id === activeSectionId}
+            orientation={orientation}
+            onNavigate={onNavigate}
+          />
+        );
+      })}
+    </>
   );
 }
 
@@ -252,33 +382,48 @@ export function ClinicalNavigationRail({
   progress,
   orientation = "vertical",
   className,
+  disclosureExpanded: disclosureExpandedProp,
+  onDisclosureExpandedChange,
 }: ClinicalNavigationRailProps) {
   const verticalNavRef = useRef<HTMLElement | null>(null);
+  const [disclosureExpanded, setDisclosureExpanded] = useDisclosureExpanded(
+    disclosureExpandedProp,
+    onDisclosureExpandedChange,
+  );
   useRailStickyMaxHeight(orientation === "vertical" && sections.length > 0, verticalNavRef);
 
   if (sections.length === 0) return null;
 
+  const toggleDisclosure = () => setDisclosureExpanded(!disclosureExpanded);
+
+  const carePathGroups = buildSignatureReadyRailGroups(
+    sections,
+    disclosureExpanded,
+  );
+
   if (orientation === "horizontal") {
+    const entries = flattenSignatureReadyRailEntries(carePathGroups);
     return (
       <nav
         aria-label="Navegación de ficha clínica"
         data-testid="clinical-navigation-rail"
         data-orientation="horizontal"
+        data-care-path="signature-ready"
+        data-disclosure-expanded={disclosureExpanded ? "true" : "false"}
         className={cn(
           "flex gap-1 overflow-x-auto rounded-hd-lg border border-hd-border-subtle bg-hd-surface-raised p-1 shadow-hd-1",
           className,
         )}
       >
         {progress ? <RailProgressSummary progress={progress} compact /> : null}
-        {sections.map((section) => (
-          <NavigationRailItem
-            key={section.id}
-            section={section}
-            active={section.id === activeSectionId}
-            orientation="horizontal"
-            onNavigate={onNavigate}
-          />
-        ))}
+        <RailEntries
+          entries={entries}
+          activeSectionId={activeSectionId}
+          orientation="horizontal"
+          disclosureExpanded={disclosureExpanded}
+          onNavigate={onNavigate}
+          onToggleDisclosure={toggleDisclosure}
+        />
       </nav>
     );
   }
@@ -289,6 +434,8 @@ export function ClinicalNavigationRail({
       aria-label="Navegación de ficha clínica"
       data-testid="clinical-navigation-rail"
       data-orientation="vertical"
+      data-care-path="signature-ready"
+      data-disclosure-expanded={disclosureExpanded ? "true" : "false"}
       className={cn(
         // Fallback CSS (100dvh + safe-area); JS mide el espacio real del scrollport.
         "clinical-depth-secondary sticky top-[calc(var(--encounter-chrome-h,5.5rem)+0.75rem)] z-10 max-h-[calc(100dvh-4rem-var(--encounter-chrome-h,5.5rem)-0.75rem-env(safe-area-inset-bottom,0px)-2.5rem)] overflow-y-auto overscroll-contain rounded-hd-lg border border-hd-border-subtle bg-hd-surface-raised p-hd-2 pb-hd-3 shadow-hd-1",
@@ -297,29 +444,28 @@ export function ClinicalNavigationRail({
     >
       <div className="mb-hd-2 border-b border-hd-border-subtle pb-hd-2">
         <p className="text-[10px] font-semibold uppercase tracking-wide text-primary/80">
-          Navegación de la ficha
+          Camino Signature-ready
         </p>
         <p className="mt-0.5 text-[11px] text-slate-500">
-          Ficha clínica
+          Contexto → SOAP → Oferta → HAB → Firma
         </p>
         {progress ? <RailProgressSummary progress={progress} /> : null}
       </div>
       <div className="space-y-hd-3">
-        {groupedSections(sections).map((group) => (
-          <div key={group.group} className="space-y-1">
+        {carePathGroups.map((group) => (
+          <div key={group.key} className="space-y-1" data-care-path-step={group.key}>
             <p className="px-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-              {clinicalNavigationGroupLabel(group.group)}
+              {group.label}
             </p>
             <div className="space-y-0.5">
-              {group.sections.map((section) => (
-                <NavigationRailItem
-                  key={section.id}
-                  section={section}
-                  active={section.id === activeSectionId}
-                  orientation="vertical"
-                  onNavigate={onNavigate}
-                />
-              ))}
+              <RailEntries
+                entries={group.entries}
+                activeSectionId={activeSectionId}
+                orientation="vertical"
+                disclosureExpanded={disclosureExpanded}
+                onNavigate={onNavigate}
+                onToggleDisclosure={toggleDisclosure}
+              />
             </div>
           </div>
         ))}

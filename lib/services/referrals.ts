@@ -32,6 +32,7 @@ export interface CreateReferralDto {
   specialty: string;
   reason: string;
   attachments?: ReferralAttachment[];
+  habDecisionId?: string;
 }
 
 export async function fetchReferralsByPatient(
@@ -53,10 +54,11 @@ export async function createReferral(
 export async function updateReferralStatus(
   id: string,
   status: ReferralStatus,
+  habDecisionId: string,
 ): Promise<ReferralRecord> {
   const res = await heydoctorApi.patch<{ data: ReferralRecord }>(
     `${BASE}/${id}/status`,
-    { status },
+    { status, habDecisionId },
   );
   return res.data;
 }

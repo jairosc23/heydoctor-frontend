@@ -1,8 +1,23 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  PRIMARY_ENCOUNTER_SECTION_NUMBERS,
+  DISCLOSURE_MAX_CLICKS,
   buildClinicalNavigationIntelligence,
+  ENCOUNTER_CIC_ID,
+  ENCOUNTER_HAB_ID,
+  ENCOUNTER_OFFER_ID,
+  SIGNATURE_READY_CARE_PATH,
+  buildClinicalNavigationRailEntries,
   buildClinicalNavigationSections,
+  buildSignatureReadyRailGroups,
+  classifyEncounterSectionLane,
+  disclosureEncounterSections,
+  encounterHashSectionId,
+  flattenSignatureReadyRailEntries,
+  isEncounterCarePathLandmark,
+  primaryEncounterSections,
+  shouldExpandDisclosureForSectionId,
 } from "../app/panel/consultas/[id]/_components/clinical-navigation-rail-model";
 import type { ClinicalEncounterChartProps } from "../app/panel/consultas/[id]/_components/chart/ClinicalEncounterChart";
 import { EMPTY_PHYSICAL_EXAM } from "./physical-exam-framework";
@@ -191,7 +206,7 @@ test("buildClinicalNavigationIntelligence completes signed encounters", () => {
 test("buildClinicalNavigationSections keeps backwards-compatible section output", () => {
   const sections = buildClinicalNavigationSections(chartFixture());
 
-  assert.equal(sections.length, 13);
+  assert.equal(sections.length, 33);
   assert.equal(sections[0]?.completion, "completed");
   assert.equal(sections.at(-1)?.sectionNumber, 22);
   assert.equal(
@@ -206,4 +221,299 @@ test("buildClinicalNavigationSections keeps backwards-compatible section output"
     sections.find((section) => section.sectionNumber === 24)?.id,
     "encounter-section-24",
   );
+  assert.equal(
+    sections.find((section) => section.sectionNumber === 25)?.id,
+    "encounter-section-25",
+  );
+  assert.equal(
+    sections.find((section) => section.sectionNumber === 26)?.id,
+    "encounter-section-26",
+  );
+  assert.equal(
+    sections.find((section) => section.sectionNumber === 27)?.id,
+    "encounter-section-27",
+  );
+  assert.equal(
+    sections.find((section) => section.sectionNumber === 28)?.id,
+    "encounter-section-28",
+  );
+  assert.equal(
+    sections.find((section) => section.sectionNumber === 29)?.id,
+    "encounter-section-29",
+  );
+  assert.equal(
+    sections.find((section) => section.sectionNumber === 30)?.id,
+    "encounter-section-30",
+  );
+  assert.equal(
+    sections.find((section) => section.sectionNumber === 31)?.id,
+    "encounter-section-31",
+  );
+  assert.equal(
+    sections.find((section) => section.sectionNumber === 32)?.id,
+    "encounter-section-32",
+  );
+  assert.equal(
+    sections.find((section) => section.sectionNumber === 33)?.id,
+    "encounter-section-33",
+  );
+  assert.equal(
+    sections.find((section) => section.sectionNumber === 34)?.id,
+    "encounter-section-34",
+  );
+  assert.equal(
+    sections.find((section) => section.sectionNumber === 35)?.id,
+    "encounter-section-35",
+  );
+  assert.equal(
+    sections.find((section) => section.sectionNumber === 36)?.id,
+    "encounter-section-36",
+  );
+  assert.equal(
+    sections.find((section) => section.sectionNumber === 37)?.id,
+    "encounter-section-37",
+  );
+  assert.equal(
+    sections.find((section) => section.sectionNumber === 38)?.id,
+    "encounter-section-38",
+  );
+  assert.equal(
+    sections.find((section) => section.sectionNumber === 39)?.id,
+    "encounter-section-39",
+  );
+  assert.equal(
+    sections.find((section) => section.sectionNumber === 40)?.id,
+    "encounter-section-40",
+  );
+  assert.equal(
+    sections.find((section) => section.sectionNumber === 41)?.id,
+    "encounter-section-41",
+  );
+  assert.equal(
+    sections.find((section) => section.sectionNumber === 42)?.id,
+    "encounter-section-42",
+  );
+  assert.equal(
+    sections.find((section) => section.sectionNumber === 43)?.id,
+    "encounter-section-43",
+  );
+  assert.equal(
+    sections.find((section) => section.sectionNumber === 44)?.id,
+    "encounter-section-44",
+  );
 });
+
+test("E2-1 classifies every rail section as primary or disclosure", () => {
+  const sections = buildClinicalNavigationSections(chartFixture());
+  const primaryNumbers = sections
+    .filter((section) => section.lane === "primary")
+    .map((section) => section.sectionNumber)
+    .sort((a, b) => a - b);
+  const disclosureNumbers = sections
+    .filter((section) => section.lane === "disclosure")
+    .map((section) => section.sectionNumber)
+    .sort((a, b) => a - b);
+
+  assert.equal(sections.length, 33);
+  assert.equal(
+    sections.every((section) => section.lane === "primary" || section.lane === "disclosure"),
+    true,
+  );
+  assert.deepEqual(primaryNumbers, [...PRIMARY_ENCOUNTER_SECTION_NUMBERS]);
+  assert.deepEqual(
+    disclosureNumbers,
+    [21, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44],
+  );
+  assert.equal(primaryEncounterSections(sections).length, 10);
+  assert.equal(disclosureEncounterSections(sections).length, 23);
+  assert.equal(
+    sections.every((section) => section.id === `encounter-section-${section.sectionNumber}`),
+    true,
+  );
+});
+
+test("E2-1 keeps constitutional previews in disclosure and defaults unknown sections there", () => {
+  assert.equal(classifyEncounterSectionLane(1), "primary");
+  assert.equal(classifyEncounterSectionLane(20), "primary");
+  assert.equal(classifyEncounterSectionLane(22), "primary");
+  assert.equal(classifyEncounterSectionLane(21), "disclosure");
+  assert.equal(classifyEncounterSectionLane(38), "disclosure");
+  assert.equal(classifyEncounterSectionLane(44), "disclosure");
+  assert.equal(classifyEncounterSectionLane(45), "disclosure");
+  assert.equal(DISCLOSURE_MAX_CLICKS, 1);
+});
+
+test("E2-1 does not relax signatureReady or remove rail sections", () => {
+  const empty = buildClinicalNavigationIntelligence(chartFixture());
+  const ready = buildClinicalNavigationIntelligence(
+    chartFixture({
+      presentIllnessHistory: "Cefalea de dos días de evolución.",
+      diagnosis: "Cefalea",
+      diagnosisCode: "R51",
+      treatment: "Ibuprofeno y control según evolución.",
+      closure: {
+        status: "draft",
+        isSigned: false,
+        isLocked: false,
+        canSign: true,
+        signing: false,
+        onSign: () => undefined,
+        documentHandlers,
+        documentLoading: {},
+        documentDisabled: {},
+      },
+    }),
+  );
+
+  assert.equal(empty.progress.signatureReady, false);
+  assert.equal(ready.progress.signatureReady, true);
+  assert.equal(empty.sections.length, 33);
+  assert.equal(ready.sections.length, 33);
+  assert.equal(
+    empty.sections.find((section) => section.sectionNumber === 21)?.id,
+    "encounter-section-21",
+  );
+  assert.equal(
+    empty.sections.find((section) => section.sectionNumber === 44)?.id,
+    "encounter-section-44",
+  );
+});
+
+test("E2-2 collapses disclosure by default and preserves section order", () => {
+  const sections = buildClinicalNavigationSections(chartFixture());
+  const collapsed = buildClinicalNavigationRailEntries(sections, false);
+  const expanded = buildClinicalNavigationRailEntries(sections, true);
+  const collapsedSectionNumbers = collapsed
+    .filter((entry) => entry.type === "section")
+    .map((entry) => entry.section.sectionNumber);
+  const expandedSectionNumbers = expanded
+    .filter((entry) => entry.type === "section")
+    .map((entry) => entry.section.sectionNumber);
+  const toggle = collapsed.find((entry) => entry.type === "disclosure-toggle");
+
+  assert.deepEqual(collapsedSectionNumbers, [1, 4, 3, 9, 10, 11, 12, 13, 20, 22]);
+  assert.equal(toggle?.type === "disclosure-toggle" ? toggle.count : 0, 23);
+  assert.equal(
+    collapsed.filter((entry) => entry.type === "disclosure-toggle").length,
+    1,
+  );
+  assert.deepEqual(
+    expandedSectionNumbers,
+    sections.map((section) => section.sectionNumber),
+  );
+  assert.equal(DISCLOSURE_MAX_CLICKS, 1);
+});
+
+test("E2-2 expands disclosure only for existing deep links 21 and 23-44", () => {
+  const sections = buildClinicalNavigationSections(chartFixture());
+
+  assert.equal(shouldExpandDisclosureForSectionId(sections, "encounter-section-1"), false);
+  assert.equal(shouldExpandDisclosureForSectionId(sections, "encounter-section-20"), false);
+  assert.equal(shouldExpandDisclosureForSectionId(sections, "encounter-section-22"), false);
+  assert.equal(shouldExpandDisclosureForSectionId(sections, "encounter-section-21"), true);
+  assert.equal(shouldExpandDisclosureForSectionId(sections, "encounter-section-23"), true);
+  assert.equal(shouldExpandDisclosureForSectionId(sections, "encounter-section-44"), true);
+  assert.equal(encounterHashSectionId("#encounter-section-44"), "encounter-section-44");
+  assert.equal(encounterHashSectionId("encounter-section-21"), "encounter-section-21");
+  assert.equal(encounterHashSectionId("#orders"), null);
+  assert.equal(
+    buildClinicalNavigationIntelligence(chartFixture({
+      closure: {
+        status: "draft",
+        isSigned: false,
+        isLocked: false,
+        canSign: true,
+        signing: false,
+        onSign: () => undefined,
+        documentHandlers,
+        documentLoading: {},
+        documentDisabled: {},
+      },
+    })).progress.signatureReady,
+    true,
+  );
+});
+
+test("E2-3 renders Signature-ready care path before disclosure", () => {
+  const sections = buildClinicalNavigationSections(chartFixture());
+  const groups = buildSignatureReadyRailGroups(sections, false);
+  const keys = groups.map((group) => group.key);
+  const flattened = flattenSignatureReadyRailEntries(groups);
+  const sectionNumbers = flattened
+    .filter((entry) => entry.type === "section")
+    .map((entry) => entry.section.sectionNumber);
+  const landmarks = flattened.filter((entry) => entry.type === "care-path-landmark");
+  const offerIndex = flattened.findIndex(
+    (entry) => entry.type === "care-path-landmark" && entry.step === "offer",
+  );
+  const habIndex = flattened.findIndex(
+    (entry) =>
+      entry.type === "care-path-landmark" && entry.step === "authorization",
+  );
+  const firmaIndex = flattened.findIndex(
+    (entry) => entry.type === "section" && entry.section.sectionNumber === 20,
+  );
+  const soapIndex = flattened.findIndex(
+    (entry) => entry.type === "section" && entry.section.sectionNumber === 13,
+  );
+  const toggleIndex = flattened.findIndex(
+    (entry) => entry.type === "disclosure-toggle",
+  );
+
+  assert.deepEqual(keys, [
+    "context",
+    "soap",
+    "offer",
+    "authorization",
+    "closure",
+    "disclosure",
+  ]);
+  assert.deepEqual(SIGNATURE_READY_CARE_PATH, [
+    "context",
+    "soap",
+    "offer",
+    "authorization",
+    "closure",
+  ]);
+  assert.deepEqual(sectionNumbers, [1, 4, 3, 9, 10, 11, 12, 13, 20, 22]);
+  assert.equal(landmarks[0]?.id, ENCOUNTER_CIC_ID);
+  assert.equal(landmarks[1]?.id, ENCOUNTER_OFFER_ID);
+  assert.equal(landmarks[2]?.id, ENCOUNTER_HAB_ID);
+  assert.equal(isEncounterCarePathLandmark(ENCOUNTER_OFFER_ID), true);
+  assert.equal(isEncounterCarePathLandmark(ENCOUNTER_CIC_ID), true);
+  assert.equal(isEncounterCarePathLandmark("encounter-section-21"), false);
+  const cicIndex = flattened.findIndex(
+    (entry) => entry.type === "care-path-landmark" && entry.id === ENCOUNTER_CIC_ID,
+  );
+  assert.ok(soapIndex < cicIndex);
+  assert.ok(cicIndex < offerIndex);
+  assert.ok(offerIndex < habIndex);
+  assert.ok(habIndex < firmaIndex);
+  assert.ok(firmaIndex < toggleIndex);
+  assert.equal(
+    flattened.some(
+      (entry) =>
+        entry.type === "section" && entry.section.sectionNumber === 21,
+    ),
+    false,
+  );
+  assert.equal(
+    buildClinicalNavigationIntelligence(
+      chartFixture({
+        closure: {
+          status: "draft",
+          isSigned: false,
+          isLocked: false,
+          canSign: true,
+          signing: false,
+          onSign: () => undefined,
+          documentHandlers,
+          documentLoading: {},
+          documentDisabled: {},
+        },
+      }),
+    ).progress.signatureReady,
+    true,
+  );
+});
+

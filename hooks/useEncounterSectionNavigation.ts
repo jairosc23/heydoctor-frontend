@@ -40,10 +40,8 @@ export function useEncounterSectionNavigation(
   sections: EncounterSectionNavSection[],
   options: UseEncounterSectionNavigationOptions = {},
 ): UseEncounterSectionNavigationResult {
-  const {
-    enabled = true,
-    rootSelector = ENCOUNTER_SCROLL_ROOT_SELECTOR,
-  } = options;
+  const { enabled = true, rootSelector = ENCOUNTER_SCROLL_ROOT_SELECTOR } =
+    options;
   const [activeSectionId, setActiveSectionId] = useState<string | null>(
     sections[0]?.id ?? null,
   );
@@ -111,8 +109,7 @@ export function useEncounterSectionNavigation(
       const lastVisible = [...elements]
         .reverse()
         .find(
-          (element) =>
-            element.getBoundingClientRect().top < window.innerHeight,
+          (element) => element.getBoundingClientRect().top < window.innerHeight,
         );
       setActiveIfChanged(
         lastVisible?.id ?? elements[elements.length - 1]?.id ?? null,
@@ -147,14 +144,28 @@ export function useEncounterSectionNavigation(
     chromeMetrics.heightPx,
   ]);
 
+  const lockTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (lockTimerRef.current != null) {
+        window.clearTimeout(lockTimerRef.current);
+      }
+    };
+  }, []);
+
   const navigateToSection = useCallback(
     (sectionId: string): boolean => {
       activeRef.current = sectionId;
       setActiveSectionId(sectionId);
       navigatingLockRef.current = true;
+      if (lockTimerRef.current != null) {
+        window.clearTimeout(lockTimerRef.current);
+      }
       const ok = navigateToEncounterSection(sectionId, { rootSelector });
-      window.setTimeout(() => {
+      lockTimerRef.current = window.setTimeout(() => {
         navigatingLockRef.current = false;
+        lockTimerRef.current = null;
       }, 400);
       return ok;
     },

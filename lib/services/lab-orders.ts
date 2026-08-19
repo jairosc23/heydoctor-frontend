@@ -33,6 +33,7 @@ export interface CreateLabOrderDto {
   consultationId?: string;
   exams: LabExamItem[];
   templateName?: string;
+  habDecisionId?: string;
 }
 
 export interface CreateLabTemplateDto {

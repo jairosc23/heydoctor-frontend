@@ -43,6 +43,7 @@ export interface CreatePrescriptionDto {
   notes?: string;
   /** PR-4.3 / Integration — physician acks & justifications for Audit Trail. */
   safetyDecision?: SafetyDecisionPayload;
+  habDecisionId?: string;
 }
 
 export interface UpdatePrescriptionDto {
@@ -50,6 +51,7 @@ export interface UpdatePrescriptionDto {
   medications?: MedicationItem[];
   notes?: string;
   safetyDecision?: SafetyDecisionPayload;
+  habDecisionId?: string;
 }
 
 export async function fetchPrescriptionsByPatient(
@@ -171,10 +173,17 @@ export async function updatePrescription(
   return res.data;
 }
 
-export async function deletePrescription(id: string): Promise<void> {
-  await heydoctorApi.delete(`${BASE}/${id}`);
+export async function deletePrescription(
+  id: string,
+  habDecisionId: string,
+): Promise<void> {
+  const qs = new URLSearchParams({ habDecisionId });
+  await heydoctorApi.delete(`${BASE}/${id}?${qs.toString()}`);
 }
 
 export async function downloadPrescriptionPdf(id: string): Promise<void> {
-  await downloadClinicalPdf(`${BASE}/${id}/pdf`, `receta-${id.slice(0, 8)}.pdf`);
+  await downloadClinicalPdf(
+    `${BASE}/${id}/pdf`,
+    `receta-${id.slice(0, 8)}.pdf`,
+  );
 }
