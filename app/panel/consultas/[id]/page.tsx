@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   fetchConsultation,
@@ -32,7 +38,9 @@ import {
 } from "@/lib/analytics";
 import { useConsultationPrice } from "@/lib/hooks/useConsultationPrice";
 import { useConsultationAutosave } from "@/lib/hooks/useConsultationAutosave";
+import { useTimeoutRegistry } from "@/lib/hooks/useTimeoutRegistry";
 import { ApiError, getApiErrorMessage } from "@/lib/heydoctor-api";
+import { toClinicalUserError } from "@/lib/clinical-user-error";
 import { createPersistGate } from "@/lib/unsaved-changes-guard/persist-gate";
 import { useUnsavedChangesGuard } from "@/lib/unsaved-changes-guard/unsaved-changes-guard-context";
 import {
@@ -75,9 +83,7 @@ import { EncounterHeader } from "./_components/EncounterHeader";
 import { StickyPatientHeader } from "./_components/StickyPatientHeader";
 import { ClinicalCopilotDrawer } from "./_components/copilot/ClinicalCopilotDrawer";
 import { HeyDoctorCopilotRuntimeProviders } from "@/components/copilot/HeyDoctorCopilotRuntimeProviders";
-import {
-  DoctorDnaDrawer,
-} from "./_components/DoctorDnaDrawer";
+import { DoctorDnaDrawer } from "./_components/DoctorDnaDrawer";
 import type { UnifiedPlanApplyResult } from "@/lib/types/unified-clinical-plan";
 import { ConsultationClinicalProviders } from "./_components/ConsultationClinicalProviders";
 import { CopilotNavigationProvider } from "@/context/CopilotNavigationContext";
@@ -130,11 +136,15 @@ export default function ConsultationDetailPage() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const timeouts = useTimeoutRegistry();
   const id = params.id as string;
   const consultationPrice = useConsultationPrice();
-  const { clinicId: ctxClinicId, attachConsultationSession } = useConsultation();
+  const { clinicId: ctxClinicId, attachConsultationSession } =
+    useConsultation();
 
-  const [consultation, setConsultation] = useState<NestConsultation | null>(null);
+  const [consultation, setConsultation] = useState<NestConsultation | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -163,7 +173,8 @@ export default function ConsultationDetailPage() {
   const [leftPaneTab, setLeftPaneTab] = useState<EncounterLeftPaneTab>("soap");
   const [rightPaneTab, setRightPaneTab] =
     useState<EncounterRightPaneTab>("orders");
-  const [ordersSubTab, setOrdersSubTab] = useState<OrdersSubTab>("prescriptions");
+  const [ordersSubTab, setOrdersSubTab] =
+    useState<OrdersSubTab>("prescriptions");
   const [ordersHighlight, setOrdersHighlight] = useState(false);
   const [ordersRefreshKey, setOrdersRefreshKey] = useState(0);
   const [ordersPanelExpandSignal, setOrdersPanelExpandSignal] = useState(0);
@@ -282,7 +293,10 @@ export default function ConsultationDetailPage() {
       const st = c.status ?? "draft";
       trackConsultationCompletedIfNeeded(prevStatusRef.current, st, id);
       prevStatusRef.current = st;
-      void trackConsultationStartedDeduped(id, { status: st, source: "detail" });
+      void trackConsultationStartedDeduped(id, {
+        status: st,
+        source: "detail",
+      });
       setConsultation(c);
       const parsedNotes = parseEncounterNotes(c.notes);
       setNotes(parsedNotes.clinicalRecord.freeNotes);
@@ -354,7 +368,10 @@ export default function ConsultationDetailPage() {
           setPatientProfile(profileResult.profile);
         } else {
           setPatientProfile(null);
-          console.warn("[encounter] patient profile load failed", profileResult.err);
+          console.warn(
+            "[encounter] patient profile load failed",
+            profileResult.err,
+          );
           setPatientContextError(
             "No se pudo cargar la ficha del paciente. Los antecedentes pueden estar incompletos.",
           );
@@ -389,24 +406,24 @@ export default function ConsultationDetailPage() {
         setPaymentStep("idle");
         if (st.isPaid) {
           setSaveMsg("Pago confirmado.");
-          setTimeout(() => setSaveMsg(""), 5000);
+          timeouts.set(() => setSaveMsg(""), 5000);
         } else if (st.hasPending) {
           setSaveMsg(
             "Pago en proceso de confirmación. Actualiza en unos segundos o revisa el estado de la consulta.",
           );
-          setTimeout(() => setSaveMsg(""), 8000);
+          timeouts.set(() => setSaveMsg(""), 8000);
         } else {
           setSaveMsg(
             "No confirmamos un pago completado todavía. Si ya pagaste, espera la confirmación; si no, puedes intentar de nuevo.",
           );
-          setTimeout(() => setSaveMsg(""), 8000);
+          timeouts.set(() => setSaveMsg(""), 8000);
         }
       } catch {
         if (!cancelled) {
           setSaveMsg(
             "No pudimos verificar el pago. Revisa tu conexión o vuelve a intentar más tarde.",
           );
-          setTimeout(() => setSaveMsg(""), 8000);
+          timeouts.set(() => setSaveMsg(""), 8000);
         }
       } finally {
         if (!cancelled) {
@@ -452,7 +469,7 @@ export default function ConsultationDetailPage() {
   const effectiveClinicalMemoryError =
     clinicalFoundation?.memory != null
       ? null
-      : clinicalFoundationState.error ?? patientClinicalMemoryState.error;
+      : (clinicalFoundationState.error ?? patientClinicalMemoryState.error);
   const clinicalFoundationOutputs = clinicalFoundation?.outputs ?? null;
   const encounterContextModel = useMemo(
     () =>
@@ -497,8 +514,7 @@ export default function ConsultationDetailPage() {
         diagnosis,
       });
       const patchFingerprint = soapPatchFingerprint(patch);
-      const soapUnchanged =
-        patchFingerprint === lastPersistedPatchRef.current;
+      const soapUnchanged = patchFingerprint === lastPersistedPatchRef.current;
       if (!soapUnchanged) {
         if (!persistGateRef.current.shouldPersist()) return;
         const updated = await updateConsultation(id, patch);
@@ -621,7 +637,9 @@ export default function ConsultationDetailPage() {
     };
   }, []);
 
-  async function persistAntecedentsOrThrow(hadDirty: boolean): Promise<boolean> {
+  async function persistAntecedentsOrThrow(
+    hadDirty: boolean,
+  ): Promise<boolean> {
     if (!persistGateRef.current.shouldPersist()) return false;
     const handle = antecedentsRef.current;
     if (hadDirty && !handle) {
@@ -759,7 +777,7 @@ export default function ConsultationDetailPage() {
       prevStatusRef.current = st;
       setConsultation(updated);
     } catch (err) {
-      setSaveMsg(err instanceof Error ? err.message : "Error al cambiar estado");
+      setSaveMsg(toClinicalUserError(err, "Error al cambiar estado"));
     } finally {
       setTransitioning(false);
     }
@@ -807,10 +825,13 @@ export default function ConsultationDetailPage() {
       consultationRef.current = updated;
       setSignMsg(
         updated.signedAt
-          ? `Consulta firmada el ${new Date(updated.signedAt).toLocaleString("es-CL", {
-              dateStyle: "medium",
-              timeStyle: "short",
-            })}.`
+          ? `Consulta firmada el ${new Date(updated.signedAt).toLocaleString(
+              "es-CL",
+              {
+                dateStyle: "medium",
+                timeStyle: "short",
+              },
+            )}.`
           : "Consulta firmada correctamente. Cierre legal registrado.",
       );
       void clinicalFoundationState.reload();
@@ -844,7 +865,7 @@ export default function ConsultationDetailPage() {
     }
     setOrdersRefreshKey((k) => k + 1);
     setOrdersHighlight(true);
-    window.setTimeout(() => setOrdersHighlight(false), 4000);
+    timeouts.set(() => setOrdersHighlight(false), 4000);
   }, []);
 
   const handleStartCall = async () => {
@@ -891,7 +912,9 @@ export default function ConsultationDetailPage() {
   }
 
   useEffect(() => {
-    setChiefComplaintDraft(consultation?.chiefComplaint ?? consultation?.reason ?? "");
+    setChiefComplaintDraft(
+      consultation?.chiefComplaint ?? consultation?.reason ?? "",
+    );
   }, [consultation?.chiefComplaint, consultation?.reason]);
 
   function flashAction(
@@ -901,7 +924,7 @@ export default function ConsultationDetailPage() {
     ttl = 6000,
   ) {
     setActionMsg({ kind, text, href });
-    if (ttl > 0) window.setTimeout(() => setActionMsg(null), ttl);
+    if (ttl > 0) timeouts.set(() => setActionMsg(null), ttl);
   }
 
   function handleActionResult(label: string, result: ActionResult) {
@@ -1143,16 +1166,17 @@ export default function ConsultationDetailPage() {
   );
 
   if (loading) {
-    return (
-      <div className="p-6 text-slate-500">Cargando consulta...</div>
-    );
+    return <div className="p-6 text-slate-500">Cargando consulta...</div>;
   }
 
   if (error || !consultation) {
     return (
       <div className="space-y-4 p-6">
         <p className="text-red-600">{error || "Consulta no encontrada"}</p>
-        <Button variant="secondary" onClick={() => router.push("/panel/consultas")}>
+        <Button
+          variant="secondary"
+          onClick={() => router.push("/panel/consultas")}
+        >
           Volver a consultas
         </Button>
       </div>
@@ -1160,7 +1184,9 @@ export default function ConsultationDetailPage() {
   }
 
   const soapPatientAge = patientRow ? resolvePatientAge(patientRow) : undefined;
-  const soapPatientSex = patientRow ? formatPatientSex(patientRow.sex) : undefined;
+  const soapPatientSex = patientRow
+    ? formatPatientSex(patientRow.sex)
+    : undefined;
 
   const actionMsgClass =
     actionMsg?.kind === "success"
@@ -1176,604 +1202,632 @@ export default function ConsultationDetailPage() {
       enabled={clinicalActionWorkspaceEnabled}
       navigationRef={clinicalActionWorkspaceNavRef}
     >
-    <CopilotNavigationProvider
-      open={copilotDrawerOpen}
-      onOpenChange={setCopilotDrawerOpen}
-      generativeExpandToken={generativeExpandToken}
-      onRequestGenerativeExpand={() =>
-        setGenerativeExpandToken((token) => token + 1)
-      }
-    >
-    <HeyDoctorCopilotRuntimeProviders
-      consultationId={id}
-      patientId={consultation.patientId}
-      appointmentId={null}
-      workspaceOpen={copilotDrawerOpen}
-      encounterStatus={status}
-      patientName={patientName}
-      patientAge={soapPatientAge}
-      patientSex={soapPatientSex}
-      activeProblems={encounterActiveProblems}
-      clinicalSnapshotSupplement={clinicalSnapshotSupplement}
-    >
-    <div
-      ref={workspaceRef}
-      className="clinical-workspace mx-auto max-w-5xl space-y-hd-2 p-hd-3 md:p-hd-4 lg:p-hd-5 xl:max-w-none 2xl:mx-auto 2xl:max-w-[1600px]"
-    >
-      {/*
+      <CopilotNavigationProvider
+        open={copilotDrawerOpen}
+        onOpenChange={setCopilotDrawerOpen}
+        generativeExpandToken={generativeExpandToken}
+        onRequestGenerativeExpand={() =>
+          setGenerativeExpandToken((token) => token + 1)
+        }
+      >
+        <HeyDoctorCopilotRuntimeProviders
+          consultationId={id}
+          patientId={consultation.patientId}
+          appointmentId={null}
+          workspaceOpen={copilotDrawerOpen}
+          encounterStatus={status}
+          patientName={patientName}
+          patientAge={soapPatientAge}
+          patientSex={soapPatientSex}
+          activeProblems={encounterActiveProblems}
+          clinicalSnapshotSupplement={clinicalSnapshotSupplement}
+        >
+          <div
+            ref={workspaceRef}
+            className="clinical-workspace mx-auto max-w-5xl space-y-hd-2 p-hd-3 md:p-hd-4 lg:p-hd-5 xl:max-w-none 2xl:mx-auto 2xl:max-w-[1600px]"
+          >
+            {/*
         AEC-1 M4: EncounterChromeShell stays OUTSIDE LiquidClinicalWorkspaceShell
         intentionally. Chrome is route-level encounter identity (sticky header /
         actions); Liquid WRAP/ADAPTs ConsultationWorkspace composition only.
         Full chrome-in-Liquid is deferred (not an M4 composition defect).
       */}
-      <EncounterChromeShell
-        workspaceRef={workspaceRef}
-        className="clinical-encounter-chrome clinical-depth-1 sticky top-0 z-30 -mx-3 border-b border-hd-border-subtle bg-hd-surface-chrome/95 shadow-hd-2 backdrop-blur md:-mx-4 lg:-mx-5"
-      >
-        <div className="clinical-depth-2 px-3 md:px-4 lg:px-5">
-          <EncounterHeader
-            key={id}
-            status={status}
-            transitioning={transitioning}
-            onBack={() => {
-              requestNavigation(() => {
-                closeEncounterOverlays();
-                router.push("/panel/consultas");
-              });
-            }}
-            onShare={() => setShareOpen(true)}
-            onTransition={
-              status === "draft" || status === "in_progress"
-                ? () => void handleTransition()
-                : undefined
-            }
-            canStartCall={canStartCall}
-            onStartTeleconsultation={() => void handleStartCall()}
-            onOpenPrescription={handleOpenPrescription}
-            onOpenLabOrders={handleOpenLabOrders}
-            medicalCopilotHref={`/panel/consultas/${id}/medical-copilot`}
-            hideModuleShortcuts={
-              clinicalActionWorkspaceEnabled && !!consultation.patientId
-            }
-            canPay={canPay}
-            isLocked={isLocked}
-            paymentStep={paymentStep}
-            creatingPayment={creatingPayment}
-            onPayClick={() => {
-              setSaveMsg("");
-              setPaymentStep("confirm");
-            }}
-            onPaymentConfirm={() => void executePaymentToProvider()}
-            onPaymentCancel={() =>
-              handlePaymentAbandoned("user_cancelled_confirm")
-            }
-            paymentAmount={consultationPrice.amount}
-            paymentCurrency={consultationPrice.currency}
-            paymentLoading={consultationPrice.loading}
-            saveMsg={
-              saveMsg && paymentStep === "confirm" ? saveMsg : undefined
-            }
-            isEditing={editMode}
-            canToggleEdit={isEditable}
-            onToggleEdit={handleToggleEdit}
-            actionHandlers={{
-              onStartTeleconsultation: () => void handleStartCall(),
-              onOpenPrescription: handleOpenPrescription,
-              onGenerateInvoice: () => void handleGenerateInvoice(),
-              onDownloadPdf: () => void handleDownloadPdf(),
-              onToggleEdit: handleToggleEdit,
-              onAnalyzeWithAi: handleAnalyzeWithAi,
-              onDelete: () => void handleDeleteConsultation(),
-              onGenerateSignedPrescription: () =>
-                void handleSignedPrescription(),
-              onGenerateSignedCertificate: () =>
-                void handleSignedCertificate(),
-              onGenerateSignedReferral: () => void handleSignedReferral(),
-              onGeneratePremiumDocument: () => void handlePremiumDocument(),
-            }}
-            actionLoading={{
-              invoice: actionLoading.invoice,
-              pdf: actionLoading.pdf,
-              deleting: actionLoading.deleting,
-              ai: false,
-            }}
-            actionDisabled={{
-              prescription: isLocked,
-              edit: isLocked,
-              ai: isLocked,
-              delete: isLocked,
-            }}
-            dnaDrawerOpen={dnaDrawerOpen}
-            onOpenDoctorDna={() => {
-              setCopilotDrawerOpen(false);
-              setDnaDrawerOpen(true);
-            }}
-            copilotDrawerOpen={copilotDrawerOpen}
-            onOpenCopilot={() => {
-              setDnaDrawerOpen(false);
-              setCopilotDrawerOpen(true);
-            }}
-          />
-          <div className="clinical-depth-2 space-y-hd-2 pb-hd-2">
-            <StickyPatientHeader
-              model={encounterContextModel}
-              loading={patientContextLoading || effectiveClinicalMemoryLoading}
-            />
-            {clinicalActionWorkspaceEnabled && consultation.patientId ? (
-              <ClinicalActionBar
+            <EncounterChromeShell
+              workspaceRef={workspaceRef}
+              className="clinical-encounter-chrome clinical-depth-1 sticky top-0 z-30 -mx-3 border-b border-hd-border-subtle bg-hd-surface-chrome/95 shadow-hd-2 backdrop-blur md:-mx-4 lg:-mx-5"
+            >
+              <div className="clinical-depth-2 px-3 md:px-4 lg:px-5">
+                <EncounterHeader
+                  key={id}
+                  status={status}
+                  transitioning={transitioning}
+                  onBack={() => {
+                    requestNavigation(() => {
+                      closeEncounterOverlays();
+                      router.push("/panel/consultas");
+                    });
+                  }}
+                  onShare={() => setShareOpen(true)}
+                  onTransition={
+                    status === "draft" || status === "in_progress"
+                      ? () => void handleTransition()
+                      : undefined
+                  }
+                  canStartCall={canStartCall}
+                  onStartTeleconsultation={() => void handleStartCall()}
+                  onOpenPrescription={handleOpenPrescription}
+                  onOpenLabOrders={handleOpenLabOrders}
+                  medicalCopilotHref={`/panel/consultas/${id}/medical-copilot`}
+                  hideModuleShortcuts={
+                    clinicalActionWorkspaceEnabled && !!consultation.patientId
+                  }
+                  canPay={canPay}
+                  isLocked={isLocked}
+                  paymentStep={paymentStep}
+                  creatingPayment={creatingPayment}
+                  onPayClick={() => {
+                    setSaveMsg("");
+                    setPaymentStep("confirm");
+                  }}
+                  onPaymentConfirm={() => void executePaymentToProvider()}
+                  onPaymentCancel={() =>
+                    handlePaymentAbandoned("user_cancelled_confirm")
+                  }
+                  paymentAmount={consultationPrice.amount}
+                  paymentCurrency={consultationPrice.currency}
+                  paymentLoading={consultationPrice.loading}
+                  saveMsg={
+                    saveMsg && paymentStep === "confirm" ? saveMsg : undefined
+                  }
+                  isEditing={editMode}
+                  canToggleEdit={isEditable}
+                  onToggleEdit={handleToggleEdit}
+                  actionHandlers={{
+                    onStartTeleconsultation: () => void handleStartCall(),
+                    onOpenPrescription: handleOpenPrescription,
+                    onGenerateInvoice: () => void handleGenerateInvoice(),
+                    onDownloadPdf: () => void handleDownloadPdf(),
+                    onToggleEdit: handleToggleEdit,
+                    onAnalyzeWithAi: handleAnalyzeWithAi,
+                    onDelete: () => void handleDeleteConsultation(),
+                    onGenerateSignedPrescription: () =>
+                      void handleSignedPrescription(),
+                    onGenerateSignedCertificate: () =>
+                      void handleSignedCertificate(),
+                    onGenerateSignedReferral: () => void handleSignedReferral(),
+                    onGeneratePremiumDocument: () =>
+                      void handlePremiumDocument(),
+                  }}
+                  actionLoading={{
+                    invoice: actionLoading.invoice,
+                    pdf: actionLoading.pdf,
+                    deleting: actionLoading.deleting,
+                    ai: false,
+                  }}
+                  actionDisabled={{
+                    prescription: isLocked,
+                    edit: isLocked,
+                    ai: isLocked,
+                    delete: isLocked,
+                  }}
+                  dnaDrawerOpen={dnaDrawerOpen}
+                  onOpenDoctorDna={() => {
+                    setCopilotDrawerOpen(false);
+                    setDnaDrawerOpen(true);
+                  }}
+                  copilotDrawerOpen={copilotDrawerOpen}
+                  onOpenCopilot={() => {
+                    setDnaDrawerOpen(false);
+                    setCopilotDrawerOpen(true);
+                  }}
+                />
+                <div className="clinical-depth-2 space-y-hd-2 pb-hd-2">
+                  <StickyPatientHeader
+                    model={encounterContextModel}
+                    loading={
+                      patientContextLoading || effectiveClinicalMemoryLoading
+                    }
+                  />
+                  {clinicalActionWorkspaceEnabled && consultation.patientId ? (
+                    <ClinicalActionBar
+                      patientId={consultation.patientId}
+                      consultationId={id}
+                      clinicId={consultation.clinicId ?? ctxClinicId ?? null}
+                      ordersRefreshKey={ordersRefreshKey}
+                      continuityOpen={continuityOpen}
+                      onContinuityOpenChange={handleContinuityOpenChange}
+                    />
+                  ) : null}
+                </div>
+              </div>
+            </EncounterChromeShell>
+
+            <ClinicalModuleSheet>
+              <ClinicalModuleSheetContent
                 patientId={consultation.patientId}
                 consultationId={id}
-                clinicId={consultation.clinicId ?? ctxClinicId ?? null}
-                ordersRefreshKey={ordersRefreshKey}
-                continuityOpen={continuityOpen}
-                onContinuityOpenChange={handleContinuityOpenChange}
+                diagnosisCode={
+                  diagnosisState.diagnosisCode ||
+                  diagnosisState.diagnosis ||
+                  undefined
+                }
+                refreshKey={ordersRefreshKey}
+                ordersHighlight={ordersHighlight}
+                ordersSubTab={ordersSubTab}
+                onOrdersSubTabChange={setOrdersSubTab}
+                documentHandlers={{
+                  onStartTeleconsultation: () => void handleStartCall(),
+                  onOpenPrescription: handleOpenPrescription,
+                  onGenerateInvoice: () => void handleGenerateInvoice(),
+                  onDownloadPdf: () => void handleDownloadPdf(),
+                  onToggleEdit: handleToggleEdit,
+                  onAnalyzeWithAi: handleAnalyzeWithAi,
+                  onDelete: () => void handleDeleteConsultation(),
+                  onGenerateSignedPrescription: () =>
+                    void handleSignedPrescription(),
+                  onGenerateSignedCertificate: () =>
+                    void handleSignedCertificate(),
+                  onGenerateSignedReferral: () => void handleSignedReferral(),
+                  onGeneratePremiumDocument: () => void handlePremiumDocument(),
+                }}
+                documentLoading={actionLoading}
+                documentDisabled={documentDisabled}
+                onLegacyInvoiceResult={handleActionResult}
               />
-            ) : null}
-          </div>
-        </div>
-      </EncounterChromeShell>
+            </ClinicalModuleSheet>
 
-      <ClinicalModuleSheet>
-        <ClinicalModuleSheetContent
-          patientId={consultation.patientId}
-          consultationId={id}
-          diagnosisCode={
-            diagnosisState.diagnosisCode || diagnosisState.diagnosis || undefined
-          }
-          refreshKey={ordersRefreshKey}
-          ordersHighlight={ordersHighlight}
-          ordersSubTab={ordersSubTab}
-          onOrdersSubTabChange={setOrdersSubTab}
-          documentHandlers={{
-            onStartTeleconsultation: () => void handleStartCall(),
-            onOpenPrescription: handleOpenPrescription,
-            onGenerateInvoice: () => void handleGenerateInvoice(),
-            onDownloadPdf: () => void handleDownloadPdf(),
-            onToggleEdit: handleToggleEdit,
-            onAnalyzeWithAi: handleAnalyzeWithAi,
-            onDelete: () => void handleDeleteConsultation(),
-            onGenerateSignedPrescription: () => void handleSignedPrescription(),
-            onGenerateSignedCertificate: () => void handleSignedCertificate(),
-            onGenerateSignedReferral: () => void handleSignedReferral(),
-            onGeneratePremiumDocument: () => void handlePremiumDocument(),
-          }}
-          documentLoading={actionLoading}
-          documentDisabled={documentDisabled}
-          onLegacyInvoiceResult={handleActionResult}
-        />
-      </ClinicalModuleSheet>
-
-      <ClinicalCopilotDrawer
-        open={copilotDrawerOpen}
-        onClose={() => setCopilotDrawerOpen(false)}
-        onOpenContinuity={() => handleContinuityOpenChange(true)}
-        runtimeEnabled={Boolean(consultation.patientId)}
-        generativeExpandToken={generativeExpandToken}
-        consultation={consultation}
-        consultationId={id}
-        patientId={consultation.patientId}
-        diagnosis={diagnosisState.diagnosis}
-        diagnosisCode={diagnosisState.diagnosisCode}
-        diagnosisDescription={diagnosisState.diagnosisDescription}
-        chiefComplaint={chiefComplaintDraft}
-        treatment={treatment}
-        notes={notes}
-        patientName={patientName}
-        patientAge={soapPatientAge}
-        patientSex={soapPatientSex}
-        clinicalMemory={effectiveClinicalMemory}
-        clinicalFoundation={clinicalFoundation}
-        clinicalFoundationLoading={clinicalFoundationState.loading}
-        clinicalFoundationError={clinicalFoundationState.error}
-        foundationOutputs={clinicalFoundationOutputs}
-        hasUnsavedClinicalChanges={hasUnsavedClinicalChanges}
-        onSignConsultation={async (signatureBase64) => {
-          await handleSign(signatureBase64);
-        }}
-        onClosePersisted={() => {
-          void load();
-        }}
-      />
-
-      <DoctorDnaDrawer
-        open={dnaDrawerOpen}
-        onClose={() => setDnaDrawerOpen(false)}
-      />
-
-      <ShareConsultationDialog
-        consultationId={id}
-        open={shareOpen}
-        patientName={patientName}
-        onClose={() => setShareOpen(false)}
-      />
-
-      {actionMsg ? (
-        <div
-          role="status"
-          className={`rounded-xl border px-4 py-3 text-sm ${actionMsgClass}`}
-        >
-          {actionMsg.text}
-          {actionMsg.href ? (
-            <>
-              {" "}
-              <a
-                href={actionMsg.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-semibold text-primary hover:underline"
-              >
-                Abrir documento →
-              </a>
-            </>
-          ) : null}
-        </div>
-      ) : null}
-
-      {consultation.patientId ? (
-        <ConsultationClinicalProviders
-          consultationId={id}
-          patientId={consultation.patientId}
-            clinicalFoundation={clinicalFoundation}
-          onPlanApplied={handlePlanApplied}
-        >
-          <ClinicalIntelligenceSync
-            consultationId={id}
-            patientId={consultation.patientId}
-            diagnosisState={diagnosisState}
-          />
-
-          <div className="xl:hidden">
-            <PatientContextRail
+            <ClinicalCopilotDrawer
+              open={copilotDrawerOpen}
+              onClose={() => setCopilotDrawerOpen(false)}
+              onOpenContinuity={() => handleContinuityOpenChange(true)}
+              runtimeEnabled={Boolean(consultation.patientId)}
+              generativeExpandToken={generativeExpandToken}
+              consultation={consultation}
+              consultationId={id}
               patientId={consultation.patientId}
-              patient={patientRow}
-              profile={patientProfile}
-              loading={patientContextLoading}
-              error={patientContextError}
-              fallbackName={patientName}
-              currentConsultationId={id}
-              encounterDiagnosis={encounterDiagnosis}
+              diagnosis={diagnosisState.diagnosis}
+              diagnosisCode={diagnosisState.diagnosisCode}
+              diagnosisDescription={diagnosisState.diagnosisDescription}
+              chiefComplaint={chiefComplaintDraft}
+              treatment={treatment}
+              notes={notes}
+              patientName={patientName}
+              patientAge={soapPatientAge}
+              patientSex={soapPatientSex}
               clinicalMemory={effectiveClinicalMemory}
-              clinicalMemoryLoading={effectiveClinicalMemoryLoading}
-              clinicalMemoryError={effectiveClinicalMemoryError}
-              clinicalFoundationOutputs={clinicalFoundationOutputs}
+              clinicalFoundation={clinicalFoundation}
               clinicalFoundationLoading={clinicalFoundationState.loading}
               clinicalFoundationError={clinicalFoundationState.error}
-              onOpenFullRecord={openFullRecord}
+              foundationOutputs={clinicalFoundationOutputs}
+              hasUnsavedClinicalChanges={hasUnsavedClinicalChanges}
+              onSignConsultation={async (signatureBase64) => {
+                await handleSign(signatureBase64);
+              }}
+              onClosePersisted={() => {
+                void load();
+              }}
+            />
+
+            <DoctorDnaDrawer
+              open={dnaDrawerOpen}
+              onClose={() => setDnaDrawerOpen(false)}
+            />
+
+            <ShareConsultationDialog
+              consultationId={id}
+              open={shareOpen}
+              patientName={patientName}
+              onClose={() => setShareOpen(false)}
+            />
+
+            {actionMsg ? (
+              <div
+                role="status"
+                className={`rounded-xl border px-4 py-3 text-sm ${actionMsgClass}`}
+              >
+                {actionMsg.text}
+                {actionMsg.href ? (
+                  <>
+                    {" "}
+                    <a
+                      href={actionMsg.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-semibold text-primary hover:underline"
+                    >
+                      Abrir documento →
+                    </a>
+                  </>
+                ) : null}
+              </div>
+            ) : null}
+
+            {consultation.patientId ? (
+              <ConsultationClinicalProviders
+                consultationId={id}
+                patientId={consultation.patientId}
+                clinicalFoundation={clinicalFoundation}
+                onPlanApplied={handlePlanApplied}
+              >
+                <ClinicalIntelligenceSync
+                  consultationId={id}
+                  patientId={consultation.patientId}
+                  diagnosisState={diagnosisState}
+                />
+
+                <div className="xl:hidden">
+                  <PatientContextRail
+                    patientId={consultation.patientId}
+                    patient={patientRow}
+                    profile={patientProfile}
+                    loading={patientContextLoading}
+                    error={patientContextError}
+                    fallbackName={patientName}
+                    currentConsultationId={id}
+                    encounterDiagnosis={encounterDiagnosis}
+                    clinicalMemory={effectiveClinicalMemory}
+                    clinicalMemoryLoading={effectiveClinicalMemoryLoading}
+                    clinicalMemoryError={effectiveClinicalMemoryError}
+                    clinicalFoundationOutputs={clinicalFoundationOutputs}
+                    clinicalFoundationLoading={clinicalFoundationState.loading}
+                    clinicalFoundationError={clinicalFoundationState.error}
+                    onOpenFullRecord={openFullRecord}
+                  />
+                </div>
+
+                <LiquidClinicalWorkspaceShell
+                  consultationId={id}
+                  encounterStatus={status}
+                  isSigned={isSigned}
+                  isLocked={isLocked}
+                  role="doctor"
+                  copilotOpen={copilotDrawerOpen}
+                  onOpenCopilot={() => {
+                    setDnaDrawerOpen(false);
+                    setCopilotDrawerOpen(true);
+                  }}
+                >
+                  <ConsultationWorkspace
+                    actionWorkspaceEnabled={clinicalActionWorkspaceEnabled}
+                    smartWorkspaceEnabled={smartClinicalWorkspaceEnabled}
+                    consultation={consultation}
+                    consultationId={id}
+                    clinicId={consultation.clinicId ?? ctxClinicId ?? null}
+                    activeTab={workspaceTab}
+                    onTabChange={setWorkspaceTab}
+                    leftPaneTab={leftPaneTab}
+                    onLeftPaneTabChange={setLeftPaneTab}
+                    rightPaneTab={rightPaneTab}
+                    onRightPaneTabChange={setRightPaneTab}
+                    patientContext={{
+                      patientId: consultation.patientId,
+                      patient: patientRow,
+                      profile: patientProfile,
+                      loading: patientContextLoading,
+                      error: patientContextError,
+                      fallbackName: patientName,
+                      currentConsultationId: id,
+                      encounterDiagnosis,
+                      clinicalMemory: effectiveClinicalMemory,
+                      clinicalMemoryLoading: effectiveClinicalMemoryLoading,
+                      clinicalMemoryError: effectiveClinicalMemoryError,
+                      clinicalFoundationOutputs,
+                      clinicalFoundationLoading:
+                        clinicalFoundationState.loading,
+                      clinicalFoundationError: clinicalFoundationState.error,
+                      onOpenFullRecord: openFullRecord,
+                    }}
+                    ordersSubTab={ordersSubTab}
+                    onOrdersSubTabChange={setOrdersSubTab}
+                    documentHandlers={{
+                      onStartTeleconsultation: () => void handleStartCall(),
+                      onOpenPrescription: handleOpenPrescription,
+                      onGenerateInvoice: () => void handleGenerateInvoice(),
+                      onDownloadPdf: () => void handleDownloadPdf(),
+                      onToggleEdit: handleToggleEdit,
+                      onAnalyzeWithAi: handleAnalyzeWithAi,
+                      onDelete: () => void handleDeleteConsultation(),
+                      onGenerateSignedPrescription: () =>
+                        void handleSignedPrescription(),
+                      onGenerateSignedCertificate: () =>
+                        void handleSignedCertificate(),
+                      onGenerateSignedReferral: () =>
+                        void handleSignedReferral(),
+                      onGeneratePremiumDocument: () =>
+                        void handlePremiumDocument(),
+                    }}
+                    documentLoading={actionLoading}
+                    documentDisabled={documentDisabled}
+                    onLegacyInvoiceResult={handleActionResult}
+                    ordersHighlight={ordersHighlight}
+                    ordersRefreshKey={ordersRefreshKey}
+                    ordersPanelExpandSignal={ordersPanelExpandSignal}
+                    encounterChart={{
+                      onOpenFullRecord: openFullRecord,
+                      consultationId: consultation.id,
+                      vitals,
+                      onVitalsChange: setVitals,
+                      physicalExam,
+                      onPhysicalExamChange: setPhysicalExam,
+                      presentIllnessHistory,
+                      onPresentIllnessHistoryChange: setPresentIllnessHistory,
+                      treatment,
+                      onTreatmentChange: setTreatment,
+                      clinicId: consultation.clinicId ?? ctxClinicId ?? null,
+                      diagnosis: diagnosisState.diagnosis,
+                      diagnosisCode: diagnosisState.diagnosisCode || null,
+                      diagnosisDescription:
+                        diagnosisState.diagnosisDescription || null,
+                      diagnosisSource: diagnosisState.source,
+                      diagnosisError,
+                      onDiagnosisConfirm: handleDiagnosisConfirm,
+                      patientId: consultation.patientId,
+                      encounterDiagnosis,
+                      allergyLines: jsonLinesToList(patientProfile?.allergies),
+                      clinicalMemory: effectiveClinicalMemory,
+                      clinicalMemoryLoading: effectiveClinicalMemoryLoading,
+                      clinicalMemoryError: effectiveClinicalMemoryError,
+                      editable: isEditable && editMode,
+                      canToggleEdit: isEditable,
+                      isEditing: editMode,
+                      onToggleEdit: handleToggleEdit,
+                      antecedentsDirty,
+                      autosaveStatus,
+                      lastSavedAt: effectiveLastSavedAt,
+                      autosaveError,
+                      manualSaveStatus,
+                      onManualSave: handleManualSave,
+                      saveFeedbackMessage:
+                        saveMsg && paymentStep !== "confirm" ? saveMsg : null,
+                      closure: {
+                        status,
+                        isSigned,
+                        isLocked,
+                        canSign,
+                        signing,
+                        onSign: handleSign,
+                        signedAt: consultation.signedAt,
+                        doctorSignature: consultation.doctorSignature,
+                        documentHandlers: {
+                          onStartTeleconsultation: () => void handleStartCall(),
+                          onOpenPrescription: handleOpenPrescription,
+                          onGenerateInvoice: () => void handleGenerateInvoice(),
+                          onDownloadPdf: () => void handleDownloadPdf(),
+                          onToggleEdit: handleToggleEdit,
+                          onAnalyzeWithAi: handleAnalyzeWithAi,
+                          onDelete: () => void handleDeleteConsultation(),
+                          onGenerateSignedPrescription: () =>
+                            void handleSignedPrescription(),
+                          onGenerateSignedCertificate: () =>
+                            void handleSignedCertificate(),
+                          onGenerateSignedReferral: () =>
+                            void handleSignedReferral(),
+                          onGeneratePremiumDocument: () =>
+                            void handlePremiumDocument(),
+                        },
+                        documentLoading: actionLoading,
+                        documentDisabled,
+                        signMessage: signMsg || undefined,
+                      },
+                      longitudinal: {
+                        patient: patientRow,
+                        profile: patientProfile,
+                        loading: patientContextLoading,
+                        patientId: consultation.patientId,
+                        editable: isEditable && editMode,
+                        antecedentsRef,
+                        onProfileSaved: setPatientProfile,
+                        onAntecedentsDraftKeyChange: setAntecedentsDraftKey,
+                        onAntecedentsDirtyChange: setAntecedentsDirty,
+                        onAntecedentsPersistError: (message) => {
+                          setManualSaveStatus("error");
+                          setSaveMsg(message);
+                        },
+                      },
+                    }}
+                    diagnosisCode={
+                      diagnosisState.diagnosisCode ||
+                      diagnosisState.diagnosis ||
+                      undefined
+                    }
+                  />
+                </LiquidClinicalWorkspaceShell>
+              </ConsultationClinicalProviders>
+            ) : (
+              <LiquidClinicalWorkspaceShell
+                consultationId={id}
+                encounterStatus={status}
+                isSigned={isSigned}
+                isLocked={isLocked}
+                role="doctor"
+                copilotOpen={copilotDrawerOpen}
+                onOpenCopilot={() => {
+                  setDnaDrawerOpen(false);
+                  setCopilotDrawerOpen(true);
+                }}
+              >
+                <ConsultationWorkspace
+                  actionWorkspaceEnabled={clinicalActionWorkspaceEnabled}
+                  smartWorkspaceEnabled={smartClinicalWorkspaceEnabled}
+                  consultation={consultation}
+                  consultationId={id}
+                  clinicId={consultation.clinicId ?? ctxClinicId ?? null}
+                  activeTab={workspaceTab}
+                  onTabChange={setWorkspaceTab}
+                  leftPaneTab={leftPaneTab}
+                  onLeftPaneTabChange={setLeftPaneTab}
+                  rightPaneTab={rightPaneTab}
+                  onRightPaneTabChange={setRightPaneTab}
+                  patientContext={{
+                    patientId: consultation.patientId,
+                    patient: patientRow,
+                    profile: patientProfile,
+                    loading: patientContextLoading,
+                    error: patientContextError,
+                    fallbackName: patientName,
+                    currentConsultationId: id,
+                    encounterDiagnosis,
+                    clinicalMemory: effectiveClinicalMemory,
+                    clinicalMemoryLoading: effectiveClinicalMemoryLoading,
+                    clinicalMemoryError: effectiveClinicalMemoryError,
+                    clinicalFoundationOutputs,
+                    clinicalFoundationLoading: clinicalFoundationState.loading,
+                    clinicalFoundationError: clinicalFoundationState.error,
+                    onOpenFullRecord: openFullRecord,
+                  }}
+                  ordersSubTab={ordersSubTab}
+                  onOrdersSubTabChange={setOrdersSubTab}
+                  documentHandlers={{
+                    onStartTeleconsultation: () => void handleStartCall(),
+                    onOpenPrescription: handleOpenPrescription,
+                    onGenerateInvoice: () => void handleGenerateInvoice(),
+                    onDownloadPdf: () => void handleDownloadPdf(),
+                    onToggleEdit: handleToggleEdit,
+                    onAnalyzeWithAi: handleAnalyzeWithAi,
+                    onDelete: () => void handleDeleteConsultation(),
+                    onGenerateSignedPrescription: () =>
+                      void handleSignedPrescription(),
+                    onGenerateSignedCertificate: () =>
+                      void handleSignedCertificate(),
+                    onGenerateSignedReferral: () => void handleSignedReferral(),
+                    onGeneratePremiumDocument: () =>
+                      void handlePremiumDocument(),
+                  }}
+                  documentLoading={actionLoading}
+                  documentDisabled={documentDisabled}
+                  onLegacyInvoiceResult={handleActionResult}
+                  ordersHighlight={ordersHighlight}
+                  ordersRefreshKey={ordersRefreshKey}
+                  ordersPanelExpandSignal={ordersPanelExpandSignal}
+                  encounterChart={{
+                    onOpenFullRecord: openFullRecord,
+                    consultationId: consultation.id,
+                    vitals,
+                    onVitalsChange: setVitals,
+                    physicalExam,
+                    onPhysicalExamChange: setPhysicalExam,
+                    presentIllnessHistory,
+                    onPresentIllnessHistoryChange: setPresentIllnessHistory,
+                    treatment,
+                    onTreatmentChange: setTreatment,
+                    clinicId: consultation.clinicId ?? ctxClinicId ?? null,
+                    diagnosis: diagnosisState.diagnosis,
+                    diagnosisCode: diagnosisState.diagnosisCode || null,
+                    diagnosisDescription:
+                      diagnosisState.diagnosisDescription || null,
+                    diagnosisSource: diagnosisState.source,
+                    diagnosisError,
+                    onDiagnosisConfirm: handleDiagnosisConfirm,
+                    patientId: consultation.patientId,
+                    encounterDiagnosis,
+                    allergyLines: jsonLinesToList(patientProfile?.allergies),
+                    clinicalMemory: effectiveClinicalMemory,
+                    clinicalMemoryLoading: effectiveClinicalMemoryLoading,
+                    clinicalMemoryError: effectiveClinicalMemoryError,
+                    editable: isEditable && editMode,
+                    canToggleEdit: isEditable,
+                    isEditing: editMode,
+                    onToggleEdit: handleToggleEdit,
+                    antecedentsDirty,
+                    autosaveStatus,
+                    lastSavedAt: effectiveLastSavedAt,
+                    autosaveError,
+                    manualSaveStatus,
+                    onManualSave: handleManualSave,
+                    saveFeedbackMessage:
+                      saveMsg && paymentStep !== "confirm" ? saveMsg : null,
+                    closure: {
+                      status,
+                      isSigned,
+                      isLocked,
+                      canSign,
+                      signing,
+                      onSign: handleSign,
+                      signedAt: consultation.signedAt,
+                      doctorSignature: consultation.doctorSignature,
+                      documentHandlers: {
+                        onStartTeleconsultation: () => void handleStartCall(),
+                        onOpenPrescription: handleOpenPrescription,
+                        onGenerateInvoice: () => void handleGenerateInvoice(),
+                        onDownloadPdf: () => void handleDownloadPdf(),
+                        onToggleEdit: handleToggleEdit,
+                        onAnalyzeWithAi: handleAnalyzeWithAi,
+                        onDelete: () => void handleDeleteConsultation(),
+                        onGenerateSignedPrescription: () =>
+                          void handleSignedPrescription(),
+                        onGenerateSignedCertificate: () =>
+                          void handleSignedCertificate(),
+                        onGenerateSignedReferral: () =>
+                          void handleSignedReferral(),
+                        onGeneratePremiumDocument: () =>
+                          void handlePremiumDocument(),
+                      },
+                      documentLoading: actionLoading,
+                      documentDisabled,
+                      signMessage: signMsg || undefined,
+                    },
+                    longitudinal: {
+                      patient: patientRow,
+                      profile: patientProfile,
+                      loading: patientContextLoading,
+                      patientId: consultation.patientId,
+                      editable: isEditable && editMode,
+                      antecedentsRef,
+                      onProfileSaved: setPatientProfile,
+                      onAntecedentsDraftKeyChange: setAntecedentsDraftKey,
+                      onAntecedentsDirtyChange: setAntecedentsDirty,
+                      onAntecedentsPersistError: (message) => {
+                        setManualSaveStatus("error");
+                        setSaveMsg(message);
+                      },
+                    },
+                  }}
+                  diagnosisCode={
+                    diagnosisState.diagnosisCode ||
+                    diagnosisState.diagnosis ||
+                    undefined
+                  }
+                />
+              </LiquidClinicalWorkspaceShell>
+            )}
+
+            {isLocked ? (
+              <Card className="border-green-200 bg-green-50 p-4">
+                <p className="font-semibold text-green-800">
+                  Consulta pagada y bloqueada
+                </p>
+                <p className="mt-1 text-sm text-green-700">
+                  Esta consulta ha sido finalizada. No se permiten
+                  modificaciones.
+                </p>
+              </Card>
+            ) : null}
+
+            <ConsultationConsentCard
+              consentGivenAt={consultation.consentGivenAt}
+              consentVersion={consultation.consentVersion}
+            />
+
+            {!isEditable && !canPay && !isLocked && saveMsg ? (
+              <p
+                className={`text-sm ${saveMsg.includes("Error") ? "text-red-600" : "text-green-700"}`}
+              >
+                {saveMsg}
+              </p>
+            ) : null}
+
+            <EncounterFullRecordOverlay
+              open={fullRecordOpen}
+              onClose={closeFullRecord}
+              patient={patientRow}
+              profile={patientProfile}
+              fallbackName={patientName}
+              loading={patientContextLoading}
+              error={patientContextError}
             />
           </div>
-
-          <LiquidClinicalWorkspaceShell
-            consultationId={id}
-            encounterStatus={status}
-            isSigned={isSigned}
-            isLocked={isLocked}
-            role="doctor"
-            copilotOpen={copilotDrawerOpen}
-            onOpenCopilot={() => {
-              setDnaDrawerOpen(false);
-              setCopilotDrawerOpen(true);
-            }}
-          >
-            <ConsultationWorkspace
-        actionWorkspaceEnabled={clinicalActionWorkspaceEnabled}
-        smartWorkspaceEnabled={smartClinicalWorkspaceEnabled}
-        consultation={consultation}
-        consultationId={id}
-        clinicId={consultation.clinicId ?? ctxClinicId ?? null}
-        activeTab={workspaceTab}
-        onTabChange={setWorkspaceTab}
-        leftPaneTab={leftPaneTab}
-        onLeftPaneTabChange={setLeftPaneTab}
-        rightPaneTab={rightPaneTab}
-        onRightPaneTabChange={setRightPaneTab}
-        patientContext={{
-          patientId: consultation.patientId,
-          patient: patientRow,
-          profile: patientProfile,
-          loading: patientContextLoading,
-          error: patientContextError,
-          fallbackName: patientName,
-          currentConsultationId: id,
-          encounterDiagnosis,
-          clinicalMemory: effectiveClinicalMemory,
-          clinicalMemoryLoading: effectiveClinicalMemoryLoading,
-          clinicalMemoryError: effectiveClinicalMemoryError,
-          clinicalFoundationOutputs,
-          clinicalFoundationLoading: clinicalFoundationState.loading,
-          clinicalFoundationError: clinicalFoundationState.error,
-          onOpenFullRecord: openFullRecord,
-        }}
-        ordersSubTab={ordersSubTab}
-        onOrdersSubTabChange={setOrdersSubTab}
-        documentHandlers={{
-          onStartTeleconsultation: () => void handleStartCall(),
-          onOpenPrescription: handleOpenPrescription,
-          onGenerateInvoice: () => void handleGenerateInvoice(),
-          onDownloadPdf: () => void handleDownloadPdf(),
-          onToggleEdit: handleToggleEdit,
-          onAnalyzeWithAi: handleAnalyzeWithAi,
-          onDelete: () => void handleDeleteConsultation(),
-          onGenerateSignedPrescription: () => void handleSignedPrescription(),
-          onGenerateSignedCertificate: () => void handleSignedCertificate(),
-          onGenerateSignedReferral: () => void handleSignedReferral(),
-          onGeneratePremiumDocument: () => void handlePremiumDocument(),
-        }}
-        documentLoading={actionLoading}
-        documentDisabled={documentDisabled}
-        onLegacyInvoiceResult={handleActionResult}
-        ordersHighlight={ordersHighlight}
-        ordersRefreshKey={ordersRefreshKey}
-        ordersPanelExpandSignal={ordersPanelExpandSignal}
-        encounterChart={{
-          onOpenFullRecord: openFullRecord,
-          consultationId: consultation.id,
-          vitals,
-          onVitalsChange: setVitals,
-          physicalExam,
-          onPhysicalExamChange: setPhysicalExam,
-          presentIllnessHistory,
-          onPresentIllnessHistoryChange: setPresentIllnessHistory,
-          treatment,
-          onTreatmentChange: setTreatment,
-          clinicId: consultation.clinicId ?? ctxClinicId ?? null,
-          diagnosis: diagnosisState.diagnosis,
-          diagnosisCode: diagnosisState.diagnosisCode || null,
-          diagnosisDescription: diagnosisState.diagnosisDescription || null,
-          diagnosisSource: diagnosisState.source,
-          diagnosisError,
-          onDiagnosisConfirm: handleDiagnosisConfirm,
-          patientId: consultation.patientId,
-          encounterDiagnosis,
-          allergyLines: jsonLinesToList(patientProfile?.allergies),
-          clinicalMemory: effectiveClinicalMemory,
-          clinicalMemoryLoading: effectiveClinicalMemoryLoading,
-          clinicalMemoryError: effectiveClinicalMemoryError,
-          editable: isEditable && editMode,
-          canToggleEdit: isEditable,
-          isEditing: editMode,
-          onToggleEdit: handleToggleEdit,
-          antecedentsDirty,
-          autosaveStatus,
-          lastSavedAt: effectiveLastSavedAt,
-          autosaveError,
-          manualSaveStatus,
-          onManualSave: handleManualSave,
-          saveFeedbackMessage:
-            saveMsg && paymentStep !== "confirm" ? saveMsg : null,
-          closure: {
-            status,
-            isSigned,
-            isLocked,
-            canSign,
-            signing,
-            onSign: handleSign,
-            signedAt: consultation.signedAt,
-            doctorSignature: consultation.doctorSignature,
-            documentHandlers: {
-              onStartTeleconsultation: () => void handleStartCall(),
-              onOpenPrescription: handleOpenPrescription,
-              onGenerateInvoice: () => void handleGenerateInvoice(),
-              onDownloadPdf: () => void handleDownloadPdf(),
-              onToggleEdit: handleToggleEdit,
-              onAnalyzeWithAi: handleAnalyzeWithAi,
-              onDelete: () => void handleDeleteConsultation(),
-              onGenerateSignedPrescription: () =>
-                void handleSignedPrescription(),
-              onGenerateSignedCertificate: () =>
-                void handleSignedCertificate(),
-              onGenerateSignedReferral: () => void handleSignedReferral(),
-              onGeneratePremiumDocument: () => void handlePremiumDocument(),
-            },
-            documentLoading: actionLoading,
-            documentDisabled,
-            signMessage: signMsg || undefined,
-          },
-          longitudinal: {
-            patient: patientRow,
-            profile: patientProfile,
-            loading: patientContextLoading,
-            patientId: consultation.patientId,
-            editable: isEditable && editMode,
-            antecedentsRef,
-            onProfileSaved: setPatientProfile,
-            onAntecedentsDraftKeyChange: setAntecedentsDraftKey,
-            onAntecedentsDirtyChange: setAntecedentsDirty,
-            onAntecedentsPersistError: (message) => {
-              setManualSaveStatus("error");
-              setSaveMsg(message);
-            },
-          },
-        }}
-        diagnosisCode={
-          diagnosisState.diagnosisCode || diagnosisState.diagnosis || undefined
-        }
-            />
-          </LiquidClinicalWorkspaceShell>
-        </ConsultationClinicalProviders>
-      ) : (
-        <LiquidClinicalWorkspaceShell
-          consultationId={id}
-          encounterStatus={status}
-          isSigned={isSigned}
-          isLocked={isLocked}
-          role="doctor"
-          copilotOpen={copilotDrawerOpen}
-          onOpenCopilot={() => {
-            setDnaDrawerOpen(false);
-            setCopilotDrawerOpen(true);
-          }}
-        >
-          <ConsultationWorkspace
-          actionWorkspaceEnabled={clinicalActionWorkspaceEnabled}
-        smartWorkspaceEnabled={smartClinicalWorkspaceEnabled}
-          consultation={consultation}
-          consultationId={id}
-          clinicId={consultation.clinicId ?? ctxClinicId ?? null}
-          activeTab={workspaceTab}
-          onTabChange={setWorkspaceTab}
-          leftPaneTab={leftPaneTab}
-          onLeftPaneTabChange={setLeftPaneTab}
-          rightPaneTab={rightPaneTab}
-          onRightPaneTabChange={setRightPaneTab}
-          patientContext={{
-            patientId: consultation.patientId,
-            patient: patientRow,
-            profile: patientProfile,
-            loading: patientContextLoading,
-            error: patientContextError,
-            fallbackName: patientName,
-            currentConsultationId: id,
-            encounterDiagnosis,
-            clinicalMemory: effectiveClinicalMemory,
-            clinicalMemoryLoading: effectiveClinicalMemoryLoading,
-            clinicalMemoryError: effectiveClinicalMemoryError,
-            clinicalFoundationOutputs,
-            clinicalFoundationLoading: clinicalFoundationState.loading,
-            clinicalFoundationError: clinicalFoundationState.error,
-            onOpenFullRecord: openFullRecord,
-          }}
-          ordersSubTab={ordersSubTab}
-          onOrdersSubTabChange={setOrdersSubTab}
-          documentHandlers={{
-            onStartTeleconsultation: () => void handleStartCall(),
-            onOpenPrescription: handleOpenPrescription,
-            onGenerateInvoice: () => void handleGenerateInvoice(),
-            onDownloadPdf: () => void handleDownloadPdf(),
-            onToggleEdit: handleToggleEdit,
-            onAnalyzeWithAi: handleAnalyzeWithAi,
-            onDelete: () => void handleDeleteConsultation(),
-            onGenerateSignedPrescription: () => void handleSignedPrescription(),
-            onGenerateSignedCertificate: () => void handleSignedCertificate(),
-            onGenerateSignedReferral: () => void handleSignedReferral(),
-            onGeneratePremiumDocument: () => void handlePremiumDocument(),
-          }}
-          documentLoading={actionLoading}
-          documentDisabled={documentDisabled}
-          onLegacyInvoiceResult={handleActionResult}
-          ordersHighlight={ordersHighlight}
-          ordersRefreshKey={ordersRefreshKey}
-          ordersPanelExpandSignal={ordersPanelExpandSignal}
-          encounterChart={{
-            onOpenFullRecord: openFullRecord,
-            consultationId: consultation.id,
-            vitals,
-            onVitalsChange: setVitals,
-            physicalExam,
-            onPhysicalExamChange: setPhysicalExam,
-            presentIllnessHistory,
-            onPresentIllnessHistoryChange: setPresentIllnessHistory,
-            treatment,
-            onTreatmentChange: setTreatment,
-            clinicId: consultation.clinicId ?? ctxClinicId ?? null,
-            diagnosis: diagnosisState.diagnosis,
-            diagnosisCode: diagnosisState.diagnosisCode || null,
-            diagnosisDescription: diagnosisState.diagnosisDescription || null,
-            diagnosisSource: diagnosisState.source,
-            diagnosisError,
-            onDiagnosisConfirm: handleDiagnosisConfirm,
-            patientId: consultation.patientId,
-            encounterDiagnosis,
-            allergyLines: jsonLinesToList(patientProfile?.allergies),
-            clinicalMemory: effectiveClinicalMemory,
-            clinicalMemoryLoading: effectiveClinicalMemoryLoading,
-            clinicalMemoryError: effectiveClinicalMemoryError,
-            editable: isEditable && editMode,
-            canToggleEdit: isEditable,
-            isEditing: editMode,
-            onToggleEdit: handleToggleEdit,
-            antecedentsDirty,
-            autosaveStatus,
-            lastSavedAt: effectiveLastSavedAt,
-            autosaveError,
-            manualSaveStatus,
-            onManualSave: handleManualSave,
-            saveFeedbackMessage:
-              saveMsg && paymentStep !== "confirm" ? saveMsg : null,
-            closure: {
-              status,
-              isSigned,
-              isLocked,
-              canSign,
-              signing,
-              onSign: handleSign,
-              signedAt: consultation.signedAt,
-              doctorSignature: consultation.doctorSignature,
-              documentHandlers: {
-                onStartTeleconsultation: () => void handleStartCall(),
-                onOpenPrescription: handleOpenPrescription,
-                onGenerateInvoice: () => void handleGenerateInvoice(),
-                onDownloadPdf: () => void handleDownloadPdf(),
-                onToggleEdit: handleToggleEdit,
-                onAnalyzeWithAi: handleAnalyzeWithAi,
-                onDelete: () => void handleDeleteConsultation(),
-                onGenerateSignedPrescription: () =>
-                  void handleSignedPrescription(),
-                onGenerateSignedCertificate: () =>
-                  void handleSignedCertificate(),
-                onGenerateSignedReferral: () => void handleSignedReferral(),
-                onGeneratePremiumDocument: () => void handlePremiumDocument(),
-              },
-              documentLoading: actionLoading,
-              documentDisabled,
-              signMessage: signMsg || undefined,
-            },
-            longitudinal: {
-              patient: patientRow,
-              profile: patientProfile,
-              loading: patientContextLoading,
-              patientId: consultation.patientId,
-              editable: isEditable && editMode,
-              antecedentsRef,
-              onProfileSaved: setPatientProfile,
-              onAntecedentsDraftKeyChange: setAntecedentsDraftKey,
-              onAntecedentsDirtyChange: setAntecedentsDirty,
-              onAntecedentsPersistError: (message) => {
-                setManualSaveStatus("error");
-                setSaveMsg(message);
-              },
-            },
-          }}
-          diagnosisCode={
-            diagnosisState.diagnosisCode || diagnosisState.diagnosis || undefined
-          }
-          />
-        </LiquidClinicalWorkspaceShell>
-      )}
-
-      {isLocked ? (
-        <Card className="border-green-200 bg-green-50 p-4">
-          <p className="font-semibold text-green-800">Consulta pagada y bloqueada</p>
-          <p className="mt-1 text-sm text-green-700">
-            Esta consulta ha sido finalizada. No se permiten modificaciones.
-          </p>
-        </Card>
-      ) : null}
-
-      <ConsultationConsentCard
-        consentGivenAt={consultation.consentGivenAt}
-        consentVersion={consultation.consentVersion}
-      />
-
-      {!isEditable && !canPay && !isLocked && saveMsg ? (
-        <p
-          className={`text-sm ${saveMsg.includes("Error") ? "text-red-600" : "text-green-700"}`}
-        >
-          {saveMsg}
-        </p>
-      ) : null}
-
-      <EncounterFullRecordOverlay
-        open={fullRecordOpen}
-        onClose={closeFullRecord}
-        patient={patientRow}
-        profile={patientProfile}
-        fallbackName={patientName}
-        loading={patientContextLoading}
-        error={patientContextError}
-      />
-    </div>
-    </HeyDoctorCopilotRuntimeProviders>
-    </CopilotNavigationProvider>
+        </HeyDoctorCopilotRuntimeProviders>
+      </CopilotNavigationProvider>
     </ClinicalActionWorkspaceProvider>
   );
 }

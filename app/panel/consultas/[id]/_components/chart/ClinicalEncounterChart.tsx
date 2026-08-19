@@ -1,6 +1,9 @@
 "use client";
 
-import type { ReactNode, Ref } from "react";
+import { useState, type ReactNode, type Ref } from "react";
+import { DISCLOSURE_RAIL_LABEL } from "../clinical-navigation-rail-model";
+import { EncounterDisclosureMount } from "../EncounterDisclosureMount";
+import { EncounterCopilotCicStrip } from "../copilot/EncounterCopilotCicStrip";
 import type { ClinicalVitalSigns } from "@/lib/clinical-vital-signs-context";
 import type { PhysicalExam } from "@/lib/physical-exam-framework";
 import type { DiagnosisSource } from "@/lib/services/consultation-diagnosis";
@@ -16,6 +19,26 @@ import { PhysicalExamSection } from "./PhysicalExamSection";
 import { ClinicalDocumentsSection } from "./ClinicalDocumentsSection";
 import { ClinicalOrdersSection } from "./ClinicalOrdersSection";
 import { ClinicalDecisionsSection } from "./ClinicalDecisionsSection";
+import { ClinicalAuthoritySection } from "./ClinicalAuthoritySection";
+import { ClinicalArtifactsSection } from "./ClinicalArtifactsSection";
+import { LongitudinalClinicalRecordSection } from "./LongitudinalClinicalRecordSection";
+import { ClinicalRuleEvaluationSection } from "./ClinicalRuleEvaluationSection";
+import { ClinicalUnderstandingSection } from "./ClinicalUnderstandingSection";
+import { ClinicalReasoningSection } from "./ClinicalReasoningSection";
+import { ClinicalRecommendationSection } from "./ClinicalRecommendationSection";
+import { ClinicalOutcomeSection } from "./ClinicalOutcomeSection";
+import { ClinicalGovernanceSection } from "./ClinicalGovernanceSection";
+import { HumanDecisionSection } from "./HumanDecisionSection";
+import { ClinicalExecutionSection } from "./ClinicalExecutionSection";
+import { ClinicalLearningSection } from "./ClinicalLearningSection";
+import { ClinicalReentrySection } from "./ClinicalReentrySection";
+import { ClinicalKnowledgeSection } from "./ClinicalKnowledgeSection";
+import { ClinicalEvidenceSection } from "./ClinicalEvidenceSection";
+import { ClinicalScientificGovernanceSection } from "./ClinicalScientificGovernanceSection";
+import { ClinicalKnowledgeFederationSection } from "./ClinicalKnowledgeFederationSection";
+import { ClinicalKnowledgeJurisdictionSection } from "./ClinicalKnowledgeJurisdictionSection";
+import { ClinicalKnowledgeEngineSection } from "./ClinicalKnowledgeEngineSection";
+import { ClinicalKnowledgeGroundingSection } from "./ClinicalKnowledgeGroundingSection";
 import { TreatmentSection } from "./TreatmentSection";
 import { VitalSignsSection } from "./VitalSignsSection";
 import {
@@ -89,9 +112,16 @@ export interface ClinicalEncounterChartProps {
   longitudinal?: PatientLongitudinalProps;
   /** Open Full Clinical Record without leaving Encounter Runtime. */
   onOpenFullRecord?: () => void;
-  /** UUID de la consulta para Clinical Documents y Clinical Orders Engine. */
+  /** UUID de la consulta para Documents, Orders, Decisions y Clinical Authority Spine. */
   consultationId?: string | null;
   className?: string;
+  /** E2-2 chrome: constitutional previews stay mounted, collapsed by default. */
+  disclosureExpanded?: boolean;
+  onDisclosureExpandedChange?: (expanded: boolean) => void;
+  /** E2-3: oferta clínica (Rx/lab/referral E1) between SOAP and HAB/firma. */
+  afterSoap?: ReactNode;
+  /** Context-aware CIC: offer panel currently expanded. */
+  offerExpanded?: boolean;
 }
 
 export function ClinicalEncounterChart({
@@ -133,7 +163,17 @@ export function ClinicalEncounterChart({
   onOpenFullRecord,
   consultationId = null,
   className,
+  disclosureExpanded: disclosureExpandedProp,
+  onDisclosureExpandedChange,
+  afterSoap = null,
+  offerExpanded = false,
 }: ClinicalEncounterChartProps) {
+  const [uncontrolledDisclosure, setUncontrolledDisclosure] = useState(false);
+  const disclosureExpanded = disclosureExpandedProp ?? uncontrolledDisclosure;
+  const setDisclosureExpanded = (next: boolean) => {
+    if (disclosureExpandedProp === undefined) setUncontrolledDisclosure(next);
+    onDisclosureExpandedChange?.(next);
+  };
   const profileProps = {
     profile: longitudinal?.profile ?? null,
     loading: longitudinal?.loading,
@@ -173,7 +213,7 @@ export function ClinicalEncounterChart({
 
   return (
     <div
-      className={className}
+      className={cn("space-y-hd-4", className)}
       data-testid="clinical-encounter-chart"
       aria-label="Ficha clínica médica integral"
     >
@@ -294,7 +334,7 @@ export function ClinicalEncounterChart({
         ) : null}
       </header>
 
-      <div className="space-y-hd-4">
+      <div className="space-y-hd-4" data-hot-path="true" data-testid="encounter-hot-path">
         <PatientIdentificationSection
           patient={longitudinal?.patient ?? null}
           loading={longitudinal?.loading}
@@ -343,11 +383,84 @@ export function ClinicalEncounterChart({
           onChange={onTreatmentChange}
           editable={editable}
         />
-        <ClinicalDocumentsSection consultationId={consultationId} />
-        <ClinicalOrdersSection consultationId={consultationId} />
-        <ClinicalDecisionsSection consultationId={consultationId} />
+        <EncounterCopilotCicStrip
+          consultationId={consultationId}
+          chiefComplaint={diagnosis}
+          subjective={presentIllnessHistory}
+          plan={treatment}
+          physicalExamDocumented={Object.entries(physicalExam).some(
+            ([key, value]) =>
+              key === "msk"
+                ? Object.values(physicalExam.msk ?? {}).some((item) =>
+                    String(item).trim(),
+                  )
+                : typeof value === "string" && value.trim().length > 0,
+          )}
+          antecedentsDocumented={Boolean(
+            (clinicalMemory?.recentDiagnoses.length ?? 0) +
+              (clinicalMemory?.currentMedications.length ?? 0),
+          )}
+          activeProblemCount={
+            (clinicalMemory?.activeConditions.length ?? 0) +
+            (encounterDiagnosis?.trim() ? 1 : 0)
+          }
+          offerExpanded={offerExpanded}
+          onApplyToSubjective={onPresentIllnessHistoryChange}
+          onApplyToPlan={onTreatmentChange}
+          editable={editable}
+        />
+        {afterSoap}
         {closure ? <EncounterClosureSection {...closure} /> : null}
-      </div>
+        </div>
+        <div className="space-y-hd-2">
+          <button
+            type="button"
+            data-testid="encounter-disclosure-toggle"
+            aria-expanded={disclosureExpanded}
+            aria-controls="encounter-disclosure-panel"
+            onClick={() => setDisclosureExpanded(!disclosureExpanded)}
+            className="clinical-interactive flex w-full items-center justify-between rounded-hd-md border border-hd-border-subtle bg-hd-surface-muted px-hd-3 py-hd-2 text-left text-xs font-medium text-slate-600"
+          >
+            <span>{DISCLOSURE_RAIL_LABEL}</span>
+            <span className="text-[10px] text-slate-400">
+              {disclosureExpanded ? "Ocultar" : "Mostrar"}
+            </span>
+          </button>
+          <div
+            id="encounter-disclosure-panel"
+            data-testid="encounter-disclosure-panel"
+            data-expanded={disclosureExpanded ? "true" : "false"}
+            data-hot-path="false"
+            hidden={!disclosureExpanded}
+            className={disclosureExpanded ? "space-y-hd-4" : undefined}
+          >
+            <EncounterDisclosureMount expanded={disclosureExpanded}>
+            <ClinicalDocumentsSection consultationId={consultationId} />
+            <ClinicalOrdersSection consultationId={consultationId} />
+            <ClinicalDecisionsSection consultationId={consultationId} />
+            <ClinicalAuthoritySection consultationId={consultationId} />
+            <ClinicalArtifactsSection consultationId={consultationId} />
+            <LongitudinalClinicalRecordSection consultationId={consultationId} />
+            <ClinicalRuleEvaluationSection consultationId={consultationId} />
+            <ClinicalUnderstandingSection consultationId={consultationId} />
+            <ClinicalReasoningSection consultationId={consultationId} />
+            <ClinicalRecommendationSection consultationId={consultationId} />
+            <ClinicalOutcomeSection consultationId={consultationId} />
+            <ClinicalGovernanceSection consultationId={consultationId} />
+            <HumanDecisionSection consultationId={consultationId} />
+            <ClinicalExecutionSection consultationId={consultationId} />
+            <ClinicalLearningSection consultationId={consultationId} />
+            <ClinicalReentrySection consultationId={consultationId} />
+            <ClinicalKnowledgeSection consultationId={consultationId} />
+            <ClinicalEvidenceSection consultationId={consultationId} />
+            <ClinicalScientificGovernanceSection consultationId={consultationId} />
+            <ClinicalKnowledgeFederationSection consultationId={consultationId} />
+            <ClinicalKnowledgeJurisdictionSection consultationId={consultationId} />
+            <ClinicalKnowledgeEngineSection consultationId={consultationId} />
+            <ClinicalKnowledgeGroundingSection consultationId={consultationId} />
+            </EncounterDisclosureMount>
+          </div>
+        </div>
     </div>
   );
 }

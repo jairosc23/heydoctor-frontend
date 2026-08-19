@@ -12,6 +12,7 @@ export interface ClinicalCollapsiblePanelProps {
   children: ReactNode;
   className?: string;
   contentClassName?: string;
+  onExpandedChange?: (expanded: boolean) => void;
 }
 
 export function ClinicalCollapsiblePanel({
@@ -23,6 +24,7 @@ export function ClinicalCollapsiblePanel({
   children,
   className,
   contentClassName,
+  onExpandedChange,
 }: ClinicalCollapsiblePanelProps) {
   const contentId = useId();
   const [expanded, setExpanded] = useState(defaultExpanded);
@@ -46,6 +48,10 @@ export function ClinicalCollapsiblePanel({
       /* noop */
     }
   }, [expandSignal, storageKey]);
+
+  useEffect(() => {
+    onExpandedChange?.(expanded);
+  }, [expanded, onExpandedChange]);
 
   const toggle = () => {
     setExpanded((current) => {

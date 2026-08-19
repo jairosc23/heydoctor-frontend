@@ -9,7 +9,8 @@ import {
   downloadPrescriptionPdf,
   type PrescriptionRecord,
 } from "@/lib/services";
-import { getApiErrorMessage } from "@/lib/heydoctor-api";
+import { toClinicalUserError } from "@/lib/clinical-user-error";
+import { confirmEmitClassForPersist } from "@/lib/hab-authority/api";
 import {
   formatPrescriptionTitle,
   inferPrescriptionStatus,
@@ -77,6 +78,7 @@ export function PrescriptionPanel({
   const [prescriptions, setPrescriptions] = useState<PrescriptionRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const emitInFlightRef = useRef(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftLines, setDraftLines] = useState<SelectedMedication[]>([
     emptySelectedMedication(),
@@ -159,10 +161,18 @@ export function PrescriptionPanel({
         return { ok: false, handoffId: req.handoffId, code: "composer_busy" };
       }
       if (req.patientId !== patientId) {
-        return { ok: false, handoffId: req.handoffId, code: "patient_mismatch" };
+        return {
+          ok: false,
+          handoffId: req.handoffId,
+          code: "patient_mismatch",
+        };
       }
       if (!user?.id || !user.clinicId) {
-        return { ok: false, handoffId: req.handoffId, code: "handoff_rejected" };
+        return {
+          ok: false,
+          handoffId: req.handoffId,
+          code: "handoff_rejected",
+        };
       }
 
       try {
@@ -201,7 +211,11 @@ export function PrescriptionPanel({
           composerLifecycle: "HYDRATED",
         };
       } catch {
-        return { ok: false, handoffId: req.handoffId, code: "handoff_rejected" };
+        return {
+          ok: false,
+          handoffId: req.handoffId,
+          code: "handoff_rejected",
+        };
       }
     };
 
@@ -225,7 +239,9 @@ export function PrescriptionPanel({
       .catch((e) => {
         if (!cancelled) {
           setPrescriptions([]);
-          setListError(getApiErrorMessage(e, "No se pudieron cargar recetas."));
+          setListError(
+            toClinicalUserError(e, "No se pudieron cargar recetas."),
+          );
         }
       })
       .finally(() => {
@@ -253,7 +269,7 @@ export function PrescriptionPanel({
           setError(
             e instanceof IntakeGateError
               ? e.message
-              : getApiErrorMessage(e, "No se pudo hidratar asistencia"),
+              : toClinicalUserError(e, "No se pudo hidratar asistencia"),
           );
         }
       })
@@ -325,7 +341,10 @@ export function PrescriptionPanel({
       setError(
         e instanceof IntakeGateError
           ? e.message
-          : getApiErrorMessage(e, "No se pudo cargar asistencia del protocolo"),
+          : toClinicalUserError(
+              e,
+              "No se pudo cargar asistencia del protocolo",
+            ),
       );
     } finally {
       setHydrating(false);
@@ -333,6 +352,8 @@ export function PrescriptionPanel({
   };
 
   const handleSave = async () => {
+    if (creating || emitInFlightRef.current) return;
+    emitInFlightRef.current = true;
     setCreating(true);
     setError(null);
     const safetyDecision = buildSafetyDecisionPayload(safetyDecisionState);
@@ -352,12 +373,18 @@ export function PrescriptionPanel({
       const meds = medicationItemsFromSelectedMedications(draftLines);
       if (meds.length === 0) return;
 
+      const habDecisionId = await confirmEmitClassForPersist({
+        consultationId,
+        actKind: "prescription_pre_emit",
+      });
+
       if (editingId) {
         await updatePrescription(editingId, {
           diagnosis: diagnosis || undefined,
           medications: meds,
           notes: notes || undefined,
           safetyDecision,
+          habDecisionId,
         });
       } else {
         await createPrescription({
@@ -367,14 +394,16 @@ export function PrescriptionPanel({
           medications: meds,
           notes: notes || undefined,
           safetyDecision,
+          habDecisionId,
         });
         onPrescriptionCreated?.();
       }
       resetForm();
       await reload();
     } catch (e) {
-      setError(getApiErrorMessage(e, "Error al guardar receta"));
+      setError(toClinicalUserError(e, "Error al guardar receta"));
     } finally {
+      emitInFlightRef.current = false;
       setCreating(false);
     }
   };
@@ -391,11 +420,16 @@ export function PrescriptionPanel({
     if (!window.confirm("¿Eliminar esta receta?")) return;
     setError(null);
     try {
-      await deletePrescription(id);
+      const target = prescriptions.find((item) => item.id === id);
+      const habDecisionId = await confirmEmitClassForPersist({
+        consultationId: target?.consultationId ?? consultationId,
+        actKind: "prescription_pre_emit",
+      });
+      await deletePrescription(id, habDecisionId);
       if (editingId === id) resetForm();
       await reload();
     } catch (e) {
-      setError(getApiErrorMessage(e, "No se pudo eliminar"));
+      setError(toClinicalUserError(e, "No se pudo eliminar"));
     }
   };
 
@@ -405,7 +439,7 @@ export function PrescriptionPanel({
     try {
       await downloadPrescriptionPdf(id);
     } catch (e) {
-      setError(getApiErrorMessage(e, "No se pudo generar el PDF"));
+      setError(toClinicalUserError(e, "No se pudo generar el PDF"));
     } finally {
       setPdfLoadingId(null);
     }
@@ -444,7 +478,14 @@ export function PrescriptionPanel({
               role="alert"
               className="mb-2 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-800"
             >
-              {listError}
+              {listError}{" "}
+              <button
+                type="button"
+                className="font-semibold underline"
+                onClick={() => void reload()}
+              >
+                Reintentar
+              </button>
             </p>
           )}
           {prescriptions.length === 0 ? (
@@ -564,9 +605,7 @@ export function PrescriptionPanel({
             <MedicationOrderBuilder
               lines={orderLinesFromSelectedMedications(draftLines)}
               onChange={(orderLines) =>
-                handleLinesChange(
-                  selectedMedicationsFromOrderLines(orderLines),
-                )
+                handleLinesChange(selectedMedicationsFromOrderLines(orderLines))
               }
               patientId={patientId}
               consultationId={consultationId}

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   fetchReferralsByPatient,
   createReferral,
@@ -9,7 +9,8 @@ import {
   type ReferralRecord,
   type ReferralStatus,
 } from "@/lib/services";
-import { getApiErrorMessage } from "@/lib/heydoctor-api";
+import { toClinicalUserError } from "@/lib/clinical-user-error";
+import { confirmEmitClassForPersist } from "@/lib/hab-authority/api";
 import {
   formatReferralTitle,
   inferReferralStatus,
@@ -38,6 +39,7 @@ export function ReferralsPanel({
   const [referrals, setReferrals] = useState<ReferralRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const emitInFlightRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [pdfLoadingId, setPdfLoadingId] = useState<string | null>(null);
   const [receivingDoctorName, setReceivingDoctorName] = useState("");
@@ -61,7 +63,9 @@ export function ReferralsPanel({
       .catch((e) => {
         if (!cancelled) {
           setReferrals([]);
-          setError(getApiErrorMessage(e, "No se pudieron cargar interconsultas."));
+          setError(
+            toClinicalUserError(e, "No se pudieron cargar interconsultas."),
+          );
         }
       })
       .finally(() => {
@@ -73,10 +77,17 @@ export function ReferralsPanel({
   }, [patientId]);
 
   const handleCreate = async () => {
-    if (!receivingDoctorName.trim() || !specialty.trim() || !reason.trim()) return;
+    if (saving || emitInFlightRef.current) return;
+    if (!receivingDoctorName.trim() || !specialty.trim() || !reason.trim())
+      return;
+    emitInFlightRef.current = true;
     setSaving(true);
     setError(null);
     try {
+      const habDecisionId = await confirmEmitClassForPersist({
+        consultationId,
+        actKind: "orders_ready",
+      });
       await createReferral({
         patientId,
         consultationId: consultationId ?? undefined,
@@ -87,6 +98,7 @@ export function ReferralsPanel({
         attachments: attachmentName.trim()
           ? [{ name: attachmentName.trim() }]
           : undefined,
+        habDecisionId,
       });
       setReceivingDoctorName("");
       setReceivingDoctorEmail("");
@@ -95,8 +107,9 @@ export function ReferralsPanel({
       setAttachmentName("");
       await reload();
     } catch (e) {
-      setError(getApiErrorMessage(e, "Error al crear interconsulta"));
+      setError(toClinicalUserError(e, "Error al crear interconsulta"));
     } finally {
+      emitInFlightRef.current = false;
       setSaving(false);
     }
   };
@@ -104,10 +117,15 @@ export function ReferralsPanel({
   const handleStatus = async (id: string, status: ReferralStatus) => {
     setError(null);
     try {
-      await updateReferralStatus(id, status);
+      const target = referrals.find((item) => item.id === id);
+      const habDecisionId = await confirmEmitClassForPersist({
+        consultationId: target?.consultationId ?? consultationId,
+        actKind: "orders_ready",
+      });
+      await updateReferralStatus(id, status, habDecisionId);
       await reload();
     } catch (e) {
-      setError(getApiErrorMessage(e, "No se pudo actualizar estado"));
+      setError(toClinicalUserError(e, "No se pudo actualizar estado"));
     }
   };
 
@@ -117,7 +135,7 @@ export function ReferralsPanel({
     try {
       await downloadReferralPdf(id);
     } catch (e) {
-      setError(getApiErrorMessage(e, "No se pudo generar PDF"));
+      setError(toClinicalUserError(e, "No se pudo generar PDF"));
     } finally {
       setPdfLoadingId(null);
     }
@@ -154,42 +172,42 @@ export function ReferralsPanel({
                 (item) => inferReferralStatus(item.status),
                 (item) => item.createdAt,
               ).map((r) => (
-                  <UnifiedOrderCard
-                    key={r.id}
-                    kind="Interconsulta"
-                    title={formatReferralTitle(r)}
-                    status={inferReferralStatus(r.status)}
-                    updatedAt={r.createdAt}
-                    actions={
-                      <>
-                        {(["PENDING", "ACCEPTED", "COMPLETED"] as ReferralStatus[]).map(
-                          (st) => (
-                            <button
-                              key={st}
-                              type="button"
-                              disabled={r.status === st}
-                              onClick={() => void handleStatus(r.id, st)}
-                              className="font-medium text-slate-600 hover:text-primary hover:underline disabled:opacity-40"
-                            >
-                              {STATUS_LABEL[st]}
-                            </button>
-                          ),
-                        )}
-                        <span className="text-slate-300" aria-hidden>
-                          |
-                        </span>
+                <UnifiedOrderCard
+                  key={r.id}
+                  kind="Interconsulta"
+                  title={formatReferralTitle(r)}
+                  status={inferReferralStatus(r.status)}
+                  updatedAt={r.createdAt}
+                  actions={
+                    <>
+                      {(
+                        ["PENDING", "ACCEPTED", "COMPLETED"] as ReferralStatus[]
+                      ).map((st) => (
                         <button
+                          key={st}
                           type="button"
-                          onClick={() => void handlePdf(r.id)}
-                          disabled={pdfLoadingId === r.id}
-                          className="font-medium text-slate-600 hover:text-primary hover:underline disabled:opacity-50"
+                          disabled={r.status === st}
+                          onClick={() => void handleStatus(r.id, st)}
+                          className="font-medium text-slate-600 hover:text-primary hover:underline disabled:opacity-40"
                         >
-                          {pdfLoadingId === r.id ? "PDF…" : "PDF"}
+                          {STATUS_LABEL[st]}
                         </button>
-                      </>
-                    }
-                  />
-                ))}
+                      ))}
+                      <span className="text-slate-300" aria-hidden>
+                        |
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => void handlePdf(r.id)}
+                        disabled={pdfLoadingId === r.id}
+                        className="font-medium text-slate-600 hover:text-primary hover:underline disabled:opacity-50"
+                      >
+                        {pdfLoadingId === r.id ? "PDF…" : "PDF"}
+                      </button>
+                    </>
+                  }
+                />
+              ))}
             </div>
           )}
           <div id="referral-form" className="space-y-2">

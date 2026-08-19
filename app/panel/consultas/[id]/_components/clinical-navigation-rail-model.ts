@@ -4,6 +4,12 @@ import type { PatientProfile } from "@/lib/services/patients";
 import type { ClinicalEncounterChartProps } from "./chart/ClinicalEncounterChart";
 
 export type ClinicalNavigationGroup = "context" | "documentation" | "closure";
+/**
+ * E2 care path. Primary is the minimum flow needed to complete a
+ * Signature-ready clinical encounter. Any future surface is classified by:
+ * "Is it indispensable to complete the clinical encounter?" If no → disclosure.
+ */
+export type ClinicalNavigationLane = "primary" | "disclosure";
 export type ClinicalNavigationCompletion =
   | "empty"
   | "in_progress"
@@ -11,6 +17,32 @@ export type ClinicalNavigationCompletion =
   | "warning"
   | "blocked";
 export type ClinicalNavigationRisk = "critical" | "warning" | "info";
+
+/**
+ * Rail sections indispensable to complete/sign the encounter
+ * (context → SOAP → closure). Rx/lab/referral live in HAB-gated panels, not here.
+ */
+export const PRIMARY_ENCOUNTER_SECTION_NUMBERS = [
+  1, 3, 4, 9, 10, 11, 12, 13, 20, 22,
+] as const;
+
+const PRIMARY_ENCOUNTER_SECTION_NUMBER_SET = new Set<number>(
+  PRIMARY_ENCOUNTER_SECTION_NUMBERS,
+);
+
+/**
+ * E2 rule: every disclosure surface stays reachable in at most one click.
+ * Chrome (E2-2) must not delete sections, break deep links, or add navigation.
+ */
+export const DISCLOSURE_MAX_CLICKS = 1 as const;
+
+export function classifyEncounterSectionLane(
+  sectionNumber: number,
+): ClinicalNavigationLane {
+  return PRIMARY_ENCOUNTER_SECTION_NUMBER_SET.has(sectionNumber)
+    ? "primary"
+    : "disclosure";
+}
 
 export type ClinicalNavigationValidationCode =
   | "missing_patient"
@@ -33,6 +65,7 @@ export interface ClinicalNavigationSection {
   label: string;
   shortLabel: string;
   group: ClinicalNavigationGroup;
+  lane: ClinicalNavigationLane;
   completion: ClinicalNavigationCompletion;
   risk?: ClinicalNavigationRisk;
   validationCode?: ClinicalNavigationValidationCode;
@@ -198,7 +231,7 @@ export function buildClinicalNavigationIntelligence(
     );
   }
 
-  const sections: ClinicalNavigationSection[] = [
+  const sectionDrafts: Array<Omit<ClinicalNavigationSection, "lane">> = [
     {
       id: "encounter-section-1",
       sectionNumber: 1,
@@ -334,6 +367,186 @@ export function buildClinicalNavigationIntelligence(
       helperText: "Preview HTTP del Clinical Decision Support Engine",
     },
     {
+      id: "encounter-section-25",
+      sectionNumber: 25,
+      label: "Clinical Authority",
+      shortLabel: "Autoridad",
+      group: "documentation",
+      completion: "completed",
+      helperText: "Preview HTTP del Clinical Authority Spine",
+    },
+    {
+      id: "encounter-section-26",
+      sectionNumber: 26,
+      label: "Clinical Artifacts",
+      shortLabel: "Artefactos",
+      group: "documentation",
+      completion: "completed",
+      helperText: "Preview HTTP del Clinical Artifact Registry",
+    },
+    {
+      id: "encounter-section-27",
+      sectionNumber: 27,
+      label: "Longitudinal Clinical Record",
+      shortLabel: "Longitudinal",
+      group: "documentation",
+      completion: "completed",
+      helperText: "Preview HTTP del Longitudinal Clinical Record",
+    },
+    {
+      id: "encounter-section-28",
+      sectionNumber: 28,
+      label: "Clinical Rules Evaluator",
+      shortLabel: "Reglas",
+      group: "documentation",
+      completion: "completed",
+      helperText: "Preview HTTP del Clinical Rules Evaluator",
+    },
+    {
+      id: "encounter-section-29",
+      sectionNumber: 29,
+      label: "Clinical Understanding",
+      shortLabel: "Comprensión",
+      group: "documentation",
+      completion: "completed",
+      helperText: "Preview HTTP del Clinical Understanding",
+    },
+    {
+      id: "encounter-section-30",
+      sectionNumber: 30,
+      label: "Clinical Reasoning",
+      shortLabel: "Razonamiento",
+      group: "documentation",
+      completion: "completed",
+      helperText: "Preview HTTP del Clinical Reasoning",
+    },
+    {
+      id: "encounter-section-31",
+      sectionNumber: 31,
+      label: "Clinical Recommendation",
+      shortLabel: "Recomendación",
+      group: "documentation",
+      completion: "completed",
+      helperText: "Preview HTTP del Clinical Recommendation",
+    },
+    {
+      id: "encounter-section-32",
+      sectionNumber: 32,
+      label: "Clinical Outcomes",
+      shortLabel: "Resultados",
+      group: "documentation",
+      completion: "completed",
+      helperText: "Preview HTTP del Clinical Outcomes",
+    },
+    {
+      id: "encounter-section-33",
+      sectionNumber: 33,
+      label: "Clinical Governance",
+      shortLabel: "Gobernanza",
+      group: "documentation",
+      completion: "completed",
+      helperText: "Preview HTTP del Clinical Governance",
+    },
+    {
+      id: "encounter-section-34",
+      sectionNumber: 34,
+      label: "Human Decision",
+      shortLabel: "Decisión",
+      group: "documentation",
+      completion: "completed",
+      helperText: "Preview HTTP del Human Decision",
+    },
+    {
+      id: "encounter-section-35",
+      sectionNumber: 35,
+      label: "Clinical Execution",
+      shortLabel: "Ejecución",
+      group: "documentation",
+      completion: "completed",
+      helperText: "Preview HTTP del Clinical Execution",
+    },
+    {
+      id: "encounter-section-36",
+      sectionNumber: 36,
+      label: "Clinical Learning",
+      shortLabel: "Aprendizaje",
+      group: "documentation",
+      completion: "completed",
+      helperText: "Preview HTTP del Clinical Learning",
+    },
+    {
+      id: "encounter-section-37",
+      sectionNumber: 37,
+      label: "Clinical Reentry",
+      shortLabel: "Reingreso",
+      group: "documentation",
+      completion: "completed",
+      helperText: "Preview HTTP del Clinical Reentry",
+    },
+    {
+      id: "encounter-section-38",
+      sectionNumber: 38,
+      label: "Clinical Knowledge",
+      shortLabel: "Conocimiento",
+      group: "documentation",
+      completion: "completed",
+      helperText: "Preview HTTP del Clinical Knowledge",
+    },
+    {
+      id: "encounter-section-39",
+      sectionNumber: 39,
+      label: "Clinical Evidence",
+      shortLabel: "Evidencia",
+      group: "documentation",
+      completion: "completed",
+      helperText: "Preview HTTP del Clinical Evidence",
+    },
+    {
+      id: "encounter-section-40",
+      sectionNumber: 40,
+      label: "Clinical Scientific Governance",
+      shortLabel: "Gob. científica",
+      group: "documentation",
+      completion: "completed",
+      helperText: "Preview HTTP del Clinical Scientific Governance",
+    },
+    {
+      id: "encounter-section-41",
+      sectionNumber: 41,
+      label: "Clinical Knowledge Federation",
+      shortLabel: "Federación",
+      group: "documentation",
+      completion: "completed",
+      helperText: "Preview HTTP del Clinical Knowledge Federation",
+    },
+    {
+      id: "encounter-section-42",
+      sectionNumber: 42,
+      label: "Clinical Knowledge Jurisdiction",
+      shortLabel: "Jurisdicción",
+      group: "documentation",
+      completion: "completed",
+      helperText: "Preview HTTP del Clinical Knowledge Jurisdiction",
+    },
+    {
+      id: "encounter-section-43",
+      sectionNumber: 43,
+      label: "Clinical Knowledge Engine",
+      shortLabel: "Motor",
+      group: "documentation",
+      completion: "completed",
+      helperText: "Preview HTTP del Clinical Knowledge Engine",
+    },
+    {
+      id: "encounter-section-44",
+      sectionNumber: 44,
+      label: "Clinical Knowledge Grounding",
+      shortLabel: "Atribución",
+      group: "documentation",
+      completion: "completed",
+      helperText: "Preview HTTP del Clinical Knowledge Grounding",
+    },
+    {
       id: "encounter-section-20",
       sectionNumber: 20,
       label: "Firma",
@@ -371,6 +584,11 @@ export function buildClinicalNavigationIntelligence(
     },
   ];
 
+  const sections: ClinicalNavigationSection[] = sectionDrafts.map((section) => ({
+    ...section,
+    lane: classifyEncounterSectionLane(section.sectionNumber),
+  }));
+
   return {
     sections,
     progress: buildProgress(sections, signatureReady),
@@ -382,4 +600,240 @@ export function buildClinicalNavigationSections(
   chart: ClinicalEncounterChartProps,
 ): ClinicalNavigationSection[] {
   return buildClinicalNavigationIntelligence(chart).sections;
+}
+
+export function primaryEncounterSections(
+  sections: ClinicalNavigationSection[],
+): ClinicalNavigationSection[] {
+  return sections.filter((section) => section.lane === "primary");
+}
+
+export function disclosureEncounterSections(
+  sections: ClinicalNavigationSection[],
+): ClinicalNavigationSection[] {
+  return sections.filter((section) => section.lane === "disclosure");
+}
+
+export const DISCLOSURE_RAIL_LABEL = "Previews clínicas";
+
+export type ClinicalNavigationRailEntry =
+  | { type: "section"; section: ClinicalNavigationSection }
+  | { type: "disclosure-toggle"; count: number }
+  | {
+      type: "care-path-landmark";
+      id: string;
+      step: "offer" | "authorization" | "copilot";
+      label: string;
+      shortLabel: string;
+    };
+
+export type ClinicalCarePathStep =
+  | "context"
+  | "soap"
+  | "offer"
+  | "authorization"
+  | "closure";
+
+export const ENCOUNTER_OFFER_ID = "encounter-offer";
+export const ENCOUNTER_HAB_ID = "encounter-hab";
+export const ENCOUNTER_CIC_ID = "encounter-cic";
+
+export const SIGNATURE_READY_CARE_PATH: ClinicalCarePathStep[] = [
+  "context",
+  "soap",
+  "offer",
+  "authorization",
+  "closure",
+];
+
+export const CARE_PATH_STEP_LABELS: Record<ClinicalCarePathStep, string> = {
+  context: "Contexto",
+  soap: "SOAP",
+  offer: "Oferta clínica",
+  authorization: "Autorización humana",
+  closure: "Firma / Documentos",
+};
+
+const SOAP_SECTION_NUMBERS = new Set([3, 9, 10, 11, 12, 13]);
+
+export function carePathStepForSectionNumber(
+  sectionNumber: number,
+): ClinicalCarePathStep | null {
+  if (sectionNumber === 1 || sectionNumber === 4) return "context";
+  if (SOAP_SECTION_NUMBERS.has(sectionNumber)) return "soap";
+  if (sectionNumber === 20 || sectionNumber === 22) return "closure";
+  return null;
+}
+
+export function isEncounterOfferLandmark(sectionId: string | null | undefined): boolean {
+  return sectionId === ENCOUNTER_OFFER_ID || sectionId === ENCOUNTER_HAB_ID;
+}
+
+export function isEncounterCarePathLandmark(sectionId: string | null | undefined): boolean {
+  return (
+    isEncounterOfferLandmark(sectionId) || sectionId === ENCOUNTER_CIC_ID
+  );
+}
+
+export type SignatureReadyRailGroup = {
+  key: string;
+  label: string;
+  entries: ClinicalNavigationRailEntry[];
+};
+
+export function buildSignatureReadyRailGroups(
+  sections: ClinicalNavigationSection[],
+  disclosureExpanded: boolean,
+): SignatureReadyRailGroup[] {
+  const byStep: Record<"context" | "soap" | "closure", ClinicalNavigationSection[]> = {
+    context: [],
+    soap: [],
+    closure: [],
+  };
+  for (const section of sections) {
+    if (section.lane === "disclosure") continue;
+    const step = carePathStepForSectionNumber(section.sectionNumber);
+    if (step === "context" || step === "soap" || step === "closure") {
+      byStep[step].push(section);
+    }
+  }
+
+  const groups: SignatureReadyRailGroup[] = [];
+  for (const step of SIGNATURE_READY_CARE_PATH) {
+    if (step === "soap") {
+      const stepSections = byStep.soap;
+      if (stepSections.length > 0) {
+        groups.push({
+          key: "soap",
+          label: CARE_PATH_STEP_LABELS.soap,
+          entries: [
+            ...stepSections.map((section) => ({
+              type: "section" as const,
+              section,
+            })),
+            {
+              type: "care-path-landmark",
+              id: ENCOUNTER_CIC_ID,
+              step: "copilot",
+              label: "HeyDoctor Copilot",
+              shortLabel: "Copilot",
+            },
+          ],
+        });
+      }
+      continue;
+    }
+    if (step === "offer") {
+      groups.push({
+        key: "offer",
+        label: CARE_PATH_STEP_LABELS.offer,
+        entries: [
+          {
+            type: "care-path-landmark",
+            id: ENCOUNTER_OFFER_ID,
+            step: "offer",
+            label: "Prescription / Lab / Referral",
+            shortLabel: "Oferta",
+          },
+        ],
+      });
+      continue;
+    }
+    if (step === "authorization") {
+      groups.push({
+        key: "authorization",
+        label: CARE_PATH_STEP_LABELS.authorization,
+        entries: [
+          {
+            type: "care-path-landmark",
+            id: ENCOUNTER_HAB_ID,
+            step: "authorization",
+            label: "HAB",
+            shortLabel: "HAB",
+          },
+        ],
+      });
+      continue;
+    }
+    const stepSections = byStep[step];
+    if (stepSections.length === 0) continue;
+    groups.push({
+      key: step,
+      label: CARE_PATH_STEP_LABELS[step],
+      entries: stepSections.map((section) => ({ type: "section" as const, section })),
+    });
+  }
+
+  const disclosure = disclosureEncounterSections(sections);
+  if (disclosure.length > 0) {
+    const entries: ClinicalNavigationRailEntry[] = [
+      { type: "disclosure-toggle", count: disclosure.length },
+    ];
+    if (disclosureExpanded) {
+      for (const section of disclosure) {
+        entries.push({ type: "section", section });
+      }
+    }
+    groups.push({
+      key: "disclosure",
+      label: DISCLOSURE_RAIL_LABEL,
+      entries,
+    });
+  }
+  return groups;
+}
+
+export function flattenSignatureReadyRailEntries(
+  groups: SignatureReadyRailGroup[],
+): ClinicalNavigationRailEntry[] {
+  return groups.flatMap((group) => group.entries);
+}
+
+export function shouldExpandDisclosureForSectionId(
+  sections: Array<Pick<ClinicalNavigationSection, "id" | "lane">>,
+  sectionId: string | null | undefined,
+): boolean {
+  if (!sectionId) return false;
+  return sections.some(
+    (section) => section.id === sectionId && section.lane === "disclosure",
+  );
+}
+
+export function encounterHashSectionId(hash: string | null | undefined): string | null {
+  if (!hash) return null;
+  const sectionId = hash.startsWith("#") ? hash.slice(1) : hash;
+  return sectionId.startsWith("encounter-section-") ? sectionId : null;
+}
+
+/**
+ * Preserve model order. Insert a single disclosure toggle before each
+ * contiguous disclosure run. Collapsed chrome omits those sections.
+ */
+export function buildClinicalNavigationRailEntries(
+  sections: ClinicalNavigationSection[],
+  disclosureExpanded: boolean,
+): ClinicalNavigationRailEntry[] {
+  const entries: ClinicalNavigationRailEntry[] = [];
+  let index = 0;
+  while (index < sections.length) {
+    const current = sections[index];
+    if (!current) break;
+    if (current.lane === "disclosure") {
+      const start = index;
+      while (index < sections.length && sections[index]?.lane === "disclosure") {
+        index += 1;
+      }
+      const disclosure = sections.slice(start, index);
+      entries.push({ type: "disclosure-toggle", count: disclosure.length });
+      if (disclosureExpanded) {
+        for (const section of disclosure) {
+          entries.push({ type: "section", section });
+        }
+      }
+      continue;
+    }
+    entries.push({ type: "section", section: current });
+    index += 1;
+  }
+  return entries;
 }

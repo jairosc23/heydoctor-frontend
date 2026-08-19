@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   fetchLabOrdersByPatient,
   fetchLabTemplates,
@@ -12,7 +12,8 @@ import {
   type LabOrderRecord,
   type LabTemplate,
 } from "@/lib/services";
-import { getApiErrorMessage } from "@/lib/heydoctor-api";
+import { toClinicalUserError } from "@/lib/clinical-user-error";
+import { confirmEmitClassForPersist } from "@/lib/hab-authority/api";
 import {
   formatLabOrderTitle,
   inferLabOrderStatus,
@@ -49,6 +50,7 @@ export function LabOrdersPanel({
   const [loading, setLoading] = useState(true);
   const [suggestLoading, setSuggestLoading] = useState(false);
   const [creating, setCreating] = useState(false);
+  const emitInFlightRef = useRef(false);
   const [exams, setExams] = useState<LabExamItem[]>([emptyExam()]);
   const [templateName, setTemplateName] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -78,7 +80,9 @@ export function LabOrdersPanel({
         if (!cancelled) {
           setOrders([]);
           setTemplates([]);
-          setListError(getApiErrorMessage(e, "No se pudieron cargar órdenes."));
+          setListError(
+            toClinicalUserError(e, "No se pudieron cargar órdenes."),
+          );
         }
       })
       .finally(() => {
@@ -99,13 +103,17 @@ export function LabOrdersPanel({
   }, [diagnosisCode]);
 
   const updateExam = (index: number, patch: Partial<LabExamItem>) => {
-    setExams((prev) => prev.map((e, i) => (i === index ? { ...e, ...patch } : e)));
+    setExams((prev) =>
+      prev.map((e, i) => (i === index ? { ...e, ...patch } : e)),
+    );
   };
 
   const addExamRow = () => setExams((p) => [...p, emptyExam()]);
 
   const removeExamRow = (index: number) => {
-    setExams((p) => (p.length <= 1 ? [emptyExam()] : p.filter((_, i) => i !== index)));
+    setExams((p) =>
+      p.length <= 1 ? [emptyExam()] : p.filter((_, i) => i !== index),
+    );
   };
 
   const addSuggested = (exam: string) => {
@@ -136,28 +144,36 @@ export function LabOrdersPanel({
       });
       await reload();
     } catch (e) {
-      setError(getApiErrorMessage(e, "No se pudo guardar plantilla"));
+      setError(toClinicalUserError(e, "No se pudo guardar plantilla"));
     }
   };
 
   const handleCreateOrder = async () => {
+    if (creating || emitInFlightRef.current) return;
     const valid = exams.filter((e) => e.exam.trim());
     if (valid.length === 0) return;
+    emitInFlightRef.current = true;
     setCreating(true);
     setError(null);
     try {
+      const habDecisionId = await confirmEmitClassForPersist({
+        consultationId,
+        actKind: "orders_ready",
+      });
       await createLabOrder({
         patientId,
         consultationId: consultationId ?? undefined,
         exams: valid,
         templateName: templateName || undefined,
+        habDecisionId,
       });
       setExams([emptyExam()]);
       onOrderCreated?.();
       await reload();
     } catch (e) {
-      setError(getApiErrorMessage(e, "Error al crear orden"));
+      setError(toClinicalUserError(e, "Error al crear orden"));
     } finally {
+      emitInFlightRef.current = false;
       setCreating(false);
     }
   };
@@ -168,7 +184,7 @@ export function LabOrdersPanel({
     try {
       await downloadLabOrderPdf(id);
     } catch (e) {
-      setError(getApiErrorMessage(e, "No se pudo generar el PDF"));
+      setError(toClinicalUserError(e, "No se pudo generar el PDF"));
     } finally {
       setPdfLoadingId(null);
     }
@@ -190,8 +206,18 @@ export function LabOrdersPanel({
       ) : (
         <>
           {listError && (
-            <p role="alert" className="text-xs mb-2 text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-2 py-1">
-              {listError}
+            <p
+              role="alert"
+              className="text-xs mb-2 text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-2 py-1"
+            >
+              {listError}{" "}
+              <button
+                type="button"
+                className="font-semibold underline"
+                onClick={() => void reload()}
+              >
+                Reintentar
+              </button>
             </p>
           )}
           {orders.length === 0 ? (
@@ -213,30 +239,32 @@ export function LabOrdersPanel({
                 () => inferLabOrderStatus(),
                 (order) => order.createdAt,
               ).map((o) => (
-                  <UnifiedOrderCard
-                    key={o.id}
-                    kind="Laboratorio"
-                    title={formatLabOrderTitle(o)}
-                    status={inferLabOrderStatus()}
-                    updatedAt={o.createdAt}
-                    actions={
-                      <button
-                        type="button"
-                        onClick={() => void handlePdf(o.id)}
-                        disabled={pdfLoadingId === o.id}
-                        className="rounded font-medium text-slate-600 hover:text-primary hover:underline disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-primaryLight focus:ring-offset-2"
-                        aria-label={`Descargar PDF de ${formatLabOrderTitle(o)}`}
-                      >
-                        {pdfLoadingId === o.id ? "PDF…" : "PDF"}
-                      </button>
-                    }
-                  />
-                ))}
+                <UnifiedOrderCard
+                  key={o.id}
+                  kind="Laboratorio"
+                  title={formatLabOrderTitle(o)}
+                  status={inferLabOrderStatus()}
+                  updatedAt={o.createdAt}
+                  actions={
+                    <button
+                      type="button"
+                      onClick={() => void handlePdf(o.id)}
+                      disabled={pdfLoadingId === o.id}
+                      className="rounded font-medium text-slate-600 hover:text-primary hover:underline disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-primaryLight focus:ring-offset-2"
+                      aria-label={`Descargar PDF de ${formatLabOrderTitle(o)}`}
+                    >
+                      {pdfLoadingId === o.id ? "PDF…" : "PDF"}
+                    </button>
+                  }
+                />
+              ))}
             </div>
           )}
           {(favorites.length > 0 || others.length > 0) && (
             <div className="mb-3">
-              <h4 className="text-xs font-medium text-gray-600 mb-1">Plantillas</h4>
+              <h4 className="text-xs font-medium text-gray-600 mb-1">
+                Plantillas
+              </h4>
               <div className="flex flex-wrap gap-1">
                 {[...favorites, ...others].map((t) => (
                   <button
@@ -258,10 +286,14 @@ export function LabOrdersPanel({
             </div>
           )}
           <div id="lab-order-form" className="space-y-2">
-            {suggestLoading && <p className="text-xs text-gray-500">Buscando exámenes…</p>}
+            {suggestLoading && (
+              <p className="text-xs text-gray-500">Buscando exámenes…</p>
+            )}
             {suggestedTests.length > 0 && (
               <div>
-                <h4 className="text-xs font-medium text-gray-600 mb-1">Catálogo sugerido</h4>
+                <h4 className="text-xs font-medium text-gray-600 mb-1">
+                  Catálogo sugerido
+                </h4>
                 <div className="flex flex-wrap gap-1">
                   {suggestedTests.map((t) => (
                     <button
@@ -278,7 +310,10 @@ export function LabOrdersPanel({
               </div>
             )}
             {exams.map((exam, idx) => (
-              <div key={idx} className="border border-gray-100 rounded p-2 space-y-1">
+              <div
+                key={idx}
+                className="border border-gray-100 rounded p-2 space-y-1"
+              >
                 <input
                   type="text"
                   value={exam.exam}
@@ -290,7 +325,9 @@ export function LabOrdersPanel({
                 <div className="grid grid-cols-2 gap-1">
                   <select
                     value={exam.priority ?? "routine"}
-                    onChange={(e) => updateExam(idx, { priority: e.target.value })}
+                    onChange={(e) =>
+                      updateExam(idx, { priority: e.target.value })
+                    }
                     aria-label={`Prioridad del examen ${idx + 1}`}
                     className="px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
@@ -301,7 +338,9 @@ export function LabOrdersPanel({
                   <input
                     type="text"
                     value={exam.reason ?? ""}
-                    onChange={(e) => updateExam(idx, { reason: e.target.value })}
+                    onChange={(e) =>
+                      updateExam(idx, { reason: e.target.value })
+                    }
                     aria-label={`Motivo clínico del examen ${idx + 1}`}
                     placeholder="Motivo clínico"
                     className="px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -310,7 +349,9 @@ export function LabOrdersPanel({
                 <input
                   type="text"
                   value={exam.observations ?? ""}
-                  onChange={(e) => updateExam(idx, { observations: e.target.value })}
+                  onChange={(e) =>
+                    updateExam(idx, { observations: e.target.value })
+                  }
                   aria-label={`Observaciones del examen ${idx + 1}`}
                   placeholder="Observaciones"
                   className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -340,7 +381,11 @@ export function LabOrdersPanel({
               placeholder="Nombre plantilla (opcional)"
               className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
-            {error && <p className="text-sm text-red-600" role="alert">{error}</p>}
+            {error && (
+              <p className="text-sm text-red-600" role="alert">
+                {error}
+              </p>
+            )}
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
