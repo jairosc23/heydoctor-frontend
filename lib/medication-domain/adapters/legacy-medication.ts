@@ -212,6 +212,7 @@ export function productFromSelectedMedication(
   jurisdictionCode: JurisdictionCode = "CL",
 ): MedicationProductRef {
   return {
+    source: line.source ?? (line.drugPresentationId ? "CATALOG" : undefined),
     drugPresentationId: line.drugPresentationId,
     displayLabel: line.displayLabel,
     innName: line.innName,
@@ -219,6 +220,7 @@ export function productFromSelectedMedication(
     doseForm: line.dosageForm,
     routeCode: line.routeCode,
     jurisdictionCode,
+    magistral: line.magistral,
   };
 }
 
@@ -257,6 +259,7 @@ export function selectedMedicationFromOrderLine(
   const base = emptySelectedMedication();
   return {
     ...base,
+    source: line.product.source,
     drugPresentationId: line.product.drugPresentationId,
     displayLabel: line.product.displayLabel,
     innName: line.product.innName,
@@ -269,6 +272,7 @@ export function selectedMedicationFromOrderLine(
     duration: strings.duration,
     instructions: line.patientInstructions ?? "",
     observations: line.clinicalNotes ?? "",
+    magistral: line.product.magistral,
   };
 }
 
@@ -277,9 +281,14 @@ export function medicationItemFromOrderLine(
   jurisdictionCode: JurisdictionCode = "CL",
 ): MedicationItem {
   const strings = legacyStringsFromPosology(line.posology, jurisdictionCode);
+  const source =
+    line.product.source ??
+    (line.product.drugPresentationId ? "CATALOG" : "MANUAL");
   return {
     name: line.product.displayLabel.trim(),
-    drugPresentationId: line.product.drugPresentationId,
+    source,
+    drugPresentationId:
+      source === "CATALOG" ? line.product.drugPresentationId : undefined,
     dosage: strings.dosage || undefined,
     frequency: strings.frequency || undefined,
     duration: strings.duration || undefined,
@@ -288,6 +297,13 @@ export function medicationItemFromOrderLine(
       line.patientInstructions ?? "",
       line.clinicalNotes ?? "",
     ),
+    concentration:
+      source === "MANUAL"
+        ? line.product.strengthDisplay || undefined
+        : undefined,
+    dosageForm:
+      source === "MANUAL" ? line.product.doseForm || undefined : undefined,
+    magistral: source === "MAGISTRAL" ? line.product.magistral : undefined,
   };
 }
 
@@ -301,8 +317,13 @@ export function orderLineFromMedicationItem(
   );
   const selected: SelectedMedication = {
     ...emptySelectedMedication(),
+    source:
+      item.source ??
+      (item.drugPresentationId ? "CATALOG" : "MANUAL"),
     drugPresentationId: item.drugPresentationId,
     displayLabel: item.name ?? "",
+    strengthDisplay: item.concentration,
+    dosageForm: item.dosageForm,
     routeCode: item.route,
     routeLabel: item.route,
     dosage: item.dosage ?? "",
@@ -310,6 +331,7 @@ export function orderLineFromMedicationItem(
     duration: item.duration ?? "",
     instructions,
     observations,
+    magistral: item.magistral,
   };
   return orderLineFromSelectedMedication(selected, id, jurisdictionCode);
 }

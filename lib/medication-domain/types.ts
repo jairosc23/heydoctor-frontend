@@ -112,14 +112,32 @@ export type QuantitySpec = {
   unit: string;
 };
 
+export type PrescriptionItemSource = "CATALOG" | "MANUAL" | "MAGISTRAL";
+
+export type MagistralComponent = {
+  ingredient: string;
+  concentration: string;
+  unit: string;
+  quantity?: string;
+};
+
+export type MagistralFormula = {
+  components: MagistralComponent[];
+  vehicle?: string;
+  finalQuantity?: string;
+  instructions?: string;
+};
+
 export type MedicationProductRef = {
   drugPresentationId?: string;
+  source?: PrescriptionItemSource;
   displayLabel: string;
   innName?: string;
   strengthDisplay?: string;
   doseForm?: DoseFormCode;
   routeCode?: RouteCode;
   jurisdictionCode?: JurisdictionCode;
+  magistral?: MagistralFormula;
 };
 
 /** Frozen at issue — immutable clinical snapshot. */

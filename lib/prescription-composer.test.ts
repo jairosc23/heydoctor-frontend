@@ -145,6 +145,47 @@ describe("prescription-composer (PR-2)", () => {
     assert.equal(item.drugPresentationId, suggestion.id);
   });
 
+  it("serializes MANUAL items without drugPresentationId", () => {
+    const item = medicationItemFromSelectedMedication({
+      ...emptySelectedMedication(),
+      source: "MANUAL",
+      displayLabel: "Jarabe de tomillo",
+      strengthDisplay: "125 mg/5 ml",
+      dosageForm: "jarabe",
+      routeCode: "oral",
+      instructions: "5 ml c/8 h",
+    });
+    assert.equal(item.source, "MANUAL");
+    assert.equal(item.drugPresentationId, undefined);
+    assert.equal(item.concentration, "125 mg/5 ml");
+    assert.equal(item.dosageForm, "jarabe");
+  });
+
+  it("serializes MAGISTRAL items without catalog identity", () => {
+    const item = medicationItemFromSelectedMedication({
+      ...emptySelectedMedication(),
+      source: "MAGISTRAL",
+      displayLabel: "Cápsulas magistrales",
+      magistral: {
+        components: [
+          { ingredient: "Progesterona", concentration: "100", unit: "mg" },
+        ],
+        finalQuantity: "30 cápsulas",
+      },
+    });
+    assert.equal(item.source, "MAGISTRAL");
+    assert.equal(item.drugPresentationId, undefined);
+    assert.equal(item.magistral?.components[0]?.ingredient, "Progesterona");
+  });
+
+  it("keeps CATALOG source when mapping a smart suggestion", () => {
+    const item = medicationItemFromSelectedMedication(
+      selectedMedicationFromSmartSuggestion(suggestion),
+    );
+    assert.equal(item.source, "CATALOG");
+    assert.equal(item.drugPresentationId, suggestion.id);
+  });
+
   it("merges and splits instructions/observations stably", () => {
     const merged = mergeInstructionsAndObservations(
       "con comida",

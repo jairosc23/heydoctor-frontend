@@ -12,8 +12,23 @@ import type {
 const BASE = "/prescriptions";
 const log = createClinicalLogger("clinical");
 
+export interface MagistralComponent {
+  ingredient: string;
+  concentration: string;
+  unit: string;
+  quantity?: string;
+}
+
+export interface MagistralFormula {
+  components: MagistralComponent[];
+  vehicle?: string;
+  finalQuantity?: string;
+  instructions?: string;
+}
+
 export interface MedicationItem {
   name: string;
+  source?: "CATALOG" | "MANUAL" | "MAGISTRAL";
   /** Vademécum presentation UUID when selected from catalog/smart-suggestions. */
   drugPresentationId?: string;
   dosage?: string;
@@ -21,6 +36,9 @@ export interface MedicationItem {
   duration?: string;
   route?: string;
   instructions?: string;
+  concentration?: string;
+  dosageForm?: string;
+  magistral?: MagistralFormula;
 }
 
 export interface PrescriptionRecord {

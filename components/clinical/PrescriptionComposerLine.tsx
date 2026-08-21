@@ -3,6 +3,11 @@
 import { MedicationSuggestInput } from "./MedicationSuggestInput";
 import type { SelectedMedication } from "@/lib/types/selected-medication";
 import {
+  emptyMagistralFormula,
+  magistralMedicationFromQuery,
+  manualMedicationFromQuery,
+} from "@/lib/types/selected-medication";
+import {
   applyComposerDisplayLabel,
   selectedMedicationFromSmartSuggestion,
 } from "@/lib/prescription-composer";
@@ -37,6 +42,7 @@ export function PrescriptionComposerLine({
 }: PrescriptionComposerLineProps) {
   const n = index + 1;
   const hasCatalog = Boolean(line.drugPresentationId);
+  const source = line.source;
   const calculation = calculateFromSelectedMedication(line);
 
   return (
@@ -47,9 +53,19 @@ export function PrescriptionComposerLine({
       <div className="flex flex-wrap items-start justify-between gap-2">
         <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
           Medicamento {n}
-          {hasCatalog ? (
+          {hasCatalog || source === "CATALOG" ? (
             <span className="ml-2 rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium normal-case text-emerald-800">
               Catálogo
+            </span>
+          ) : null}
+          {source === "MANUAL" ? (
+            <span className="ml-2 rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium uppercase text-amber-900">
+              MANUAL
+            </span>
+          ) : null}
+          {source === "MAGISTRAL" ? (
+            <span className="ml-2 rounded bg-violet-50 px-1.5 py-0.5 text-[10px] font-medium uppercase text-violet-900">
+              MAGISTRAL
             </span>
           ) : null}
         </p>
@@ -74,10 +90,34 @@ export function PrescriptionComposerLine({
         onSelectPresentation={(suggestion) =>
           onChange(selectedMedicationFromSmartSuggestion(suggestion, line))
         }
+        onCreateManual={(query) =>
+          onChange({
+            ...line,
+            ...manualMedicationFromQuery(query),
+            dosage: line.dosage,
+            frequency: line.frequency,
+            duration: line.duration,
+            instructions: line.instructions,
+            observations: line.observations,
+          })
+        }
+        onCreateMagistral={(query) =>
+          onChange({
+            ...line,
+            ...magistralMedicationFromQuery(query),
+            dosage: line.dosage,
+            frequency: line.frequency,
+            duration: line.duration,
+            instructions: line.instructions,
+            observations: line.observations,
+          })
+        }
         inputClassName={FIELD}
       />
 
-      {(line.innName ||
+      {source !== "MANUAL" &&
+      source !== "MAGISTRAL" &&
+      (line.innName ||
         line.strengthDisplay ||
         line.dosageForm ||
         line.routeLabel ||
@@ -103,6 +143,123 @@ export function PrescriptionComposerLine({
           ) : null}
         </div>
       )}
+
+      {source === "MANUAL" ? (
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <label className="block text-xs text-slate-600">
+            <span className="mb-1 block font-medium">Concentración</span>
+            <input
+              type="text"
+              value={line.strengthDisplay ?? ""}
+              onChange={(e) =>
+                onChange({ ...line, strengthDisplay: e.target.value })
+              }
+              className={FIELD}
+            />
+          </label>
+          <label className="block text-xs text-slate-600">
+            <span className="mb-1 block font-medium">Forma farmacéutica</span>
+            <input
+              type="text"
+              value={line.dosageForm ?? ""}
+              onChange={(e) =>
+                onChange({ ...line, dosageForm: e.target.value })
+              }
+              className={FIELD}
+            />
+          </label>
+        </div>
+      ) : null}
+
+      {source === "MAGISTRAL" ? (
+        <div className="space-y-2 rounded-md border border-violet-100 bg-violet-50/50 p-2">
+          {(line.magistral ?? emptyMagistralFormula()).components.map(
+            (component, componentIndex) => (
+              <div key={componentIndex} className="grid grid-cols-3 gap-2">
+                <input
+                  type="text"
+                  className={FIELD}
+                  placeholder="Ingrediente"
+                  value={component.ingredient}
+                  onChange={(e) => {
+                    const magistral = line.magistral ?? emptyMagistralFormula();
+                    onChange({
+                      ...line,
+                      magistral: {
+                        ...magistral,
+                        components: magistral.components.map((row, i) =>
+                          i === componentIndex
+                            ? { ...row, ingredient: e.target.value }
+                            : row,
+                        ),
+                      },
+                    });
+                  }}
+                />
+                <input
+                  type="text"
+                  className={FIELD}
+                  placeholder="Concentración"
+                  value={component.concentration}
+                  onChange={(e) => {
+                    const magistral = line.magistral ?? emptyMagistralFormula();
+                    onChange({
+                      ...line,
+                      magistral: {
+                        ...magistral,
+                        components: magistral.components.map((row, i) =>
+                          i === componentIndex
+                            ? { ...row, concentration: e.target.value }
+                            : row,
+                        ),
+                      },
+                    });
+                  }}
+                />
+                <input
+                  type="text"
+                  className={FIELD}
+                  placeholder="Unidad"
+                  value={component.unit}
+                  onChange={(e) => {
+                    const magistral = line.magistral ?? emptyMagistralFormula();
+                    onChange({
+                      ...line,
+                      magistral: {
+                        ...magistral,
+                        components: magistral.components.map((row, i) =>
+                          i === componentIndex
+                            ? { ...row, unit: e.target.value }
+                            : row,
+                        ),
+                      },
+                    });
+                  }}
+                />
+              </div>
+            ),
+          )}
+          <button
+            type="button"
+            className="text-xs font-medium text-violet-800"
+            onClick={() => {
+              const magistral = line.magistral ?? emptyMagistralFormula();
+              onChange({
+                ...line,
+                magistral: {
+                  ...magistral,
+                  components: [
+                    ...magistral.components,
+                    { ingredient: "", concentration: "", unit: "" },
+                  ],
+                },
+              });
+            }}
+          >
+            + Agregar componente
+          </button>
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
         <label className="block text-xs text-slate-600">

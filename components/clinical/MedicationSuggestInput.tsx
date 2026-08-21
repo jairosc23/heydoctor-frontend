@@ -10,6 +10,8 @@ export interface MedicationSuggestInputProps {
   onChange: (value: string) => void;
   /** Catalog-aware selection (PR-1). When set, preferred over string-only onChange for picks. */
   onSelectPresentation?: (suggestion: SmartMedicationSuggestion) => void;
+  onCreateManual?: (query: string) => void;
+  onCreateMagistral?: (query: string) => void;
   consultationId?: string | null;
   cie10CodeId?: string | null;
   patientId?: string | null;
@@ -24,12 +26,15 @@ export interface MedicationSuggestInputProps {
 
 /**
  * Autocompletado de presentaciones vía smart-suggestions (catalog-aware).
- * Legacy free-text typing still calls onChange(string).
+ * If the vademecum has no adequate hit, the physician can continue with
+ * an explicit MANUAL or MAGISTRAL item without leaving the builder.
  */
 export function MedicationSuggestInput({
   value,
   onChange,
   onSelectPresentation,
+  onCreateManual,
+  onCreateMagistral,
   consultationId,
   cie10CodeId,
   patientId,
@@ -111,8 +116,27 @@ export function MedicationSuggestInput({
     setActiveIndex(-1);
   };
 
+  const chooseManual = () => {
+    onCreateManual?.(input.trim());
+    setOpen(false);
+    setActiveIndex(-1);
+  };
+
+  const chooseMagistral = () => {
+    onCreateMagistral?.(input.trim());
+    setOpen(false);
+    setActiveIndex(-1);
+  };
+
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!open || suggestions.length === 0) return;
+    if (!open) return;
+    if (suggestions.length === 0) {
+      if (event.key === "Escape") {
+        setOpen(false);
+        setActiveIndex(-1);
+      }
+      return;
+    }
 
     if (event.key === "ArrowDown") {
       event.preventDefault();
@@ -140,10 +164,11 @@ export function MedicationSuggestInput({
   }, [activeIndex]);
 
   const trimmed = input.trim();
+  const showEscapes = Boolean(onCreateManual || onCreateMagistral);
   const showDropdown =
     open &&
     trimmed.length >= minChars &&
-    (loading || suggestions.length > 0);
+    (loading || suggestions.length > 0 || showEscapes);
 
   return (
     <div className={`relative ${className}`}>
@@ -173,13 +198,15 @@ export function MedicationSuggestInput({
           ref={listRef}
           role="listbox"
           data-testid="medication-suggest-list"
-          className="absolute z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg"
+          className="absolute z-50 mt-1 max-h-72 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg"
         >
           {loading && suggestions.length === 0 ? (
             <li className="px-3 py-2 text-sm text-slate-500">Buscando…</li>
           ) : null}
           {!loading && suggestions.length === 0 ? (
-            <li className="px-3 py-2 text-sm text-slate-500">Sin resultados</li>
+            <li className="px-3 py-2 text-sm text-slate-500">
+              Sin resultados adecuados en el Vademécum
+            </li>
           ) : null}
           {suggestions.map((item, index) => (
             <li key={item.id}>
@@ -205,6 +232,35 @@ export function MedicationSuggestInput({
               </button>
             </li>
           ))}
+          {showEscapes && !loading ? (
+            <li className="border-t border-slate-100 bg-slate-50/80 px-2 py-2">
+              <p className="px-1 pb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                Continuar la consulta
+              </p>
+              {onCreateManual ? (
+                <button
+                  type="button"
+                  data-testid="create-manual-medication"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={chooseManual}
+                  className="w-full rounded-md px-2 py-1.5 text-left text-sm font-medium text-slate-800 hover:bg-white"
+                >
+                  Crear medicamento manual
+                </button>
+              ) : null}
+              {onCreateMagistral ? (
+                <button
+                  type="button"
+                  data-testid="create-magistral-formula"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={chooseMagistral}
+                  className="w-full rounded-md px-2 py-1.5 text-left text-sm font-medium text-slate-800 hover:bg-white"
+                >
+                  Crear fórmula magistral
+                </button>
+              ) : null}
+            </li>
+          ) : null}
         </ul>
       ) : null}
     </div>

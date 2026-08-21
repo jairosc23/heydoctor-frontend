@@ -73,4 +73,18 @@ describe("Legacy medication adapter (P1)", () => {
     assert.equal(item.drugPresentationId, selected.drugPresentationId);
     assert.equal(item.name, "Amoxicilina 500 mg cápsula");
   });
+
+  it("does not invent drugPresentationId for MANUAL lines", () => {
+    const selected = emptySelectedMedication();
+    selected.source = "MANUAL";
+    selected.displayLabel = "Jarabe de tomillo";
+    selected.strengthDisplay = "125 mg/5 ml";
+    const line = orderLineFromSelectedMedication(selected, "l1", "CL");
+    assert.equal(line.product.source, "MANUAL");
+    assert.equal(line.product.drugPresentationId, undefined);
+    const item = medicationItemFromOrderLine(line, "CL");
+    assert.equal(item.source, "MANUAL");
+    assert.equal(item.drugPresentationId, undefined);
+    assert.equal(item.concentration, "125 mg/5 ml");
+  });
 });

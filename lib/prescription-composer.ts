@@ -1,6 +1,9 @@
 import type { SmartMedicationSuggestion } from "./types/drug-catalog";
 import type { SelectedMedication } from "./types/selected-medication";
-import { emptySelectedMedication } from "./types/selected-medication";
+import {
+  emptySelectedMedication,
+  isSelectedMedicationReady,
+} from "./types/selected-medication";
 import type { MedicationItem } from "./services/prescriptions";
 
 const OBS_PREFIX = "Obs.: ";
@@ -13,8 +16,10 @@ export function selectedMedicationFromSmartSuggestion(
   const base = previous ?? emptySelectedMedication();
   return {
     ...base,
+    source: "CATALOG",
     drugPresentationId: suggestion.id,
     displayLabel: suggestion.displayLabel,
+    magistral: undefined,
     innName: suggestion.innName || undefined,
     strengthDisplay: suggestion.strengthDisplay || undefined,
     dosageForm: suggestion.dosageForm || undefined,
@@ -37,8 +42,13 @@ export function selectedMedicationFromMedicationItem(
     item.instructions ?? "",
   );
   return {
+    source:
+      item.source ??
+      (item.drugPresentationId ? "CATALOG" : "MANUAL"),
     drugPresentationId: item.drugPresentationId,
     displayLabel: item.name ?? "",
+    strengthDisplay: item.concentration,
+    dosageForm: item.dosageForm,
     routeCode: item.route,
     routeLabel: item.route,
     dosage: item.dosage ?? "",
@@ -46,6 +56,7 @@ export function selectedMedicationFromMedicationItem(
     duration: item.duration ?? "",
     instructions,
     observations,
+    magistral: item.magistral,
   };
 }
 
@@ -56,9 +67,14 @@ export function selectedMedicationFromMedicationItem(
 export function medicationItemFromSelectedMedication(
   line: SelectedMedication,
 ): MedicationItem {
+  const source =
+    line.source ??
+    (line.drugPresentationId ? "CATALOG" : "MANUAL");
+  const catalog = source === "CATALOG" && line.drugPresentationId;
   return {
     name: line.displayLabel.trim(),
-    drugPresentationId: line.drugPresentationId,
+    source,
+    drugPresentationId: catalog ? line.drugPresentationId : undefined,
     dosage: line.dosage.trim() || undefined,
     frequency: line.frequency.trim() || undefined,
     duration: line.duration.trim() || undefined,
@@ -67,6 +83,13 @@ export function medicationItemFromSelectedMedication(
       line.instructions,
       line.observations,
     ),
+    concentration:
+      source === "MANUAL"
+        ? line.strengthDisplay?.trim() || undefined
+        : undefined,
+    dosageForm:
+      source === "MANUAL" ? line.dosageForm?.trim() || undefined : undefined,
+    magistral: source === "MAGISTRAL" ? line.magistral : undefined,
   };
 }
 
@@ -86,7 +109,7 @@ export function medicationItemsFromSelectedMedications(
 }
 
 function isReady(line: SelectedMedication): boolean {
-  return Boolean(line.displayLabel.trim());
+  return isSelectedMedicationReady(line);
 }
 
 export function mergeInstructionsAndObservations(
@@ -131,12 +154,14 @@ export function clearCatalogIdentity(
   return {
     ...line,
     displayLabel,
+    source: undefined,
     drugPresentationId: undefined,
     innName: undefined,
     strengthDisplay: undefined,
     dosageForm: undefined,
     routeCode: undefined,
     routeLabel: undefined,
+    magistral: undefined,
   };
 }
 
