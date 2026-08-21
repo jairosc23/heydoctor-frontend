@@ -175,6 +175,54 @@ describe("ClinicalScientificGovernanceSection", () => {
     });
   });
 
+  it("fail-closes a projected view with missing scientificStance without inventing admit or crashing", async () => {
+    const item = provenanceItem();
+    const incomplete = {
+      ...item,
+      preview: {
+        data: {
+          ...item.preview.data,
+          view: {
+            ok: true as const,
+            view: {
+              ...item.preview.data.view.view,
+              scientificStance: undefined,
+            },
+          },
+          gate: {
+            ok: false as const,
+            issues: [
+              {
+                code: "missing_scientific_stance",
+                field: "scientificStance",
+                message:
+                  "scientific governance must declare a fail-closed stance; silent admit is forbidden",
+              },
+            ],
+          },
+        },
+      },
+    };
+    listEnabledClinicalScientificGovernanceTypes.mockResolvedValue([incomplete]);
+    renderWithProviders(
+      <ClinicalScientificGovernanceSection consultationId={CONSULTATION_ID} />,
+    );
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("clinical-scientific-governance-list"),
+      ).toBeInTheDocument();
+    });
+    expect(
+      screen.getByTestId("clinical-scientific-governance-gate-provenance_standing"),
+    ).toHaveTextContent("fail-closed stance");
+    expect(screen.getByText(/Constituido/)).toBeInTheDocument();
+    expect(screen.queryByText("Admit")).not.toBeInTheDocument();
+    expect(screen.queryByText("Conflicted")).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId("clinical-scientific-governance-view-provenance_standing"),
+    ).toHaveTextContent("Clinica Demo");
+  });
+
   it("shows an empty state when no scientific types are enabled", async () => {
     listEnabledClinicalScientificGovernanceTypes.mockResolvedValue([]);
     renderWithProviders(<ClinicalScientificGovernanceSection consultationId={CONSULTATION_ID} />);

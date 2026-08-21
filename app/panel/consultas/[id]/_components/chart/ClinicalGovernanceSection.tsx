@@ -7,6 +7,7 @@ import {
   type ClinicalGovernanceHttpView,
   type ClinicalGovernanceListItem,
 } from "@/lib/clinical-governance";
+import { cipVocabularyLabel } from "../cip-preview-display";
 import { ClinicalEncounterSection } from "./ClinicalEncounterSection";
 
 export interface ClinicalGovernanceSectionProps {
@@ -42,10 +43,8 @@ function statusLabel(status: string): string {
   return STATUS_LABEL[status] ?? status;
 }
 
-function postureLabel(posture: string): string | null {
-  const normalized = posture.trim();
-  if (!normalized) return null;
-  return POSTURE_LABEL[normalized] ?? normalized;
+function postureLabel(posture: unknown): string | null {
+  return cipVocabularyLabel(posture, POSTURE_LABEL);
 }
 
 export function ClinicalGovernanceSection({

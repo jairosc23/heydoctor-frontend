@@ -14,6 +14,11 @@ export interface DiagnosisSectionProps {
   diagnosisDescription?: string | null;
   diagnosisSource?: DiagnosisSource;
   diagnosisError: string | null;
+  onDiagnosisChange: (item: {
+    code: string;
+    description: string;
+    cie10CodeId?: string;
+  }) => void;
   onDiagnosisConfirm: (item: {
     code: string;
     description: string;
@@ -29,6 +34,7 @@ export function DiagnosisSection({
   diagnosisDescription,
   diagnosisSource = "empty",
   diagnosisError,
+  onDiagnosisChange,
   onDiagnosisConfirm,
   editable,
 }: DiagnosisSectionProps) {
@@ -47,7 +53,10 @@ export function DiagnosisSection({
         ) : null}
         <SmartDiagnosisPicker
           value={diagnosis}
-          onChange={() => {}}
+          onChange={(item) => {
+            if (item.cie10CodeId) return;
+            onDiagnosisChange(item);
+          }}
           onConfirm={onDiagnosisConfirm}
           clinicId={clinicId}
         />

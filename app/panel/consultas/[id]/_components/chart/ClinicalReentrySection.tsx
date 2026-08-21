@@ -7,6 +7,7 @@ import {
   type ClinicalReentryHttpView,
   type ClinicalReentryListItem,
 } from "@/lib/clinical-reentry";
+import { cipVocabularyLabel } from "../cip-preview-display";
 import { ClinicalEncounterSection } from "./ClinicalEncounterSection";
 
 export interface ClinicalReentrySectionProps {
@@ -42,10 +43,8 @@ function statusLabel(status: string): string {
   return STATUS_LABEL[status] ?? status;
 }
 
-function admissionLabel(reentryAdmission: string): string | null {
-  const normalized = reentryAdmission.trim();
-  if (!normalized) return null;
-  return ADMISSION_LABEL[normalized] ?? normalized;
+function admissionLabel(reentryAdmission: unknown): string | null {
+  return cipVocabularyLabel(reentryAdmission, ADMISSION_LABEL);
 }
 
 export function ClinicalReentrySection({

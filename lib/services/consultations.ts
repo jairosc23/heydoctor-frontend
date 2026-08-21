@@ -99,6 +99,16 @@ function unwrapListWithTotal(raw: unknown): {
   return { data: [], total: 0 };
 }
 
+export function unwrapConsultation(raw: unknown): NestConsultation {
+  if (raw && typeof raw === "object" && "data" in raw) {
+    const nested = (raw as { data?: unknown }).data;
+    if (nested && typeof nested === "object" && nested !== null && "id" in nested) {
+      return nested as NestConsultation;
+    }
+  }
+  return raw as NestConsultation;
+}
+
 export async function fetchConsultations(
   filters?: ConsultationFilters
 ): Promise<{ data: NestConsultation[]; total: number }> {
@@ -127,8 +137,7 @@ export async function fetchConsultation(id: string): Promise<NestConsultation> {
   const raw = await heydoctorApi.get<NestConsultation | { data: NestConsultation }>(
     `${BASE}/${id}`
   );
-  const w = raw as { data?: NestConsultation };
-  return w.data ?? (raw as NestConsultation);
+  return unwrapConsultation(raw);
 }
 
 export async function createConsultation(dto: CreateConsultationDto) {
@@ -192,10 +201,11 @@ export async function updateConsultation(
   id: string,
   dto: UpdateConsultationDto
 ): Promise<NestConsultation> {
-  return heydoctorApi.patch<NestConsultation>(
+  const raw = await heydoctorApi.patch<NestConsultation | { data: NestConsultation }>(
     `${BASE}/${id}`,
     buildUpdateConsultationBody(dto),
   );
+  return unwrapConsultation(raw);
 }
 
 export async function signConsultation(
@@ -206,10 +216,14 @@ export async function signConsultation(
   if (!options?.habDecisionId?.trim()) {
     throw new Error("hab_confirm_required_before_sign");
   }
-  return heydoctorApi.post<NestConsultation>(`${BASE}/${id}/sign`, {
-    signature,
-    habDecisionId: options.habDecisionId,
-  });
+  const raw = await heydoctorApi.post<NestConsultation | { data: NestConsultation }>(
+    `${BASE}/${id}/sign`,
+    {
+      signature,
+      habDecisionId: options.habDecisionId,
+    },
+  );
+  return unwrapConsultation(raw);
 }
 
 export async function startCall(

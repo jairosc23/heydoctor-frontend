@@ -58,4 +58,19 @@ describe("Legacy medication adapter (P1)", () => {
     assert.equal(calc.status, "deterministic");
     assert.ok((calc.totalQuantity ?? 0) > 0);
   });
+
+  it("round-trips drugPresentationId through order line", () => {
+    const selected = emptySelectedMedication();
+    selected.displayLabel = "Amoxicilina 500 mg cápsula";
+    selected.drugPresentationId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+    selected.dosage = "1 cápsula";
+    selected.frequency = "c/8 h";
+    const line = orderLineFromSelectedMedication(selected, "l1", "CL");
+    assert.equal(line.product.drugPresentationId, selected.drugPresentationId);
+    const back = selectedMedicationFromOrderLine(line, "CL");
+    assert.equal(back.drugPresentationId, selected.drugPresentationId);
+    const item = medicationItemFromOrderLine(line, "CL");
+    assert.equal(item.drugPresentationId, selected.drugPresentationId);
+    assert.equal(item.name, "Amoxicilina 500 mg cápsula");
+  });
 });

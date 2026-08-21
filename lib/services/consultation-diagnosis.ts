@@ -34,14 +34,18 @@ export function hydrateDiagnosisFromConsultation(
   >,
 ): ConsultationDiagnosisState {
   const diagnosis = c.diagnosis?.trim() ?? "";
-  const cie10CodeId = c.cie10CodeId ?? null;
+  const cie10CodeId = c.cie10CodeId ?? c.cie10Code?.id ?? null;
 
-  if (cie10CodeId && c.cie10Code?.code) {
+  if (cie10CodeId) {
+    const parsed = parseDiagnosisLabel(diagnosis);
     return {
       diagnosis,
       cie10CodeId,
-      diagnosisCode: c.cie10Code.code,
-      diagnosisDescription: c.cie10Code.descriptionEs,
+      diagnosisCode: c.cie10Code?.code?.trim() || parsed?.code || "",
+      diagnosisDescription:
+        c.cie10Code?.descriptionEs?.trim() ||
+        parsed?.description ||
+        diagnosis,
       source: "structured",
     };
   }
@@ -68,6 +72,83 @@ export function hydrateDiagnosisFromConsultation(
     diagnosisDescription: diagnosis,
     source: "free_text",
   };
+}
+
+/**
+ * PATCH echo may omit the expanded `cie10Code` relation. Never drop an FK
+ * the client just persisted.
+ */
+export function hydrateDiagnosisFromPatchEcho(
+  echo: Pick<NestConsultation, "diagnosis" | "cie10CodeId" | "cie10Code">,
+  sent: ConsultationDiagnosisState,
+): ConsultationDiagnosisState {
+  const cie10CodeId =
+    echo.cie10CodeId !== undefined
+      ? echo.cie10CodeId
+      : echo.cie10Code?.id ?? sent.cie10CodeId;
+  const cie10Code =
+    echo.cie10Code ??
+    (cie10CodeId &&
+    sent.cie10CodeId === cie10CodeId &&
+    sent.diagnosisCode
+      ? {
+          id: cie10CodeId,
+          code: sent.diagnosisCode,
+          descriptionEs: sent.diagnosisDescription,
+        }
+      : null);
+
+  return hydrateDiagnosisFromConsultation({
+    diagnosis: echo.diagnosis ?? sent.diagnosis,
+    cie10CodeId,
+    cie10Code,
+  });
+}
+
+/** Draft item for free-text / pasted labels (no catalog id). */
+export function diagnosisDraftItemFromText(text: string): {
+  code: string;
+  description: string;
+} {
+  const trimmed = text.trim();
+  const parsed = parseDiagnosisLabel(trimmed);
+  if (parsed) return parsed;
+  return { code: "", description: trimmed };
+}
+
+export function diagnosisStateFromDraftItem(item: {
+  code: string;
+  description: string;
+  cie10CodeId?: string;
+}): ConsultationDiagnosisState {
+  if (item.cie10CodeId) {
+    return structuredDiagnosisFromPicker(item);
+  }
+  const code = item.code.trim();
+  const description = item.description.trim();
+  const text =
+    code && description ? `${code} - ${description}` : description || code;
+  return diagnosisStateFromText(text);
+}
+
+/**
+ * Commit typed picker text only when it is a real draft, not a search fragment
+ * over the already-committed label.
+ */
+export function shouldCommitDiagnosisPickerDraft(
+  committedLabel: string,
+  typed: string,
+): boolean {
+  const bound = committedLabel.trim();
+  const next = typed.trim();
+  if (next === bound) return false;
+  if (!next) return true;
+  if (!bound) return true;
+  if (parseDiagnosisLabel(next)) return true;
+  const boundLc = bound.toLowerCase();
+  const nextLc = next.toLowerCase();
+  if (boundLc.includes(nextLc) || nextLc.includes(boundLc)) return false;
+  return true;
 }
 
 export function structuredDiagnosisFromPicker(item: {

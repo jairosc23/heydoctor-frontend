@@ -7,6 +7,7 @@ import {
   type ClinicalExecutionHttpView,
   type ClinicalExecutionListItem,
 } from "@/lib/clinical-execution";
+import { cipVocabularyLabel } from "../cip-preview-display";
 import { ClinicalEncounterSection } from "./ClinicalEncounterSection";
 
 export interface ClinicalExecutionSectionProps {
@@ -42,10 +43,8 @@ function statusLabel(status: string): string {
   return STATUS_LABEL[status] ?? status;
 }
 
-function progressionLabel(progression: string): string | null {
-  const normalized = progression.trim();
-  if (!normalized) return null;
-  return PROGRESSION_LABEL[normalized] ?? normalized;
+function progressionLabel(progression: unknown): string | null {
+  return cipVocabularyLabel(progression, PROGRESSION_LABEL);
 }
 
 export function ClinicalExecutionSection({

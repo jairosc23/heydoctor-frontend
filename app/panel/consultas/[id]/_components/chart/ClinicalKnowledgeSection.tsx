@@ -7,6 +7,7 @@ import {
   type ClinicalKnowledgeHttpView,
   type ClinicalKnowledgeListItem,
 } from "@/lib/clinical-knowledge";
+import { cipVocabularyLabel } from "../cip-preview-display";
 import { ClinicalEncounterSection } from "./ClinicalEncounterSection";
 
 export interface ClinicalKnowledgeSectionProps {
@@ -42,10 +43,8 @@ function statusLabel(status: string): string {
   return STATUS_LABEL[status] ?? status;
 }
 
-function stanceLabel(knowledgeStance: string): string | null {
-  const normalized = knowledgeStance.trim();
-  if (!normalized) return null;
-  return STANCE_LABEL[normalized] ?? normalized;
+function stanceLabel(knowledgeStance: unknown): string | null {
+  return cipVocabularyLabel(knowledgeStance, STANCE_LABEL);
 }
 
 export function ClinicalKnowledgeSection({

@@ -7,6 +7,7 @@ import {
   type ClinicalKnowledgeJurisdictionHttpView,
   type ClinicalKnowledgeJurisdictionListItem,
 } from "@/lib/clinical-knowledge-jurisdiction";
+import { cipVocabularyLabel } from "../cip-preview-display";
 import { ClinicalEncounterSection } from "./ClinicalEncounterSection";
 
 export interface ClinicalKnowledgeJurisdictionSectionProps {
@@ -44,10 +45,8 @@ function statusLabel(status: string): string {
   return STATUS_LABEL[status] ?? status;
 }
 
-function stanceLabel(jurisdictionStance: string): string | null {
-  const normalized = jurisdictionStance.trim();
-  if (!normalized) return null;
-  return STANCE_LABEL[normalized] ?? normalized;
+function stanceLabel(jurisdictionStance: unknown): string | null {
+  return cipVocabularyLabel(jurisdictionStance, STANCE_LABEL);
 }
 
 export function ClinicalKnowledgeJurisdictionSection({

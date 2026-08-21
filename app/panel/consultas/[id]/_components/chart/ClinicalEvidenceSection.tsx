@@ -7,6 +7,7 @@ import {
   type ClinicalEvidenceHttpView,
   type ClinicalEvidenceListItem,
 } from "@/lib/clinical-evidence";
+import { cipVocabularyLabel } from "../cip-preview-display";
 import { ClinicalEncounterSection } from "./ClinicalEncounterSection";
 
 export interface ClinicalEvidenceSectionProps {
@@ -42,10 +43,8 @@ function statusLabel(status: string): string {
   return STATUS_LABEL[status] ?? status;
 }
 
-function stanceLabel(evidenceStance: string): string | null {
-  const normalized = evidenceStance.trim();
-  if (!normalized) return null;
-  return STANCE_LABEL[normalized] ?? normalized;
+function stanceLabel(evidenceStance: unknown): string | null {
+  return cipVocabularyLabel(evidenceStance, STANCE_LABEL);
 }
 
 export function ClinicalEvidenceSection({

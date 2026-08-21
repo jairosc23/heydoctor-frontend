@@ -13,6 +13,17 @@ describe("parseDiagnosisLabel", () => {
   it("returns null for free text without code prefix", () => {
     assert.equal(parseDiagnosisLabel("cefalea tensional"), null);
   });
+
+  it("parses en-dash and em-dash separators", () => {
+    assert.deepEqual(parseDiagnosisLabel("R51 – Cefalea"), {
+      code: "R51",
+      description: "Cefalea",
+    });
+    assert.deepEqual(parseDiagnosisLabel("R51 — Cefalea"), {
+      code: "R51",
+      description: "Cefalea",
+    });
+  });
 });
 
 describe("createDiagnosis", () => {

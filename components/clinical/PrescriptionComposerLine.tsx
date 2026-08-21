@@ -3,7 +3,7 @@
 import { MedicationSuggestInput } from "./MedicationSuggestInput";
 import type { SelectedMedication } from "@/lib/types/selected-medication";
 import {
-  clearCatalogIdentity,
+  applyComposerDisplayLabel,
   selectedMedicationFromSmartSuggestion,
 } from "@/lib/prescription-composer";
 import { calculateFromSelectedMedication } from "@/lib/prescription-calculation";
@@ -70,7 +70,7 @@ export function PrescriptionComposerLine({
         patientId={patientId}
         consultationId={consultationId}
         placeholder="Buscar presentación…"
-        onChange={(name) => onChange(clearCatalogIdentity(line, name))}
+        onChange={(name) => onChange(applyComposerDisplayLabel(line, name))}
         onSelectPresentation={(suggestion) =>
           onChange(selectedMedicationFromSmartSuggestion(suggestion, line))
         }

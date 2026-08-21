@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { SignatureCanvas } from "@/components/clinical";
 import { cn } from "@/lib/utils";
 import {
@@ -8,6 +7,7 @@ import {
   URGENCY_AVAILABLE_NOW,
 } from "@/lib/consultation-pricing";
 import { navigateToEncounterSection } from "@/lib/encounter/navigation/section-navigation";
+import { doctorSignatureImageSrc } from "@/lib/consultation-signature";
 
 export interface EncounterHeaderActionsProps {
   canStartCall: boolean;
@@ -55,6 +55,7 @@ export function EncounterHeaderActions({
   className,
 }: EncounterHeaderActionsProps) {
   const showSignPanel = canSign && !isSigned;
+  const signatureSrc = doctorSignatureImageSrc(doctorSignature);
   const showPay = canPay && !isLocked;
 
   return (
@@ -135,14 +136,14 @@ export function EncounterHeaderActions({
         ) : null}
       </div>
 
-      {isSigned && doctorSignature ? (
+      {isSigned && signatureSrc ? (
         <div className="inline-block rounded-lg border border-slate-200 bg-slate-50 p-1.5">
-          <Image
-            unoptimized
-            src={`data:image/png;base64,${doctorSignature}`}
+          <img
+            src={signatureSrc}
             alt="Firma del doctor"
             width={160}
             height={64}
+            data-testid="encounter-header-signature"
             className="h-auto max-h-[64px] w-auto max-w-[160px]"
           />
         </div>

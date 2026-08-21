@@ -358,15 +358,8 @@ export function PrescriptionPanel({
     setError(null);
     const safetyDecision = buildSafetyDecisionPayload(safetyDecisionState);
     try {
-      if (assistActive && compositionState) {
-        if (!confirmationGateChecked) {
-          setError("Confirmation Gate: confirme antes de emitir");
-          return;
-        }
-        // W1.1 C6 — confirmAndEmit removed; require HAB then PE (E11).
-        setError(
-          "Confirmación y emisión están separadas. Use Confirmación de autoridad (HAB); la emisión queda para el motor de prescripción (E11).",
-        );
+      if (assistActive && compositionState && !confirmationGateChecked) {
+        setError("Confirmation Gate: confirme antes de persistir la receta");
         return;
       }
 

@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  applyComposerDisplayLabel,
+  catalogBindingSurvivesLabelEdit,
   clearCatalogIdentity,
   medicationItemFromSelectedMedication,
   medicationItemsFromSelectedMedications,
@@ -87,6 +89,26 @@ describe("prescription-composer (PR-2)", () => {
     assert.equal(cleared.strengthDisplay, undefined);
   });
 
+  it("keeps drugPresentationId when the label still refers to the selected presentation", () => {
+    const line = selectedMedicationFromSmartSuggestion(suggestion);
+    const same = applyComposerDisplayLabel(line, line.displayLabel);
+    assert.equal(same.drugPresentationId, suggestion.id);
+    const typedChar = applyComposerDisplayLabel(line, `${line.displayLabel} `);
+    assert.equal(typedChar.drugPresentationId, suggestion.id);
+    const prefix = applyComposerDisplayLabel(line, "Amoxicilina");
+    assert.equal(prefix.drugPresentationId, suggestion.id);
+    const persisted = medicationItemFromSelectedMedication(typedChar);
+    assert.equal(persisted.drugPresentationId, suggestion.id);
+  });
+
+  it("unbinds catalog identity only when the label no longer corresponds", () => {
+    const line = selectedMedicationFromSmartSuggestion(suggestion);
+    const unbound = applyComposerDisplayLabel(line, "Ibuprofeno 400 mg");
+    assert.equal(unbound.drugPresentationId, undefined);
+    assert.equal(unbound.displayLabel, "Ibuprofeno 400 mg");
+    assert.equal(catalogBindingSurvivesLabelEdit(line.displayLabel, ""), false);
+  });
+
   it("filters empty lines when serializing to MedicationItem[]", () => {
     const items = medicationItemsFromSelectedMedications([
       emptySelectedMedication(),
@@ -106,6 +128,21 @@ describe("prescription-composer (PR-2)", () => {
     ]);
     assert.equal(lines.length, 1);
     assert.equal(lines[0]!.displayLabel, "Ibuprofeno 400 mg");
+  });
+
+  it("rehydrates drugPresentationId from a persisted MedicationItem", () => {
+    const lines = selectedMedicationsFromMedicationItems([
+      {
+        name: "Amoxicilina 500 mg cápsula",
+        drugPresentationId: suggestion.id,
+        dosage: "1 cápsula",
+        frequency: "c/8 h",
+        duration: "7 días",
+      },
+    ]);
+    assert.equal(lines[0]!.drugPresentationId, suggestion.id);
+    const item = medicationItemFromSelectedMedication(lines[0]!);
+    assert.equal(item.drugPresentationId, suggestion.id);
   });
 
   it("merges and splits instructions/observations stably", () => {

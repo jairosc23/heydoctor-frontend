@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useRef, useState, useEffect, useCallback } from "react";
+import { pointerToCanvasPoint } from "./signature-canvas-geometry";
 
 interface SignatureCanvasProps {
   /** Legal consultation close — must call POST /consultations/:id/sign (or page handleSign). */
@@ -43,12 +44,13 @@ export function SignatureCanvas({
     const canvas = canvasRef.current;
     if (!canvas) return null;
     const rect = canvas.getBoundingClientRect();
+    const bitmap = { width: canvas.width, height: canvas.height };
     if ("touches" in e) {
       const touch = e.touches[0];
       if (!touch) return null;
-      return { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+      return pointerToCanvasPoint(touch.clientX, touch.clientY, rect, bitmap);
     }
-    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    return pointerToCanvasPoint(e.clientX, e.clientY, rect, bitmap);
   }
 
   function handleStart(e: React.MouseEvent | React.TouchEvent) {
@@ -110,7 +112,7 @@ export function SignatureCanvas({
           ref={canvasRef}
           width={width}
           height={height}
-          style={{ display: "block", cursor: disabled ? "not-allowed" : "crosshair" }}
+          style={{ display: "block", width: "100%", maxWidth: width, height, cursor: disabled ? "not-allowed" : "crosshair" }}
           onMouseDown={handleStart}
           onMouseMove={handleMove}
           onMouseUp={handleEnd}

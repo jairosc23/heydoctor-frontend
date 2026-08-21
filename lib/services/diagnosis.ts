@@ -25,7 +25,8 @@ export function parseDiagnosisLabel(
   text: string,
 ): { code: string; description: string } | null {
   const trimmed = text.trim();
-  const match = trimmed.match(/^([A-Za-z][A-Za-z0-9.]+)\s*-\s*(.+)$/);
+  // ASCII hyphen, en-dash and em-dash (PDFs / Copilot labels use —).
+  const match = trimmed.match(/^([A-Za-z][A-Za-z0-9.]+)\s*[-–—]\s*(.+)$/);
   if (!match) return null;
   return { code: match[1], description: match[2].trim() };
 }

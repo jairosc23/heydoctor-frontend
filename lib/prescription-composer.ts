@@ -139,3 +139,35 @@ export function clearCatalogIdentity(
     routeLabel: undefined,
   };
 }
+
+/**
+ * Catalog identity survives label edits that still refer to the bound
+ * presentation (same text, prefix while searching, or suffix typo).
+ * Unrelated text unbinds. Empty text unbinds.
+ */
+export function catalogBindingSurvivesLabelEdit(
+  boundLabel: string,
+  nextLabel: string,
+): boolean {
+  const bound = boundLabel.trim();
+  const next = nextLabel.trim();
+  if (!bound || !next) return false;
+  if (next === bound) return true;
+  return bound.startsWith(next) || next.startsWith(bound);
+}
+
+export function applyComposerDisplayLabel(
+  line: SelectedMedication,
+  displayLabel: string,
+): SelectedMedication {
+  if (
+    line.drugPresentationId &&
+    catalogBindingSurvivesLabelEdit(line.displayLabel, displayLabel)
+  ) {
+    return { ...line, displayLabel };
+  }
+  if (line.drugPresentationId) {
+    return clearCatalogIdentity(line, displayLabel);
+  }
+  return { ...line, displayLabel };
+}

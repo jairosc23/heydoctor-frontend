@@ -13,7 +13,10 @@ import {
   type JurisdictionCode,
   type MedicationOrderLine,
 } from "@/lib/medication-domain";
-import { selectedMedicationFromSmartSuggestion } from "@/lib/prescription-composer";
+import {
+  catalogBindingSurvivesLabelEdit,
+  selectedMedicationFromSmartSuggestion,
+} from "@/lib/prescription-composer";
 import { emptySelectedMedication } from "@/lib/types/selected-medication";
 
 export type MedicationOrderLineEditorProps = {
@@ -87,20 +90,25 @@ export function MedicationOrderLineEditor({
           consultationId={consultationId}
           countryCode={jurisdictionCode}
           placeholder="Buscar medicamento o presentación…"
-          onChange={(name) =>
+          onChange={(name) => {
+            const keepCatalog =
+              Boolean(line.product.drugPresentationId) &&
+              catalogBindingSurvivesLabelEdit(line.product.displayLabel, name);
             onChange({
               ...line,
-              product: {
-                ...line.product,
-                displayLabel: name,
-                drugPresentationId: undefined,
-                innName: undefined,
-                strengthDisplay: undefined,
-                doseForm: undefined,
-                jurisdictionCode,
-              },
-            })
-          }
+              product: keepCatalog
+                ? { ...line.product, displayLabel: name }
+                : {
+                    ...line.product,
+                    displayLabel: name,
+                    drugPresentationId: undefined,
+                    innName: undefined,
+                    strengthDisplay: undefined,
+                    doseForm: undefined,
+                    jurisdictionCode,
+                  },
+            });
+          }}
           onSelectPresentation={(suggestion) => {
             const selected = selectedMedicationFromSmartSuggestion(
               suggestion,

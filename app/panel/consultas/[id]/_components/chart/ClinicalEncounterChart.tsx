@@ -81,6 +81,11 @@ export interface ClinicalEncounterChartProps {
   diagnosisDescription?: string | null;
   diagnosisSource?: DiagnosisSource;
   diagnosisError: string | null;
+  onDiagnosisChange: (item: {
+    code: string;
+    description: string;
+    cie10CodeId?: string;
+  }) => void;
   onDiagnosisConfirm: (item: {
     code: string;
     description: string;
@@ -139,6 +144,7 @@ export function ClinicalEncounterChart({
   diagnosisDescription,
   diagnosisSource,
   diagnosisError,
+  onDiagnosisChange,
   onDiagnosisConfirm,
   patientId,
   encounterDiagnosis,
@@ -367,6 +373,7 @@ export function ClinicalEncounterChart({
           diagnosisDescription={diagnosisDescription}
           diagnosisSource={diagnosisSource}
           diagnosisError={diagnosisError}
+          onDiagnosisChange={onDiagnosisChange}
           onDiagnosisConfirm={onDiagnosisConfirm}
           editable={editable}
         />

@@ -7,6 +7,7 @@ import {
   type ClinicalLearningHttpView,
   type ClinicalLearningListItem,
 } from "@/lib/clinical-learning";
+import { cipVocabularyLabel } from "../cip-preview-display";
 import { ClinicalEncounterSection } from "./ClinicalEncounterSection";
 
 export interface ClinicalLearningSectionProps {
@@ -42,10 +43,8 @@ function statusLabel(status: string): string {
   return STATUS_LABEL[status] ?? status;
 }
 
-function returnLabel(learningReturn: string): string | null {
-  const normalized = learningReturn.trim();
-  if (!normalized) return null;
-  return RETURN_LABEL[normalized] ?? normalized;
+function returnLabel(learningReturn: unknown): string | null {
+  return cipVocabularyLabel(learningReturn, RETURN_LABEL);
 }
 
 export function ClinicalLearningSection({

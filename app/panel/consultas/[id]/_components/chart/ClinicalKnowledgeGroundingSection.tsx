@@ -7,6 +7,7 @@ import {
   type ClinicalKnowledgeGroundingHttpView,
   type ClinicalKnowledgeGroundingListItem,
 } from "@/lib/clinical-knowledge-grounding";
+import { cipVocabularyLabel } from "../cip-preview-display";
 import { ClinicalEncounterSection } from "./ClinicalEncounterSection";
 
 export interface ClinicalKnowledgeGroundingSectionProps {
@@ -44,10 +45,8 @@ function statusLabel(status: string): string {
   return STATUS_LABEL[status] ?? status;
 }
 
-function stanceLabel(groundingStance: string): string | null {
-  const normalized = groundingStance.trim();
-  if (!normalized) return null;
-  return STANCE_LABEL[normalized] ?? normalized;
+function stanceLabel(groundingStance: unknown): string | null {
+  return cipVocabularyLabel(groundingStance, STANCE_LABEL);
 }
 
 export function ClinicalKnowledgeGroundingSection({

@@ -1,7 +1,8 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { Children, type ReactNode } from "react";
 import { EncounterCipHopTracer } from "./EncounterCipHopTracer";
+import { EncounterDisclosurePreviewBoundary } from "./EncounterDisclosurePreviewBoundary";
 import { shouldMountDisclosurePreviews } from "./encounter-hot-path";
 
 export function EncounterDisclosureMount({
@@ -22,7 +23,11 @@ export function EncounterDisclosureMount({
       <div data-testid="encounter-cip-hop-tracer" data-alertable="false">
         <EncounterCipHopTracer />
       </div>
-      {children}
+      {Children.map(children, (child, index) => (
+        <EncounterDisclosurePreviewBoundary key={index}>
+          {child}
+        </EncounterDisclosurePreviewBoundary>
+      ))}
     </div>
   );
 }

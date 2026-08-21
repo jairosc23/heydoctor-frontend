@@ -10,6 +10,9 @@ beforeAll(() => {
     disconnect() {}
   }
   vi.stubGlobal("ResizeObserver", ResizeObserverStub);
+  if (typeof HTMLElement.prototype.scrollIntoView !== "function") {
+    HTMLElement.prototype.scrollIntoView = function scrollIntoView() {};
+  }
 });
 
 const sections: ClinicalNavigationSection[] = [
@@ -58,6 +61,15 @@ const sections: ClinicalNavigationSection[] = [
     lane: "primary",
     completion: "blocked",
   },
+  {
+    id: "encounter-section-22",
+    sectionNumber: 22,
+    label: "Documentos",
+    shortLabel: "Docs",
+    group: "closure",
+    lane: "primary",
+    completion: "empty",
+  },
 ];
 
 describe("E2-2 ClinicalNavigationRail disclosure chrome", () => {
@@ -74,6 +86,7 @@ describe("E2-2 ClinicalNavigationRail disclosure chrome", () => {
     expect(screen.getByTestId("clinical-navigation-item-1")).toBeInTheDocument();
     expect(screen.getByTestId("clinical-navigation-item-13")).toBeInTheDocument();
     expect(screen.getByTestId("clinical-navigation-item-20")).toBeInTheDocument();
+    expect(screen.getByTestId("clinical-navigation-item-22")).toBeInTheDocument();
     expect(
       screen.queryByTestId("clinical-navigation-item-21"),
     ).not.toBeInTheDocument();
@@ -115,8 +128,11 @@ describe("E2-2 ClinicalNavigationRail disclosure chrome", () => {
     const hab = screen.getByTestId("clinical-navigation-authorization");
     const cic = screen.getByTestId("clinical-navigation-copilot");
     const firma = screen.getByTestId("clinical-navigation-item-20");
+    const documentos = screen.getByTestId("clinical-navigation-item-22");
     const soap = screen.getByTestId("clinical-navigation-item-13");
     const toggle = screen.getByTestId("clinical-navigation-disclosure-toggle");
+    const pin = screen.getByTestId("clinical-navigation-closure-pin");
+    const scroll = screen.getByTestId("clinical-navigation-rail-scroll");
 
     expect(offer).toHaveAttribute("data-section-id", "encounter-offer");
     expect(hab).toHaveAttribute("data-section-id", "encounter-hab");
@@ -125,6 +141,48 @@ describe("E2-2 ClinicalNavigationRail disclosure chrome", () => {
     expect(cic.compareDocumentPosition(offer) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(offer.compareDocumentPosition(hab) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(hab.compareDocumentPosition(firma) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(firma.compareDocumentPosition(toggle) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(pin).toContainElement(firma);
+    expect(pin).toContainElement(documentos);
+    expect(scroll).toContainElement(toggle);
+    expect(scroll).not.toContainElement(firma);
+    expect(scroll).not.toContainElement(documentos);
+  });
+
+  it("keeps Firma and Documentos pinned when disclosure expands", async () => {
+    const { user } = renderWithProviders(
+      <ClinicalNavigationRail
+        sections={sections}
+        activeSectionId="encounter-section-1"
+        onNavigate={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByTestId("clinical-navigation-disclosure-toggle"));
+    const pin = screen.getByTestId("clinical-navigation-closure-pin");
+    const scroll = screen.getByTestId("clinical-navigation-rail-scroll");
+    expect(pin).toContainElement(screen.getByTestId("clinical-navigation-item-20"));
+    expect(pin).toContainElement(screen.getByTestId("clinical-navigation-item-22"));
+    expect(scroll).toContainElement(screen.getByTestId("clinical-navigation-item-21"));
+    expect(scroll).not.toContainElement(
+      screen.getByTestId("clinical-navigation-item-20"),
+    );
+  });
+
+  it("pins Firma/Documentos on the horizontal rail so they stay out of overflow-x", () => {
+    renderWithProviders(
+      <ClinicalNavigationRail
+        sections={sections}
+        activeSectionId="encounter-section-1"
+        onNavigate={vi.fn()}
+        orientation="horizontal"
+      />,
+    );
+
+    const pin = screen.getByTestId("clinical-navigation-closure-pin");
+    expect(pin).toContainElement(screen.getByTestId("clinical-navigation-item-20"));
+    expect(pin).toContainElement(screen.getByTestId("clinical-navigation-item-22"));
+    expect(screen.getByTestId("clinical-navigation-rail-scroll")).not.toContainElement(
+      screen.getByTestId("clinical-navigation-item-20"),
+    );
   });
 });

@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { buildUpdateConsultationBody } from "./consultations";
+import { buildUpdateConsultationBody, unwrapConsultation } from "./consultations";
 
 describe("buildUpdateConsultationBody", () => {
   it("maps chiefComplaint to reason and treatmentPlan to treatment", () => {
@@ -52,5 +52,20 @@ describe("buildUpdateConsultationBody", () => {
         cie10CodeId: null,
       },
     );
+  });
+});
+
+describe("unwrapConsultation", () => {
+  it("returns a bare consultation entity", () => {
+    const raw = { id: "c1", doctorSignature: "iVBOR", status: "signed" };
+    assert.equal(unwrapConsultation(raw).doctorSignature, "iVBOR");
+  });
+
+  it("unwraps a { data } envelope without dropping the signature", () => {
+    const raw = {
+      data: { id: "c1", doctorSignature: "iVBOR", status: "signed" },
+    };
+    assert.equal(unwrapConsultation(raw).id, "c1");
+    assert.equal(unwrapConsultation(raw).doctorSignature, "iVBOR");
   });
 });

@@ -55,6 +55,7 @@ function chartFixture(
     clinicId: "clinic-1",
     diagnosis: "",
     diagnosisError: null,
+    onDiagnosisChange: () => undefined,
     onDiagnosisConfirm: () => undefined,
     patientId: "patient-1",
     clinicalMemory: memory,

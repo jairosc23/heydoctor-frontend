@@ -16,6 +16,7 @@ import {
   encounterHashSectionId,
   flattenSignatureReadyRailEntries,
   isEncounterCarePathLandmark,
+  partitionSignatureReadyRailGroups,
   primaryEncounterSections,
   shouldExpandDisclosureForSectionId,
 } from "../app/panel/consultas/[id]/_components/clinical-navigation-rail-model";
@@ -54,6 +55,7 @@ function chartFixture(
     clinicId: "clinic-1",
     diagnosis: "",
     diagnosisError: null,
+    onDiagnosisChange: () => undefined,
     onDiagnosisConfirm: () => undefined,
     patientId: "patient-1",
     clinicalMemory: memory,
@@ -516,4 +518,36 @@ test("E2-3 renders Signature-ready care path before disclosure", () => {
     true,
   );
 });
+
+test("pins Firma/Documentos outside the scrollable rail groups", () => {
+  const sections = buildClinicalNavigationSections(chartFixture());
+  const groups = buildSignatureReadyRailGroups(sections, true);
+  const { scrollable, pinnedClosure } = partitionSignatureReadyRailGroups(groups);
+
+  assert.equal(pinnedClosure?.key, "closure");
+  assert.deepEqual(
+    pinnedClosure?.entries
+      .filter((entry) => entry.type === "section")
+      .map((entry) => entry.section.sectionNumber),
+    [20, 22],
+  );
+  assert.equal(
+    scrollable.some((group) => group.key === "closure"),
+    false,
+  );
+  assert.deepEqual(
+    scrollable.map((group) => group.key),
+    ["context", "soap", "offer", "authorization", "disclosure"],
+  );
+  assert.equal(
+    flattenSignatureReadyRailEntries(scrollable).some(
+      (entry) =>
+        entry.type === "section" &&
+        (entry.section.sectionNumber === 20 ||
+          entry.section.sectionNumber === 22),
+    ),
+    false,
+  );
+});
+
 

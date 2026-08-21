@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { SignatureCanvas } from "@/components/clinical";
 import type {
   ActionBarHandlers,
@@ -13,6 +12,10 @@ import {
 } from "../consultation-status";
 import { DocumentsTab } from "../DocumentsTab";
 import { ClinicalEncounterSection } from "./ClinicalEncounterSection";
+import {
+  doctorSignatureImageSrc,
+  isPersistedDoctorSignatureMissing,
+} from "@/lib/consultation-signature";
 
 export interface EncounterClosureSectionProps {
   status: string;
@@ -44,6 +47,7 @@ export function EncounterClosureSection({
   signMessage,
 }: EncounterClosureSectionProps) {
   const statusLabel = STATUS_LABELS[status] ?? status;
+  const signatureSrc = doctorSignatureImageSrc(doctorSignature);
   const showSign = canSign && !isSigned;
   const documentsEnabled = isSigned || isLocked;
 
@@ -107,15 +111,24 @@ export function EncounterClosureSection({
                 Cierre legal registrado. La edición clínica queda deshabilitada.
               </p>
             )}
-            {doctorSignature ? (
-              <Image
-                unoptimized
-                src={`data:image/png;base64,${doctorSignature}`}
+            {signatureSrc ? (
+              <img
+                src={signatureSrc}
                 alt="Firma del doctor"
                 width={160}
                 height={64}
+                data-testid="encounter-signed-signature"
                 className="h-auto max-h-[56px] w-auto max-w-[160px]"
               />
+            ) : isPersistedDoctorSignatureMissing(status, doctorSignature) ? (
+              <p
+                className="text-sm text-red-700"
+                data-testid="encounter-signature-missing"
+                role="alert"
+              >
+                La consulta está firmada, pero la imagen de la firma no está
+                disponible.
+              </p>
             ) : null}
           </div>
         ) : null}

@@ -6,6 +6,10 @@ import {
   type DiagnosticSearchResult,
 } from "@/lib/services/search";
 import {
+  diagnosisDraftItemFromText,
+  shouldCommitDiagnosisPickerDraft,
+} from "@/lib/services/consultation-diagnosis";
+import {
   fetchDiagnosisSuggestions,
   toggleFavoriteDiagnosis,
   type DiagnosisSuggestion,
@@ -102,6 +106,7 @@ export function SmartDiagnosisPicker({
   const [confirming, setConfirming] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const listRef = useRef<HTMLUListElement>(null);
+  const skipDraftCommitRef = useRef(false);
 
   const isSearchMode = input.trim().length >= 2;
 
@@ -175,7 +180,19 @@ export function SmartDiagnosisPicker({
     return () => clearTimeout(timer);
   }, [input, debounceMs, fetchSuggestions]);
 
+  const commitDraft = useCallback(() => {
+    const typed = input.trim();
+    if (!shouldCommitDiagnosisPickerDraft(value, typed)) {
+      setInput(value);
+      setOpen(false);
+      return;
+    }
+    onChange(diagnosisDraftItemFromText(typed));
+    setOpen(false);
+  }, [input, onChange, value]);
+
   const select = async (item: DiagnosisSuggestion | DiagnosticSearchResult) => {
+    skipDraftCommitRef.current = true;
     const diagnosisItem: DiagnosisItem = {
       code: item.code,
       description: item.description,
@@ -219,13 +236,29 @@ export function SmartDiagnosisPicker({
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!open) return;
-
     const items = isSearchMode
       ? suggestions
       : selectablePreferenceItems.map((r) => r.item);
 
-    if (items.length === 0) return;
+    if (event.key === "Escape") {
+      setOpen(false);
+      setActiveIndex(-1);
+      setInput(value);
+      return;
+    }
+
+    if (event.key === "Enter") {
+      if (open && activeIndex >= 0 && items[activeIndex]) {
+        event.preventDefault();
+        void select(items[activeIndex]);
+        return;
+      }
+      event.preventDefault();
+      commitDraft();
+      return;
+    }
+
+    if (!open || items.length === 0) return;
 
     if (event.key === "ArrowDown") {
       event.preventDefault();
@@ -235,12 +268,6 @@ export function SmartDiagnosisPicker({
       setActiveIndex((prev) =>
         prev <= 0 ? items.length - 1 : prev - 1,
       );
-    } else if (event.key === "Enter" && activeIndex >= 0) {
-      event.preventDefault();
-      void select(items[activeIndex]);
-    } else if (event.key === "Escape") {
-      setOpen(false);
-      setActiveIndex(-1);
     }
   };
 
@@ -279,7 +306,16 @@ export function SmartDiagnosisPicker({
             void loadPreferences();
           }
         }}
-        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        onBlur={() => {
+          setTimeout(() => {
+            setOpen(false);
+            if (skipDraftCommitRef.current) {
+              skipDraftCommitRef.current = false;
+              return;
+            }
+            commitDraft();
+          }, 150);
+        }}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         aria-autocomplete="list"
@@ -296,6 +332,9 @@ export function SmartDiagnosisPicker({
           ref={listRef}
           role="listbox"
           className="absolute z-10 mt-1 max-h-72 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg"
+          onMouseDown={() => {
+            skipDraftCommitRef.current = true;
+          }}
         >
           {loading && !isSearchMode && !hasPreferenceContent ? (
             <li className="px-3 py-2 text-sm text-slate-500">Cargando...</li>

@@ -15,12 +15,15 @@ import {
   startCall,
   type NestConsultation,
 } from "@/lib/services/consultations";
+import { adoptConsultationSignatureEcho } from "@/lib/consultation-signature";
 import { submitHabDecision } from "@/lib/hab-authority/api";
 import {
   buildSoapDraftKey,
   buildSoapPatch,
+  diagnosisStateFromDraftItem,
   emptyDiagnosisState,
   hydrateDiagnosisFromConsultation,
+  hydrateDiagnosisFromPatchEcho,
   soapPatchFingerprint,
   structuredDiagnosisFromPicker,
   type ConsultationDiagnosisState,
@@ -279,7 +282,11 @@ export default function ConsultationDetailPage() {
     presentIllnessHistory,
     setPresentIllnessHistory,
     composeNotes,
-  } = useEncounterNotesDraft(consultation?.notes ?? null, notes);
+  } = useEncounterNotesDraft(
+    consultation?.notes ?? null,
+    notes,
+    consultation?.id,
+  );
 
   useEffect(() => {
     prevStatusRef.current = undefined;
@@ -519,9 +526,13 @@ export default function ConsultationDetailPage() {
         if (!persistGateRef.current.shouldPersist()) return;
         const updated = await updateConsultation(id, patch);
         lastPersistedPatchRef.current = patchFingerprint;
-        setConsultation(updated);
-        consultationRef.current = updated;
-        const nextDiagnosis = hydrateDiagnosisFromConsultation(updated);
+        const adopted = adoptConsultationSignatureEcho(
+          consultationRef.current,
+          updated,
+        );
+        setConsultation(adopted);
+        consultationRef.current = adopted;
+        const nextDiagnosis = hydrateDiagnosisFromPatchEcho(updated, diagnosis);
         setDiagnosisState((prev) => {
           const prevKey = buildSoapDraftKey({
             notes,
@@ -799,6 +810,7 @@ export default function ConsultationDetailPage() {
       if (isEditable || isDraftDirty) {
         await flushNow();
       }
+      abandonAutosave();
       await persistAntecedentsOrThrow(
         antecedentsDirty || Boolean(antecedentsRef.current?.isDirty()),
       );
@@ -810,22 +822,31 @@ export default function ConsultationDetailPage() {
         actKind: "documentation_finalize",
         rationale: "Physician confirms consultation legal sign",
       });
-      const updated = await signConsultation(id, base64, {
+      const signed = await signConsultation(id, base64, {
         habDecisionId: hab.decisionId,
       });
-      const st = updated.status ?? "";
+      const confirmed = adoptConsultationSignatureEcho(
+        signed,
+        await fetchConsultation(id),
+      );
+      const st = confirmed.status ?? "";
       if (st !== "signed" && st !== "locked") {
         throw new Error(
           `El cierre legal no actualizó el estado (recibido: "${st || "vacío"}").`,
         );
       }
+      if (!confirmed.doctorSignature) {
+        throw new Error(
+          "El cierre legal no persistió la firma. Recargue e intente de nuevo.",
+        );
+      }
       trackConsultationCompletedIfNeeded(prev, st, id);
       prevStatusRef.current = st;
-      setConsultation(updated);
-      consultationRef.current = updated;
+      setConsultation(confirmed);
+      consultationRef.current = confirmed;
       setSignMsg(
-        updated.signedAt
-          ? `Consulta firmada el ${new Date(updated.signedAt).toLocaleString(
+        confirmed.signedAt
+          ? `Consulta firmada el ${new Date(confirmed.signedAt).toLocaleString(
               "es-CL",
               {
                 dateStyle: "medium",
@@ -888,6 +909,16 @@ export default function ConsultationDetailPage() {
     }
     router.push(`/panel/consultas/${consultation.id}/teleconsulta`);
   };
+
+  function handleDiagnosisDraftChange(item: {
+    code: string;
+    description: string;
+    cie10CodeId?: string;
+  }) {
+    if (item.cie10CodeId) return;
+    setDiagnosisState(diagnosisStateFromDraftItem(item));
+    setDiagnosisError(null);
+  }
 
   async function handleDiagnosisConfirm(item: {
     code: string;
@@ -1560,6 +1591,7 @@ export default function ConsultationDetailPage() {
                         diagnosisState.diagnosisDescription || null,
                       diagnosisSource: diagnosisState.source,
                       diagnosisError,
+                      onDiagnosisChange: handleDiagnosisDraftChange,
                       onDiagnosisConfirm: handleDiagnosisConfirm,
                       patientId: consultation.patientId,
                       encounterDiagnosis,
@@ -1717,6 +1749,7 @@ export default function ConsultationDetailPage() {
                       diagnosisState.diagnosisDescription || null,
                     diagnosisSource: diagnosisState.source,
                     diagnosisError,
+                    onDiagnosisChange: handleDiagnosisDraftChange,
                     onDiagnosisConfirm: handleDiagnosisConfirm,
                     patientId: consultation.patientId,
                     encounterDiagnosis,

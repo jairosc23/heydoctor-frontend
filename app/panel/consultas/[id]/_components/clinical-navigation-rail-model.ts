@@ -789,6 +789,28 @@ export function flattenSignatureReadyRailEntries(
   return groups.flatMap((group) => group.entries);
 }
 
+/**
+ * Keep Firma / Documentos pinned outside the rail overflow so the
+ * Signature-ready close path stays reachable while SOAP or disclosure scroll.
+ */
+export function partitionSignatureReadyRailGroups(
+  groups: SignatureReadyRailGroup[],
+): {
+  scrollable: SignatureReadyRailGroup[];
+  pinnedClosure: SignatureReadyRailGroup | null;
+} {
+  let pinnedClosure: SignatureReadyRailGroup | null = null;
+  const scrollable: SignatureReadyRailGroup[] = [];
+  for (const group of groups) {
+    if (group.key === "closure") {
+      pinnedClosure = group;
+      continue;
+    }
+    scrollable.push(group);
+  }
+  return { scrollable, pinnedClosure };
+}
+
 export function shouldExpandDisclosureForSectionId(
   sections: Array<Pick<ClinicalNavigationSection, "id" | "lane">>,
   sectionId: string | null | undefined,

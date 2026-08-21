@@ -7,6 +7,7 @@ import {
   type HumanDecisionHttpView,
   type HumanDecisionListItem,
 } from "@/lib/human-decision";
+import { cipVocabularyLabel } from "../cip-preview-display";
 import { ClinicalEncounterSection } from "./ClinicalEncounterSection";
 
 export interface HumanDecisionSectionProps {
@@ -43,10 +44,8 @@ function statusLabel(status: string): string {
   return STATUS_LABEL[status] ?? status;
 }
 
-function dispositionLabel(disposition: string): string | null {
-  const normalized = disposition.trim();
-  if (!normalized) return null;
-  return DISPOSITION_LABEL[normalized] ?? normalized;
+function dispositionLabel(disposition: unknown): string | null {
+  return cipVocabularyLabel(disposition, DISPOSITION_LABEL);
 }
 
 export function HumanDecisionSection({

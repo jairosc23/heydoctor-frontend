@@ -5,12 +5,13 @@ import { cn } from "@/lib/utils";
 import {
   DISCLOSURE_RAIL_LABEL,
   buildSignatureReadyRailGroups,
-  flattenSignatureReadyRailEntries,
+  partitionSignatureReadyRailGroups,
   type ClinicalNavigationCompletion,
   type ClinicalNavigationProgress,
   type ClinicalNavigationRailEntry,
   type ClinicalNavigationRisk,
   type ClinicalNavigationSection,
+  type SignatureReadyRailGroup,
 } from "./clinical-navigation-rail-model";
 
 /** Scrollport más cercano (p. ej. `<main>` del PanelLayout). */
@@ -80,6 +81,61 @@ function useRailStickyMaxHeight(
       scrollPort?.removeEventListener("scroll", apply);
     };
   }, [enabled, navRef]);
+}
+
+function useRevealActiveRailItem(
+  railRef: RefObject<HTMLElement | null>,
+  activeSectionId: string | null,
+) {
+  useEffect(() => {
+    const rail = railRef.current;
+    if (!rail || !activeSectionId) return;
+    const item = rail.querySelector(
+      `[data-section-id="${typeof CSS !== "undefined" && typeof CSS.escape === "function" ? CSS.escape(activeSectionId) : activeSectionId}"]`,
+    );
+    if (!(item instanceof HTMLElement)) return;
+    if (typeof item.scrollIntoView !== "function") return;
+    item.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [activeSectionId, railRef]);
+}
+
+function RailGroup({
+  group,
+  activeSectionId,
+  orientation,
+  disclosureExpanded,
+  onNavigate,
+  onToggleDisclosure,
+}: {
+  group: SignatureReadyRailGroup;
+  activeSectionId: string | null;
+  orientation: "vertical" | "horizontal";
+  disclosureExpanded: boolean;
+  onNavigate: (sectionId: string) => void;
+  onToggleDisclosure: () => void;
+}) {
+  return (
+    <div
+      className={orientation === "vertical" ? "space-y-1" : undefined}
+      data-care-path-step={group.key}
+    >
+      {orientation === "vertical" ? (
+        <p className="px-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+          {group.label}
+        </p>
+      ) : null}
+      <div className={orientation === "vertical" ? "space-y-0.5" : "contents"}>
+        <RailEntries
+          entries={group.entries}
+          activeSectionId={activeSectionId}
+          orientation={orientation}
+          disclosureExpanded={disclosureExpanded}
+          onNavigate={onNavigate}
+          onToggleDisclosure={onToggleDisclosure}
+        />
+      </div>
+    </div>
+  );
 }
 
 export interface ClinicalNavigationRailProps {
@@ -385,12 +441,16 @@ export function ClinicalNavigationRail({
   disclosureExpanded: disclosureExpandedProp,
   onDisclosureExpandedChange,
 }: ClinicalNavigationRailProps) {
-  const verticalNavRef = useRef<HTMLElement | null>(null);
+  const railRef = useRef<HTMLElement | null>(null);
   const [disclosureExpanded, setDisclosureExpanded] = useDisclosureExpanded(
     disclosureExpandedProp,
     onDisclosureExpandedChange,
   );
-  useRailStickyMaxHeight(orientation === "vertical" && sections.length > 0, verticalNavRef);
+  useRailStickyMaxHeight(
+    orientation === "vertical" && sections.length > 0,
+    railRef,
+  );
+  useRevealActiveRailItem(railRef, activeSectionId);
 
   if (sections.length === 0) return null;
 
@@ -400,37 +460,63 @@ export function ClinicalNavigationRail({
     sections,
     disclosureExpanded,
   );
+  const { scrollable, pinnedClosure } =
+    partitionSignatureReadyRailGroups(carePathGroups);
+  const groupProps = {
+    activeSectionId,
+    disclosureExpanded,
+    onNavigate,
+    onToggleDisclosure: toggleDisclosure,
+  };
 
   if (orientation === "horizontal") {
-    const entries = flattenSignatureReadyRailEntries(carePathGroups);
     return (
       <nav
+        ref={railRef}
         aria-label="Navegación de ficha clínica"
         data-testid="clinical-navigation-rail"
         data-orientation="horizontal"
         data-care-path="signature-ready"
         data-disclosure-expanded={disclosureExpanded ? "true" : "false"}
         className={cn(
-          "flex gap-1 overflow-x-auto rounded-hd-lg border border-hd-border-subtle bg-hd-surface-raised p-1 shadow-hd-1",
+          "flex gap-1 overflow-hidden rounded-hd-lg border border-hd-border-subtle bg-hd-surface-raised p-1 shadow-hd-1",
           className,
         )}
       >
         {progress ? <RailProgressSummary progress={progress} compact /> : null}
-        <RailEntries
-          entries={entries}
-          activeSectionId={activeSectionId}
-          orientation="horizontal"
-          disclosureExpanded={disclosureExpanded}
-          onNavigate={onNavigate}
-          onToggleDisclosure={toggleDisclosure}
-        />
+        <div
+          data-testid="clinical-navigation-rail-scroll"
+          className="flex min-w-0 flex-1 gap-1 overflow-x-auto"
+        >
+          {scrollable.map((group) => (
+            <RailGroup
+              key={group.key}
+              group={group}
+              orientation="horizontal"
+              {...groupProps}
+            />
+          ))}
+        </div>
+        {pinnedClosure ? (
+          <div
+            data-testid="clinical-navigation-closure-pin"
+            data-care-path-step="closure"
+            className="flex shrink-0 gap-1 border-l border-hd-border-subtle pl-1"
+          >
+            <RailGroup
+              group={pinnedClosure}
+              orientation="horizontal"
+              {...groupProps}
+            />
+          </div>
+        ) : null}
       </nav>
     );
   }
 
   return (
     <nav
-      ref={verticalNavRef}
+      ref={railRef}
       aria-label="Navegación de ficha clínica"
       data-testid="clinical-navigation-rail"
       data-orientation="vertical"
@@ -438,11 +524,11 @@ export function ClinicalNavigationRail({
       data-disclosure-expanded={disclosureExpanded ? "true" : "false"}
       className={cn(
         // Fallback CSS (100dvh + safe-area); JS mide el espacio real del scrollport.
-        "clinical-depth-secondary sticky top-[calc(var(--encounter-chrome-h,5.5rem)+0.75rem)] z-10 max-h-[calc(100dvh-4rem-var(--encounter-chrome-h,5.5rem)-0.75rem-env(safe-area-inset-bottom,0px)-2.5rem)] overflow-y-auto overscroll-contain rounded-hd-lg border border-hd-border-subtle bg-hd-surface-raised p-hd-2 pb-hd-3 shadow-hd-1",
+        "clinical-depth-secondary sticky top-[calc(var(--encounter-chrome-h,5.5rem)+0.75rem)] z-10 flex max-h-[calc(100dvh-4rem-var(--encounter-chrome-h,5.5rem)-0.75rem-env(safe-area-inset-bottom,0px)-2.5rem)] flex-col overflow-hidden rounded-hd-lg border border-hd-border-subtle bg-hd-surface-raised p-hd-2 pb-hd-3 shadow-hd-1",
         className,
       )}
     >
-      <div className="mb-hd-2 border-b border-hd-border-subtle pb-hd-2">
+      <div className="mb-hd-2 shrink-0 border-b border-hd-border-subtle pb-hd-2">
         <p className="text-[10px] font-semibold uppercase tracking-wide text-primary/80">
           Camino Signature-ready
         </p>
@@ -451,25 +537,32 @@ export function ClinicalNavigationRail({
         </p>
         {progress ? <RailProgressSummary progress={progress} /> : null}
       </div>
-      <div className="space-y-hd-3">
-        {carePathGroups.map((group) => (
-          <div key={group.key} className="space-y-1" data-care-path-step={group.key}>
-            <p className="px-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-              {group.label}
-            </p>
-            <div className="space-y-0.5">
-              <RailEntries
-                entries={group.entries}
-                activeSectionId={activeSectionId}
-                orientation="vertical"
-                disclosureExpanded={disclosureExpanded}
-                onNavigate={onNavigate}
-                onToggleDisclosure={toggleDisclosure}
-              />
-            </div>
-          </div>
+      <div
+        data-testid="clinical-navigation-rail-scroll"
+        className="min-h-0 flex-1 space-y-hd-3 overflow-y-auto overscroll-contain"
+      >
+        {scrollable.map((group) => (
+          <RailGroup
+            key={group.key}
+            group={group}
+            orientation="vertical"
+            {...groupProps}
+          />
         ))}
       </div>
+      {pinnedClosure ? (
+        <div
+          data-testid="clinical-navigation-closure-pin"
+          data-care-path-step="closure"
+          className="mt-hd-2 shrink-0 space-y-1 border-t border-hd-border-subtle pt-hd-2"
+        >
+          <RailGroup
+            group={pinnedClosure}
+            orientation="vertical"
+            {...groupProps}
+          />
+        </div>
+      ) : null}
     </nav>
   );
 }
