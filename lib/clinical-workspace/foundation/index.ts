@@ -3,6 +3,7 @@ import type {
   WorkspaceSurface,
   WorkspaceSurfaceId,
 } from "../kernel";
+import { getWorkspaceViewport } from "./viewport";
 
 function present(_surface: WorkspaceSurface): void {}
 
@@ -27,5 +28,6 @@ export function createWorkspaceFoundation(): ClinicalWorkspaceKernel {
     goBackToConsultas,
     enterFullscreen,
     exitFullscreen,
+    getViewport: getWorkspaceViewport,
   };
 }

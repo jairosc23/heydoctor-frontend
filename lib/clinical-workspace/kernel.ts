@@ -37,6 +37,22 @@ export type WorkspaceDrawer = WorkspaceSurface & { kind: "drawer" };
 export type WorkspaceDialog = WorkspaceSurface & { kind: "dialog" };
 export type WorkspaceModal = WorkspaceSurface & { kind: "modal" };
 
+export type WorkspaceContentRect = {
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+};
+
+export type WorkspaceViewport = {
+  sidebarWidth: number;
+  panelHeaderHeight: number;
+  encounterChromeHeight: number;
+  safeTop: number;
+  safeBottom: number;
+  contentRect: WorkspaceContentRect;
+};
+
 export interface ClinicalWorkspaceKernel {
   present(surface: WorkspaceSurface): void;
   dismiss(id?: WorkspaceSurfaceId): void;
@@ -45,6 +61,7 @@ export interface ClinicalWorkspaceKernel {
   goBackToConsultas(): void;
   enterFullscreen(): void;
   exitFullscreen(): void;
+  getViewport(): WorkspaceViewport;
 }
 
 export const CLINICAL_WORKSPACE_KERNEL_ID =

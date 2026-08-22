@@ -107,6 +107,9 @@ export const WORKSPACE_FOUNDATION_ENTRY =
 export const WORKSPACE_FOUNDATION_FILE =
   "lib/clinical-workspace/foundation/index.ts" as const;
 
+export const WORKSPACE_VIEWPORT_FILE =
+  "lib/clinical-workspace/foundation/viewport.ts" as const;
+
 export const WORKSPACE_REGRESSION_SOURCES = {
   encounterPage: "app/panel/consultas/[id]/page.tsx",
   panelLayout: "components/PanelLayout.tsx",

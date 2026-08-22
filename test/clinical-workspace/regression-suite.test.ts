@@ -9,6 +9,7 @@ import {
   WORKSPACE_FOUNDATION_ENTRY,
   WORKSPACE_FOUNDATION_FILE,
   WORKSPACE_KERNEL_ENTRY,
+  WORKSPACE_VIEWPORT_FILE,
   WORKSPACE_REGRESSION_INVARIANTS,
   WORKSPACE_REGRESSION_SCENARIO_CONTRACT,
   WORKSPACE_REGRESSION_SCENARIOS,
@@ -66,6 +67,18 @@ function evaluateWorkspaceGates(): Gate[] {
   const foundationLeaks = Object.values(WORKSPACE_REGRESSION_SOURCES).filter(
     (relative) => readWorkspace(relative).includes(WORKSPACE_FOUNDATION_ENTRY),
   );
+  const viewportConsumers = Object.values(WORKSPACE_REGRESSION_SOURCES).filter(
+    (relative) => {
+      const source = readWorkspace(relative);
+      return (
+        source.includes("foundation/viewport") ||
+        source.includes("getViewport(")
+      );
+    },
+  );
+  const viewport = existsSync(join(ROOT, WORKSPACE_VIEWPORT_FILE))
+    ? readWorkspace(WORKSPACE_VIEWPORT_FILE)
+    : "";
 
   return [
     {
@@ -83,6 +96,22 @@ function evaluateWorkspaceGates(): Gate[] {
         foundationLeaks.length > 0
           ? `Foundation leaked to ${foundationLeaks.join(", ")}`
           : "Foundation missing or not wired through Kernel",
+    },
+    {
+      id: "viewport-entry",
+      pass:
+        viewportConsumers.length === 0 &&
+        /sidebarWidth/.test(viewport) &&
+        /panelHeaderHeight/.test(viewport) &&
+        /encounterChromeHeight/.test(viewport) &&
+        /safeTop/.test(viewport) &&
+        /safeBottom/.test(viewport) &&
+        /contentRect/.test(viewport) &&
+        /getViewport\s*\(/.test(kernel),
+      message:
+        viewportConsumers.length > 0
+          ? `Viewport leaked to ${viewportConsumers.join(", ")}`
+          : "Workspace Viewport primitive is missing",
     },
     {
       id: "teleconsulta-enterFullscreen",
@@ -112,14 +141,10 @@ function evaluateWorkspaceGates(): Gate[] {
       pass:
         /CLINICAL_OVERLAY_DRAWER_BACKDROP_CLASS/.test(continuity) &&
         !/createPortal/.test(continuity) &&
-        !/md:left-64/.test(continuity),
+        !/md:left-64/.test(continuity) &&
+        !/createPortal/.test(fullRecord) &&
+        !/document\.body/.test(fullRecord),
       message: "Continuity still uses a private inset/portal",
-    },
-    {
-      id: "no-body-portal",
-      pass:
-        !/createPortal/.test(fullRecord) && !/document\.body/.test(fullRecord),
-      message: "Full Record still portals to document.body",
     },
     {
       id: "single-chrome-writer",
