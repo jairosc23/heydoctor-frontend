@@ -15,6 +15,8 @@ import { cn } from "@/lib/utils";
 import { trackRedirectToLogin } from "@/lib/session-analytics";
 import { ClinicalBetaFeedbackWidget } from "@/components/clinical-beta/ClinicalBetaFeedbackWidget";
 import { CLINICAL_OVERLAY_CLASS } from "@/lib/clinical-overlay-contract";
+import { clinicalWorkspaceKernel } from "@/lib/clinical-workspace/kernel";
+import { useVisualWorkspaceState } from "@/lib/clinical-workspace/use-visual-workspace-state";
 
 const MENU = [
   { label: "Dashboard", href: "/dashboard" },
@@ -104,13 +106,26 @@ function PanelLayoutShell({
     if (!navOpen) return;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setNavOpen(false);
-    };
-    window.addEventListener("keydown", onKeyDown);
     return () => {
       document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [navOpen]);
+
+  useEffect(() => {
+    if (!navOpen) {
+      clinicalWorkspaceKernel.dismiss("panel-nav");
+      return;
+    }
+    clinicalWorkspaceKernel.present({
+      id: "panel-nav",
+      kind: "drawer",
+      blocking: true,
+      onDismiss: () => setNavOpen(false),
+      backdropAriaLabel: "Cerrar menú de navegación",
+      backdropClassName: "bg-primaryDark/40 md:hidden",
+    });
+    return () => {
+      clinicalWorkspaceKernel.dismiss("panel-nav");
     };
   }, [navOpen]);
 
@@ -172,11 +187,8 @@ function PanelLayoutShell({
     });
   }
 
-  /** Teleconsulta a pantalla completa: montar siempre (la sesión gestiona loaders y auth). */
-  const isPanelTeleconsultaRoute =
-    !!pathname && /\/panel\/consultas\/[^/]+\/teleconsulta$/.test(pathname);
-
-  if (isPanelTeleconsultaRoute) {
+  const visualWorkspace = useVisualWorkspaceState();
+  if (visualWorkspace.mode === "fullscreen") {
     return <>{children}</>;
   }
 
@@ -184,23 +196,19 @@ function PanelLayoutShell({
     return null;
   }
 
-  return (
-    <div className="flex min-h-screen overflow-hidden bg-hd-surface-base font-sans">
-      {navOpen && (
-        <button
-          type="button"
-          className={cn(
-            "fixed inset-0 bg-primaryDark/40 md:hidden",
-            CLINICAL_OVERLAY_CLASS.chrome,
-          )}
-          aria-label="Cerrar menú de navegación"
-          onClick={() => setNavOpen(false)}
-        />
-      )}
+  const viewport = clinicalWorkspaceKernel.getViewport();
 
+  return (
+    <div
+      className="flex min-h-screen overflow-hidden bg-hd-surface-base font-sans"
+      style={{
+        ["--workspace-sidebar-w" as string]: `${viewport.sidebarWidth}px`,
+        ["--workspace-header-h" as string]: `${viewport.panelHeaderHeight}px`,
+      }}
+    >
       <aside
         className={cn(
-          "fixed bottom-0 left-0 top-0 flex h-screen w-64 flex-col border-r border-hd-border-subtle bg-hd-surface-chrome p-4 shadow-hd-2 transition-transform duration-hd-base",
+          "fixed bottom-0 left-0 top-0 flex h-screen w-[var(--workspace-sidebar-w)] flex-col border-r border-hd-border-subtle bg-hd-surface-chrome p-4 shadow-hd-2 transition-transform duration-hd-base",
           CLINICAL_OVERLAY_CLASS.navigation,
           navOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
         )}
@@ -243,7 +251,7 @@ function PanelLayoutShell({
 
       <header
         className={cn(
-          "fixed left-0 right-0 top-0 flex h-16 items-center justify-between border-b border-hd-border-subtle bg-hd-surface-chrome px-4 shadow-hd-1 md:left-64 md:px-6",
+          "fixed left-0 right-0 top-0 flex h-[var(--workspace-header-h)] items-center justify-between border-b border-hd-border-subtle bg-hd-surface-chrome px-4 shadow-hd-1 md:left-[var(--workspace-sidebar-w)] md:px-6",
           CLINICAL_OVERLAY_CLASS.chrome,
         )}
         data-overlay-layer="chrome"
@@ -308,7 +316,7 @@ function PanelLayoutShell({
         </div>
       </header>
 
-      <main className="absolute bottom-0 left-0 right-0 top-16 overflow-y-auto bg-hd-surface-base p-4 md:left-64 md:p-8">
+      <main className="absolute bottom-0 left-0 right-0 top-[var(--workspace-header-h)] overflow-y-auto bg-hd-surface-base p-4 md:left-[var(--workspace-sidebar-w)] md:p-8">
         {children}
       </main>
       <ClinicalBetaFeedbackWidget />

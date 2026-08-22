@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
 import { CLINICAL_OVERLAY_CLASS } from "@/lib/clinical-overlay-contract";
+import { clinicalWorkspaceKernel } from "@/lib/clinical-workspace/kernel";
 import { cn } from "@/lib/utils";
 
 export function UnsavedChangesDialog({
@@ -18,23 +20,48 @@ export function UnsavedChangesDialog({
   onSaveAndExit: () => void;
   onExitWithoutSaving: () => void;
 }) {
+  useEffect(() => {
+    if (!open) {
+      clinicalWorkspaceKernel.dismiss("unsaved");
+      return;
+    }
+    clinicalWorkspaceKernel.present({
+      id: "unsaved",
+      kind: "dialog",
+      blocking: true,
+      onDismiss: onCancel,
+      backdropAriaLabel: "Cancelar",
+      backdropClassName: "bg-slate-900/40",
+    });
+    return () => {
+      clinicalWorkspaceKernel.dismiss("unsaved");
+    };
+  }, [open, onCancel]);
+
   if (!open) return null;
+
+  const viewport = clinicalWorkspaceKernel.getViewport();
 
   return (
     <div
       className={cn(
-        "fixed inset-0 flex items-center justify-center bg-slate-900/40 px-4",
+        "clinical-overlay-clinical-content pointer-events-none flex items-center justify-center px-4",
         CLINICAL_OVERLAY_CLASS.dialog,
       )}
+      style={{
+        paddingTop: viewport.safeTop,
+        paddingBottom: viewport.safeBottom,
+      }}
       role="presentation"
       data-testid="unsaved-changes-backdrop"
+      data-unsaved-host="overlayHost"
       data-overlay-layer="dialog"
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="unsaved-changes-title"
-        className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-xl"
+        className="pointer-events-auto w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-xl"
         data-testid="unsaved-changes-dialog"
       >
         <h2

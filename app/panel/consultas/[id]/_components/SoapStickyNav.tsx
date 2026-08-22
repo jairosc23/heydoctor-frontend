@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { clinicalWorkspaceKernel } from "@/lib/clinical-workspace/kernel";
 import type { SoapNavStep } from "@/hooks/useSoapScrollSpy";
 
 const SOAP_SECTIONS: Array<{ step: SoapNavStep; label: string }> = [
@@ -19,10 +20,15 @@ export function SoapStickyNav({
 }) {
   if (!enabled) return null;
 
+  const viewport = clinicalWorkspaceKernel.getViewport();
+
   return (
     <nav
       aria-label="Navegación SOAP"
       data-testid="soap-sticky-nav"
+      style={{
+        top: `calc(var(--encounter-chrome-h, ${viewport.encounterChromeHeight}px) + 4px)`,
+      }}
       className={cn(
         "soap-sticky-nav sticky z-[5] -mx-hd-1 mb-hd-2 flex gap-0.5 overflow-x-auto",
         "rounded-hd-md border border-hd-border-subtle bg-hd-surface-raised/95 px-hd-1 py-0.5 backdrop-blur-sm",

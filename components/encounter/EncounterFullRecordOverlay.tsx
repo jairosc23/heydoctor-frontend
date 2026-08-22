@@ -2,10 +2,10 @@
 
 /**
  * Full Clinical Record surface inside the Encounter route.
- * Portaled to document.body — preserves Encounter Runtime / Memory / providers.
+ * Overlay chrome via Kernel — preserves Encounter Runtime / Memory / providers.
  */
 
-import { createPortal } from "react-dom";
+import { useEffect } from "react";
 import {
   formatPatientDocument,
   formatPatientSex,
@@ -19,6 +19,7 @@ import {
   type PatientRow,
 } from "@/lib/services/patients";
 import { CLINICAL_OVERLAY_CLASS } from "@/lib/clinical-overlay-contract";
+import { clinicalWorkspaceKernel } from "@/lib/clinical-workspace/kernel";
 import { cn } from "@/lib/utils";
 
 function Field({ label, value }: { label: string; value: string }) {
@@ -73,20 +74,43 @@ export function EncounterFullRecordOverlay({
   loading?: boolean;
   error?: string | null;
 }) {
-  if (!open) return null;
-  if (typeof document === "undefined") return null;
+  useEffect(() => {
+    if (!open) {
+      clinicalWorkspaceKernel.dismiss("full-record");
+      return;
+    }
+    clinicalWorkspaceKernel.present({
+      id: "full-record",
+      kind: "modal",
+      blocking: true,
+      onDismiss: onClose,
+      backdropAriaLabel: "Volver a la consulta",
+      backdropClassName: "bg-slate-900/20",
+    });
+    return () => {
+      clinicalWorkspaceKernel.dismiss("full-record");
+    };
+  }, [open, onClose]);
 
+  if (!open) return null;
+
+  const viewport = clinicalWorkspaceKernel.getViewport();
   const displayName = patient
     ? formatPatientDisplayName(patient)
     : fallbackName;
 
-  return createPortal(
+  return (
     <div
       className={cn(
-        "fixed inset-0 flex flex-col bg-hd-surface-chrome",
+        "clinical-overlay-clinical-content flex flex-col bg-hd-surface-chrome",
         CLINICAL_OVERLAY_CLASS.modal,
       )}
+      style={{
+        paddingTop: viewport.safeTop,
+        paddingBottom: viewport.safeBottom,
+      }}
       data-testid="encounter-full-record-overlay"
+      data-full-record-host="overlayHost"
       data-overlay-layer="modal"
       data-encounter-runtime="preserved"
       role="dialog"
@@ -188,7 +212,6 @@ export function EncounterFullRecordOverlay({
           />
         </div>
       </div>
-    </div>,
-    document.body,
+    </div>
   );
 }

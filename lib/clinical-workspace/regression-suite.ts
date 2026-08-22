@@ -118,6 +118,7 @@ export const WORKSPACE_OVERLAY_MANAGER_FILE =
 
 export const WORKSPACE_REGRESSION_SOURCES = {
   encounterPage: "app/panel/consultas/[id]/page.tsx",
+  teleconsultaPage: "app/panel/consultas/[id]/teleconsulta/page.tsx",
   panelLayout: "components/PanelLayout.tsx",
   copilot: "app/panel/consultas/[id]/_components/copilot/ClinicalCopilotDrawer.tsx",
   doctorDna: "app/panel/consultas/[id]/_components/DoctorDnaDrawer.tsx",

@@ -18,3 +18,23 @@ export function openWorkspaceDoctorDna(): void {
     backdropClassName: "bg-slate-900/10",
   });
 }
+
+export function openWorkspaceContinuity(): void {
+  clinicalWorkspaceKernel.present({
+    id: "continuity",
+    kind: "drawer",
+    blocking: true,
+    backdropAriaLabel: "Cerrar Continuity",
+    backdropClassName: "clinical-drawer-enter bg-slate-900/10",
+  });
+}
+
+export function openWorkspaceShare(): void {
+  clinicalWorkspaceKernel.present({
+    id: "share",
+    kind: "dialog",
+    blocking: true,
+    backdropAriaLabel: "Cerrar",
+    backdropClassName: "bg-slate-900/55",
+  });
+}

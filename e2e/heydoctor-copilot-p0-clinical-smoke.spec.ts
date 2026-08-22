@@ -65,7 +65,7 @@ test.describe("P0 HeyDoctor Copilot Clinical OS smoke", () => {
       await expect(portal).toBeVisible({ timeout: 10_000 });
       await expect(page.getByTestId("continuity-panel-shell")).toHaveAttribute(
         "data-continuity-host",
-        "portal",
+        "overlayHost",
       );
     }
 

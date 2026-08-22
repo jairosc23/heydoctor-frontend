@@ -79,7 +79,7 @@ body {
  */
 .clinical-overlay-clinical-content {
   position: fixed;
-  top: calc(var(--hd-panel-header-h, 4rem) + var(--encounter-chrome-h, 5.5rem));
+  top: calc(var(--hd-panel-header-h, 4rem) + var(--encounter-chrome-h));
   right: 0;
   bottom: 0;
   left: 0;
@@ -87,7 +87,7 @@ body {
 
 .clinical-overlay-clinical-content-y {
   position: fixed;
-  top: calc(var(--hd-panel-header-h, 4rem) + var(--encounter-chrome-h, 5.5rem));
+  top: calc(var(--hd-panel-header-h, 4rem) + var(--encounter-chrome-h));
   bottom: 0;
 }
 
@@ -257,16 +257,6 @@ body {
 
 .soap-focus-layout:focus-within .soap-command-block:focus-within .soap-command-block-header {
   margin-bottom: 0.75rem;
-}
-
-.soap-sticky-nav {
-  top: calc(var(--encounter-chrome-h, 5.5rem) + 4px);
-}
-
-@media (min-width: 1280px) {
-  .soap-sticky-nav {
-    top: calc(var(--encounter-chrome-h, 5.5rem) + 4px);
-  }
 }
 
 .clinical-timeline-elevated .clinical-timeline-item:hover > div {

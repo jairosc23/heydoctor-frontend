@@ -71,6 +71,20 @@ function evaluateWorkspaceGates(): Gate[] {
   );
   const viewportConsumers = Object.values(WORKSPACE_REGRESSION_SOURCES).filter(
     (relative) => {
+      if (
+        relative === WORKSPACE_REGRESSION_SOURCES.continuity ||
+        relative === WORKSPACE_REGRESSION_SOURCES.share ||
+        relative === WORKSPACE_REGRESSION_SOURCES.fullRecord ||
+        relative === WORKSPACE_REGRESSION_SOURCES.unsaved ||
+        relative === WORKSPACE_REGRESSION_SOURCES.panelLayout ||
+        relative === WORKSPACE_REGRESSION_SOURCES.copilot ||
+        relative === WORKSPACE_REGRESSION_SOURCES.rail ||
+        relative === WORKSPACE_REGRESSION_SOURCES.patientRail ||
+        relative === WORKSPACE_REGRESSION_SOURCES.soapNav ||
+        relative === WORKSPACE_REGRESSION_SOURCES.safetyStrip
+      ) {
+        return false;
+      }
       const source = readWorkspace(relative);
       return (
         source.includes("foundation/viewport") ||
@@ -103,6 +117,24 @@ function evaluateWorkspaceGates(): Gate[] {
       id: "viewport-entry",
       pass:
         viewportConsumers.length === 0 &&
+        /getViewport\(/.test(continuity) &&
+        /clinical-overlay-clinical-content/.test(continuity) &&
+        /getViewport\(/.test(readWorkspace(WORKSPACE_REGRESSION_SOURCES.share)) &&
+        /clinical-overlay-clinical-content/.test(
+          readWorkspace(WORKSPACE_REGRESSION_SOURCES.share),
+        ) &&
+        /getViewport\(/.test(fullRecord) &&
+        /clinical-overlay-clinical-content/.test(fullRecord) &&
+        /getViewport\(/.test(readWorkspace(WORKSPACE_REGRESSION_SOURCES.unsaved)) &&
+        /clinical-overlay-clinical-content/.test(
+          readWorkspace(WORKSPACE_REGRESSION_SOURCES.unsaved),
+        ) &&
+        /getViewport\(/.test(layout) &&
+        /getViewport\(/.test(readWorkspace(WORKSPACE_REGRESSION_SOURCES.copilot)) &&
+        /getViewport\(/.test(readWorkspace(WORKSPACE_REGRESSION_SOURCES.rail)) &&
+        /getViewport\(/.test(readWorkspace(WORKSPACE_REGRESSION_SOURCES.patientRail)) &&
+        /getViewport\(/.test(readWorkspace(WORKSPACE_REGRESSION_SOURCES.soapNav)) &&
+        /getViewport\(/.test(readWorkspace(WORKSPACE_REGRESSION_SOURCES.safetyStrip)) &&
         /sidebarWidth/.test(viewport) &&
         /panelHeaderHeight/.test(viewport) &&
         /encounterChromeHeight/.test(viewport) &&
@@ -117,22 +149,29 @@ function evaluateWorkspaceGates(): Gate[] {
     },
     {
       id: "teleconsulta-enterFullscreen",
-      pass:
-        /enterFullscreen\s*\(/.test(page) &&
-        !/router\.push\(`\/panel\/consultas\/\$\{consultation\.id\}\/teleconsulta`\)/.test(
-          page,
-        ) &&
-        !/isPanelTeleconsultaRoute/.test(layout) &&
-        !/copilotDrawerOpen/.test(page) &&
-        !/dnaDrawerOpen/.test(page) &&
-        !/closeEncounterOverlays/.test(page) &&
-        escapeCount === 1 &&
-        geometryHits.length === 0 &&
-        /CLINICAL_OVERLAY_DRAWER_BACKDROP_CLASS/.test(continuity) &&
-        !/createPortal/.test(continuity) &&
-        !/md:left-64/.test(continuity) &&
-        !/createPortal/.test(fullRecord) &&
-        !/document\.body/.test(fullRecord),
+      pass: (() => {
+        const teleconsultaPage = readWorkspace(
+          WORKSPACE_REGRESSION_SOURCES.teleconsultaPage,
+        );
+        return (
+          /enterFullscreen\s*\(/.test(teleconsultaPage) &&
+          /useEffect/.test(teleconsultaPage) &&
+          !/enterFullscreen/.test(layout) &&
+          !/key === ["']Escape["']/.test(layout) &&
+          /mode === ["']fullscreen["']/.test(layout) &&
+          !/router\.push\(`\/panel\/consultas\/\$\{consultation\.id\}\/teleconsulta`\)/.test(
+            page,
+          ) &&
+          !/isPanelTeleconsultaRoute/.test(layout) &&
+          !/copilotDrawerOpen/.test(page) &&
+          !/dnaDrawerOpen/.test(page) &&
+          !/closeEncounterOverlays/.test(page) &&
+          !/createPortal/.test(continuity) &&
+          !/md:left-64/.test(continuity) &&
+          !/createPortal/.test(fullRecord) &&
+          !/document\.body/.test(fullRecord)
+        );
+      })(),
       message: "handleStartCall bypasses Kernel.enterFullscreen",
     },
     {
@@ -272,6 +311,109 @@ describe("Workspace Regression Suite — architecture contract", () => {
         `${relative} must not import Foundation`,
       );
     }
+  });
+
+  it("routes Teleconsulta through Kernel.enterFullscreen", () => {
+    const page = readWorkspace(WORKSPACE_REGRESSION_SOURCES.encounterPage);
+    const teleconsultaPage = readWorkspace(
+      WORKSPACE_REGRESSION_SOURCES.teleconsultaPage,
+    );
+    const layout = readWorkspace(WORKSPACE_REGRESSION_SOURCES.panelLayout);
+    assert.match(teleconsultaPage, /enterFullscreen\s*\(/);
+    assert.match(teleconsultaPage, /useEffect/);
+    assert.doesNotMatch(layout, /enterFullscreen/);
+    assert.doesNotMatch(layout, /key === ["']Escape["']/);
+    assert.doesNotMatch(
+      page,
+      /router\.push\(`\/panel\/consultas\/\$\{consultation\.id\}\/teleconsulta`\)/,
+    );
+    assert.doesNotMatch(layout, /isPanelTeleconsultaRoute/);
+    assert.match(layout, /mode === ["']fullscreen["']/);
+  });
+
+  it("lets the Workspace frame consume Viewport and Chrome", () => {
+    const layout = readWorkspace(WORKSPACE_REGRESSION_SOURCES.panelLayout);
+    const copilot = readWorkspace(WORKSPACE_REGRESSION_SOURCES.copilot);
+    const rail = readWorkspace(WORKSPACE_REGRESSION_SOURCES.rail);
+    const patientRail = readWorkspace(WORKSPACE_REGRESSION_SOURCES.patientRail);
+    const soapNav = readWorkspace(WORKSPACE_REGRESSION_SOURCES.soapNav);
+    const safetyStrip = readWorkspace(WORKSPACE_REGRESSION_SOURCES.safetyStrip);
+    const globals = readWorkspace(WORKSPACE_REGRESSION_SOURCES.globals);
+    for (const source of [layout, copilot, rail, patientRail, soapNav, safetyStrip]) {
+      assert.match(source, /getViewport\(/);
+      assert.doesNotMatch(source, /md:left-64/);
+      assert.doesNotMatch(source, /--encounter-chrome-h,\s*(?:5\.5rem|3\.5rem)/);
+    }
+    assert.doesNotMatch(layout, /top-16/);
+    assert.doesNotMatch(globals, /--encounter-chrome-h,\s*(?:5\.5rem|3\.5rem)/);
+  });
+
+  it("lets Unsaved consume Overlay Manager, Viewport and overlayHost", () => {
+    const unsaved = readWorkspace(WORKSPACE_REGRESSION_SOURCES.unsaved);
+    assert.match(unsaved, /clinicalWorkspaceKernel/);
+    assert.match(unsaved, /present\(/);
+    assert.match(unsaved, /getViewport\(/);
+    assert.match(unsaved, /clinical-overlay-clinical-content/);
+    assert.match(unsaved, /data-unsaved-host="overlayHost"/);
+    assert.doesNotMatch(unsaved, /fixed inset-0/);
+    assert.doesNotMatch(unsaved, /key === ["']Escape["']/);
+    assert.equal(
+      unsaved.includes(WORKSPACE_FOUNDATION_ENTRY),
+      false,
+      "Unsaved must consume Viewport through Kernel",
+    );
+  });
+
+  it("lets Full Record consume Overlay Manager, Viewport and overlayHost", () => {
+    const fullRecord = readWorkspace(WORKSPACE_REGRESSION_SOURCES.fullRecord);
+    assert.match(fullRecord, /clinicalWorkspaceKernel/);
+    assert.match(fullRecord, /present\(/);
+    assert.match(fullRecord, /getViewport\(/);
+    assert.match(fullRecord, /clinical-overlay-clinical-content/);
+    assert.match(fullRecord, /data-full-record-host="overlayHost"/);
+    assert.doesNotMatch(fullRecord, /createPortal/);
+    assert.doesNotMatch(fullRecord, /document\.body/);
+    assert.doesNotMatch(fullRecord, /fixed inset-0/);
+    assert.equal(
+      fullRecord.includes(WORKSPACE_FOUNDATION_ENTRY),
+      false,
+      "Full Record must consume Viewport through Kernel",
+    );
+  });
+
+  it("lets Share consume Overlay Manager, Viewport and overlayHost", () => {
+    const share = readWorkspace(WORKSPACE_REGRESSION_SOURCES.share);
+    assert.match(share, /clinicalWorkspaceKernel/);
+    assert.match(share, /present\(/);
+    assert.match(share, /getViewport\(/);
+    assert.match(share, /clinical-overlay-clinical-content/);
+    assert.match(share, /data-share-host="overlayHost"/);
+    assert.doesNotMatch(share, /zIndex:\s*60/);
+    assert.doesNotMatch(share, /inset:\s*0/);
+    assert.doesNotMatch(share, /createPortal/);
+    assert.equal(
+      share.includes(WORKSPACE_FOUNDATION_ENTRY),
+      false,
+      "Share must consume Viewport through Kernel",
+    );
+  });
+
+  it("lets Continuity consume Overlay Manager, Viewport, Chrome and overlayHost", () => {
+    const continuity = readWorkspace(WORKSPACE_REGRESSION_SOURCES.continuity);
+    assert.match(continuity, /clinicalWorkspaceKernel/);
+    assert.match(continuity, /present\(/);
+    assert.match(continuity, /getViewport\(/);
+    assert.match(continuity, /clinical-overlay-clinical-content/);
+    assert.match(continuity, /data-continuity-host="overlayHost"/);
+    assert.doesNotMatch(continuity, /createPortal/);
+    assert.doesNotMatch(continuity, /md:left-64/);
+    assert.doesNotMatch(continuity, /document\.body/);
+    assert.doesNotMatch(continuity, /--encounter-chrome-h,\s*5\.5rem/);
+    assert.equal(
+      continuity.includes(WORKSPACE_FOUNDATION_ENTRY),
+      false,
+      "Continuity must consume Viewport through Kernel",
+    );
   });
 });
 

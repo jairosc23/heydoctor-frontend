@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { CLINICAL_SECTION_TITLE } from "@/lib/clinical-design-tokens";
 import { cn } from "@/lib/utils";
+import { clinicalWorkspaceKernel } from "@/lib/clinical-workspace/kernel";
 
 export interface ClinicalEncounterSectionProps {
   sectionNumber: number;
@@ -20,6 +21,7 @@ export function ClinicalEncounterSection({
   id,
 }: ClinicalEncounterSectionProps) {
   const sectionId = id ?? `encounter-section-${sectionNumber}`;
+  const viewport = clinicalWorkspaceKernel.getViewport();
 
   return (
     <section
@@ -27,8 +29,11 @@ export function ClinicalEncounterSection({
       tabIndex={-1}
       data-encounter-section={sectionNumber}
       data-testid={sectionId}
+      style={{
+        scrollMarginTop: `calc(var(--encounter-chrome-h, ${viewport.encounterChromeHeight}px) + 1rem)`,
+      }}
       className={cn(
-        "scroll-mt-[calc(var(--encounter-chrome-h,5.5rem)+1rem)] rounded-hd-lg border border-hd-border-subtle bg-hd-surface-raised p-hd-3 shadow-hd-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
+        "rounded-hd-lg border border-hd-border-subtle bg-hd-surface-raised p-hd-3 shadow-hd-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
         className,
       )}
       aria-labelledby={`${sectionId}-title`}

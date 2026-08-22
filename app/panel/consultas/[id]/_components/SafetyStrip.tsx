@@ -6,6 +6,7 @@ import {
 } from "@/lib/patient-profile-display";
 import type { PatientProfile } from "@/lib/services/patients";
 import { cn } from "@/lib/utils";
+import { clinicalWorkspaceKernel } from "@/lib/clinical-workspace/kernel";
 
 export interface SafetyStripProps {
   profile: PatientProfile | null;
@@ -48,17 +49,27 @@ export function SafetyStrip({
   const allergyLines = jsonLinesToList(profile?.allergies);
   const alertLines = collectProfileAlerts(profile);
   const hasContent = allergyLines.length > 0 || alertLines.length > 0;
+  const viewport = clinicalWorkspaceKernel.getViewport();
 
   const shellClass = cn(
     embedded
       ? "border-t border-slate-100 px-0 py-1.5"
-      : "sticky top-[var(--encounter-chrome-h,3.5rem)] z-20 border-b border-slate-100 bg-white/95 px-3 py-1.5 backdrop-blur",
+      : "sticky z-20 border-b border-slate-100 bg-white/95 px-3 py-1.5 backdrop-blur",
     className,
   );
+  const shellStyle = embedded
+    ? undefined
+    : {
+        top: `var(--encounter-chrome-h, ${viewport.encounterChromeHeight}px)`,
+      };
 
   if (loading) {
     return (
-      <div className={cn(shellClass, "text-xs text-slate-500")} aria-busy="true">
+      <div
+        className={cn(shellClass, "text-xs text-slate-500")}
+        style={shellStyle}
+        aria-busy="true"
+      >
         Evaluando riesgos clínicos…
       </div>
     );
@@ -69,6 +80,7 @@ export function SafetyStrip({
       return (
         <div
           className={cn(shellClass, "flex items-center py-0.5")}
+          style={shellStyle}
           role="status"
           aria-label="Sin riesgos críticos"
           data-variant="compact-safe"
@@ -85,6 +97,7 @@ export function SafetyStrip({
     return (
       <div
         className={cn(shellClass, "flex items-center gap-1.5 text-xs text-emerald-800")}
+        style={shellStyle}
         role="status"
       >
         <span aria-hidden>🟢</span>
@@ -96,6 +109,7 @@ export function SafetyStrip({
   return (
     <div
       className={shellClass}
+      style={shellStyle}
       role="region"
       aria-label="Riesgos clínicos del paciente"
     >

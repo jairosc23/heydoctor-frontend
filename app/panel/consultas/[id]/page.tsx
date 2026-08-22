@@ -49,8 +49,10 @@ import { useUnsavedChangesGuard } from "@/lib/unsaved-changes-guard/unsaved-chan
 import { clinicalWorkspaceKernel } from "@/lib/clinical-workspace/kernel";
 import { useVisualWorkspaceState } from "@/lib/clinical-workspace/use-visual-workspace-state";
 import {
+  openWorkspaceContinuity,
   openWorkspaceCopilot,
   openWorkspaceDoctorDna,
+  openWorkspaceShare,
 } from "@/lib/clinical-workspace/visual-surfaces";
 import {
   fetchPatientById,
@@ -211,11 +213,11 @@ export default function ConsultationDetailPage() {
     href?: string;
   } | null>(null);
 
-  const [shareOpen, setShareOpen] = useState(false);
   const visualWorkspace = useVisualWorkspaceState();
   const copilotOpen = visualWorkspace.activeSurface === "copilot";
   const doctorDnaOpen = visualWorkspace.activeSurface === "doctor-dna";
-  const [continuityOpen, setContinuityOpen] = useState(false);
+  const continuityOpen = visualWorkspace.activeSurface === "continuity";
+  const shareOpen = visualWorkspace.activeSurface === "share";
   const {
     fullRecordOpen,
     openFullRecord: openFullRecordNav,
@@ -224,14 +226,14 @@ export default function ConsultationDetailPage() {
   } = useEncounterFullRecordNavigation();
 
   const dismissLegacySurfaces = useCallback(() => {
-    setContinuityOpen(false);
-    setShareOpen(false);
+    clinicalWorkspaceKernel.dismiss("continuity");
+    clinicalWorkspaceKernel.dismiss("share");
     clinicalActionWorkspaceNavRef.current?.closeSheet();
     dismissFullRecordForExit();
   }, [dismissFullRecordForExit]);
 
   const openFullRecord = useCallback(() => {
-    setContinuityOpen(false);
+    clinicalWorkspaceKernel.dismiss("continuity");
     clinicalWorkspaceKernel.dismissAll();
     clinicalActionWorkspaceNavRef.current?.closeSheet();
     openFullRecordNav();
@@ -243,8 +245,10 @@ export default function ConsultationDetailPage() {
         clinicalWorkspaceKernel.dismissAll();
         clinicalActionWorkspaceNavRef.current?.closeSheet();
         closeFullRecord();
+        openWorkspaceContinuity();
+      } else {
+        clinicalWorkspaceKernel.dismiss("continuity");
       }
-      setContinuityOpen(open);
     },
     [closeFullRecord],
   );
@@ -912,7 +916,8 @@ export default function ConsultationDetailPage() {
     } catch (error) {
       console.warn("[heydoctor] startCall failed, continuing anyway", error);
     }
-    router.push(`/panel/consultas/${consultation.id}/teleconsulta`);
+    const teleconsultaHref = `/panel/consultas/${consultation.id}/teleconsulta`;
+    router.push(teleconsultaHref);
   };
 
   function handleDiagnosisDraftChange(item: {
@@ -1286,7 +1291,7 @@ export default function ConsultationDetailPage() {
                       router.push("/panel/consultas");
                     });
                   }}
-                  onShare={() => setShareOpen(true)}
+                  onShare={openWorkspaceShare}
                   onTransition={
                     status === "draft" || status === "in_progress"
                       ? () => void handleTransition()
@@ -1450,7 +1455,7 @@ export default function ConsultationDetailPage() {
               consultationId={id}
               open={shareOpen}
               patientName={patientName}
-              onClose={() => setShareOpen(false)}
+              onClose={() => clinicalWorkspaceKernel.dismiss("share")}
             />
 
             {actionMsg ? (

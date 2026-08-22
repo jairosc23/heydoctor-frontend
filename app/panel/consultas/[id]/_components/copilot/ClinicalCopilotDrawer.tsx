@@ -371,6 +371,8 @@ export function ClinicalCopilotDrawer({
 
   if (!open) return null;
 
+  const viewport = clinicalWorkspaceKernel.getViewport();
+
   return (
     <>
       <aside
@@ -379,10 +381,13 @@ export function ClinicalCopilotDrawer({
         aria-label={HEYDOCTOR_COPILOT_COPY.workspaceAria}
         data-testid="heydoctor-copilot-workspace"
         className={cn(
-          "clinical-drawer-enter left-0 flex w-full max-w-xl flex-col md:left-64",
+          "clinical-drawer-enter left-0 flex w-full max-w-xl flex-col md:left-[var(--workspace-sidebar-w)]",
           "border-r border-hd-border-subtle bg-hd-surface-chrome shadow-hd-3",
           CLINICAL_OVERLAY_DRAWER_PANEL_CLASS,
         )}
+        style={{
+          ["--workspace-sidebar-w" as string]: `${viewport.sidebarWidth}px`,
+        }}
         data-overlay-layer="drawers"
       >
         {/* HERO — product identity (Brand Promise once here; not every screen) */}

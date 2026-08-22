@@ -7,7 +7,6 @@ import {
   useRef,
   useState,
 } from "react";
-import { createPortal } from "react-dom";
 import { useAuth } from "@/lib/context/AuthContext";
 import type { PassiveContinuityHint } from "@/lib/continuity-platform/types";
 import {
@@ -41,6 +40,7 @@ import type { ContinuityPanelProps } from "./continuity-panel.types";
 import { useClinicalSnapshot } from "@/hooks/useClinicalSnapshot";
 import { ClinicalSnapshotPanel } from "@/components/encounter/ClinicalSnapshotPanel";
 import { CLINICAL_OVERLAY_CLASS } from "@/lib/clinical-overlay-contract";
+import { clinicalWorkspaceKernel } from "@/lib/clinical-workspace/kernel";
 
 /**
  * Owns state machine, memory cache apply, generationId + AbortController.
@@ -156,6 +156,24 @@ export function ContinuityPanelShell({
       }
     }
   }, [open, abortInFlight]);
+
+  useEffect(() => {
+    if (!open) {
+      clinicalWorkspaceKernel.dismiss("continuity");
+      return;
+    }
+    clinicalWorkspaceKernel.present({
+      id: "continuity",
+      kind: "drawer",
+      blocking: true,
+      onDismiss: () => onOpenChange(false),
+      backdropAriaLabel: "Cerrar Continuity",
+      backdropClassName: "clinical-drawer-enter bg-slate-900/10",
+    });
+    return () => {
+      clinicalWorkspaceKernel.dismiss("continuity");
+    };
+  }, [open, onOpenChange]);
 
   // After Opening: CACHE_HIT | CACHE_MISS then fetch
   useEffect(() => {
@@ -274,14 +292,15 @@ export function ContinuityPanelShell({
   );
 
   /**
-   * P0 Navigation SSOT: Continuity must NOT inflate sticky encounter chrome.
-   * Portal/sheet below chrome — same panel data/UX, single Continuity surface.
+   * Visual host only: Overlay Manager + Viewport + Chrome + overlayHost.
+   * Clinical state / fetch / handoff stay in this shell.
    */
+  const viewport = clinicalWorkspaceKernel.getViewport();
   const panel = (
     <div
       className="pointer-events-auto mx-auto w-full max-w-5xl space-y-3 rounded-hd-lg border border-slate-200 bg-slate-50 p-3 shadow-hd-3"
       data-testid="continuity-panel-shell"
-      data-continuity-host="portal"
+      data-continuity-host="overlayHost"
       data-ui-state={model.uiState}
       data-panel-contract={
         loading ? "loading" : model.uiState === "Empty" ? "empty" : "ready"
@@ -347,24 +366,20 @@ export function ContinuityPanelShell({
     </div>
   );
 
-  if (typeof document === "undefined") return null;
-
-  return createPortal(
+  return (
     <div
-      className={`${CLINICAL_OVERLAY_CLASS.drawers} pointer-events-none fixed left-0 right-0 md:left-64 px-3 md:px-4 lg:px-5`}
+      className={`${CLINICAL_OVERLAY_CLASS.drawers} clinical-overlay-clinical-content pointer-events-none px-3 md:px-4 lg:px-5`}
       style={{
-        top: "calc(var(--encounter-chrome-h, 5.5rem) + 0.5rem)",
-        maxHeight:
-          "min(70vh, calc(100dvh - var(--encounter-chrome-h, 5.5rem) - 1rem))",
+        maxHeight: `min(70vh, calc(100dvh - ${viewport.contentRect.top}px - 1rem))`,
       }}
       data-testid="continuity-panel-portal"
+      data-continuity-host="overlayHost"
       data-overlay-layer="drawers"
     >
       <div className="pointer-events-none max-h-[inherit] overflow-y-auto overscroll-contain pb-3">
         {panel}
       </div>
-    </div>,
-    document.body,
+    </div>
   );
 }
 

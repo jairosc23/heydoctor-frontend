@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { clinicalWorkspaceKernel } from "@/lib/clinical-workspace/kernel";
 
 const SOAP_STEPS = [1, 2, 3, 4] as const;
 export type SoapNavStep = (typeof SOAP_STEPS)[number];
@@ -24,7 +25,10 @@ export function useSoapScrollSpy(enabled: boolean): SoapNavStep {
           "--encounter-chrome-h",
         ),
       );
-      const navOffset = (Number.isFinite(chromePx) ? chromePx : 88) + 40;
+      const viewport = clinicalWorkspaceKernel.getViewport();
+      const navOffset =
+        (Number.isFinite(chromePx) ? chromePx : viewport.encounterChromeHeight) +
+        40;
       let best: { step: SoapNavStep; top: number } | null = null;
 
       for (const el of elements) {

@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { CLINICAL_SECTION_TITLE } from "@/lib/clinical-design-tokens";
 import { cn } from "@/lib/utils";
+import { clinicalWorkspaceKernel } from "@/lib/clinical-workspace/kernel";
 
 export function SoapCommandBlock({
   step,
@@ -20,11 +21,16 @@ export function SoapCommandBlock({
   priority?: "primary" | "default";
   className?: string;
 }) {
+  const viewport = clinicalWorkspaceKernel.getViewport();
+
   return (
     <section
       id={`soap-block-${step}`}
+      style={{
+        scrollMarginTop: `calc(var(--encounter-chrome-h, ${viewport.encounterChromeHeight}px) + 2.75rem)`,
+      }}
       className={cn(
-        "soap-command-block clinical-interactive scroll-mt-[calc(var(--encounter-chrome-h,5.5rem)+2.75rem)] rounded-hd-lg border border-hd-border-subtle bg-hd-surface-raised p-hd-4 transition-all duration-hd-base",
+        "soap-command-block clinical-interactive rounded-hd-lg border border-hd-border-subtle bg-hd-surface-raised p-hd-4 transition-all duration-hd-base",
         priority === "primary"
           ? "border-l-[3px] border-l-primary/50 shadow-hd-2 ring-1 ring-primary/5"
           : "shadow-hd-1",

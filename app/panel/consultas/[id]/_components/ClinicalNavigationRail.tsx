@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { cn } from "@/lib/utils";
+import { clinicalWorkspaceKernel } from "@/lib/clinical-workspace/kernel";
 import {
   DISCLOSURE_RAIL_LABEL,
   buildSignatureReadyRailGroups,
@@ -514,6 +515,8 @@ export function ClinicalNavigationRail({
     );
   }
 
+  const viewport = clinicalWorkspaceKernel.getViewport();
+
   return (
     <nav
       ref={railRef}
@@ -523,10 +526,13 @@ export function ClinicalNavigationRail({
       data-care-path="signature-ready"
       data-disclosure-expanded={disclosureExpanded ? "true" : "false"}
       className={cn(
-        // Fallback CSS (100dvh + safe-area); JS mide el espacio real del scrollport.
-        "clinical-depth-secondary sticky top-[calc(var(--encounter-chrome-h,5.5rem)+0.75rem)] z-10 flex max-h-[calc(100dvh-4rem-var(--encounter-chrome-h,5.5rem)-0.75rem-env(safe-area-inset-bottom,0px)-2.5rem)] flex-col overflow-hidden rounded-hd-lg border border-hd-border-subtle bg-hd-surface-raised p-hd-2 pb-hd-3 shadow-hd-1",
+        "clinical-depth-secondary sticky z-10 flex flex-col overflow-hidden rounded-hd-lg border border-hd-border-subtle bg-hd-surface-raised p-hd-2 pb-hd-3 shadow-hd-1",
         className,
       )}
+      style={{
+        top: `calc(var(--encounter-chrome-h, ${viewport.encounterChromeHeight}px) + 0.75rem)`,
+        maxHeight: `calc(100dvh - ${viewport.panelHeaderHeight}px - var(--encounter-chrome-h, ${viewport.encounterChromeHeight}px) - 0.75rem - env(safe-area-inset-bottom, 0px) - 2.5rem)`,
+      }}
     >
       <div className="mb-hd-2 shrink-0 border-b border-hd-border-subtle pb-hd-2">
         <p className="text-[10px] font-semibold uppercase tracking-wide text-primary/80">

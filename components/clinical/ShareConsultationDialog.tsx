@@ -4,6 +4,8 @@ import Image from "next/image";
 import React, { useEffect, useState } from "react";
 import QRCode from "qrcode";
 import { WhatsappIcon } from "@/components/WhatsappIcon";
+import { CLINICAL_OVERLAY_CLASS } from "@/lib/clinical-overlay-contract";
+import { clinicalWorkspaceKernel } from "@/lib/clinical-workspace/kernel";
 
 const QR_SIZE = 220;
 
@@ -92,7 +94,27 @@ export function ShareConsultationDialog({
     return () => window.clearTimeout(t);
   }, [copied]);
 
+  useEffect(() => {
+    if (!open) {
+      clinicalWorkspaceKernel.dismiss("share");
+      return;
+    }
+    clinicalWorkspaceKernel.present({
+      id: "share",
+      kind: "dialog",
+      blocking: true,
+      onDismiss: onClose,
+      backdropAriaLabel: "Cerrar",
+      backdropClassName: "bg-slate-900/55",
+    });
+    return () => {
+      clinicalWorkspaceKernel.dismiss("share");
+    };
+  }, [open, onClose]);
+
   if (!open) return null;
+
+  const viewport = clinicalWorkspaceKernel.getViewport();
 
   const greeting = patientName?.trim() ? `Hola ${patientName.trim()},` : "Hola,";
   const message = `${greeting} aquí tienes el enlace para tu teleconsulta con HeyDoctor: ${shareUrl}`;
@@ -112,15 +134,21 @@ export function ShareConsultationDialog({
 
   return (
     <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="Compartir teleconsulta"
-      style={overlayStyle}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+      className={`${CLINICAL_OVERLAY_CLASS.dialog} clinical-overlay-clinical-content pointer-events-none flex items-center justify-center px-4`}
+      style={{
+        paddingTop: viewport.safeTop,
+        paddingBottom: viewport.safeBottom,
       }}
+      data-testid="share-consultation-host"
+      data-share-host="overlayHost"
+      data-overlay-layer="dialog"
     >
-      <div style={modalStyle}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Compartir teleconsulta"
+        style={modalStyle}
+      >
         <header style={headerStyle}>
           <div style={titleWrapStyle}>
             <span style={titleIconStyle} aria-hidden>
@@ -277,17 +305,6 @@ function CheckIcon() {
   );
 }
 
-const overlayStyle: React.CSSProperties = {
-  position: "fixed",
-  inset: 0,
-  background: "rgba(15,23,42,0.55)",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  zIndex: 60,
-  padding: 16,
-};
-
 const modalStyle: React.CSSProperties = {
   background: "#fff",
   borderRadius: 16,
@@ -295,6 +312,7 @@ const modalStyle: React.CSSProperties = {
   maxWidth: 420,
   padding: 20,
   boxShadow: "0 25px 60px rgba(15,23,42,0.25)",
+  pointerEvents: "auto",
 };
 
 const headerStyle: React.CSSProperties = {

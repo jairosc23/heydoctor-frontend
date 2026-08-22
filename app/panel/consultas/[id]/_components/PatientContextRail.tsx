@@ -14,6 +14,7 @@ import {
 import { PatientMemoryCard } from "@/components/clinical/PatientMemoryCard";
 import { ClinicalCard } from "@/components/clinical/design";
 import { CLINICAL_SECTION_TITLE } from "@/lib/clinical-design-tokens";
+import { clinicalWorkspaceKernel } from "@/lib/clinical-workspace/kernel";
 import type { PatientClinicalMemory } from "@/lib/types/clinical-memory";
 import type { ClinicalFoundationOutputs } from "@/lib/types/clinical-foundation";
 import { ClinicalMemoryCard } from "./memory/ClinicalMemoryCard";
@@ -95,11 +96,16 @@ export function PatientContextRail({
   const documentLabel = patient ? formatPatientDocument(patient) : "—";
   const allergyLines = profile ? jsonLinesToList(profile.allergies) : [];
 
+  const viewport = clinicalWorkspaceKernel.getViewport();
+
   return (
     <aside
       role="complementary"
       aria-label="Contexto del paciente"
-      className="clinical-depth-secondary sticky top-[var(--encounter-chrome-h,5.5rem)] z-10 min-w-0 space-y-hd-3"
+      className="clinical-depth-secondary sticky z-10 min-w-0 space-y-hd-3"
+      style={{
+        top: `var(--encounter-chrome-h, ${viewport.encounterChromeHeight}px)`,
+      }}
     >
       <ClinicalCard className="min-w-0 space-y-hd-3 border-0 bg-transparent p-0 shadow-none">
       <div className="flex items-center justify-between gap-2 border-b border-hd-border-subtle pb-hd-3">
