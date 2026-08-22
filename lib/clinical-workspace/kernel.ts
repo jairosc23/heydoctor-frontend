@@ -62,7 +62,11 @@ export interface ClinicalWorkspaceKernel {
   enterFullscreen(): void;
   exitFullscreen(): void;
   getViewport(): WorkspaceViewport;
+  measureChrome(chrome: HTMLElement): number;
+  publishChromeHeight(heightPx: number): void;
 }
+
+export { WORKSPACE_CHROME_FALLBACK_PX } from "./foundation";
 
 export const CLINICAL_WORKSPACE_KERNEL_ID =
   "clinical-workspace-kernel" as const;

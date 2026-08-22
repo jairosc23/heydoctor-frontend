@@ -3,7 +3,10 @@ import type {
   WorkspaceSurface,
   WorkspaceSurfaceId,
 } from "../kernel";
+import { measureChrome, publishChromeHeight } from "./chrome";
 import { getWorkspaceViewport } from "./viewport";
+
+export { WORKSPACE_CHROME_FALLBACK_PX } from "./chrome";
 
 function present(_surface: WorkspaceSurface): void {}
 
@@ -29,5 +32,7 @@ export function createWorkspaceFoundation(): ClinicalWorkspaceKernel {
     enterFullscreen,
     exitFullscreen,
     getViewport: getWorkspaceViewport,
+    measureChrome,
+    publishChromeHeight,
   };
 }

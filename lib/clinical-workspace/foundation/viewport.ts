@@ -1,10 +1,11 @@
 import type { WorkspaceViewport } from "../kernel";
+import { WORKSPACE_CHROME_FALLBACK_PX } from "./chrome";
 
 /** Structural defaults. Existing CSS / chrome-metrics consumers stay in place. */
 export const WORKSPACE_VIEWPORT_DEFAULTS = {
   sidebarWidth: 256,
   panelHeaderHeight: 64,
-  encounterChromeHeight: 88,
+  encounterChromeHeight: WORKSPACE_CHROME_FALLBACK_PX,
   safeTop: 0,
   safeBottom: 0,
 } as const;

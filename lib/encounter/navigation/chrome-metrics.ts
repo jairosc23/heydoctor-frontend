@@ -1,15 +1,19 @@
 /**
- * Encounter Navigation SSOT — live sticky-chrome metrics.
- * Single publisher for --encounter-chrome-h + versioned JS subscribers.
- * Observers must re-subscribe when version changes.
+ * Encounter Navigation — versioned JS subscribers for chrome height.
+ * CSS publication lives in the Clinical Workspace Kernel / Foundation.
  */
+
+import {
+  clinicalWorkspaceKernel,
+  WORKSPACE_CHROME_FALLBACK_PX,
+} from "@/lib/clinical-workspace/kernel";
 
 export type EncounterChromeMetrics = {
   heightPx: number;
   version: number;
 };
 
-const DEFAULT_HEIGHT_PX = 88;
+const DEFAULT_HEIGHT_PX = WORKSPACE_CHROME_FALLBACK_PX;
 
 type Listener = (metrics: EncounterChromeMetrics) => void;
 
@@ -39,13 +43,7 @@ export function publishEncounterChromeHeight(nextHeightPx: number): void {
 }
 
 function writeCssVars(px: number) {
-  if (typeof document === "undefined") return;
-  const value = `${px}px`;
-  document.documentElement.style.setProperty("--encounter-chrome-h", value);
-  const workspace = document.querySelector(".clinical-workspace");
-  if (workspace instanceof HTMLElement) {
-    workspace.style.setProperty("--encounter-chrome-h", value);
-  }
+  clinicalWorkspaceKernel.publishChromeHeight(px);
 }
 
 export function getEncounterChromeMetrics(): EncounterChromeMetrics {

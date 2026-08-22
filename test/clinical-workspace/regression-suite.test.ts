@@ -8,6 +8,7 @@ import {
   workspaceStabilityIndex,
   WORKSPACE_FOUNDATION_ENTRY,
   WORKSPACE_FOUNDATION_FILE,
+  WORKSPACE_CHROME_FILE,
   WORKSPACE_KERNEL_ENTRY,
   WORKSPACE_VIEWPORT_FILE,
   WORKSPACE_REGRESSION_INVARIANTS,
@@ -147,9 +148,18 @@ function evaluateWorkspaceGates(): Gate[] {
       message: "Continuity still uses a private inset/portal",
     },
     {
-      id: "single-chrome-writer",
-      pass: !/style\.setProperty\("--encounter-chrome-h"/.test(hook),
-      message: "useEncounterChromeHeight still writes --encounter-chrome-h",
+      id: "chrome-entry",
+      pass:
+        existsSync(join(ROOT, WORKSPACE_CHROME_FILE)) &&
+        /publishChromeHeight/.test(kernel) &&
+        /WORKSPACE_CHROME_FALLBACK_PX/.test(
+          readWorkspace(WORKSPACE_CHROME_FILE),
+        ) &&
+        !/style\.setProperty\("--encounter-chrome-h"/.test(hook) &&
+        !/style\.setProperty\("--encounter-chrome-h"/.test(
+          readWorkspace(WORKSPACE_REGRESSION_SOURCES.chromeMetrics),
+        ),
+      message: "Chrome publication is not centralized in Foundation",
     },
     {
       id: "single-escape",
