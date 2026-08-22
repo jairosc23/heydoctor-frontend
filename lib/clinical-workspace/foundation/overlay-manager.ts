@@ -1,5 +1,9 @@
 import { CLINICAL_OVERLAY_DRAWER_BACKDROP_CLASS } from "@/lib/clinical-overlay-contract";
-import type { WorkspaceSurface, WorkspaceSurfaceId } from "../kernel";
+import type {
+  VisualWorkspaceState,
+  WorkspaceSurface,
+  WorkspaceSurfaceId,
+} from "../kernel";
 
 type OverlaySession = {
   surface: WorkspaceSurface;
@@ -9,6 +13,31 @@ type OverlaySession = {
 let blocking: OverlaySession | null = null;
 let escapeAttached = false;
 let backdropEl: HTMLButtonElement | null = null;
+const visualListeners = new Set<() => void>();
+
+function notifyVisualState(): void {
+  visualListeners.forEach((listener) => listener());
+}
+
+export function getVisualWorkspaceState(): VisualWorkspaceState {
+  const surface = blocking?.surface ?? null;
+  if (!surface) return { mode: "frame", activeSurface: null };
+  const mode =
+    surface.kind === "drawer" ||
+    surface.kind === "modal" ||
+    surface.kind === "dialog" ||
+    surface.kind === "fullscreen"
+      ? surface.kind
+      : "frame";
+  return { mode, activeSurface: surface.id };
+}
+
+export function subscribeVisualWorkspaceState(listener: () => void): () => void {
+  visualListeners.add(listener);
+  return () => {
+    visualListeners.delete(listener);
+  };
+}
 
 function applyStacking(_surface: WorkspaceSurface): void {}
 
@@ -66,6 +95,7 @@ function closeBlocking(invokeCallback: boolean): void {
   releaseFocus(session);
   releaseEscape();
   if (invokeCallback) session.surface.onDismiss?.();
+  notifyVisualState();
 }
 
 export function present(surface: WorkspaceSurface): void {
@@ -85,6 +115,7 @@ export function present(surface: WorkspaceSurface): void {
   applyBackdrop(surface);
   applyFocus(surface);
   attachEscape();
+  notifyVisualState();
 }
 
 export function dismiss(id?: WorkspaceSurfaceId): void {

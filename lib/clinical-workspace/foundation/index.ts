@@ -1,6 +1,12 @@
 import type { ClinicalWorkspaceKernel } from "../kernel";
 import { measureChrome, publishChromeHeight } from "./chrome";
-import { dismiss, dismissAll, present } from "./overlay-manager";
+import {
+  dismiss,
+  dismissAll,
+  getVisualWorkspaceState,
+  present,
+  subscribeVisualWorkspaceState,
+} from "./overlay-manager";
 import { getWorkspaceViewport } from "./viewport";
 
 export { WORKSPACE_CHROME_FALLBACK_PX } from "./chrome";
@@ -25,5 +31,7 @@ export function createWorkspaceFoundation(): ClinicalWorkspaceKernel {
     getViewport: getWorkspaceViewport,
     measureChrome,
     publishChromeHeight,
+    getVisualState: getVisualWorkspaceState,
+    subscribeVisualState: subscribeVisualWorkspaceState,
   };
 }

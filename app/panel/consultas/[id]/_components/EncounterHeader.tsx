@@ -103,9 +103,9 @@ export interface EncounterHeaderProps {
   /** Status permite editar la consulta (draft / in_progress). */
   canToggleEdit?: boolean;
   onToggleEdit?: () => void;
-  dnaDrawerOpen?: boolean;
+  dnaActive?: boolean;
   onOpenDoctorDna?: () => void;
-  copilotDrawerOpen?: boolean;
+  copilotActive?: boolean;
   onOpenCopilot?: () => void;
   /**
    * @deprecated Brand consolidation — Medical Copilot route remains internal;
@@ -143,9 +143,9 @@ export function EncounterHeader({
   isEditing,
   canToggleEdit = false,
   onToggleEdit,
-  dnaDrawerOpen = false,
+  dnaActive = false,
   onOpenDoctorDna,
-  copilotDrawerOpen = false,
+  copilotActive = false,
   onOpenCopilot,
   medicalCopilotHref: _medicalCopilotHref = null,
   hideModuleShortcuts = false,
@@ -200,11 +200,11 @@ export function EncounterHeader({
           {/* Brand SSOT: single AI entry → HeyDoctor Copilot drawer (route /medical-copilot preserved). */}
           <ClinicalCopilotTrigger
             onClick={() => onOpenCopilot?.()}
-            active={copilotDrawerOpen}
+            active={copilotActive}
           />
           <DoctorDnaDrawerTrigger
             onClick={() => onOpenDoctorDna?.()}
-            active={dnaDrawerOpen}
+            active={dnaActive}
           />
           <HeaderIconButton
             icon="📹"

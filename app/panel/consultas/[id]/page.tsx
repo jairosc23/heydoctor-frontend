@@ -46,6 +46,12 @@ import { ApiError, getApiErrorMessage } from "@/lib/heydoctor-api";
 import { toClinicalUserError } from "@/lib/clinical-user-error";
 import { createPersistGate } from "@/lib/unsaved-changes-guard/persist-gate";
 import { useUnsavedChangesGuard } from "@/lib/unsaved-changes-guard/unsaved-changes-guard-context";
+import { clinicalWorkspaceKernel } from "@/lib/clinical-workspace/kernel";
+import { useVisualWorkspaceState } from "@/lib/clinical-workspace/use-visual-workspace-state";
+import {
+  openWorkspaceCopilot,
+  openWorkspaceDoctorDna,
+} from "@/lib/clinical-workspace/visual-surfaces";
 import {
   fetchPatientById,
   fetchPatientProfile,
@@ -206,8 +212,9 @@ export default function ConsultationDetailPage() {
   } | null>(null);
 
   const [shareOpen, setShareOpen] = useState(false);
-  const [dnaDrawerOpen, setDnaDrawerOpen] = useState(false);
-  const [copilotDrawerOpen, setCopilotDrawerOpen] = useState(false);
+  const visualWorkspace = useVisualWorkspaceState();
+  const copilotOpen = visualWorkspace.activeSurface === "copilot";
+  const doctorDnaOpen = visualWorkspace.activeSurface === "doctor-dna";
   const [continuityOpen, setContinuityOpen] = useState(false);
   const {
     fullRecordOpen,
@@ -216,11 +223,8 @@ export default function ConsultationDetailPage() {
     dismissFullRecordForExit,
   } = useEncounterFullRecordNavigation();
 
-  /** Tear down every Encounter surface overlay without remounting Runtime. */
-  const closeEncounterOverlays = useCallback(() => {
+  const dismissLegacySurfaces = useCallback(() => {
     setContinuityOpen(false);
-    setCopilotDrawerOpen(false);
-    setDnaDrawerOpen(false);
     setShareOpen(false);
     clinicalActionWorkspaceNavRef.current?.closeSheet();
     dismissFullRecordForExit();
@@ -228,8 +232,7 @@ export default function ConsultationDetailPage() {
 
   const openFullRecord = useCallback(() => {
     setContinuityOpen(false);
-    setCopilotDrawerOpen(false);
-    setDnaDrawerOpen(false);
+    clinicalWorkspaceKernel.dismissAll();
     clinicalActionWorkspaceNavRef.current?.closeSheet();
     openFullRecordNav();
   }, [openFullRecordNav]);
@@ -237,8 +240,7 @@ export default function ConsultationDetailPage() {
   const handleContinuityOpenChange = useCallback(
     (open: boolean) => {
       if (open) {
-        setCopilotDrawerOpen(false);
-        setDnaDrawerOpen(false);
+        clinicalWorkspaceKernel.dismissAll();
         clinicalActionWorkspaceNavRef.current?.closeSheet();
         closeFullRecord();
       }
@@ -470,7 +472,7 @@ export default function ConsultationDetailPage() {
     if (!consultation?.id) return;
     if (clinicalFoundationState.loading) return;
     preVisitAutoOpenedRef.current = true;
-    setCopilotDrawerOpen(true);
+    openWorkspaceCopilot();
   }, [consultation?.id, clinicalFoundationState.loading]);
   const effectiveClinicalMemoryLoading =
     clinicalFoundationState.loading && !clinicalFoundation
@@ -1056,8 +1058,7 @@ export default function ConsultationDetailPage() {
   }
 
   function handleAnalyzeWithAi() {
-    setDnaDrawerOpen(false);
-    setCopilotDrawerOpen(true);
+    openWorkspaceCopilot();
     setGenerativeExpandToken((token) => token + 1);
     flashAction(
       "info",
@@ -1237,8 +1238,11 @@ export default function ConsultationDetailPage() {
       navigationRef={clinicalActionWorkspaceNavRef}
     >
       <CopilotNavigationProvider
-        open={copilotDrawerOpen}
-        onOpenChange={setCopilotDrawerOpen}
+        open={copilotOpen}
+        onOpenChange={(open) => {
+          if (open) openWorkspaceCopilot();
+          else clinicalWorkspaceKernel.dismiss("copilot");
+        }}
         generativeExpandToken={generativeExpandToken}
         onRequestGenerativeExpand={() =>
           setGenerativeExpandToken((token) => token + 1)
@@ -1248,7 +1252,7 @@ export default function ConsultationDetailPage() {
           consultationId={id}
           patientId={consultation.patientId}
           appointmentId={null}
-          workspaceOpen={copilotDrawerOpen}
+          workspaceOpen={copilotOpen}
           encounterStatus={status}
           patientName={patientName}
           patientAge={soapPatientAge}
@@ -1277,7 +1281,8 @@ export default function ConsultationDetailPage() {
                   transitioning={transitioning}
                   onBack={() => {
                     requestNavigation(() => {
-                      closeEncounterOverlays();
+                      clinicalWorkspaceKernel.dismissAll();
+                      dismissLegacySurfaces();
                       router.push("/panel/consultas");
                     });
                   }}
@@ -1344,16 +1349,10 @@ export default function ConsultationDetailPage() {
                     ai: isLocked,
                     delete: isLocked,
                   }}
-                  dnaDrawerOpen={dnaDrawerOpen}
-                  onOpenDoctorDna={() => {
-                    setCopilotDrawerOpen(false);
-                    setDnaDrawerOpen(true);
-                  }}
-                  copilotDrawerOpen={copilotDrawerOpen}
-                  onOpenCopilot={() => {
-                    setDnaDrawerOpen(false);
-                    setCopilotDrawerOpen(true);
-                  }}
+                  dnaActive={doctorDnaOpen}
+                  onOpenDoctorDna={openWorkspaceDoctorDna}
+                  copilotActive={copilotOpen}
+                  onOpenCopilot={openWorkspaceCopilot}
                 />
                 <div className="clinical-depth-2 space-y-hd-2 pb-hd-2">
                   <StickyPatientHeader
@@ -1411,8 +1410,8 @@ export default function ConsultationDetailPage() {
             </ClinicalModuleSheet>
 
             <ClinicalCopilotDrawer
-              open={copilotDrawerOpen}
-              onClose={() => setCopilotDrawerOpen(false)}
+              open={copilotOpen}
+              onClose={() => clinicalWorkspaceKernel.dismiss("copilot")}
               onOpenContinuity={() => handleContinuityOpenChange(true)}
               runtimeEnabled={Boolean(consultation.patientId)}
               generativeExpandToken={generativeExpandToken}
@@ -1443,8 +1442,8 @@ export default function ConsultationDetailPage() {
             />
 
             <DoctorDnaDrawer
-              open={dnaDrawerOpen}
-              onClose={() => setDnaDrawerOpen(false)}
+              open={doctorDnaOpen}
+              onClose={() => clinicalWorkspaceKernel.dismiss("doctor-dna")}
             />
 
             <ShareConsultationDialog
@@ -1515,11 +1514,8 @@ export default function ConsultationDetailPage() {
                   isSigned={isSigned}
                   isLocked={isLocked}
                   role="doctor"
-                  copilotOpen={copilotDrawerOpen}
-                  onOpenCopilot={() => {
-                    setDnaDrawerOpen(false);
-                    setCopilotDrawerOpen(true);
-                  }}
+                  copilotOpen={copilotOpen}
+                  onOpenCopilot={openWorkspaceCopilot}
                 >
                   <ConsultationWorkspace
                     actionWorkspaceEnabled={clinicalActionWorkspaceEnabled}
@@ -1675,11 +1671,8 @@ export default function ConsultationDetailPage() {
                 isSigned={isSigned}
                 isLocked={isLocked}
                 role="doctor"
-                copilotOpen={copilotDrawerOpen}
-                onOpenCopilot={() => {
-                  setDnaDrawerOpen(false);
-                  setCopilotDrawerOpen(true);
-                }}
+                copilotOpen={copilotOpen}
+                onOpenCopilot={openWorkspaceCopilot}
               >
                 <ConsultationWorkspace
                   actionWorkspaceEnabled={clinicalActionWorkspaceEnabled}

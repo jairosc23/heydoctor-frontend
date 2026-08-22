@@ -67,6 +67,8 @@ export interface ClinicalWorkspaceKernel {
   getViewport(): WorkspaceViewport;
   measureChrome(chrome: HTMLElement): number;
   publishChromeHeight(heightPx: number): void;
+  getVisualState(): VisualWorkspaceState;
+  subscribeVisualState(listener: () => void): () => void;
 }
 
 export { WORKSPACE_CHROME_FALLBACK_PX } from "./foundation";
