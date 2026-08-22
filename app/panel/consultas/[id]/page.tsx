@@ -110,6 +110,7 @@ import {
 import type { ClinicalActionModuleId } from "@/lib/clinical-action-workspace";
 import { ClinicalActionBar } from "./_components/action-workspace/ClinicalActionBar";
 import { useEncounterFullRecordNavigation } from "@/hooks/useEncounterFullRecordNavigation";
+import { useEncounterContextBind } from "@/hooks/useEncounterContextBind";
 import { EncounterFullRecordOverlay } from "@/components/encounter/EncounterFullRecordOverlay";
 import {
   formatClinicalVitalSignsForContext,
@@ -345,6 +346,8 @@ export default function ConsultationDetailPage() {
     if (!cid || !pid) return;
     attachConsultationSession(cid, pid);
   }, [consultation?.id, consultation?.patientId, attachConsultationSession]);
+
+  useEncounterContextBind(consultation?.id ?? null);
 
   useEffect(() => {
     const patientId = consultation?.patientId;
