@@ -1,18 +1,9 @@
-import type {
-  ClinicalWorkspaceKernel,
-  WorkspaceSurface,
-  WorkspaceSurfaceId,
-} from "../kernel";
+import type { ClinicalWorkspaceKernel } from "../kernel";
 import { measureChrome, publishChromeHeight } from "./chrome";
+import { dismiss, dismissAll, present } from "./overlay-manager";
 import { getWorkspaceViewport } from "./viewport";
 
 export { WORKSPACE_CHROME_FALLBACK_PX } from "./chrome";
-
-function present(_surface: WorkspaceSurface): void {}
-
-function dismiss(_id?: WorkspaceSurfaceId): void {}
-
-function dismissAll(): void {}
 
 function goToSection(_sectionId: string): void {}
 

@@ -10,6 +10,7 @@ import {
   WORKSPACE_FOUNDATION_FILE,
   WORKSPACE_CHROME_FILE,
   WORKSPACE_KERNEL_ENTRY,
+  WORKSPACE_OVERLAY_MANAGER_FILE,
   WORKSPACE_VIEWPORT_FILE,
   WORKSPACE_REGRESSION_INVARIANTS,
   WORKSPACE_REGRESSION_SCENARIO_CONTRACT,
@@ -125,11 +126,40 @@ function evaluateWorkspaceGates(): Gate[] {
       message: "handleStartCall bypasses Kernel.enterFullscreen",
     },
     {
+      id: "overlay-manager-entry",
+      pass: (() => {
+        if (!existsSync(join(ROOT, WORKSPACE_OVERLAY_MANAGER_FILE))) {
+          return false;
+        }
+        const manager = readWorkspace(WORKSPACE_OVERLAY_MANAGER_FILE);
+        const foundation = readWorkspace(WORKSPACE_FOUNDATION_FILE);
+        const leaked = Object.values(WORKSPACE_REGRESSION_SOURCES).some(
+          (relative) =>
+            readWorkspace(relative).includes("foundation/overlay-manager"),
+        );
+        return (
+          !leaked &&
+          /from ["']\.\/overlay-manager["']/.test(foundation) &&
+          /export function present/.test(manager) &&
+          /export function dismiss/.test(manager) &&
+          /export function dismissAll/.test(manager) &&
+          /blocking/.test(manager) &&
+          /applyBackdrop/.test(manager) &&
+          /attachEscape/.test(manager) &&
+          /applyFocus/.test(manager) &&
+          /applyPointerEvents/.test(manager) &&
+          /applyStacking/.test(manager)
+        );
+      })(),
+      message: "Overlay Manager is missing, leaked, or incomplete",
+    },
+    {
       id: "no-overlay-boolean-cluster",
       pass:
         !/copilotDrawerOpen/.test(page) &&
         !/dnaDrawerOpen/.test(page) &&
-        !/closeEncounterOverlays/.test(page),
+        !/closeEncounterOverlays/.test(page) &&
+        escapeCount === 1,
       message: "page still owns overlay booleans",
     },
     {
@@ -160,11 +190,6 @@ function evaluateWorkspaceGates(): Gate[] {
           readWorkspace(WORKSPACE_REGRESSION_SOURCES.chromeMetrics),
         ),
       message: "Chrome publication is not centralized in Foundation",
-    },
-    {
-      id: "single-escape",
-      pass: escapeCount === 1,
-      message: `expected 1 Escape listener, found ${escapeCount}`,
     },
   ];
 }

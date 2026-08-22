@@ -113,6 +113,9 @@ export const WORKSPACE_VIEWPORT_FILE =
 export const WORKSPACE_CHROME_FILE =
   "lib/clinical-workspace/foundation/chrome.ts" as const;
 
+export const WORKSPACE_OVERLAY_MANAGER_FILE =
+  "lib/clinical-workspace/foundation/overlay-manager.ts" as const;
+
 export const WORKSPACE_REGRESSION_SOURCES = {
   encounterPage: "app/panel/consultas/[id]/page.tsx",
   panelLayout: "components/PanelLayout.tsx",
