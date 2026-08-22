@@ -1,6 +1,7 @@
 "use client";
 
-import { CLINICAL_OVERLAY_Z } from "@/lib/clinical-overlay-contract";
+import { CLINICAL_OVERLAY_CLASS } from "@/lib/clinical-overlay-contract";
+import { cn } from "@/lib/utils";
 
 export function UnsavedChangesDialog({
   open,
@@ -21,10 +22,13 @@ export function UnsavedChangesDialog({
 
   return (
     <div
-      className="fixed inset-0 flex items-center justify-center bg-slate-900/40 px-4"
-      style={{ zIndex: CLINICAL_OVERLAY_Z.system }}
+      className={cn(
+        "fixed inset-0 flex items-center justify-center bg-slate-900/40 px-4",
+        CLINICAL_OVERLAY_CLASS.dialog,
+      )}
       role="presentation"
       data-testid="unsaved-changes-backdrop"
+      data-overlay-layer="dialog"
     >
       <div
         role="dialog"

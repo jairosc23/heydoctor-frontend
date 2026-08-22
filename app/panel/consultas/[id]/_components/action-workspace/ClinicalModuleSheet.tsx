@@ -3,8 +3,8 @@
 import { useEffect, type ReactNode } from "react";
 import { clinicalActionModuleLabel } from "@/lib/clinical-action-workspace";
 import {
-  CLINICAL_OVERLAY_BACKDROP_CLASS,
-  CLINICAL_OVERLAY_PANEL_CLASS,
+  CLINICAL_OVERLAY_DRAWER_BACKDROP_CLASS,
+  CLINICAL_OVERLAY_DRAWER_PANEL_CLASS,
 } from "@/lib/clinical-overlay-contract";
 import { cn } from "@/lib/utils";
 import { useClinicalActionWorkspace } from "./ClinicalActionWorkspaceProvider";
@@ -32,9 +32,11 @@ export function ClinicalModuleSheet({ children }: { children?: ReactNode }) {
         type="button"
         aria-label="Cerrar módulo clínico"
         className={cn(
-          "clinical-drawer-enter fixed inset-0 bg-slate-900/15",
-          CLINICAL_OVERLAY_BACKDROP_CLASS.module,
+          "clinical-drawer-enter bg-slate-900/15",
+          CLINICAL_OVERLAY_DRAWER_BACKDROP_CLASS,
         )}
+        data-overlay-layer="drawers"
+        data-overlay-surface="drawer-backdrop"
         onClick={closeSheet}
       />
       <aside
@@ -44,10 +46,11 @@ export function ClinicalModuleSheet({ children }: { children?: ReactNode }) {
         data-testid="clinical-module-sheet"
         data-module={activeModule}
         className={cn(
-          "clinical-drawer-enter clinical-module-sheet fixed bottom-0 right-0 flex flex-col",
+          "clinical-drawer-enter clinical-module-sheet right-0 flex flex-col",
           "border-l border-hd-border-subtle bg-hd-surface-chrome shadow-hd-3",
-          CLINICAL_OVERLAY_PANEL_CLASS.module,
+          CLINICAL_OVERLAY_DRAWER_PANEL_CLASS,
         )}
+        data-overlay-layer="drawers"
       >
         <header className="relative shrink-0 border-b border-hd-border-subtle px-hd-4 py-hd-3">
           <div className="heydoctor-presence pr-8">

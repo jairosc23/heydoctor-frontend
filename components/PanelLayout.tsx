@@ -14,6 +14,7 @@ import { isUnmodifiedLeftClick } from "@/lib/unsaved-changes-guard/is-unmodified
 import { cn } from "@/lib/utils";
 import { trackRedirectToLogin } from "@/lib/session-analytics";
 import { ClinicalBetaFeedbackWidget } from "@/components/clinical-beta/ClinicalBetaFeedbackWidget";
+import { CLINICAL_OVERLAY_CLASS } from "@/lib/clinical-overlay-contract";
 
 const MENU = [
   { label: "Dashboard", href: "/dashboard" },
@@ -188,7 +189,10 @@ function PanelLayoutShell({
       {navOpen && (
         <button
           type="button"
-          className="fixed inset-0 z-30 bg-primaryDark/40 md:hidden"
+          className={cn(
+            "fixed inset-0 bg-primaryDark/40 md:hidden",
+            CLINICAL_OVERLAY_CLASS.chrome,
+          )}
           aria-label="Cerrar menú de navegación"
           onClick={() => setNavOpen(false)}
         />
@@ -196,10 +200,12 @@ function PanelLayoutShell({
 
       <aside
         className={cn(
-          "fixed bottom-0 left-0 top-0 z-40 flex h-screen w-64 flex-col border-r border-hd-border-subtle bg-hd-surface-chrome p-4 shadow-hd-2 transition-transform duration-hd-base",
+          "fixed bottom-0 left-0 top-0 flex h-screen w-64 flex-col border-r border-hd-border-subtle bg-hd-surface-chrome p-4 shadow-hd-2 transition-transform duration-hd-base",
+          CLINICAL_OVERLAY_CLASS.navigation,
           navOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
         )}
         data-testid="panel-sidebar"
+        data-overlay-layer="navigation"
       >
         <div className="mb-8 flex flex-col items-center">
           <BrandLogo variant="nav" markSize={56} className="flex-col items-center gap-1" />
@@ -235,7 +241,13 @@ function PanelLayoutShell({
         </button>
       </aside>
 
-      <header className="fixed left-0 right-0 top-0 z-30 flex h-16 items-center justify-between border-b border-hd-border-subtle bg-hd-surface-chrome px-4 shadow-hd-1 md:left-64 md:px-6">
+      <header
+        className={cn(
+          "fixed left-0 right-0 top-0 flex h-16 items-center justify-between border-b border-hd-border-subtle bg-hd-surface-chrome px-4 shadow-hd-1 md:left-64 md:px-6",
+          CLINICAL_OVERLAY_CLASS.chrome,
+        )}
+        data-overlay-layer="chrome"
+      >
         <div className="flex min-w-0 flex-1 items-center gap-3 md:gap-6">
           <button
             type="button"

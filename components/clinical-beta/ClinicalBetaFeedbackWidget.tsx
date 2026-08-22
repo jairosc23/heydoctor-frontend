@@ -9,6 +9,8 @@ import {
   sanitizeBetaComment,
   type ClinicalBetaFeedbackCategory,
 } from "@/lib/clinical-beta/feedback";
+import { CLINICAL_OVERLAY_CLASS } from "@/lib/clinical-overlay-contract";
+import { cn } from "@/lib/utils";
 
 export function ClinicalBetaFeedbackWidget() {
   const pathname = usePathname();
@@ -71,7 +73,14 @@ export function ClinicalBetaFeedbackWidget() {
   }
 
   return (
-    <div className="pointer-events-none fixed bottom-5 left-4 z-[90] sm:left-6">
+    <div
+      className={cn(
+        "pointer-events-none fixed bottom-5 left-4 sm:left-6",
+        CLINICAL_OVERLAY_CLASS.system,
+      )}
+      data-overlay-layer="system"
+      data-testid="clinical-beta-feedback-widget"
+    >
       {open ? (
         <form
           className="pointer-events-auto mb-3 w-[min(92vw,320px)] rounded-2xl border border-hd-border-subtle bg-white p-3 shadow-hd-2"

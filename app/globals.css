@@ -27,15 +27,15 @@
   --hd-shadow-focus: 0 12px 32px rgba(7, 138, 146, 0.12);
   --hd-depth-secondary-opacity: 1;
   --hd-depth-secondary-scale: 1;
-  /* Encounter Shell — Clinical overlay stacking contract */
-  --hd-overlay-chrome: 30;
-  --hd-overlay-continuity: 36;
-  --hd-overlay-module-backdrop: 45;
-  --hd-overlay-module-panel: 46;
-  --hd-overlay-intelligence-backdrop: 40;
-  --hd-overlay-intelligence-panel: 50;
-  --hd-overlay-full-record: 55;
-  --hd-overlay-system: 60;
+  /* Product overlay stacking contract — chrome < drawers < navigation < modal < dialog < system */
+  --hd-panel-header-h: 4rem;
+  --hd-sidebar-w: 16rem;
+  --hd-overlay-chrome: 100;
+  --hd-overlay-drawers: 200;
+  --hd-overlay-navigation: 300;
+  --hd-overlay-modal: 400;
+  --hd-overlay-dialog: 500;
+  --hd-overlay-system: 600;
 }
 
 body {
@@ -48,34 +48,56 @@ body {
   background: var(--hd-surface-base);
 }
 
-/* Encounter Shell — Overlay layers */
-.clinical-overlay-continuity {
-  z-index: var(--hd-overlay-continuity);
+/* Product overlay stacking contract — layers only */
+.clinical-overlay-chrome {
+  z-index: var(--hd-overlay-chrome);
 }
 
-.clinical-overlay-backdrop-module {
-  z-index: var(--hd-overlay-module-backdrop);
+.clinical-overlay-drawers {
+  z-index: var(--hd-overlay-drawers);
 }
 
-.clinical-overlay-panel-module {
-  z-index: var(--hd-overlay-module-panel);
+.clinical-overlay-navigation {
+  z-index: var(--hd-overlay-navigation);
 }
 
-.clinical-overlay-backdrop-intelligence {
-  z-index: var(--hd-overlay-intelligence-backdrop);
+.clinical-overlay-modal {
+  z-index: var(--hd-overlay-modal);
 }
 
-.clinical-overlay-panel-intelligence {
-  z-index: var(--hd-overlay-intelligence-panel);
+.clinical-overlay-dialog {
+  z-index: var(--hd-overlay-dialog);
 }
 
-.clinical-overlay-full-record {
-  z-index: var(--hd-overlay-full-record);
+.clinical-overlay-system {
+  z-index: var(--hd-overlay-system);
+}
+
+/*
+ * Clinical content inset: never covers sidebar, panel header, or encounter chrome.
+ * Shared by Copilot / Doctor DNA / Module Sheet backdrops.
+ */
+.clinical-overlay-clinical-content {
+  position: fixed;
+  top: calc(var(--hd-panel-header-h, 4rem) + var(--encounter-chrome-h, 5.5rem));
+  right: 0;
+  bottom: 0;
+  left: 0;
+}
+
+.clinical-overlay-clinical-content-y {
+  position: fixed;
+  top: calc(var(--hd-panel-header-h, 4rem) + var(--encounter-chrome-h, 5.5rem));
+  bottom: 0;
+}
+
+@media (min-width: 768px) {
+  .clinical-overlay-clinical-content {
+    left: var(--hd-sidebar-w, 16rem);
+  }
 }
 
 .clinical-module-sheet {
-  top: var(--encounter-chrome-h, 5.5rem);
-  height: calc(100vh - var(--encounter-chrome-h, 5.5rem));
   width: clamp(720px, 75vw, 1200px);
   max-width: 100%;
 }

@@ -8,6 +8,7 @@
  */
 import { test, expect, configureP0Suite } from "./fixtures/p0";
 import { HEYDOCTOR_COPILOT_BRAND } from "../lib/brand/heydoctor-copilot";
+import { CLINICAL_OVERLAY_Z } from "../lib/clinical-overlay-contract";
 import { getConsultationId } from "./helpers/env";
 import {
   gotoConsultation,
@@ -43,7 +44,10 @@ test.describe("Clinical P0 — workspace oficial (Action WS + Smart WS ON)", () 
 
     await expect(chrome).toHaveCSS("position", "sticky");
     await expect(chrome).toHaveCSS("top", "0px");
-    await expect(chrome).toHaveCSS("z-index", "30");
+    await expect(chrome).toHaveCSS(
+      "z-index",
+      String(CLINICAL_OVERLAY_Z.chrome),
+    );
 
     const navigationRail = page
       .locator('[data-testid="clinical-navigation-rail"]:visible')

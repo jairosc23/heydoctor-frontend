@@ -1,31 +1,61 @@
 /**
- * Encounter Shell overlay stacking contract.
- * Chrome < Continuity < Module Sheet < Intelligence < Full Record < System.
+ * Product overlay stacking contract (SSOT).
  *
- * Continuity must sit ABOVE chrome menus but BELOW module sheet, and its
- * portal shell must use pointer-events:none so the rail/chart stay clickable.
+ * chrome < drawers < navigation < modal < dialog < system
+ *
+ * Navigation (sidebar) is always above Drawers. Drawer backdrops are clipped
+ * to the clinical content inset and never cover sidebar, panel navigation,
+ * encounter chrome, or "volver a consultas".
+ *
+ * Consumers must use layer names / classes only. No ad-hoc z-index values.
  */
 
+export const CLINICAL_OVERLAY_LAYER_ORDER = [
+  "chrome",
+  "drawers",
+  "navigation",
+  "modal",
+  "dialog",
+  "system",
+] as const;
+
+export type ClinicalOverlayLayer = (typeof CLINICAL_OVERLAY_LAYER_ORDER)[number];
+
 export const CLINICAL_OVERLAY_Z = {
-  chrome: 30,
-  continuity: 36,
-  moduleBackdrop: 45,
-  modulePanel: 46,
-  intelligenceBackdrop: 40,
-  intelligencePanel: 50,
-  /** In-shell Full Clinical Record — above intelligence drawer, below system. */
-  fullRecord: 55,
-  system: 60,
-} as const;
+  chrome: 100,
+  drawers: 200,
+  navigation: 300,
+  modal: 400,
+  dialog: 500,
+  system: 600,
+} as const satisfies Record<ClinicalOverlayLayer, number>;
 
-export type ClinicalOverlayLayer = keyof typeof CLINICAL_OVERLAY_Z;
+export const CLINICAL_OVERLAY_CLASS = {
+  chrome: "clinical-overlay-chrome",
+  drawers: "clinical-overlay-drawers",
+  navigation: "clinical-overlay-navigation",
+  modal: "clinical-overlay-modal",
+  dialog: "clinical-overlay-dialog",
+  system: "clinical-overlay-system",
+} as const satisfies Record<ClinicalOverlayLayer, string>;
 
-export const CLINICAL_OVERLAY_BACKDROP_CLASS = {
-  module: "clinical-overlay-backdrop-module",
-  intelligence: "clinical-overlay-backdrop-intelligence",
-} as const;
+/**
+ * Shared by Clinical Copilot, Doctor DNA, and Clinical Module Sheet.
+ * Geometry lives in `.clinical-overlay-clinical-content` (globals.css).
+ */
+export const CLINICAL_OVERLAY_DRAWER_BACKDROP_CLASS = [
+  CLINICAL_OVERLAY_CLASS.drawers,
+  "clinical-overlay-clinical-content",
+].join(" ");
 
-export const CLINICAL_OVERLAY_PANEL_CLASS = {
-  module: "clinical-overlay-panel-module",
-  intelligence: "clinical-overlay-panel-intelligence",
-} as const;
+export const CLINICAL_OVERLAY_DRAWER_PANEL_CLASS = [
+  CLINICAL_OVERLAY_CLASS.drawers,
+  "clinical-overlay-clinical-content-y",
+].join(" ");
+
+export function overlayLayerOf(z: number): ClinicalOverlayLayer | null {
+  const match = CLINICAL_OVERLAY_LAYER_ORDER.find(
+    (layer) => CLINICAL_OVERLAY_Z[layer] === z,
+  );
+  return match ?? null;
+}

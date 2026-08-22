@@ -40,7 +40,7 @@ import {
 import type { ContinuityPanelProps } from "./continuity-panel.types";
 import { useClinicalSnapshot } from "@/hooks/useClinicalSnapshot";
 import { ClinicalSnapshotPanel } from "@/components/encounter/ClinicalSnapshotPanel";
-import { CLINICAL_OVERLAY_Z } from "@/lib/clinical-overlay-contract";
+import { CLINICAL_OVERLAY_CLASS } from "@/lib/clinical-overlay-contract";
 
 /**
  * Owns state machine, memory cache apply, generationId + AbortController.
@@ -351,14 +351,14 @@ export function ContinuityPanelShell({
 
   return createPortal(
     <div
-      className="clinical-overlay-continuity pointer-events-none fixed left-0 right-0 md:left-64 px-3 md:px-4 lg:px-5"
+      className={`${CLINICAL_OVERLAY_CLASS.drawers} pointer-events-none fixed left-0 right-0 md:left-64 px-3 md:px-4 lg:px-5`}
       style={{
-        zIndex: CLINICAL_OVERLAY_Z.continuity,
         top: "calc(var(--encounter-chrome-h, 5.5rem) + 0.5rem)",
         maxHeight:
           "min(70vh, calc(100dvh - var(--encounter-chrome-h, 5.5rem) - 1rem))",
       }}
       data-testid="continuity-panel-portal"
+      data-overlay-layer="drawers"
     >
       <div className="pointer-events-none max-h-[inherit] overflow-y-auto overscroll-contain pb-3">
         {panel}

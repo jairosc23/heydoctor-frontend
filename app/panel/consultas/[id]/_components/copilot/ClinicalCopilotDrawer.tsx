@@ -27,8 +27,8 @@ import type {
 import type { NestConsultation } from "@/lib/services/consultations";
 import { cn } from "@/lib/utils";
 import {
-  CLINICAL_OVERLAY_BACKDROP_CLASS,
-  CLINICAL_OVERLAY_PANEL_CLASS,
+  CLINICAL_OVERLAY_DRAWER_BACKDROP_CLASS,
+  CLINICAL_OVERLAY_DRAWER_PANEL_CLASS,
 } from "@/lib/clinical-overlay-contract";
 import {
   HEYDOCTOR_COPILOT_BRAND,
@@ -371,9 +371,11 @@ export function ClinicalCopilotDrawer({
         type="button"
         aria-label={HEYDOCTOR_COPILOT_COPY.close}
         className={cn(
-          "clinical-drawer-enter fixed inset-y-0 left-0 right-0 bg-slate-900/10 md:left-64",
-          CLINICAL_OVERLAY_BACKDROP_CLASS.intelligence,
+          "clinical-drawer-enter bg-slate-900/10",
+          CLINICAL_OVERLAY_DRAWER_BACKDROP_CLASS,
         )}
+        data-overlay-layer="drawers"
+        data-overlay-surface="drawer-backdrop"
         onClick={onClose}
       />
       <aside
@@ -382,10 +384,11 @@ export function ClinicalCopilotDrawer({
         aria-label={HEYDOCTOR_COPILOT_COPY.workspaceAria}
         data-testid="heydoctor-copilot-workspace"
         className={cn(
-          "clinical-drawer-enter fixed inset-y-0 left-0 flex w-full max-w-xl flex-col md:left-64",
+          "clinical-drawer-enter left-0 flex w-full max-w-xl flex-col md:left-64",
           "border-r border-hd-border-subtle bg-hd-surface-chrome shadow-hd-3",
-          CLINICAL_OVERLAY_PANEL_CLASS.intelligence,
+          CLINICAL_OVERLAY_DRAWER_PANEL_CLASS,
         )}
+        data-overlay-layer="drawers"
       >
         {/* HERO — product identity (Brand Promise once here; not every screen) */}
         <header

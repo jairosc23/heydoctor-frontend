@@ -8,8 +8,8 @@ import {
 } from "@/lib/doctor-dna-intelligence";
 import { cn } from "@/lib/utils";
 import {
-  CLINICAL_OVERLAY_BACKDROP_CLASS,
-  CLINICAL_OVERLAY_PANEL_CLASS,
+  CLINICAL_OVERLAY_DRAWER_BACKDROP_CLASS,
+  CLINICAL_OVERLAY_DRAWER_PANEL_CLASS,
 } from "@/lib/clinical-overlay-contract";
 
 function SectionTitle({ children }: { children: ReactNode }) {
@@ -59,9 +59,11 @@ export function DoctorDnaDrawer({ open, onClose }: DoctorDnaDrawerProps) {
         type="button"
         aria-label="Cerrar Doctor DNA Intelligence"
         className={cn(
-          "fixed inset-0 bg-slate-900/10",
-          CLINICAL_OVERLAY_BACKDROP_CLASS.intelligence,
+          "bg-slate-900/10",
+          CLINICAL_OVERLAY_DRAWER_BACKDROP_CLASS,
         )}
+        data-overlay-layer="drawers"
+        data-overlay-surface="drawer-backdrop"
         onClick={onClose}
       />
       <aside
@@ -69,10 +71,11 @@ export function DoctorDnaDrawer({ open, onClose }: DoctorDnaDrawerProps) {
         aria-modal="false"
         aria-label="Doctor DNA Intelligence"
         className={cn(
-          "fixed inset-y-0 right-0 flex w-full max-w-sm flex-col",
+          "right-0 flex w-full max-w-sm flex-col",
           "border-l border-slate-200 bg-white",
-          CLINICAL_OVERLAY_PANEL_CLASS.intelligence,
+          CLINICAL_OVERLAY_DRAWER_PANEL_CLASS,
         )}
+        data-overlay-layer="drawers"
       >
         <header className="flex shrink-0 items-center justify-between border-b border-slate-100 px-4 py-3">
           <div>

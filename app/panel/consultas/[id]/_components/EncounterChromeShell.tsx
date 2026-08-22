@@ -23,6 +23,7 @@ export function EncounterChromeShell({
       ref={chromeRef}
       className={cn(className)}
       data-testid="encounter-chrome-shell"
+      data-overlay-layer="chrome"
     >
       {children}
     </div>

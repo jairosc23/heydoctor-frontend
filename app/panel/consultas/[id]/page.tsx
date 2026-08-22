@@ -1268,7 +1268,7 @@ export default function ConsultationDetailPage() {
       */}
             <EncounterChromeShell
               workspaceRef={workspaceRef}
-              className="clinical-encounter-chrome clinical-depth-1 sticky top-0 z-30 -mx-3 border-b border-hd-border-subtle bg-hd-surface-chrome/95 shadow-hd-2 backdrop-blur md:-mx-4 lg:-mx-5"
+              className="clinical-encounter-chrome clinical-overlay-chrome clinical-depth-1 sticky top-0 -mx-3 border-b border-hd-border-subtle bg-hd-surface-chrome/95 shadow-hd-2 backdrop-blur md:-mx-4 lg:-mx-5"
             >
               <div className="clinical-depth-2 px-3 md:px-4 lg:px-5">
                 <EncounterHeader

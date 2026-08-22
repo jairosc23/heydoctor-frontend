@@ -18,7 +18,8 @@ import {
   type PatientProfile,
   type PatientRow,
 } from "@/lib/services/patients";
-import { CLINICAL_OVERLAY_Z } from "@/lib/clinical-overlay-contract";
+import { CLINICAL_OVERLAY_CLASS } from "@/lib/clinical-overlay-contract";
+import { cn } from "@/lib/utils";
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
@@ -81,9 +82,12 @@ export function EncounterFullRecordOverlay({
 
   return createPortal(
     <div
-      className="clinical-overlay-full-record fixed inset-0 flex flex-col bg-hd-surface-chrome"
-      style={{ zIndex: CLINICAL_OVERLAY_Z.fullRecord }}
+      className={cn(
+        "fixed inset-0 flex flex-col bg-hd-surface-chrome",
+        CLINICAL_OVERLAY_CLASS.modal,
+      )}
       data-testid="encounter-full-record-overlay"
+      data-overlay-layer="modal"
       data-encounter-runtime="preserved"
       role="dialog"
       aria-modal="true"

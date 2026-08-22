@@ -16,6 +16,10 @@ describe("UnsavedChangesDialog", () => {
       />,
     );
     expect(screen.getByTestId("unsaved-changes-dialog")).toBeInTheDocument();
+    expect(screen.getByTestId("unsaved-changes-backdrop")).toHaveAttribute(
+      "data-overlay-layer",
+      "dialog",
+    );
     screen.getByTestId("unsaved-changes-cancel").click();
     screen.getByTestId("unsaved-changes-save").click();
     screen.getByTestId("unsaved-changes-discard").click();
