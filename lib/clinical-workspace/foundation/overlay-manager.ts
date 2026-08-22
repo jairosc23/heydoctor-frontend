@@ -26,7 +26,7 @@ function applyBackdrop(surface: WorkspaceSurface): void {
   const button = document.createElement("button");
   button.type = "button";
   button.setAttribute("aria-label", surface.backdropAriaLabel ?? "Cerrar");
-  button.className = `clinical-drawer-enter bg-slate-900/10 ${CLINICAL_OVERLAY_DRAWER_BACKDROP_CLASS}`;
+  button.className = `${surface.backdropClassName ?? "clinical-drawer-enter bg-slate-900/10"} ${CLINICAL_OVERLAY_DRAWER_BACKDROP_CLASS}`;
   button.dataset.overlayLayer = "drawers";
   button.dataset.overlaySurface = "drawer-backdrop";
   button.addEventListener("click", () => closeBlocking(true));

@@ -96,8 +96,10 @@ describe("clinical overlay contract", () => {
     );
     for (const relative of DRAWER_SOURCES) {
       const source = readFileSync(join(ROOT, relative), "utf8");
-      const isCopilot = relative.includes("ClinicalCopilotDrawer");
-      if (isCopilot) {
+      const managerOwnsBackdrop =
+        relative.includes("ClinicalCopilotDrawer") ||
+        relative.includes("DoctorDnaDrawer");
+      if (managerOwnsBackdrop) {
         assert.doesNotMatch(
           source,
           /CLINICAL_OVERLAY_DRAWER_BACKDROP_CLASS/,

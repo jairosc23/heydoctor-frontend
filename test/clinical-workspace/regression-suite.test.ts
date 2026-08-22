@@ -129,17 +129,33 @@ function evaluateWorkspaceGates(): Gate[] {
       id: "copilot-entry",
       pass: (() => {
         const copilot = readWorkspace(WORKSPACE_REGRESSION_SOURCES.copilot);
-        const dna = readWorkspace(WORKSPACE_REGRESSION_SOURCES.doctorDna);
         return (
           /clinicalWorkspaceKernel/.test(copilot) &&
           /present\(/.test(copilot) &&
           !/key === ["']Escape["']/.test(copilot) &&
           !/CLINICAL_OVERLAY_DRAWER_BACKDROP_CLASS/.test(copilot) &&
-          /CLINICAL_OVERLAY_DRAWER_PANEL_CLASS/.test(copilot) &&
-          /key === ["']Escape["']/.test(dna)
+          /CLINICAL_OVERLAY_DRAWER_PANEL_CLASS/.test(copilot)
         );
       })(),
       message: "Copilot still administers overlay chrome",
+    },
+    {
+      id: "doctor-dna-entry",
+      pass: (() => {
+        const dna = readWorkspace(WORKSPACE_REGRESSION_SOURCES.doctorDna);
+        const moduleSheet = readWorkspace(
+          WORKSPACE_REGRESSION_SOURCES.moduleSheet,
+        );
+        return (
+          /clinicalWorkspaceKernel/.test(dna) &&
+          /present\(/.test(dna) &&
+          !/key === ["']Escape["']/.test(dna) &&
+          !/CLINICAL_OVERLAY_DRAWER_BACKDROP_CLASS/.test(dna) &&
+          /CLINICAL_OVERLAY_DRAWER_PANEL_CLASS/.test(dna) &&
+          /key === ["']Escape["']/.test(moduleSheet)
+        );
+      })(),
+      message: "Doctor DNA still administers overlay chrome",
     },
     {
       id: "overlay-manager-entry",
@@ -170,17 +186,12 @@ function evaluateWorkspaceGates(): Gate[] {
       message: "Overlay Manager is missing, leaked, or incomplete",
     },
     {
-      id: "no-overlay-boolean-cluster",
+      id: "continuity-shared-inset",
       pass:
         !/copilotDrawerOpen/.test(page) &&
         !/dnaDrawerOpen/.test(page) &&
         !/closeEncounterOverlays/.test(page) &&
-        escapeCount === 1,
-      message: "page still owns overlay booleans",
-    },
-    {
-      id: "continuity-shared-inset",
-      pass:
+        escapeCount === 1 &&
         geometryHits.length === 0 &&
         /CLINICAL_OVERLAY_DRAWER_BACKDROP_CLASS/.test(continuity) &&
         !/createPortal/.test(continuity) &&

@@ -7,10 +7,8 @@ import {
   TREND_SYMBOL,
 } from "@/lib/doctor-dna-intelligence";
 import { cn } from "@/lib/utils";
-import {
-  CLINICAL_OVERLAY_DRAWER_BACKDROP_CLASS,
-  CLINICAL_OVERLAY_DRAWER_PANEL_CLASS,
-} from "@/lib/clinical-overlay-contract";
+import { CLINICAL_OVERLAY_DRAWER_PANEL_CLASS } from "@/lib/clinical-overlay-contract";
+import { clinicalWorkspaceKernel } from "@/lib/clinical-workspace/kernel";
 
 function SectionTitle({ children }: { children: ReactNode }) {
   return (
@@ -43,29 +41,27 @@ export function DoctorDnaDrawer({ open, onClose }: DoctorDnaDrawerProps) {
   );
 
   useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+    if (!open) {
+      clinicalWorkspaceKernel.dismiss("doctor-dna");
+      return;
+    }
+    clinicalWorkspaceKernel.present({
+      id: "doctor-dna",
+      kind: "drawer",
+      blocking: true,
+      onDismiss: onClose,
+      backdropAriaLabel: "Cerrar Doctor DNA Intelligence",
+      backdropClassName: "bg-slate-900/10",
+    });
+    return () => {
+      clinicalWorkspaceKernel.dismiss("doctor-dna");
     };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
   if (!open) return null;
 
   return (
     <>
-      <button
-        type="button"
-        aria-label="Cerrar Doctor DNA Intelligence"
-        className={cn(
-          "bg-slate-900/10",
-          CLINICAL_OVERLAY_DRAWER_BACKDROP_CLASS,
-        )}
-        data-overlay-layer="drawers"
-        data-overlay-surface="drawer-backdrop"
-        onClick={onClose}
-      />
       <aside
         role="dialog"
         aria-modal="false"
