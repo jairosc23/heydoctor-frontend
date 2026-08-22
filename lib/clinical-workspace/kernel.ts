@@ -1,7 +1,9 @@
 /**
- * Clinical Workspace Kernel — public contract only.
- * No behavior. Foundation implements this later.
+ * Clinical Workspace Kernel — public contract.
+ * Foundation is private. Encounter must not import it.
  */
+
+import { createWorkspaceFoundation } from "./foundation";
 
 export type WorkspaceMode =
   | "frame"
@@ -47,3 +49,6 @@ export interface ClinicalWorkspaceKernel {
 
 export const CLINICAL_WORKSPACE_KERNEL_ID =
   "clinical-workspace-kernel" as const;
+
+export const clinicalWorkspaceKernel: ClinicalWorkspaceKernel =
+  createWorkspaceFoundation();

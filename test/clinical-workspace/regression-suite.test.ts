@@ -7,6 +7,7 @@ import {
   formatWorkspaceStabilityIndex,
   workspaceStabilityIndex,
   WORKSPACE_FOUNDATION_ENTRY,
+  WORKSPACE_FOUNDATION_FILE,
   WORKSPACE_KERNEL_ENTRY,
   WORKSPACE_REGRESSION_INVARIANTS,
   WORKSPACE_REGRESSION_SCENARIO_CONTRACT,
@@ -29,6 +30,7 @@ function countMatches(source: string, pattern: RegExp): number {
 type Gate = { id: string; pass: boolean; message: string };
 
 function evaluateWorkspaceGates(): Gate[] {
+  const kernel = readWorkspace(WORKSPACE_KERNEL_ENTRY);
   const page = readWorkspace(WORKSPACE_REGRESSION_SOURCES.encounterPage);
   const continuity = readWorkspace(WORKSPACE_REGRESSION_SOURCES.continuity);
   const fullRecord = readWorkspace(WORKSPACE_REGRESSION_SOURCES.fullRecord);
@@ -61,6 +63,10 @@ function evaluateWorkspaceGates(): Gate[] {
     0,
   );
 
+  const foundationLeaks = Object.values(WORKSPACE_REGRESSION_SOURCES).filter(
+    (relative) => readWorkspace(relative).includes(WORKSPACE_FOUNDATION_ENTRY),
+  );
+
   return [
     {
       id: "kernel-entry",
@@ -68,12 +74,24 @@ function evaluateWorkspaceGates(): Gate[] {
       message: `missing ${WORKSPACE_KERNEL_ENTRY}`,
     },
     {
+      id: "foundation-entry",
+      pass:
+        existsSync(join(ROOT, WORKSPACE_FOUNDATION_FILE)) &&
+        /from ["']\.\/foundation["']/.test(kernel) &&
+        foundationLeaks.length === 0,
+      message:
+        foundationLeaks.length > 0
+          ? `Foundation leaked to ${foundationLeaks.join(", ")}`
+          : "Foundation missing or not wired through Kernel",
+    },
+    {
       id: "teleconsulta-enterFullscreen",
       pass:
         /enterFullscreen\s*\(/.test(page) &&
         !/router\.push\(`\/panel\/consultas\/\$\{consultation\.id\}\/teleconsulta`\)/.test(
           page,
-        ),
+        ) &&
+        !/isPanelTeleconsultaRoute/.test(layout),
       message: "handleStartCall bypasses Kernel.enterFullscreen",
     },
     {
@@ -113,11 +131,6 @@ function evaluateWorkspaceGates(): Gate[] {
       pass: escapeCount === 1,
       message: `expected 1 Escape listener, found ${escapeCount}`,
     },
-    {
-      id: "teleconsulta-no-layout-bypass",
-      pass: !/isPanelTeleconsultaRoute/.test(layout),
-      message: "PanelLayout still bypasses the frame via isPanelTeleconsultaRoute",
-    },
   ];
 }
 
@@ -153,25 +166,18 @@ describe("Workspace Regression Suite — architecture contract", () => {
     assert.equal(existsSync(join(ROOT, WORKSPACE_KERNEL_ENTRY)), true);
     assert.match(kernel, /export interface ClinicalWorkspaceKernel/);
     assert.match(kernel, /enterFullscreen/);
+    assert.match(kernel, /from ["']\.\/foundation["']/);
     assert.equal(
-      /^import\s/m.test(kernel),
+      /from ["']@\/(?:app|components)\//.test(kernel),
       false,
-      "Kernel must not import Foundation, Encounter, or components",
+      "Kernel must not import Encounter or components",
     );
   });
 
   it("allows Encounter to depend only on Kernel, never Foundation", () => {
-    const foundation = new RegExp(
-      WORKSPACE_FOUNDATION_ENTRY.replace("/", "\\/"),
-    );
-    const consumers = [
-      WORKSPACE_REGRESSION_SOURCES.encounterPage,
-      WORKSPACE_REGRESSION_SOURCES.encounterHeader,
-      WORKSPACE_REGRESSION_SOURCES.panelLayout,
-    ];
-    for (const relative of consumers) {
+    for (const relative of Object.values(WORKSPACE_REGRESSION_SOURCES)) {
       assert.equal(
-        foundation.test(readWorkspace(relative)),
+        readWorkspace(relative).includes(WORKSPACE_FOUNDATION_ENTRY),
         false,
         `${relative} must not import Foundation`,
       );
@@ -182,7 +188,7 @@ describe("Workspace Regression Suite — architecture contract", () => {
 describe("Workspace Regression Suite — current workspace (must be red)", () => {
   it("reports Workspace Stability Index", () => {
     console.log(formatWorkspaceStabilityIndex(STABILITY));
-    assert.equal(STABILITY.total, GATES.length);
+    assert.equal(STABILITY.total, 9);
     assert.equal(STABILITY.pass, GATES.filter((gate) => gate.pass).length);
   });
 
