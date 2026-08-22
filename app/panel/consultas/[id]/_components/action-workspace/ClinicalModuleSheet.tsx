@@ -2,10 +2,8 @@
 
 import { useEffect, type ReactNode } from "react";
 import { clinicalActionModuleLabel } from "@/lib/clinical-action-workspace";
-import {
-  CLINICAL_OVERLAY_DRAWER_BACKDROP_CLASS,
-  CLINICAL_OVERLAY_DRAWER_PANEL_CLASS,
-} from "@/lib/clinical-overlay-contract";
+import { CLINICAL_OVERLAY_DRAWER_PANEL_CLASS } from "@/lib/clinical-overlay-contract";
+import { clinicalWorkspaceKernel } from "@/lib/clinical-workspace/kernel";
 import { cn } from "@/lib/utils";
 import { useClinicalActionWorkspace } from "./ClinicalActionWorkspaceProvider";
 
@@ -14,13 +12,22 @@ export function ClinicalModuleSheet({ children }: { children?: ReactNode }) {
     useClinicalActionWorkspace();
 
   useEffect(() => {
-    if (!enabled || !sheetOpen) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") closeSheet();
+    if (!enabled || !sheetOpen || !activeModule) {
+      clinicalWorkspaceKernel.dismiss("module-sheet");
+      return;
+    }
+    clinicalWorkspaceKernel.present({
+      id: "module-sheet",
+      kind: "drawer",
+      blocking: true,
+      onDismiss: closeSheet,
+      backdropAriaLabel: "Cerrar módulo clínico",
+      backdropClassName: "clinical-drawer-enter bg-slate-900/15",
+    });
+    return () => {
+      clinicalWorkspaceKernel.dismiss("module-sheet");
     };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [enabled, sheetOpen, closeSheet]);
+  }, [enabled, sheetOpen, activeModule, closeSheet]);
 
   if (!enabled || !sheetOpen || !activeModule) return null;
 
@@ -28,17 +35,6 @@ export function ClinicalModuleSheet({ children }: { children?: ReactNode }) {
 
   return (
     <>
-      <button
-        type="button"
-        aria-label="Cerrar módulo clínico"
-        className={cn(
-          "clinical-drawer-enter bg-slate-900/15",
-          CLINICAL_OVERLAY_DRAWER_BACKDROP_CLASS,
-        )}
-        data-overlay-layer="drawers"
-        data-overlay-surface="drawer-backdrop"
-        onClick={closeSheet}
-      />
       <aside
         role="dialog"
         aria-modal="true"

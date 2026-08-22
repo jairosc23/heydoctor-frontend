@@ -98,7 +98,8 @@ describe("clinical overlay contract", () => {
       const source = readFileSync(join(ROOT, relative), "utf8");
       const managerOwnsBackdrop =
         relative.includes("ClinicalCopilotDrawer") ||
-        relative.includes("DoctorDnaDrawer");
+        relative.includes("DoctorDnaDrawer") ||
+        relative.includes("ClinicalModuleSheet");
       if (managerOwnsBackdrop) {
         assert.doesNotMatch(
           source,

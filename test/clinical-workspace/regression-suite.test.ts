@@ -122,7 +122,17 @@ function evaluateWorkspaceGates(): Gate[] {
         !/router\.push\(`\/panel\/consultas\/\$\{consultation\.id\}\/teleconsulta`\)/.test(
           page,
         ) &&
-        !/isPanelTeleconsultaRoute/.test(layout),
+        !/isPanelTeleconsultaRoute/.test(layout) &&
+        !/copilotDrawerOpen/.test(page) &&
+        !/dnaDrawerOpen/.test(page) &&
+        !/closeEncounterOverlays/.test(page) &&
+        escapeCount === 1 &&
+        geometryHits.length === 0 &&
+        /CLINICAL_OVERLAY_DRAWER_BACKDROP_CLASS/.test(continuity) &&
+        !/createPortal/.test(continuity) &&
+        !/md:left-64/.test(continuity) &&
+        !/createPortal/.test(fullRecord) &&
+        !/document\.body/.test(fullRecord),
       message: "handleStartCall bypasses Kernel.enterFullscreen",
     },
     {
@@ -143,19 +153,31 @@ function evaluateWorkspaceGates(): Gate[] {
       id: "doctor-dna-entry",
       pass: (() => {
         const dna = readWorkspace(WORKSPACE_REGRESSION_SOURCES.doctorDna);
-        const moduleSheet = readWorkspace(
-          WORKSPACE_REGRESSION_SOURCES.moduleSheet,
-        );
         return (
           /clinicalWorkspaceKernel/.test(dna) &&
           /present\(/.test(dna) &&
           !/key === ["']Escape["']/.test(dna) &&
           !/CLINICAL_OVERLAY_DRAWER_BACKDROP_CLASS/.test(dna) &&
-          /CLINICAL_OVERLAY_DRAWER_PANEL_CLASS/.test(dna) &&
-          /key === ["']Escape["']/.test(moduleSheet)
+          /CLINICAL_OVERLAY_DRAWER_PANEL_CLASS/.test(dna)
         );
       })(),
       message: "Doctor DNA still administers overlay chrome",
+    },
+    {
+      id: "module-sheet-entry",
+      pass: (() => {
+        const moduleSheet = readWorkspace(
+          WORKSPACE_REGRESSION_SOURCES.moduleSheet,
+        );
+        return (
+          /clinicalWorkspaceKernel/.test(moduleSheet) &&
+          /present\(/.test(moduleSheet) &&
+          !/key === ["']Escape["']/.test(moduleSheet) &&
+          !/CLINICAL_OVERLAY_DRAWER_BACKDROP_CLASS/.test(moduleSheet) &&
+          /CLINICAL_OVERLAY_DRAWER_PANEL_CLASS/.test(moduleSheet)
+        );
+      })(),
+      message: "Module Sheet still administers overlay chrome",
     },
     {
       id: "overlay-manager-entry",
@@ -184,21 +206,6 @@ function evaluateWorkspaceGates(): Gate[] {
         );
       })(),
       message: "Overlay Manager is missing, leaked, or incomplete",
-    },
-    {
-      id: "continuity-shared-inset",
-      pass:
-        !/copilotDrawerOpen/.test(page) &&
-        !/dnaDrawerOpen/.test(page) &&
-        !/closeEncounterOverlays/.test(page) &&
-        escapeCount === 1 &&
-        geometryHits.length === 0 &&
-        /CLINICAL_OVERLAY_DRAWER_BACKDROP_CLASS/.test(continuity) &&
-        !/createPortal/.test(continuity) &&
-        !/md:left-64/.test(continuity) &&
-        !/createPortal/.test(fullRecord) &&
-        !/document\.body/.test(fullRecord),
-      message: "Continuity still uses a private inset/portal",
     },
     {
       id: "chrome-entry",
