@@ -20,6 +20,7 @@
     "dx:coverage": "npm run test:component:cov && npm run coverage:report",
     "dx:doctor": "node scripts/dx-doctor.mjs",
     "test": "node --import tsx --test 'lib/**/*.test.ts' 'components/clinical/continuity/**/*.test.ts' ci-smoke.test.mjs",
+    "test:workspace-regression": "node --import tsx --test 'test/clinical-workspace/**/*.test.ts'",
     "test:ops:ci": "node --import tsx --test lib/admin/enterprise-signal.test.ts",
     "test:copilot:ci": "node --import tsx --test lib/medical-copilot/rc2-hardening.test.ts lib/medical-copilot/session-id.test.ts lib/medical-copilot/observability/observability.test.ts lib/medical-copilot/testing/fixtures.test.ts lib/medical-copilot/hitl-decision-trail.test.ts",
     "test:component": "vitest run",
