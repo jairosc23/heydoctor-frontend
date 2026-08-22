@@ -13,6 +13,7 @@ import {
 import { isUnmodifiedLeftClick } from "@/lib/unsaved-changes-guard/is-unmodified-left-click";
 import { cn } from "@/lib/utils";
 import { trackRedirectToLogin } from "@/lib/session-analytics";
+import { ClinicalBetaFeedbackWidget } from "@/components/clinical-beta/ClinicalBetaFeedbackWidget";
 
 const MENU = [
   { label: "Dashboard", href: "/dashboard" },
@@ -298,6 +299,7 @@ function PanelLayoutShell({
       <main className="absolute bottom-0 left-0 right-0 top-16 overflow-y-auto bg-hd-surface-base p-4 md:left-64 md:p-8">
         {children}
       </main>
+      <ClinicalBetaFeedbackWidget />
     </div>
   );
 }

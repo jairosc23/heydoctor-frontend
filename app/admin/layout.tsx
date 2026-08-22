@@ -13,6 +13,7 @@ const ADMIN_NAV = [
   { href: "/admin/analytics", label: "Analytics" },
   { href: "/admin/subscriptions", label: "Suscripciones" },
   { href: "/admin/ops", label: "Ops / Signal" },
+  { href: "/admin/clinical-beta", label: "Clinical Beta" },
   { href: "/admin/growth", label: "Growth" },
 ] as const;
 
