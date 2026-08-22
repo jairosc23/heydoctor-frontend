@@ -26,10 +26,8 @@ import type {
 } from "@/lib/types/clinical-foundation";
 import type { NestConsultation } from "@/lib/services/consultations";
 import { cn } from "@/lib/utils";
-import {
-  CLINICAL_OVERLAY_DRAWER_BACKDROP_CLASS,
-  CLINICAL_OVERLAY_DRAWER_PANEL_CLASS,
-} from "@/lib/clinical-overlay-contract";
+import { CLINICAL_OVERLAY_DRAWER_PANEL_CLASS } from "@/lib/clinical-overlay-contract";
+import { clinicalWorkspaceKernel } from "@/lib/clinical-workspace/kernel";
 import {
   HEYDOCTOR_COPILOT_BRAND,
   HEYDOCTOR_COPILOT_CAPABILITIES,
@@ -349,13 +347,21 @@ export function ClinicalCopilotDrawer({
     useState<HeyDoctorCopilotSectionId>(HEYDOCTOR_COPILOT_DEFAULT_SECTION);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      clinicalWorkspaceKernel.dismiss("copilot");
+      return;
+    }
     setActiveSection(HEYDOCTOR_COPILOT_DEFAULT_SECTION);
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+    clinicalWorkspaceKernel.present({
+      id: "copilot",
+      kind: "drawer",
+      blocking: true,
+      onDismiss: onClose,
+      backdropAriaLabel: HEYDOCTOR_COPILOT_COPY.close,
+    });
+    return () => {
+      clinicalWorkspaceKernel.dismiss("copilot");
     };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
   useEffect(() => {
@@ -367,17 +373,6 @@ export function ClinicalCopilotDrawer({
 
   return (
     <>
-      <button
-        type="button"
-        aria-label={HEYDOCTOR_COPILOT_COPY.close}
-        className={cn(
-          "clinical-drawer-enter bg-slate-900/10",
-          CLINICAL_OVERLAY_DRAWER_BACKDROP_CLASS,
-        )}
-        data-overlay-layer="drawers"
-        data-overlay-surface="drawer-backdrop"
-        onClick={onClose}
-      />
       <aside
         role="dialog"
         aria-modal="false"

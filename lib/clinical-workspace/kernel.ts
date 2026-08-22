@@ -26,6 +26,8 @@ export type WorkspaceSurface = {
   id: WorkspaceSurfaceId;
   kind: WorkspaceSurfaceKind;
   blocking: boolean;
+  onDismiss?: () => void;
+  backdropAriaLabel?: string;
 };
 
 export type VisualWorkspaceState = {

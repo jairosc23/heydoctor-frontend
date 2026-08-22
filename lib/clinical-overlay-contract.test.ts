@@ -85,13 +85,31 @@ describe("clinical overlay contract", () => {
       CLINICAL_OVERLAY_DRAWER_PANEL_CLASS,
       /clinical-overlay-drawers/,
     );
+    const manager = readFileSync(
+      join(ROOT, "lib/clinical-workspace/foundation/overlay-manager.ts"),
+      "utf8",
+    );
+    assert.match(
+      manager,
+      /CLINICAL_OVERLAY_DRAWER_BACKDROP_CLASS/,
+      "Overlay Manager owns the shared drawer backdrop",
+    );
     for (const relative of DRAWER_SOURCES) {
       const source = readFileSync(join(ROOT, relative), "utf8");
-      assert.match(
-        source,
-        /CLINICAL_OVERLAY_DRAWER_BACKDROP_CLASS/,
-        `${relative} must consume the shared drawer backdrop`,
-      );
+      const isCopilot = relative.includes("ClinicalCopilotDrawer");
+      if (isCopilot) {
+        assert.doesNotMatch(
+          source,
+          /CLINICAL_OVERLAY_DRAWER_BACKDROP_CLASS/,
+          `${relative} must not own the drawer backdrop`,
+        );
+      } else {
+        assert.match(
+          source,
+          /CLINICAL_OVERLAY_DRAWER_BACKDROP_CLASS/,
+          `${relative} must consume the shared drawer backdrop`,
+        );
+      }
       assert.match(
         source,
         /CLINICAL_OVERLAY_DRAWER_PANEL_CLASS/,

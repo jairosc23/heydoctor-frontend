@@ -126,6 +126,22 @@ function evaluateWorkspaceGates(): Gate[] {
       message: "handleStartCall bypasses Kernel.enterFullscreen",
     },
     {
+      id: "copilot-entry",
+      pass: (() => {
+        const copilot = readWorkspace(WORKSPACE_REGRESSION_SOURCES.copilot);
+        const dna = readWorkspace(WORKSPACE_REGRESSION_SOURCES.doctorDna);
+        return (
+          /clinicalWorkspaceKernel/.test(copilot) &&
+          /present\(/.test(copilot) &&
+          !/key === ["']Escape["']/.test(copilot) &&
+          !/CLINICAL_OVERLAY_DRAWER_BACKDROP_CLASS/.test(copilot) &&
+          /CLINICAL_OVERLAY_DRAWER_PANEL_CLASS/.test(copilot) &&
+          /key === ["']Escape["']/.test(dna)
+        );
+      })(),
+      message: "Copilot still administers overlay chrome",
+    },
+    {
       id: "overlay-manager-entry",
       pass: (() => {
         if (!existsSync(join(ROOT, WORKSPACE_OVERLAY_MANAGER_FILE))) {
@@ -163,13 +179,9 @@ function evaluateWorkspaceGates(): Gate[] {
       message: "page still owns overlay booleans",
     },
     {
-      id: "no-local-geometry",
-      pass: geometryHits.length === 0,
-      message: `local geometry still present: ${geometryHits.join(", ")}`,
-    },
-    {
       id: "continuity-shared-inset",
       pass:
+        geometryHits.length === 0 &&
         /CLINICAL_OVERLAY_DRAWER_BACKDROP_CLASS/.test(continuity) &&
         !/createPortal/.test(continuity) &&
         !/md:left-64/.test(continuity) &&
