@@ -4,7 +4,7 @@ import { SignatureCanvas } from "@/components/clinical";
 import type {
   ActionBarHandlers,
   ActionBarLoading,
-} from "@/components/clinical/ConsultationActionBar";
+} from "@/lib/encounter/action-bar-types";
 import { cn } from "@/lib/utils";
 import {
   consultationStatusBadgeClass,

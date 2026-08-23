@@ -568,10 +568,10 @@ export const LEGACY_INVENTORY: LegacyItem[] = [
   },
   {
     id: "consultation-action-bar-full",
-    path: "components/clinical/ConsultationActionBar.tsx",
+    path: "lib/encounter/action-bar-types.ts",
     type: "component",
-    severity: "monitorear",
-    plan: "Parcialmente sustituido por EncounterHeader + ClinicalActionBar; unificar handlers.",
+    severity: "retirar",
+    plan: "ConsultationActionBar.tsx eliminado en 19A.1. Tipos en action-bar-types; chrome en EncounterActionRegistry.",
   },
   {
     id: "assist-tab",
@@ -671,7 +671,7 @@ export const FILES_AFFECTED_BY_CONSOLIDATION = [
   "app/panel/consultas/[id]/_components/SafetyStrip.tsx",
   "app/panel/consultas/[id]/_components/copilot/ClinicalCopilotDrawer.tsx",
   "app/panel/consultas/[id]/_components/copilot/CopilotContextEngine.tsx",
-  "components/clinical/ConsultationActionBar.tsx",
+  "lib/encounter/action-bar-types.ts",
   "app/panel/consultas/page.tsx",
   "lib/epic3/architecture-contract.ts",
 ] as const;

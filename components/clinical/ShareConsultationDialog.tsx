@@ -147,6 +147,7 @@ export function ShareConsultationDialog({
         role="dialog"
         aria-modal="true"
         aria-label="Compartir teleconsulta"
+        tabIndex={-1}
         style={modalStyle}
       >
         <header style={headerStyle}>

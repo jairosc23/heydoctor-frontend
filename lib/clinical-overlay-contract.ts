@@ -53,6 +53,17 @@ export const CLINICAL_OVERLAY_DRAWER_PANEL_CLASS = [
   "clinical-overlay-clinical-content-y",
 ].join(" ");
 
+/** Blocking dialog/modal backdrop — same inset as drawers, dialog stacking. */
+export const CLINICAL_OVERLAY_DIALOG_BACKDROP_CLASS = [
+  CLINICAL_OVERLAY_CLASS.dialog,
+  "clinical-overlay-clinical-content",
+].join(" ");
+
+export const CLINICAL_OVERLAY_MODAL_BACKDROP_CLASS = [
+  CLINICAL_OVERLAY_CLASS.modal,
+  "clinical-overlay-clinical-content",
+].join(" ");
+
 export function overlayLayerOf(z: number): ClinicalOverlayLayer | null {
   const match = CLINICAL_OVERLAY_LAYER_ORDER.find(
     (layer) => CLINICAL_OVERLAY_Z[layer] === z,

@@ -1,10 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import {
-  ContinuityEntry,
-  ContinuityPanelShell,
-} from "@/components/clinical/continuity";
+import { ContinuityEntry } from "@/components/clinical/continuity";
 import { EncounterRuntimeHost } from "@/components/clinical/encounter/EncounterRuntimeHost";
 import {
   CLINICAL_ACTION_MODULES,
@@ -81,14 +78,6 @@ export function ClinicalActionBar({
           ) : null}
         </div>
       </nav>
-      {patientId ? (
-        <ContinuityPanelShell
-          patientId={patientId}
-          encounterId={consultationId ?? null}
-          open={continuityOpen}
-          onOpenChange={setContinuityOpen}
-        />
-      ) : null}
       {patientId && consultationId ? (
         <EncounterRuntimeHost
           patientId={patientId}

@@ -5,9 +5,11 @@ import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 import {
   CLINICAL_OVERLAY_CLASS,
+  CLINICAL_OVERLAY_DIALOG_BACKDROP_CLASS,
   CLINICAL_OVERLAY_DRAWER_BACKDROP_CLASS,
   CLINICAL_OVERLAY_DRAWER_PANEL_CLASS,
   CLINICAL_OVERLAY_LAYER_ORDER,
+  CLINICAL_OVERLAY_MODAL_BACKDROP_CLASS,
   CLINICAL_OVERLAY_Z,
   overlayLayerOf,
 } from "./clinical-overlay-contract";
@@ -94,6 +96,28 @@ describe("clinical overlay contract", () => {
       /CLINICAL_OVERLAY_DRAWER_BACKDROP_CLASS/,
       "Overlay Manager owns the shared drawer backdrop",
     );
+    assert.match(
+      manager,
+      /CLINICAL_OVERLAY_DIALOG_BACKDROP_CLASS/,
+      "Overlay Manager owns the dialog backdrop",
+    );
+    assert.match(
+      manager,
+      /CLINICAL_OVERLAY_MODAL_BACKDROP_CLASS/,
+      "Overlay Manager owns the modal backdrop",
+    );
+    assert.match(
+      CLINICAL_OVERLAY_DIALOG_BACKDROP_CLASS,
+      /clinical-overlay-dialog/,
+    );
+    assert.match(
+      CLINICAL_OVERLAY_DIALOG_BACKDROP_CLASS,
+      /clinical-overlay-clinical-content/,
+    );
+    assert.match(
+      CLINICAL_OVERLAY_MODAL_BACKDROP_CLASS,
+      /clinical-overlay-modal/,
+    );
     for (const relative of DRAWER_SOURCES) {
       const source = readFileSync(join(ROOT, relative), "utf8");
       const managerOwnsBackdrop =
@@ -146,6 +170,12 @@ describe("clinical overlay contract", () => {
     assert.doesNotMatch(sidebar, /\bz-40\b/);
     assert.match(dialog, /CLINICAL_OVERLAY_CLASS\.dialog/);
     assert.match(fullRecord, /CLINICAL_OVERLAY_CLASS\.modal/);
+    const actionMenu = readFileSync(
+      join(ROOT, "app/panel/consultas/[id]/_components/EncounterActionMenu.tsx"),
+      "utf8",
+    );
+    assert.match(actionMenu, /CLINICAL_OVERLAY_CLASS\.dialog/);
+    assert.doesNotMatch(actionMenu, /\bz-50\b/);
   });
 
   it("defines only the six overlay tokens in CSS", () => {

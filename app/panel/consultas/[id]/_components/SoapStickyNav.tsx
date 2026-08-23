@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { CLINICAL_OVERLAY_CLASS } from "@/lib/clinical-overlay-contract";
 import { clinicalWorkspaceKernel } from "@/lib/clinical-workspace/kernel";
 import type { SoapNavStep } from "@/hooks/useSoapScrollSpy";
 
@@ -30,7 +31,7 @@ export function SoapStickyNav({
         top: `calc(var(--encounter-chrome-h, ${viewport.encounterChromeHeight}px) + 4px)`,
       }}
       className={cn(
-        "soap-sticky-nav sticky z-[5] -mx-hd-1 mb-hd-2 flex gap-0.5 overflow-x-auto",
+        `soap-sticky-nav sticky ${CLINICAL_OVERLAY_CLASS.chrome} -mx-hd-1 mb-hd-2 flex gap-0.5 overflow-x-auto`,
         "rounded-hd-md border border-hd-border-subtle bg-hd-surface-raised/95 px-hd-1 py-0.5 backdrop-blur-sm",
       )}
     >

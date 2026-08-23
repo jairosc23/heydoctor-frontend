@@ -26,6 +26,9 @@ import {
   URGENCY_AVAILABLE_NOW,
 } from "@/lib/consultation-pricing";
 import { useConsultationPrice } from "@/lib/hooks/useConsultationPrice";
+import { openWorkspaceShare } from "@/lib/clinical-workspace/visual-surfaces";
+import { useVisualWorkspaceState } from "@/lib/clinical-workspace/use-visual-workspace-state";
+import { clinicalWorkspaceKernel } from "@/lib/clinical-workspace/kernel";
 
 /**
  * Phase 4.9.0 — Guard-rail: workspace inline legacy no se renderiza.
@@ -57,7 +60,8 @@ function ConsultasContent() {
   } = useConsultation();
 
   const [diagnosisError, setDiagnosisError] = useState<string | null>(null);
-  const [shareOpen, setShareOpen] = useState(false);
+  const visualWorkspace = useVisualWorkspaceState();
+  const shareOpen = visualWorkspace.activeSurface === "share";
 
   const patientsQuery = usePatientsListQuery({ limit: 100 });
   const consultationsQuery = useConsultationsListQuery({ limit: 20 });
@@ -300,22 +304,11 @@ function ConsultasContent() {
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              onClick={() =>
-                consultationId &&
-                router.push(`/panel/consultas/${consultationId}/teleconsulta`)
-              }
+              onClick={() => consultationId && openWorkspaceShare()}
               disabled={!consultationId}
               className="rounded-lg border-0 bg-primary px-4 py-2 text-[13px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Iniciar Teleconsulta
-            </button>
-            <button
-              type="button"
-              onClick={() => consultationId && setShareOpen(true)}
-              disabled={!consultationId}
-              className="rounded-lg border border-primary bg-hd-surface-chrome px-4 py-2 text-[13px] font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Compartir
+              Compartir consulta
             </button>
             <button
               type="button"
@@ -339,7 +332,7 @@ function ConsultasContent() {
                   .join(" ")
               : undefined
           }
-          onClose={() => setShareOpen(false)}
+          onClose={() => clinicalWorkspaceKernel.dismiss("share")}
         />
       )}
 

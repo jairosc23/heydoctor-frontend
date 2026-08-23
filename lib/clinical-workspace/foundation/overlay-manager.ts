@@ -1,4 +1,8 @@
-import { CLINICAL_OVERLAY_DRAWER_BACKDROP_CLASS } from "@/lib/clinical-overlay-contract";
+import {
+  CLINICAL_OVERLAY_DIALOG_BACKDROP_CLASS,
+  CLINICAL_OVERLAY_DRAWER_BACKDROP_CLASS,
+  CLINICAL_OVERLAY_MODAL_BACKDROP_CLASS,
+} from "@/lib/clinical-overlay-contract";
 import type {
   VisualWorkspaceState,
   WorkspaceSurface,
@@ -39,14 +43,50 @@ export function subscribeVisualWorkspaceState(listener: () => void): () => void 
   };
 }
 
+function backdropClassFor(surface: WorkspaceSurface): string {
+  const tint = surface.backdropClassName ?? "clinical-drawer-enter bg-slate-900/10";
+  if (surface.kind === "dialog") {
+    return `${tint} ${CLINICAL_OVERLAY_DIALOG_BACKDROP_CLASS}`;
+  }
+  if (surface.kind === "modal") {
+    return `${tint} ${CLINICAL_OVERLAY_MODAL_BACKDROP_CLASS}`;
+  }
+  return `${tint} ${CLINICAL_OVERLAY_DRAWER_BACKDROP_CLASS}`;
+}
+
 function applyStacking(_surface: WorkspaceSurface): void {}
 
-function applyPointerEvents(_surface: WorkspaceSurface): void {}
+function applyPointerEvents(surface: WorkspaceSurface): void {
+  if (typeof document === "undefined") return;
+  if (!surface.blocking) return;
+  document.documentElement.dataset.hdOverlayLock = surface.kind;
+  document.body.style.overflow = "hidden";
+}
 
-function applyFocus(_surface: WorkspaceSurface): void {}
+function releasePointerEvents(): void {
+  if (typeof document === "undefined") return;
+  delete document.documentElement.dataset.hdOverlayLock;
+  document.body.style.overflow = "";
+}
+
+function applyFocus(_surface: WorkspaceSurface): void {
+  if (typeof document === "undefined") return;
+  window.requestAnimationFrame(() => {
+    const host = document.querySelector<HTMLElement>(
+      '[data-testid="share-consultation-host"] [role="dialog"], [role="dialog"][aria-modal="true"]',
+    );
+    const target = host?.querySelector<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+    );
+    (target ?? host)?.focus();
+  });
+}
 
 function releaseFocus(session: OverlaySession): void {
-  void session.previousFocus;
+  const prev = session.previousFocus;
+  if (prev instanceof HTMLElement && document.contains(prev)) {
+    prev.focus();
+  }
 }
 
 function applyBackdrop(surface: WorkspaceSurface): void {
@@ -55,9 +95,13 @@ function applyBackdrop(surface: WorkspaceSurface): void {
   const button = document.createElement("button");
   button.type = "button";
   button.setAttribute("aria-label", surface.backdropAriaLabel ?? "Cerrar");
-  button.className = `${surface.backdropClassName ?? "clinical-drawer-enter bg-slate-900/10"} ${CLINICAL_OVERLAY_DRAWER_BACKDROP_CLASS}`;
-  button.dataset.overlayLayer = "drawers";
-  button.dataset.overlaySurface = "drawer-backdrop";
+  button.className = backdropClassFor(surface);
+  button.dataset.overlayLayer =
+    surface.kind === "dialog" || surface.kind === "modal"
+      ? surface.kind
+      : "drawers";
+  button.dataset.overlaySurface = `${surface.kind}-backdrop`;
+  button.dataset.overlayPortal = "document-body";
   button.addEventListener("click", () => closeBlocking(true));
   document.body.insertBefore(button, document.body.firstChild);
   backdropEl = button;
@@ -92,6 +136,7 @@ function closeBlocking(invokeCallback: boolean): void {
   const session = blocking;
   blocking = null;
   releaseBackdrop();
+  releasePointerEvents();
   releaseFocus(session);
   releaseEscape();
   if (invokeCallback) session.surface.onDismiss?.();

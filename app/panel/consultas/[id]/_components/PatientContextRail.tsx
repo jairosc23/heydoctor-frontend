@@ -102,7 +102,7 @@ export function PatientContextRail({
     <aside
       role="complementary"
       aria-label="Contexto del paciente"
-      className="clinical-depth-secondary sticky z-10 min-w-0 space-y-hd-3"
+      className="clinical-depth-secondary clinical-overlay-chrome sticky min-w-0 space-y-hd-3"
       style={{
         top: `var(--encounter-chrome-h, ${viewport.encounterChromeHeight}px)`,
       }}

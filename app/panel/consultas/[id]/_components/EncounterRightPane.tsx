@@ -7,7 +7,7 @@ import { DocumentsTab } from "./DocumentsTab";
 import type {
   ActionBarHandlers,
   ActionBarLoading,
-} from "@/components/clinical/ConsultationActionBar";
+} from "@/lib/encounter/action-bar-types";
 import type { ActionResult } from "@/lib/services/consultation-actions";
 
 export type EncounterRightPaneTab = "orders" | "documents";

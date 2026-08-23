@@ -8,7 +8,7 @@ import {
 import type {
   ActionBarHandlers,
   ActionBarLoading,
-} from "@/components/clinical/ConsultationActionBar";
+} from "@/lib/encounter/action-bar-types";
 import {
   clinicalActionModuleLabel,
 } from "@/lib/clinical-action-workspace";

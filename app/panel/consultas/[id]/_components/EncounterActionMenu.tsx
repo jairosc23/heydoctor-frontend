@@ -2,11 +2,18 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { CLINICAL_OVERLAY_CLASS } from "@/lib/clinical-overlay-contract";
 import type {
   ActionBarDisabled,
   ActionBarHandlers,
   ActionBarLoading,
-} from "@/components/clinical/ConsultationActionBar";
+} from "@/lib/encounter/action-bar-types";
+import {
+  encounterActionLabel,
+  resolveEncounterActions,
+  type EncounterActionContext,
+  type EncounterActionId,
+} from "@/lib/encounter/encounter-action-registry";
 
 export interface EncounterActionMenuProps {
   handlers: ActionBarHandlers;
@@ -14,10 +21,14 @@ export interface EncounterActionMenuProps {
   disabled?: ActionBarDisabled;
   isEditing?: boolean;
   onShare?: () => void;
+  onContinuity?: () => void;
   onTransition?: () => void;
   transitionLabel?: string;
   transitioning?: boolean;
   hideDocumentActions?: boolean;
+  hasPatientId?: boolean;
+  canToggleEdit?: boolean;
+  isLocked?: boolean;
   className?: string;
 }
 
@@ -28,6 +39,7 @@ function MenuItem({
   loading,
   disabled,
   danger,
+  testId,
 }: {
   label: string;
   icon: string;
@@ -35,12 +47,14 @@ function MenuItem({
   loading?: boolean;
   disabled?: boolean;
   danger?: boolean;
+  testId?: string;
 }) {
   const inactive = disabled || loading;
   return (
     <button
       type="button"
       role="menuitem"
+      data-testid={testId}
       onClick={onClick}
       disabled={inactive}
       className={cn(
@@ -63,14 +77,31 @@ export function EncounterActionMenu({
   disabled = {},
   isEditing,
   onShare,
+  onContinuity,
   onTransition,
   transitionLabel,
   transitioning,
   hideDocumentActions = false,
+  hasPatientId = false,
+  canToggleEdit = false,
+  isLocked = false,
   className,
 }: EncounterActionMenuProps) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const ctx: EncounterActionContext = {
+    isLocked,
+    canPay: false,
+    canToggleEdit,
+    isEditing: Boolean(isEditing),
+    hideModuleShortcuts: true,
+    hideDocumentActions,
+    hasPatientId,
+    hasTransition: Boolean(onTransition && transitionLabel),
+    paymentStep: "idle",
+    creatingPayment: false,
+  };
+  const overflowActions = resolveEncounterActions(ctx, "overflow");
 
   useEffect(() => {
     if (!open) return;
@@ -82,6 +113,38 @@ export function EncounterActionMenu({
     document.addEventListener("click", close);
     return () => document.removeEventListener("click", close);
   }, [open]);
+
+  const run = (id: EncounterActionId) => {
+    setOpen(false);
+    switch (id) {
+      case "toggle-edit":
+        handlers.onToggleEdit();
+        return;
+      case "analyze-copilot":
+        handlers.onAnalyzeWithAi();
+        return;
+      case "share-consultation":
+        onShare?.();
+        return;
+      case "continuity":
+        onContinuity?.();
+        return;
+      case "transition":
+        onTransition?.();
+        return;
+      case "invoice":
+        handlers.onGenerateInvoice();
+        return;
+      case "pdf":
+        handlers.onDownloadPdf();
+        return;
+      case "delete":
+        handlers.onDelete();
+        return;
+      default:
+        return;
+    }
+  };
 
   return (
     <div ref={wrapRef} className={cn("relative", className)}>
@@ -102,85 +165,48 @@ export function EncounterActionMenu({
       {open ? (
         <div
           role="menu"
-          className="absolute right-0 top-full z-50 mt-1 min-w-[240px] max-w-[min(100vw-32px,300px)] rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
+          className={cn(
+            "absolute right-0 top-full mt-1 min-w-[240px] max-w-[min(100vw-32px,300px)] rounded-lg border border-slate-200 bg-white py-1 shadow-lg",
+            CLINICAL_OVERLAY_CLASS.dialog,
+          )}
         >
-          <MenuItem
-            label={isEditing ? "Cerrar edición" : "Editar consulta"}
-            icon="✏️"
-            disabled={disabled.edit}
-            onClick={() => {
-              setOpen(false);
-              handlers.onToggleEdit();
-            }}
-          />
-          <MenuItem
-            label="Analizar con HeyDoctor Copilot"
-            icon="✨"
-            loading={loading.ai}
-            disabled={disabled.ai}
-            onClick={() => {
-              setOpen(false);
-              handlers.onAnalyzeWithAi();
-            }}
-          />
-          {onShare ? (
-            <MenuItem
-              label="Compartir consulta"
-              icon="🔗"
-              onClick={() => {
-                setOpen(false);
-                onShare();
-              }}
-            />
-          ) : null}
-          {onTransition && transitionLabel ? (
-            <MenuItem
-              label={transitioning ? "Cambiando…" : transitionLabel}
-              icon="▶"
-              disabled={transitioning}
-              onClick={() => {
-                setOpen(false);
-                onTransition();
-              }}
-            />
-          ) : null}
-          {!hideDocumentActions ? (
-            <>
-              <div className="my-1 border-t border-slate-100" />
-              <MenuItem
-                label="Generar factura"
-                icon="🧾"
-                loading={loading.invoice}
-                disabled={disabled.invoice}
-                onClick={() => {
-                  setOpen(false);
-                  handlers.onGenerateInvoice();
-                }}
-              />
-              <MenuItem
-                label="Descargar PDF"
-                icon="📄"
-                loading={loading.pdf}
-                disabled={disabled.pdf}
-                onClick={() => {
-                  setOpen(false);
-                  handlers.onDownloadPdf();
-                }}
-              />
-            </>
-          ) : null}
-          <div className="my-1 border-t border-slate-100" />
-          <MenuItem
-            label="Eliminar consulta…"
-            icon="🗑️"
-            danger
-            loading={loading.deleting}
-            disabled={disabled.delete}
-            onClick={() => {
-              setOpen(false);
-              handlers.onDelete();
-            }}
-          />
+          {overflowActions.map((action) => {
+            const label =
+              action.id === "transition" && transitionLabel
+                ? transitioning
+                  ? "Cambiando…"
+                  : transitionLabel
+                : encounterActionLabel(action, ctx);
+            const itemDisabled =
+              action.disabled(ctx) ||
+              (action.id === "toggle-edit" && disabled.edit) ||
+              (action.id === "analyze-copilot" && disabled.ai) ||
+              (action.id === "invoice" && disabled.invoice) ||
+              (action.id === "pdf" && disabled.pdf) ||
+              (action.id === "delete" && disabled.delete) ||
+              (action.id === "transition" && Boolean(transitioning));
+            const itemLoading =
+              (action.id === "analyze-copilot" && loading.ai) ||
+              (action.id === "invoice" && loading.invoice) ||
+              (action.id === "pdf" && loading.pdf) ||
+              (action.id === "delete" && loading.deleting);
+            return (
+              <React.Fragment key={action.id}>
+                {action.id === "delete" || action.id === "invoice" ? (
+                  <div className="my-1 border-t border-slate-100" />
+                ) : null}
+                <MenuItem
+                  label={label}
+                  icon={action.id === "share-consultation" ? "🔗" : action.icon}
+                  loading={itemLoading}
+                  disabled={itemDisabled}
+                  danger={action.id === "delete"}
+                  testId={action.testId}
+                  onClick={() => run(action.id)}
+                />
+              </React.Fragment>
+            );
+          })}
         </div>
       ) : null}
     </div>

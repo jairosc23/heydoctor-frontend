@@ -264,10 +264,10 @@ export const LEGACY_LAYOUT_COMPONENTS: LegacyLayoutComponent[] = [
   },
   {
     id: "consultation-action-bar-legacy-layout",
-    path: "components/clinical/ConsultationActionBar.tsx",
-    activeWhen: "Layout 3-col y mobile sin Action WS",
-    replacement: "EncounterHeader + UnifiedClinicalActionBar + ClinicalActionBar",
-    severity: "monitorear",
+    path: "lib/encounter/action-bar-types.ts",
+    activeWhen: "Nunca — ConsultationActionBar.tsx eliminado en 19A.1",
+    replacement: "EncounterActionRegistry + EncounterHeader + EncounterActionMenu",
+    severity: "retirar",
   },
   {
     id: "legacy-consultas-page",

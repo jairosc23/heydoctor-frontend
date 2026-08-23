@@ -17,7 +17,11 @@ export { SignatureCanvas } from "./SignatureCanvas";
 export { TelemedicineConsentModal } from "./TelemedicineConsentModal";
 export { ShareConsultationDialog } from "./ShareConsultationDialog";
 export { ClinicalRecordPanel } from "./ClinicalRecordPanel";
-export { ConsultationActionBar } from "./ConsultationActionBar";
+export type {
+  ActionBarDisabled,
+  ActionBarHandlers,
+  ActionBarLoading,
+} from "@/lib/encounter/action-bar-types";
 export { PatientMemoryCard } from "./PatientMemoryCard";
 export { ClinicalTimeline } from "./ClinicalTimeline";
 export { DoctorDnaCard } from "./DoctorDnaCard";

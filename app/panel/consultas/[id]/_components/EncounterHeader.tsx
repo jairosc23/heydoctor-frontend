@@ -4,11 +4,16 @@ import type {
   ActionBarDisabled,
   ActionBarHandlers,
   ActionBarLoading,
-} from "@/components/clinical/ConsultationActionBar";
+} from "@/lib/encounter/action-bar-types";
 import {
   formatConsultationPrice,
   URGENCY_AVAILABLE_NOW,
 } from "@/lib/consultation-pricing";
+import {
+  encounterActionLabel,
+  resolveEncounterActions,
+  type EncounterActionContext,
+} from "@/lib/encounter/encounter-action-registry";
 import { cn } from "@/lib/utils";
 import { NEXT_STATUS_LABELS } from "./consultation-status";
 import { EncounterActionMenu } from "./EncounterActionMenu";
@@ -21,7 +26,6 @@ function HeaderIconButton({
   onClick,
   disabled,
   active,
-  href,
   testId,
 }: {
   icon: string;
@@ -29,37 +33,8 @@ function HeaderIconButton({
   onClick?: () => void;
   disabled?: boolean;
   active?: boolean;
-  href?: string;
   testId?: string;
 }) {
-  const className = cn(
-    "inline-flex h-8 w-8 items-center justify-center rounded-md border text-sm transition-colors",
-    active
-      ? "border-primary bg-primaryLight text-primary"
-      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
-    disabled && "cursor-not-allowed opacity-40",
-  );
-
-  if (href && !disabled) {
-    return (
-      <a
-        href={href}
-        aria-label={label}
-        title={label}
-        data-testid={testId}
-        className={className}
-        onClick={(e) => {
-          if (onClick) {
-            e.preventDefault();
-            onClick();
-          }
-        }}
-      >
-        <span aria-hidden>{icon}</span>
-      </a>
-    );
-  }
-
   return (
     <button
       type="button"
@@ -68,7 +43,13 @@ function HeaderIconButton({
       aria-label={label}
       title={label}
       data-testid={testId}
-      className={className}
+      className={cn(
+        "inline-flex h-8 w-8 items-center justify-center rounded-md border text-sm transition-colors",
+        active
+          ? "border-primary bg-primaryLight text-primary"
+          : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
+        disabled && "cursor-not-allowed opacity-40",
+      )}
     >
       <span aria-hidden>{icon}</span>
     </button>
@@ -80,9 +61,8 @@ export interface EncounterHeaderProps {
   transitioning: boolean;
   onBack: () => void;
   onShare: () => void;
+  onContinuity?: () => void;
   onTransition?: () => void;
-  canStartCall: boolean;
-  onStartTeleconsultation: () => void;
   onOpenPrescription: () => void;
   onOpenLabOrders: () => void;
   canPay: boolean;
@@ -100,19 +80,14 @@ export interface EncounterHeaderProps {
   actionLoading?: ActionBarLoading;
   actionDisabled?: ActionBarDisabled;
   isEditing?: boolean;
-  /** Status permite editar la consulta (draft / in_progress). */
   canToggleEdit?: boolean;
   onToggleEdit?: () => void;
   dnaActive?: boolean;
   onOpenDoctorDna?: () => void;
   copilotActive?: boolean;
   onOpenCopilot?: () => void;
-  /**
-   * @deprecated Brand consolidation — Medical Copilot route remains internal;
-   * production AI entry is HeyDoctor Copilot drawer via onOpenCopilot.
-   */
-  medicalCopilotHref?: string | null;
   hideModuleShortcuts?: boolean;
+  hasPatientId?: boolean;
   className?: string;
 }
 
@@ -121,9 +96,8 @@ export function EncounterHeader({
   transitioning,
   onBack,
   onShare,
+  onContinuity,
   onTransition,
-  canStartCall,
-  onStartTeleconsultation,
   onOpenPrescription,
   onOpenLabOrders,
   canPay,
@@ -147,12 +121,26 @@ export function EncounterHeader({
   onOpenDoctorDna,
   copilotActive = false,
   onOpenCopilot,
-  medicalCopilotHref: _medicalCopilotHref = null,
   hideModuleShortcuts = false,
+  hasPatientId = false,
   className,
 }: EncounterHeaderProps) {
   const transitionLabel = NEXT_STATUS_LABELS[status];
-  const showPay = canPay && !isLocked;
+  const ctx: EncounterActionContext = {
+    isLocked,
+    canPay,
+    canToggleEdit,
+    isEditing: Boolean(isEditing),
+    hideModuleShortcuts,
+    hideDocumentActions: true,
+    hasPatientId,
+    hasTransition: Boolean(
+      (status === "draft" || status === "in_progress") && onTransition,
+    ),
+    paymentStep,
+    creatingPayment,
+  };
+  const toolbarActions = resolveEncounterActions(ctx, "toolbar");
 
   return (
     <header className={cn("py-1.5", className)} aria-label="Acciones del encuentro">
@@ -187,70 +175,104 @@ export function EncounterHeader({
               {isEditing ? "Editando la consulta" : "Solo lectura"}
             </span>
           ) : null}
-          {canToggleEdit && onToggleEdit ? (
-            <button
-              type="button"
-              onClick={onToggleEdit}
-              data-testid="encounter-header-toggle-edit"
-              className="inline-flex h-8 items-center rounded-md border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-            >
-              {isEditing ? "Cerrar edición" : "Editar consulta"}
-            </button>
-          ) : null}
-          {/* Brand SSOT: single AI entry → HeyDoctor Copilot drawer (route /medical-copilot preserved). */}
-          <ClinicalCopilotTrigger
-            onClick={() => onOpenCopilot?.()}
-            active={copilotActive}
-          />
-          <DoctorDnaDrawerTrigger
-            onClick={() => onOpenDoctorDna?.()}
-            active={dnaActive}
-          />
-          <HeaderIconButton
-            icon="📹"
-            label="Iniciar teleconsulta"
-            onClick={onStartTeleconsultation}
-            disabled={!canStartCall || isLocked}
-          />
-          {!hideModuleShortcuts ? (
-            <>
-              <HeaderIconButton
-                icon="💊"
-                label="Recetas"
-                onClick={onOpenPrescription}
-                disabled={actionDisabled?.prescription ?? isLocked}
-              />
-              <HeaderIconButton
-                icon="🧪"
-                label="Laboratorios"
-                onClick={onOpenLabOrders}
-                disabled={isLocked}
-              />
-            </>
-          ) : null}
-          <HeaderIconButton
-            icon="💳"
-            label="Pagar consulta"
-            testId="encounter-pay-trigger"
-            onClick={onPayClick}
-            disabled={!showPay || creatingPayment}
-            active={paymentStep === "confirm"}
-          />
+          {toolbarActions.map((action) => {
+            const label = encounterActionLabel(action, ctx);
+            const disabled = action.disabled(ctx);
+            switch (action.id) {
+              case "toggle-edit":
+                return onToggleEdit ? (
+                  <button
+                    key={action.id}
+                    type="button"
+                    onClick={onToggleEdit}
+                    disabled={disabled}
+                    data-testid={action.testId}
+                    className="inline-flex h-8 items-center rounded-md border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                  >
+                    {label}
+                  </button>
+                ) : null;
+              case "copilot":
+                return (
+                  <ClinicalCopilotTrigger
+                    key={action.id}
+                    onClick={() => onOpenCopilot?.()}
+                    active={copilotActive}
+                  />
+                );
+              case "doctor-dna":
+                return (
+                  <DoctorDnaDrawerTrigger
+                    key={action.id}
+                    onClick={() => onOpenDoctorDna?.()}
+                    active={dnaActive}
+                  />
+                );
+              case "share-consultation":
+                return (
+                  <HeaderIconButton
+                    key={action.id}
+                    icon={action.icon}
+                    label={label}
+                    testId={action.testId}
+                    onClick={onShare}
+                  />
+                );
+              case "prescription":
+                return (
+                  <HeaderIconButton
+                    key={action.id}
+                    icon={action.icon}
+                    label={label}
+                    onClick={onOpenPrescription}
+                    disabled={actionDisabled?.prescription ?? disabled}
+                  />
+                );
+              case "lab":
+                return (
+                  <HeaderIconButton
+                    key={action.id}
+                    icon={action.icon}
+                    label={label}
+                    onClick={onOpenLabOrders}
+                    disabled={disabled}
+                  />
+                );
+              case "pay":
+                return (
+                  <HeaderIconButton
+                    key={action.id}
+                    icon={action.icon}
+                    label={label}
+                    testId={action.testId}
+                    onClick={onPayClick}
+                    disabled={disabled}
+                    active={paymentStep === "confirm"}
+                  />
+                );
+              default:
+                return null;
+            }
+          })}
           <EncounterActionMenu
             handlers={actionHandlers}
             loading={actionLoading}
             disabled={actionDisabled}
             isEditing={isEditing}
             onShare={onShare}
+            onContinuity={onContinuity}
             onTransition={onTransition}
             transitionLabel={transitionLabel}
             transitioning={transitioning}
             hideDocumentActions
+            hasPatientId={hasPatientId}
+            canToggleEdit={canToggleEdit}
+            isLocked={isLocked}
           />
         </div>
       </div>
 
-      {showPay && paymentStep === "confirm" ? (
+      {canPay && !isLocked && paymentStep === "confirm" ? (
         <div
           data-testid="encounter-payment-panel"
           className="mt-2 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-2"

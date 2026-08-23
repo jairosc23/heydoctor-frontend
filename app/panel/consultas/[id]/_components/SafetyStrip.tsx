@@ -6,6 +6,7 @@ import {
 } from "@/lib/patient-profile-display";
 import type { PatientProfile } from "@/lib/services/patients";
 import { cn } from "@/lib/utils";
+import { CLINICAL_OVERLAY_CLASS } from "@/lib/clinical-overlay-contract";
 import { clinicalWorkspaceKernel } from "@/lib/clinical-workspace/kernel";
 
 export interface SafetyStripProps {
@@ -54,7 +55,7 @@ export function SafetyStrip({
   const shellClass = cn(
     embedded
       ? "border-t border-slate-100 px-0 py-1.5"
-      : "sticky z-20 border-b border-slate-100 bg-white/95 px-3 py-1.5 backdrop-blur",
+      : `sticky ${CLINICAL_OVERLAY_CLASS.chrome} border-b border-slate-100 bg-white/95 px-3 py-1.5 backdrop-blur`,
     className,
   );
   const shellStyle = embedded

@@ -129,12 +129,12 @@ export const AI_ENTRY_POINTS_INVENTORY: AiEntryPoint[] = [
     label: "ConsultationActionBar chip IA",
     route: "/panel/consultas/[id]",
     trigger: "Chip «Análisis clínico con IA»",
-    component: "ConsultationActionBar.tsx",
+    component: "ConsultationActionBar.tsx (eliminado 19A.1)",
     backend: "handleAnalyzeWithAi (mismo que menú)",
     userInitiated: true,
     activeInProductionId: false,
     countsTowardSeven: false,
-    notes: "Componente NO montado en [id]; código muerto activable",
+    notes: "Componente eliminado en 19A.1; tipos viven en lib/encounter/action-bar-types.ts",
   },
 ];
 
@@ -514,7 +514,7 @@ export const AI_EXPERIENCE_FILES_AFFECTED = [
   "app/panel/consultas/[id]/_components/copilot/CopilotGenerativeSection.tsx",
   "components/clinical/LiveAiNoteSuggestions.tsx",
   "components/clinical/ClinicalRecordPanel.tsx",
-  "components/clinical/ConsultationActionBar.tsx",
+  "lib/encounter/action-bar-types.ts",
   "components/clinical/index.ts",
   "components/telemedicine/ChatPanel.tsx",
   "lib/services/ai-clinical.ts",

@@ -6,7 +6,7 @@ import type { OrdersSubTab } from "./OrdersTab";
 import type {
   ActionBarHandlers,
   ActionBarLoading,
-} from "@/components/clinical/ConsultationActionBar";
+} from "@/lib/encounter/action-bar-types";
 import { ClinicalSurface } from "@/components/clinical/design";
 import type { ActionResult } from "@/lib/services/consultation-actions";
 import { useIsMobile } from "@/lib/hooks/useIsMobile";

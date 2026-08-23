@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import { CLINICAL_OVERLAY_CLASS } from "@/lib/clinical-overlay-contract";
 
 export type TelemedicineConsentModalProps = {
   /** Renderiza el modal cuando `true`. */
@@ -59,6 +60,7 @@ export function TelemedicineConsentModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="telemed-consent-title"
+      className={CLINICAL_OVERLAY_CLASS.dialog}
       style={{
         position: "fixed",
         inset: 0,
@@ -66,7 +68,6 @@ export function TelemedicineConsentModal({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        zIndex: 1000,
         padding: 16,
       }}
     >

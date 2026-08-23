@@ -12,7 +12,6 @@ import {
   fetchConsultation,
   updateConsultation,
   signConsultation,
-  startCall,
   type NestConsultation,
 } from "@/lib/services/consultations";
 import { adoptConsultationSignatureEcho } from "@/lib/consultation-signature";
@@ -67,11 +66,12 @@ import {
 } from "@/lib/patient-profile-display";
 import { getConsultationAccessErrorMessage } from "@/lib/consultation-access-errors";
 import { toPaymentUserMessage } from "@/lib/payment-user-errors";
-import { getWhatsAppUrlWithCustomMessage } from "@/lib/whatsapp-url";
 import {
   ConsultationConsentCard,
   ShareConsultationDialog,
 } from "@/components/clinical";
+import { ContinuityPanelShell } from "@/components/clinical/continuity";
+import type { ActionBarHandlers } from "@/lib/encounter/action-bar-types";
 import {
   deleteConsultation,
   downloadConsultationPdf,
@@ -510,7 +510,6 @@ export default function ConsultationDetailPage() {
   const canSign = status === "in_progress" || status === "completed";
   const isSigned = status === "signed" || status === "locked";
   const isLocked = status === "locked";
-  const canStartCall = status === "draft" || status === "in_progress";
   const canPay = resolveCanPay(status);
   const documentDisabled = buildConsultationDocumentDisabled({
     isSigned,
@@ -898,28 +897,6 @@ export default function ConsultationDetailPage() {
     timeouts.set(() => setOrdersHighlight(false), 4000);
   }, []);
 
-  const handleStartCall = async () => {
-    if (!consultation?.id) return;
-    try {
-      await startCall(consultation.id);
-      if (typeof window !== "undefined" && consultation.publicToken) {
-        try {
-          const inviteLink = `${window.location.origin}/teleconsulta/invitado/${consultation.publicToken}`;
-          const whatsappUrl = getWhatsAppUrlWithCustomMessage(
-            `Hola 👋, tu médico ha iniciado la consulta. Ingresa aquí: ${inviteLink}`,
-          );
-          if (whatsappUrl) window.open(whatsappUrl, "_blank");
-        } catch (err) {
-          console.warn("[heydoctor] failed to send patient link", err);
-        }
-      }
-    } catch (error) {
-      console.warn("[heydoctor] startCall failed, continuing anyway", error);
-    }
-    const teleconsultaHref = `/panel/consultas/${consultation.id}/teleconsulta`;
-    router.push(teleconsultaHref);
-  };
-
   function handleDiagnosisDraftChange(item: {
     code: string;
     description: string;
@@ -1237,6 +1214,20 @@ export default function ConsultationDetailPage() {
           ? "border-red-200 bg-red-50 text-red-800"
           : "border-blue-200 bg-blue-50 text-blue-900";
 
+  const documentHandlers: ActionBarHandlers = {
+    onStartTeleconsultation: openWorkspaceShare,
+    onOpenPrescription: handleOpenPrescription,
+    onGenerateInvoice: () => void handleGenerateInvoice(),
+    onDownloadPdf: () => void handleDownloadPdf(),
+    onToggleEdit: handleToggleEdit,
+    onAnalyzeWithAi: handleAnalyzeWithAi,
+    onDelete: () => void handleDeleteConsultation(),
+    onGenerateSignedPrescription: () => void handleSignedPrescription(),
+    onGenerateSignedCertificate: () => void handleSignedCertificate(),
+    onGenerateSignedReferral: () => void handleSignedReferral(),
+    onGeneratePremiumDocument: () => void handlePremiumDocument(),
+  };
+
   return (
     <ClinicalActionWorkspaceProvider
       enabled={clinicalActionWorkspaceEnabled}
@@ -1292,19 +1283,18 @@ export default function ConsultationDetailPage() {
                     });
                   }}
                   onShare={openWorkspaceShare}
+                  onContinuity={() => handleContinuityOpenChange(true)}
                   onTransition={
                     status === "draft" || status === "in_progress"
                       ? () => void handleTransition()
                       : undefined
                   }
-                  canStartCall={canStartCall}
-                  onStartTeleconsultation={() => void handleStartCall()}
                   onOpenPrescription={handleOpenPrescription}
                   onOpenLabOrders={handleOpenLabOrders}
-                  medicalCopilotHref={`/panel/consultas/${id}/medical-copilot`}
                   hideModuleShortcuts={
                     clinicalActionWorkspaceEnabled && !!consultation.patientId
                   }
+                  hasPatientId={Boolean(consultation.patientId)}
                   canPay={canPay}
                   isLocked={isLocked}
                   paymentStep={paymentStep}
@@ -1326,22 +1316,7 @@ export default function ConsultationDetailPage() {
                   isEditing={editMode}
                   canToggleEdit={isEditable}
                   onToggleEdit={handleToggleEdit}
-                  actionHandlers={{
-                    onStartTeleconsultation: () => void handleStartCall(),
-                    onOpenPrescription: handleOpenPrescription,
-                    onGenerateInvoice: () => void handleGenerateInvoice(),
-                    onDownloadPdf: () => void handleDownloadPdf(),
-                    onToggleEdit: handleToggleEdit,
-                    onAnalyzeWithAi: handleAnalyzeWithAi,
-                    onDelete: () => void handleDeleteConsultation(),
-                    onGenerateSignedPrescription: () =>
-                      void handleSignedPrescription(),
-                    onGenerateSignedCertificate: () =>
-                      void handleSignedCertificate(),
-                    onGenerateSignedReferral: () => void handleSignedReferral(),
-                    onGeneratePremiumDocument: () =>
-                      void handlePremiumDocument(),
-                  }}
+                  actionHandlers={documentHandlers}
                   actionLoading={{
                     invoice: actionLoading.invoice,
                     pdf: actionLoading.pdf,
@@ -1393,21 +1368,7 @@ export default function ConsultationDetailPage() {
                 ordersHighlight={ordersHighlight}
                 ordersSubTab={ordersSubTab}
                 onOrdersSubTabChange={setOrdersSubTab}
-                documentHandlers={{
-                  onStartTeleconsultation: () => void handleStartCall(),
-                  onOpenPrescription: handleOpenPrescription,
-                  onGenerateInvoice: () => void handleGenerateInvoice(),
-                  onDownloadPdf: () => void handleDownloadPdf(),
-                  onToggleEdit: handleToggleEdit,
-                  onAnalyzeWithAi: handleAnalyzeWithAi,
-                  onDelete: () => void handleDeleteConsultation(),
-                  onGenerateSignedPrescription: () =>
-                    void handleSignedPrescription(),
-                  onGenerateSignedCertificate: () =>
-                    void handleSignedCertificate(),
-                  onGenerateSignedReferral: () => void handleSignedReferral(),
-                  onGeneratePremiumDocument: () => void handlePremiumDocument(),
-                }}
+                documentHandlers={documentHandlers}
                 documentLoading={actionLoading}
                 documentDisabled={documentDisabled}
                 onLegacyInvoiceResult={handleActionResult}
@@ -1457,6 +1418,15 @@ export default function ConsultationDetailPage() {
               patientName={patientName}
               onClose={() => clinicalWorkspaceKernel.dismiss("share")}
             />
+
+            {consultation.patientId ? (
+              <ContinuityPanelShell
+                patientId={consultation.patientId}
+                encounterId={id}
+                open={continuityOpen}
+                onOpenChange={handleContinuityOpenChange}
+              />
+            ) : null}
 
             {actionMsg ? (
               <div
@@ -1554,23 +1524,7 @@ export default function ConsultationDetailPage() {
                     }}
                     ordersSubTab={ordersSubTab}
                     onOrdersSubTabChange={setOrdersSubTab}
-                    documentHandlers={{
-                      onStartTeleconsultation: () => void handleStartCall(),
-                      onOpenPrescription: handleOpenPrescription,
-                      onGenerateInvoice: () => void handleGenerateInvoice(),
-                      onDownloadPdf: () => void handleDownloadPdf(),
-                      onToggleEdit: handleToggleEdit,
-                      onAnalyzeWithAi: handleAnalyzeWithAi,
-                      onDelete: () => void handleDeleteConsultation(),
-                      onGenerateSignedPrescription: () =>
-                        void handleSignedPrescription(),
-                      onGenerateSignedCertificate: () =>
-                        void handleSignedCertificate(),
-                      onGenerateSignedReferral: () =>
-                        void handleSignedReferral(),
-                      onGeneratePremiumDocument: () =>
-                        void handlePremiumDocument(),
-                    }}
+                    documentHandlers={documentHandlers}
                     documentLoading={actionLoading}
                     documentDisabled={documentDisabled}
                     onLegacyInvoiceResult={handleActionResult}
@@ -1624,23 +1578,7 @@ export default function ConsultationDetailPage() {
                         onSign: handleSign,
                         signedAt: consultation.signedAt,
                         doctorSignature: consultation.doctorSignature,
-                        documentHandlers: {
-                          onStartTeleconsultation: () => void handleStartCall(),
-                          onOpenPrescription: handleOpenPrescription,
-                          onGenerateInvoice: () => void handleGenerateInvoice(),
-                          onDownloadPdf: () => void handleDownloadPdf(),
-                          onToggleEdit: handleToggleEdit,
-                          onAnalyzeWithAi: handleAnalyzeWithAi,
-                          onDelete: () => void handleDeleteConsultation(),
-                          onGenerateSignedPrescription: () =>
-                            void handleSignedPrescription(),
-                          onGenerateSignedCertificate: () =>
-                            void handleSignedCertificate(),
-                          onGenerateSignedReferral: () =>
-                            void handleSignedReferral(),
-                          onGeneratePremiumDocument: () =>
-                            void handlePremiumDocument(),
-                        },
+                        documentHandlers,
                         documentLoading: actionLoading,
                         documentDisabled,
                         signMessage: signMsg || undefined,
@@ -1710,22 +1648,7 @@ export default function ConsultationDetailPage() {
                   }}
                   ordersSubTab={ordersSubTab}
                   onOrdersSubTabChange={setOrdersSubTab}
-                  documentHandlers={{
-                    onStartTeleconsultation: () => void handleStartCall(),
-                    onOpenPrescription: handleOpenPrescription,
-                    onGenerateInvoice: () => void handleGenerateInvoice(),
-                    onDownloadPdf: () => void handleDownloadPdf(),
-                    onToggleEdit: handleToggleEdit,
-                    onAnalyzeWithAi: handleAnalyzeWithAi,
-                    onDelete: () => void handleDeleteConsultation(),
-                    onGenerateSignedPrescription: () =>
-                      void handleSignedPrescription(),
-                    onGenerateSignedCertificate: () =>
-                      void handleSignedCertificate(),
-                    onGenerateSignedReferral: () => void handleSignedReferral(),
-                    onGeneratePremiumDocument: () =>
-                      void handlePremiumDocument(),
-                  }}
+                  documentHandlers={documentHandlers}
                   documentLoading={actionLoading}
                   documentDisabled={documentDisabled}
                   onLegacyInvoiceResult={handleActionResult}
@@ -1779,23 +1702,7 @@ export default function ConsultationDetailPage() {
                       onSign: handleSign,
                       signedAt: consultation.signedAt,
                       doctorSignature: consultation.doctorSignature,
-                      documentHandlers: {
-                        onStartTeleconsultation: () => void handleStartCall(),
-                        onOpenPrescription: handleOpenPrescription,
-                        onGenerateInvoice: () => void handleGenerateInvoice(),
-                        onDownloadPdf: () => void handleDownloadPdf(),
-                        onToggleEdit: handleToggleEdit,
-                        onAnalyzeWithAi: handleAnalyzeWithAi,
-                        onDelete: () => void handleDeleteConsultation(),
-                        onGenerateSignedPrescription: () =>
-                          void handleSignedPrescription(),
-                        onGenerateSignedCertificate: () =>
-                          void handleSignedCertificate(),
-                        onGenerateSignedReferral: () =>
-                          void handleSignedReferral(),
-                        onGeneratePremiumDocument: () =>
-                          void handlePremiumDocument(),
-                      },
+                      documentHandlers,
                       documentLoading: actionLoading,
                       documentDisabled,
                       signMessage: signMsg || undefined,

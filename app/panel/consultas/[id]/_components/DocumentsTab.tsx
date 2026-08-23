@@ -1,7 +1,7 @@
 "use client";
 
 import { ClinicalCard } from "@/components/clinical/design";
-import type { ActionBarHandlers, ActionBarLoading } from "@/components/clinical/ConsultationActionBar";
+import type { ActionBarHandlers, ActionBarLoading } from "@/lib/encounter/action-bar-types";
 import { cn } from "@/lib/utils";
 
 interface DocAction {
