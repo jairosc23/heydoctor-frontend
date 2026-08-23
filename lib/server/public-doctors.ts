@@ -1,4 +1,4 @@
-import { getApiBase } from "../api-base";
+import { getServerNestApiBase } from "../api-base";
 import { apiFetch as fetchWithIncludedCredentials } from "../api-fetch-include";
 import type { DoctorProfile, RatingsResponse } from "../services/doctor-profiles";
 
@@ -7,7 +7,7 @@ import type { DoctorProfile, RatingsResponse } from "../services/doctor-profiles
  * Datos clínicos siguen yendo por `heydoctor-api` con `cache: "no-store"` en cliente.
  */
 export async function fetchPublicDoctorsCached(): Promise<DoctorProfile[]> {
-  const res = await fetchWithIncludedCredentials(`${getApiBase()}/doctors`, {
+  const res = await fetchWithIncludedCredentials(`${getServerNestApiBase()}/doctors`, {
     headers: { Accept: "application/json" },
     next: { revalidate: 60 },
   });
@@ -21,7 +21,7 @@ export async function fetchDoctorBySlugCached(
   slug: string,
 ): Promise<DoctorProfile> {
   const res = await fetchWithIncludedCredentials(
-    `${getApiBase()}/doctors/${encodeURIComponent(slug)}`,
+    `${getServerNestApiBase()}/doctors/${encodeURIComponent(slug)}`,
     {
       headers: { Accept: "application/json" },
       next: { revalidate: 60 },
@@ -37,7 +37,7 @@ export async function fetchDoctorRatingsCached(
   slug: string,
 ): Promise<RatingsResponse> {
   const res = await fetchWithIncludedCredentials(
-    `${getApiBase()}/doctors/${encodeURIComponent(slug)}/ratings`,
+    `${getServerNestApiBase()}/doctors/${encodeURIComponent(slug)}/ratings`,
     {
       headers: { Accept: "application/json" },
       next: { revalidate: 60 },

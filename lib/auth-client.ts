@@ -19,7 +19,7 @@ import {
   trackRefreshAttempt,
   trackRefreshSuccess,
 } from "./session-analytics";
-import { getApiBase, getAuthCsrfUrl, getAuthLoginUrl } from "./api-base";
+import { getAuthEdgeUrl } from "./auth-edge";
 import {
   applyCsrfFromPayload,
   getApiCsrfToken,
@@ -237,7 +237,7 @@ export async function bootstrapApiCsrf(): Promise<void> {
   _bootstrapPromise = (async () => {
     try {
       const res = await authFetchWithTimeout(
-        getAuthCsrfUrl(),
+        getAuthEdgeUrl("/auth/csrf"),
         {
           method: "GET",
           headers: { Accept: "application/json" },
@@ -324,7 +324,7 @@ async function _doRefresh(
   trackRefreshAttempt({ silent });
   try {
     const res = await authFetchWithTimeout(
-      `${getApiBase()}/auth/refresh`,
+      getAuthEdgeUrl("/auth/refresh"),
       {
         method: "POST",
         headers: {
@@ -439,7 +439,7 @@ export async function authLogin(
   email: string,
   password: string,
 ): Promise<AuthLoginResult> {
-  const url = getAuthLoginUrl();
+  const url = getAuthEdgeUrl("/auth/login");
 
   setAccessToken(null);
   await bootstrapApiCsrf();
@@ -562,7 +562,7 @@ export async function authLogout(options?: AuthLogoutOptions): Promise<void> {
 
   try {
     if (!options?.skipRemote) {
-      await fetchWithIncludedCredentials(`${getApiBase()}/auth/logout`, {
+      await fetchWithIncludedCredentials(getAuthEdgeUrl("/auth/logout"), {
         method: "POST",
         headers: {
           Accept: "application/json",

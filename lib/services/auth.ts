@@ -9,6 +9,7 @@ import {
   getAccessToken,
   refreshAccessToken,
 } from "../auth-client";
+import { getAuthEdgeFetchUrl } from "../auth-edge";
 import { apiFetch as fetchWithIncludedCredentials } from "../api-fetch-include";
 import { ApiError, apiFetch } from "../heydoctor-api";
 import {
@@ -93,7 +94,7 @@ export type GetMeOptions = {
 export async function getMe(options?: GetMeOptions): Promise<AuthUser> {
   try {
     return await apiFetch<AuthUser>(
-      "/auth/me",
+      getAuthEdgeFetchUrl("/auth/me"),
       {},
       { skipRefreshRetry: options?.skipRefreshRetry },
     );

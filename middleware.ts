@@ -155,6 +155,8 @@ export function middleware(request: NextRequest) {
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api") ||
+    pathname === "/hd-api" ||
+    pathname.startsWith("/hd-api/") ||
     pathname.includes(".")
   ) {
     return applySecurityHeaders(NextResponse.next(), csp);

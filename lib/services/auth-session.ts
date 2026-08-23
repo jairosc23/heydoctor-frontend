@@ -1,4 +1,4 @@
-import { getAuthMeUrl } from "../api-base";
+import { getAuthEdgeFetchUrl } from "../auth-edge";
 import { heydoctorApi } from "../heydoctor-api";
 
 export interface CurrentUserResponse {
@@ -12,5 +12,5 @@ export interface CurrentUserResponse {
 }
 
 export async function fetchCurrentUser(): Promise<CurrentUserResponse> {
-  return heydoctorApi.get<CurrentUserResponse>(getAuthMeUrl());
+  return heydoctorApi.get<CurrentUserResponse>(getAuthEdgeFetchUrl("/auth/me"));
 }

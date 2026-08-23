@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getApiBase } from "@/lib/api-base";
+import { getServerNestApiBase } from "@/lib/api-base";
 import { apiFetch as fetchWithIncludedCredentials } from "@/lib/api-fetch-include";
 
 /** El Nest exige JWT; el Bearer se reenvía desde el cliente. Sin caché CDN por usuario. */
@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   try {
-    const base = getApiBase().replace(/\/$/, "");
+    const base = getServerNestApiBase().replace(/\/$/, "");
     const incomingAuth = request.headers.get("authorization");
     const headers: Record<string, string> = { Accept: "application/json" };
     if (incomingAuth?.trim()) {

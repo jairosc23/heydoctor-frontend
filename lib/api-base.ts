@@ -1,4 +1,9 @@
+import { envTruthy } from "./env-truthy";
+
 const DEFAULT_BACKEND_DEV = "http://localhost:3001";
+
+/** Flag de borde same-origin. Default OFF. No activar en producción en Bloque 1. */
+export const HD_API_EDGE_FLAG = "NEXT_PUBLIC_HD_API_EDGE" as const;
 
 /**
  * Origen del backend Nest (sin `/api` final). Única variable soportada:
@@ -34,14 +39,31 @@ export function getBackendOrigin(): string {
   return normalizeBackendOrigin(DEFAULT_BACKEND_DEV);
 }
 
-/** Base con prefijo `/api` (Nest). */
-export function getApiBase(): string {
+export function isHdApiEdgeEnabled(
+  raw: string | undefined = process.env.NEXT_PUBLIC_HD_API_EDGE,
+): boolean {
+  return envTruthy(raw);
+}
+
+function nestApiBaseFromOrigin(): string {
   const origin = getBackendOrigin().replace(/\/+$/, "");
   return `${origin}/api`.replace(/([^:]\/)\/+/g, "$1");
 }
 
 /**
- * Base `/api` del Nest para Route Handlers (servidor).
+ * Base HTTP del browser.
+ * Flag OFF (default): `{origin}/api` hacia Nest (comportamiento actual).
+ * Flag ON: `/hd-api` same-origin (sin consumidores de producto en Bloque 1).
+ */
+export function getApiBase(): string {
+  if (isHdApiEdgeEnabled()) {
+    return "/hd-api";
+  }
+  return nestApiBaseFromOrigin();
+}
+
+/**
+ * Base `/api` del Nest para Route Handlers y SSR. Nunca `/hd-api`.
  * Si `NEXT_PUBLIC_HEYDOCTOR_API_URL` apunta al mismo host que Next (error típico),
  * define `HEYDOCTOR_API_INTERNAL_URL` (p. ej. `http://localhost:3001`) para que
  * el proxy servidor llegue al Nest real.
@@ -49,10 +71,10 @@ export function getApiBase(): string {
 export function getServerNestApiBase(): string {
   const internal = process.env.HEYDOCTOR_API_INTERNAL_URL?.trim();
   if (!internal) {
-    return getApiBase();
+    return nestApiBaseFromOrigin();
   }
   let s = internal.replace(/\/+$/, "");
-  if (!s) return getApiBase();
+  if (!s) return nestApiBaseFromOrigin();
   if (!/^https?:\/\//i.test(s)) {
     s = `https://${s}`;
   }
