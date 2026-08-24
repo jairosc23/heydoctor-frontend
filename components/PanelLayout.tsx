@@ -188,14 +188,6 @@ function PanelLayoutShell({
   }
 
   const visualWorkspace = useVisualWorkspaceState();
-  if (visualWorkspace.mode === "fullscreen") {
-    return <>{children}</>;
-  }
-
-  if (authLoading) {
-    return null;
-  }
-
   const viewport = clinicalWorkspaceKernel.getViewport();
 
   useEffect(() => {
@@ -206,6 +198,14 @@ function PanelLayoutShell({
     );
     root.style.setProperty("--hd-sidebar-w", `${viewport.sidebarWidth}px`);
   }, [viewport.sidebarWidth]);
+
+  if (visualWorkspace.mode === "fullscreen") {
+    return <>{children}</>;
+  }
+
+  if (authLoading) {
+    return null;
+  }
 
   return (
     <div
