@@ -266,12 +266,8 @@ export default function ConsultationDetailPage() {
   const handleBackToConsultas = useCallback(() => {
     requestNavigation(() => {
       router.push("/panel/consultas");
-      window.setTimeout(() => {
-        clinicalWorkspaceKernel.dismissAll();
-        dismissLegacySurfaces();
-      }, 0);
     });
-  }, [dismissLegacySurfaces, requestNavigation, router]);
+  }, [requestNavigation, router]);
 
   const [patientRow, setPatientRow] = useState<PatientRow | null>(null);
   const [patientProfile, setPatientProfile] = useState<PatientProfile | null>(

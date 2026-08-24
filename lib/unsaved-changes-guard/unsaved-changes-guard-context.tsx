@@ -78,6 +78,8 @@ export function UnsavedChangesGuardProvider({
     },
     [router],
   );
+  const completeNavigationRef = useRef(completeNavigation);
+  completeNavigationRef.current = completeNavigation;
 
   const requestNavigation = useCallback(
     (target: string | (() => void | Promise<void>)) => {
@@ -110,16 +112,16 @@ export function UnsavedChangesGuardProvider({
     if (pending != null) return;
     if (!navigateAfterCloseRef.current) return;
     const nav = pendingNavRef.current;
-    navigateAfterCloseRef.current = false;
-    pendingNavRef.current = null;
     if (!nav) return;
-    // After the dialog unmounts it dismisses the unsaved overlay. Wait for that
-    // visual-store update to flush or App Router drops the in-flight push.
+    // Do not depend on completeNavigation: a new router identity would clear this
+    // timeout and drop SPR1-D19. Keep flags until the macrotask so Strict Mode remounts.
     const id = window.setTimeout(() => {
-      completeNavigation(nav);
+      navigateAfterCloseRef.current = false;
+      pendingNavRef.current = null;
+      completeNavigationRef.current(nav);
     }, 0);
     return () => window.clearTimeout(id);
-  }, [pending, completeNavigation]);
+  }, [pending]);
 
   const onCancel = useCallback(() => {
     if (saving) return;
