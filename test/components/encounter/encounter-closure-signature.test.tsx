@@ -1,6 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { EncounterClosureSection } from "@/app/panel/consultas/[id]/_components/chart/EncounterClosureSection";
 import { renderWithProviders, screen } from "@/test/utils/render";
+
+vi.mock("next/navigation", () => ({
+  useParams: () => ({}),
+}));
 
 const noop = () => undefined;
 
@@ -38,6 +42,10 @@ describe("EncounterClosureSection signature roundtrip", () => {
     const img = screen.getByTestId("encounter-signed-signature");
     expect(img).toHaveAttribute("src", "data:image/png;base64,iVBORw0KGgo");
     expect(screen.queryByTestId("encounter-sign-panel")).not.toBeInTheDocument();
+    expect(screen.getByTestId("clinical-completion-section")).toBeInTheDocument();
+    expect(screen.getByTestId("clinical-completion-state")).toHaveTextContent(
+      "Pendiente",
+    );
   });
 
   it("does not double-prefix a data URL payload", () => {

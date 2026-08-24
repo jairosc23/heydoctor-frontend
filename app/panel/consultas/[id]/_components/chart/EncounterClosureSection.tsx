@@ -16,6 +16,7 @@ import {
   doctorSignatureImageSrc,
   isPersistedDoctorSignatureMissing,
 } from "@/lib/consultation-signature";
+import { ClinicalCompletionSection } from "./ClinicalCompletionSection";
 
 export interface EncounterClosureSectionProps {
   status: string;
@@ -131,6 +132,13 @@ export function EncounterClosureSection({
               </p>
             ) : null}
           </div>
+        ) : null}
+
+        {isSigned || isLocked ? (
+          <ClinicalCompletionSection
+            encounterStatus={status}
+            enabled
+          />
         ) : null}
 
         {showSign ? (
