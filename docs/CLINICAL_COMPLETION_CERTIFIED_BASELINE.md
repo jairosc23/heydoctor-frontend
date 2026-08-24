@@ -4,7 +4,8 @@
 **Frozen:** 2026-08-24  
 **Domain:** Clinical Completion  
 **Official identity:** `ClinicalActId`  
-**Branch:** `feat/phase-19a-clinical-workspace-closure`
+**Branch:** `feat/phase-19a-clinical-workspace-closure`  
+**SHA:** `7fcac05562174201b21c205a05b73f35b84f055d`
 
 `CorrelationId` remains reserved for observability and tracing. It is not the identity of the clinical act.
 

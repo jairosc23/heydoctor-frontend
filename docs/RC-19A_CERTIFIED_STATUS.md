@@ -11,7 +11,7 @@
 |-----------------|--------|----------------|
 | Stabilization Sprint 1 (P0) | **CERTIFIED** | `ef1d7d5cba5c6cc933287e30e9c76b125271443a` |
 | Stabilization Sprint 2 (P1) | **CERTIFIED** | `0e512bef339acea3c67a11f4722ed132f0ae00e5` |
-| Clinical Completion Workflow | **CERTIFIED** | `ClinicalActId` — `docs/CLINICAL_COMPLETION_CERTIFIED_BASELINE.md` |
+| Clinical Completion Workflow | **CERTIFIED** | `7fcac05562174201b21c205a05b73f35b84f055d` (`ClinicalActId`) |
 
 Do **not** plan Sprint 3. Do not write product code until a new functional objective is authorized. Do not reopen Auth, Workspace, Clinical Foundation, WebRTC, or Branding. Do not modify certified components without a new independent incident and explicit authorization.
 
