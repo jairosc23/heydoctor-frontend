@@ -6,7 +6,7 @@
 **SHA:** `0e512bef339acea3c67a11f4722ed132f0ae00e5`  
 **Preview:** https://heydoctor-frontend-git-feat-phase-19-d1c1b5-heydoctors-projects.vercel.app
 
-Sprint 3 remains blocked until explicit authorization to plan P2 only.
+RC-19A is **officially frozen**. Do not plan Sprint 3. Wait only for authorization to open the next front.
 
 ## P1 certified
 
