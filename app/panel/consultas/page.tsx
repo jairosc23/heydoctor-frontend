@@ -29,6 +29,7 @@ import { useConsultationPrice } from "@/lib/hooks/useConsultationPrice";
 import { openWorkspaceShare } from "@/lib/clinical-workspace/visual-surfaces";
 import { useVisualWorkspaceState } from "@/lib/clinical-workspace/use-visual-workspace-state";
 import { clinicalWorkspaceKernel } from "@/lib/clinical-workspace/kernel";
+import { STATUS_LABELS } from "@/app/panel/consultas/[id]/_components/consultation-status";
 
 /**
  * Phase 4.9.0 — Guard-rail: workspace inline legacy no se renderiza.
@@ -491,7 +492,9 @@ function ConsultasContent() {
                     <span className="text-primaryDark">
                       {patientLabel}{" "}
                       · {when ? new Date(when).toLocaleDateString() : "—"} ·{" "}
-                      {c.status ?? "—"}
+                      <span data-testid="consultation-list-status">
+                        {STATUS_LABELS[c.status ?? ""] ?? "—"}
+                      </span>
                     </span>
                     <span className="text-[13px] font-semibold text-primary">
                       Ver detalle →

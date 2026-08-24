@@ -28,6 +28,7 @@ import type { NestConsultation } from "@/lib/services/consultations";
 import { cn } from "@/lib/utils";
 import { CLINICAL_OVERLAY_DRAWER_PANEL_CLASS } from "@/lib/clinical-overlay-contract";
 import { clinicalWorkspaceKernel } from "@/lib/clinical-workspace/kernel";
+import { COPILOT_BACKDROP_CLASS } from "@/lib/clinical-workspace/visual-surfaces";
 import {
   HEYDOCTOR_COPILOT_BRAND,
   HEYDOCTOR_COPILOT_CAPABILITIES,
@@ -358,6 +359,7 @@ export function ClinicalCopilotDrawer({
       blocking: true,
       onDismiss: onClose,
       backdropAriaLabel: HEYDOCTOR_COPILOT_COPY.close,
+      backdropClassName: COPILOT_BACKDROP_CLASS,
     });
     return () => {
       clinicalWorkspaceKernel.dismiss("copilot");

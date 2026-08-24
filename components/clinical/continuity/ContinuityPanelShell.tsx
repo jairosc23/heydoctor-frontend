@@ -28,6 +28,7 @@ import {
   ContinuityBanner,
 } from "./ContinuityBanner";
 import { ContinuityActiveSection } from "./ContinuityActiveSection";
+import { visibleContinuityMedications } from "./continuity-medication-dedupe";
 import { ContinuityHintsSection } from "./ContinuityHintsSection";
 import { ContinuityTimelineSection } from "./ContinuityTimelineSection";
 import { ContinuityToolbar } from "./ContinuityToolbar";
@@ -333,7 +334,10 @@ export function ContinuityPanelShell({
         <>
           {/* Rendering contract order: Active → Timeline → Hints */}
           <ContinuityActiveSection
-            medications={model.context?.activeMedications ?? []}
+            medications={visibleContinuityMedications(
+              model.context?.activeMedications ?? [],
+              clinicalSnapshot?.medications ?? [],
+            )}
             loading={loading && !model.context}
           />
           <ContinuityTimelineSection

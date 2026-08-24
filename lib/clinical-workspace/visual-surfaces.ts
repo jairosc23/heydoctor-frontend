@@ -1,11 +1,14 @@
 import { clinicalWorkspaceKernel } from "./kernel";
 
+/** Copilot must dim the Encounter (D4). Stronger than other drawers; not the overlay contract. */
+export const COPILOT_BACKDROP_CLASS = "clinical-drawer-enter bg-slate-900/45";
+
 export function openWorkspaceCopilot(): void {
   clinicalWorkspaceKernel.present({
     id: "copilot",
     kind: "drawer",
     blocking: true,
-    backdropClassName: "clinical-drawer-enter bg-slate-900/10",
+    backdropClassName: COPILOT_BACKDROP_CLASS,
   });
 }
 

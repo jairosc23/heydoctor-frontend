@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 import { CLINICAL_OVERLAY_CLASS } from "@/lib/clinical-overlay-contract";
 import type {
@@ -89,6 +90,9 @@ export function EncounterActionMenu({
 }: EncounterActionMenuProps) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
   const ctx: EncounterActionContext = {
     isLocked,
     canPay: false,
@@ -103,12 +107,22 @@ export function EncounterActionMenu({
   };
   const overflowActions = resolveEncounterActions(ctx, "overflow");
 
+  useLayoutEffect(() => {
+    if (!open || !triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    setMenuPos({
+      top: rect.bottom + 4,
+      right: Math.max(8, window.innerWidth - rect.right),
+    });
+  }, [open]);
+
   useEffect(() => {
     if (!open) return;
     const close = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
+      const target = e.target as Node;
+      if (wrapRef.current?.contains(target)) return;
+      if (menuRef.current?.contains(target)) return;
+      setOpen(false);
     };
     document.addEventListener("click", close);
     return () => document.removeEventListener("click", close);
@@ -149,12 +163,14 @@ export function EncounterActionMenu({
   return (
     <div ref={wrapRef} className={cn("relative", className)}>
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label="Más acciones del encuentro"
         title="Más acciones"
+        data-testid="encounter-overflow-trigger"
         className={cn(
           "inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 bg-white text-sm text-slate-700 hover:bg-slate-50",
           open && "bg-slate-50",
@@ -162,53 +178,59 @@ export function EncounterActionMenu({
       >
         ⋯
       </button>
-      {open ? (
-        <div
-          role="menu"
-          className={cn(
-            "absolute right-0 top-full mt-1 min-w-[240px] max-w-[min(100vw-32px,300px)] rounded-lg border border-slate-200 bg-white py-1 shadow-lg",
-            CLINICAL_OVERLAY_CLASS.dialog,
-          )}
-        >
-          {overflowActions.map((action) => {
-            const label =
-              action.id === "transition" && transitionLabel
-                ? transitioning
-                  ? "Cambiando…"
-                  : transitionLabel
-                : encounterActionLabel(action, ctx);
-            const itemDisabled =
-              action.disabled(ctx) ||
-              (action.id === "toggle-edit" && disabled.edit) ||
-              (action.id === "analyze-copilot" && disabled.ai) ||
-              (action.id === "invoice" && disabled.invoice) ||
-              (action.id === "pdf" && disabled.pdf) ||
-              (action.id === "delete" && disabled.delete) ||
-              (action.id === "transition" && Boolean(transitioning));
-            const itemLoading =
-              (action.id === "analyze-copilot" && loading.ai) ||
-              (action.id === "invoice" && loading.invoice) ||
-              (action.id === "pdf" && loading.pdf) ||
-              (action.id === "delete" && loading.deleting);
-            return (
-              <React.Fragment key={action.id}>
-                {action.id === "delete" || action.id === "invoice" ? (
-                  <div className="my-1 border-t border-slate-100" />
-                ) : null}
-                <MenuItem
-                  label={label}
-                  icon={action.id === "share-consultation" ? "🔗" : action.icon}
-                  loading={itemLoading}
-                  disabled={itemDisabled}
-                  danger={action.id === "delete"}
-                  testId={action.testId}
-                  onClick={() => run(action.id)}
-                />
-              </React.Fragment>
-            );
-          })}
-        </div>
-      ) : null}
+      {open && typeof document !== "undefined"
+        ? createPortal(
+            <div
+              ref={menuRef}
+              role="menu"
+              data-testid="encounter-overflow-menu"
+              style={{ top: menuPos.top, right: menuPos.right }}
+              className={cn(
+                "fixed min-w-[240px] max-w-[min(100vw-32px,300px)] isolate rounded-lg border border-slate-200 bg-white py-1 text-slate-800 shadow-xl ring-1 ring-slate-200",
+                CLINICAL_OVERLAY_CLASS.dialog,
+              )}
+            >
+              {overflowActions.map((action) => {
+                const label =
+                  action.id === "transition" && transitionLabel
+                    ? transitioning
+                      ? "Cambiando…"
+                      : transitionLabel
+                    : encounterActionLabel(action, ctx);
+                const itemDisabled =
+                  action.disabled(ctx) ||
+                  (action.id === "toggle-edit" && disabled.edit) ||
+                  (action.id === "analyze-copilot" && disabled.ai) ||
+                  (action.id === "invoice" && disabled.invoice) ||
+                  (action.id === "pdf" && disabled.pdf) ||
+                  (action.id === "delete" && disabled.delete) ||
+                  (action.id === "transition" && Boolean(transitioning));
+                const itemLoading =
+                  (action.id === "analyze-copilot" && loading.ai) ||
+                  (action.id === "invoice" && loading.invoice) ||
+                  (action.id === "pdf" && loading.pdf) ||
+                  (action.id === "delete" && loading.deleting);
+                return (
+                  <React.Fragment key={action.id}>
+                    {action.id === "delete" || action.id === "invoice" ? (
+                      <div className="my-1 border-t border-slate-100" />
+                    ) : null}
+                    <MenuItem
+                      label={label}
+                      icon={action.id === "share-consultation" ? "🔗" : action.icon}
+                      loading={itemLoading}
+                      disabled={itemDisabled}
+                      danger={action.id === "delete"}
+                      testId={action.testId}
+                      onClick={() => run(action.id)}
+                    />
+                  </React.Fragment>
+                );
+              })}
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }

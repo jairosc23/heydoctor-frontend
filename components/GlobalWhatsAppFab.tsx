@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { getWhatsAppBookingUrl } from "@/lib/whatsapp-url";
+import { shouldHideGlobalWhatsAppFab } from "@/lib/whatsapp-fab-visibility";
 import { WhatsappIcon } from "@/components/WhatsappIcon";
 
 /**
@@ -19,11 +20,7 @@ export function GlobalWhatsAppFab() {
 
   if (!href) return null;
 
-  const hide =
-    pathname?.startsWith("/login") ||
-    pathname?.startsWith("/register") ||
-    pathname?.startsWith("/teleconsulta/");
-  if (hide) return null;
+  if (shouldHideGlobalWhatsAppFab(pathname)) return null;
 
   return (
     <a
