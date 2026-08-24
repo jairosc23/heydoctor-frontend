@@ -265,9 +265,11 @@ export default function ConsultationDetailPage() {
 
   const handleBackToConsultas = useCallback(() => {
     requestNavigation(() => {
-      clinicalWorkspaceKernel.dismissAll();
-      dismissLegacySurfaces();
       router.push("/panel/consultas");
+      window.setTimeout(() => {
+        clinicalWorkspaceKernel.dismissAll();
+        dismissLegacySurfaces();
+      }, 0);
     });
   }, [dismissLegacySurfaces, requestNavigation, router]);
 

@@ -113,7 +113,12 @@ export function UnsavedChangesGuardProvider({
     navigateAfterCloseRef.current = false;
     pendingNavRef.current = null;
     if (!nav) return;
-    completeNavigation(nav);
+    // After the dialog unmounts it dismisses the unsaved overlay. Wait for that
+    // visual-store update to flush or App Router drops the in-flight push.
+    const id = window.setTimeout(() => {
+      completeNavigation(nav);
+    }, 0);
+    return () => window.clearTimeout(id);
   }, [pending, completeNavigation]);
 
   const onCancel = useCallback(() => {
