@@ -8,6 +8,7 @@ import {
 } from "@/lib/unsaved-changes-guard/unsaved-changes-guard-context";
 
 const push = vi.fn();
+const assign = vi.fn();
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
@@ -15,6 +16,11 @@ vi.mock("next/navigation", () => ({
     replace: vi.fn(),
   }),
 }));
+
+Object.defineProperty(window, "location", {
+  configurable: true,
+  value: { ...window.location, assign },
+});
 
 function DirtyBackProbe() {
   const { register, requestNavigation } = useUnsavedChangesGuard();
@@ -28,11 +34,7 @@ function DirtyBackProbe() {
   return (
     <button
       type="button"
-      onClick={() =>
-        requestNavigation(() => {
-          push("/panel/consultas");
-        })
-      }
+      onClick={() => requestNavigation("/panel/consultas")}
     >
       Volver
     </button>
@@ -43,6 +45,7 @@ describe("INC-003 SPR1-D19 discard confirmation", () => {
   it("runs pending navigation after Salir sin guardar", async () => {
     const user = userEvent.setup();
     push.mockClear();
+    assign.mockClear();
     render(
       <UnsavedChangesGuardProvider>
         <DirtyBackProbe />
@@ -55,7 +58,7 @@ describe("INC-003 SPR1-D19 discard confirmation", () => {
 
     await user.click(screen.getByTestId("unsaved-changes-discard"));
     await waitFor(() => {
-      expect(push).toHaveBeenCalledWith("/panel/consultas");
+      expect(assign).toHaveBeenCalledWith("/panel/consultas");
     });
     expect(screen.queryByTestId("unsaved-changes-dialog")).not.toBeInTheDocument();
   });
@@ -63,6 +66,7 @@ describe("INC-003 SPR1-D19 discard confirmation", () => {
   it("does not navigate when Cancelar", async () => {
     const user = userEvent.setup();
     push.mockClear();
+    assign.mockClear();
     render(
       <UnsavedChangesGuardProvider>
         <DirtyBackProbe />
@@ -70,6 +74,7 @@ describe("INC-003 SPR1-D19 discard confirmation", () => {
     );
     await user.click(screen.getByRole("button", { name: "Volver" }));
     await user.click(screen.getByTestId("unsaved-changes-cancel"));
+    expect(assign).not.toHaveBeenCalled();
     expect(push).not.toHaveBeenCalled();
     expect(screen.queryByTestId("unsaved-changes-dialog")).not.toBeInTheDocument();
   });

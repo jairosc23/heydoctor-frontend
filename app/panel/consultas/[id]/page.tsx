@@ -264,10 +264,8 @@ export default function ConsultationDetailPage() {
   const persistGateRef = useRef(createPersistGate());
 
   const handleBackToConsultas = useCallback(() => {
-    requestNavigation(() => {
-      router.push("/panel/consultas");
-    });
-  }, [requestNavigation, router]);
+    requestNavigation("/panel/consultas");
+  }, [requestNavigation]);
 
   const [patientRow, setPatientRow] = useState<PatientRow | null>(null);
   const [patientProfile, setPatientProfile] = useState<PatientProfile | null>(

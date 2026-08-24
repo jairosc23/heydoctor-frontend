@@ -53,8 +53,6 @@ export function UnsavedChangesGuardProvider({
 }) {
   const router = useRouter();
   const handlersRef = useRef<UnsavedChangesHandlers | null>(null);
-  const pendingNavRef = useRef<PendingNavigation | null>(null);
-  const navigateAfterCloseRef = useRef(false);
   const [pending, setPending] = useState<PendingNavigation | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -108,36 +106,25 @@ export function UnsavedChangesGuardProvider({
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, []);
 
-  useEffect(() => {
-    if (pending != null) return;
-    if (!navigateAfterCloseRef.current) return;
-    const nav = pendingNavRef.current;
-    if (!nav) return;
-    // Do not depend on completeNavigation: a new router identity would clear this
-    // timeout and drop SPR1-D19. Keep flags until the macrotask so Strict Mode remounts.
-    const id = window.setTimeout(() => {
-      navigateAfterCloseRef.current = false;
-      pendingNavRef.current = null;
-      completeNavigationRef.current(nav);
-    }, 0);
-    return () => window.clearTimeout(id);
-  }, [pending]);
-
   const onCancel = useCallback(() => {
     if (saving) return;
-    navigateAfterCloseRef.current = false;
-    pendingNavRef.current = null;
     setPending(null);
     setError(null);
   }, [saving]);
 
   const onExitWithoutSaving = useCallback(() => {
     if (!pending || saving) return;
-    pendingNavRef.current = pending;
-    navigateAfterCloseRef.current = true;
+    const nav = pending;
     handlersRef.current?.discard?.();
     setPending(null);
     setError(null);
+    window.setTimeout(() => {
+      if (nav.kind === "href") {
+        window.location.assign(nav.href);
+        return;
+      }
+      completeNavigationRef.current(nav);
+    }, 0);
   }, [pending, saving]);
 
   const onSaveAndExit = useCallback(() => {
