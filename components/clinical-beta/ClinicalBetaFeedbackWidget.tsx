@@ -75,7 +75,7 @@ export function ClinicalBetaFeedbackWidget() {
   return (
     <div
       className={cn(
-        "pointer-events-none fixed bottom-5 left-4 sm:left-6",
+        "pointer-events-none fixed bottom-5 left-4 md:left-[calc(var(--workspace-sidebar-w,16rem)+1rem)]",
         CLINICAL_OVERLAY_CLASS.system,
       )}
       data-overlay-layer="system"

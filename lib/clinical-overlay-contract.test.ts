@@ -188,5 +188,15 @@ describe("clinical overlay contract", () => {
     assert.doesNotMatch(css, /--hd-overlay-full-record/);
     assert.doesNotMatch(css, /--hd-overlay-continuity/);
     assert.match(css, /\.clinical-overlay-clinical-content\s*\{/);
+    assert.match(
+      css,
+      /--encounter-chrome-h,\s*0px/,
+      "overlay inset must keep a valid calc when chrome height is unpublished",
+    );
+    assert.match(
+      css,
+      /--workspace-sidebar-w,\s*var\(--hd-sidebar-w/,
+      "overlay inset must spare the panel sidebar",
+    );
   });
 });

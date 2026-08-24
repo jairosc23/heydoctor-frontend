@@ -107,10 +107,13 @@ export function ShareConsultationDialog({
       backdropAriaLabel: "Cerrar",
       backdropClassName: "bg-slate-900/55",
     });
+  }, [open, onClose]);
+
+  useEffect(() => {
     return () => {
       clinicalWorkspaceKernel.dismiss("share");
     };
-  }, [open, onClose]);
+  }, []);
 
   if (!open) return null;
 

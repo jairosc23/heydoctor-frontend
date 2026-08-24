@@ -198,6 +198,15 @@ function PanelLayoutShell({
 
   const viewport = clinicalWorkspaceKernel.getViewport();
 
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty(
+      "--workspace-sidebar-w",
+      `${viewport.sidebarWidth}px`,
+    );
+    root.style.setProperty("--hd-sidebar-w", `${viewport.sidebarWidth}px`);
+  }, [viewport.sidebarWidth]);
+
   return (
     <div
       className="flex min-h-screen overflow-hidden bg-hd-surface-base font-sans"
@@ -208,7 +217,7 @@ function PanelLayoutShell({
     >
       <aside
         className={cn(
-          "fixed bottom-0 left-0 top-0 flex h-screen w-[var(--workspace-sidebar-w)] flex-col border-r border-hd-border-subtle bg-hd-surface-chrome p-4 shadow-hd-2 transition-transform duration-hd-base",
+          "pointer-events-auto fixed bottom-0 left-0 top-0 flex h-screen w-[var(--workspace-sidebar-w)] flex-col border-r border-hd-border-subtle bg-hd-surface-chrome p-4 shadow-hd-2 transition-transform duration-hd-base",
           CLINICAL_OVERLAY_CLASS.navigation,
           navOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
         )}
@@ -242,7 +251,8 @@ function PanelLayoutShell({
         <button
           type="button"
           onClick={() => void handleLogout()}
-          className="mt-auto rounded-lg border-0 bg-hd-surface-muted px-4 py-2 text-left text-[15px] font-medium text-red-600 transition-colors duration-hd-base hover:bg-red-50"
+          data-testid="panel-logout"
+          className="relative z-10 mt-auto mb-14 shrink-0 rounded-lg border-0 bg-hd-surface-muted px-4 py-2 text-left text-[15px] font-medium text-red-600 transition-colors duration-hd-base hover:bg-red-50"
           style={{ fontFamily: FONT_NAV }}
         >
           Cerrar sesión

@@ -232,6 +232,10 @@ export default function ConsultationDetailPage() {
     dismissFullRecordForExit();
   }, [dismissFullRecordForExit]);
 
+  const handleCloseShare = useCallback(() => {
+    clinicalWorkspaceKernel.dismiss("share");
+  }, []);
+
   const openFullRecord = useCallback(() => {
     clinicalWorkspaceKernel.dismiss("continuity");
     clinicalWorkspaceKernel.dismissAll();
@@ -258,6 +262,14 @@ export default function ConsultationDetailPage() {
   const preVisitAutoOpenedRef = useRef(false);
   const { register, requestNavigation } = useUnsavedChangesGuard();
   const persistGateRef = useRef(createPersistGate());
+
+  const handleBackToConsultas = useCallback(() => {
+    requestNavigation(() => {
+      clinicalWorkspaceKernel.dismissAll();
+      dismissLegacySurfaces();
+      router.push("/panel/consultas");
+    });
+  }, [dismissLegacySurfaces, requestNavigation, router]);
 
   const [patientRow, setPatientRow] = useState<PatientRow | null>(null);
   const [patientProfile, setPatientProfile] = useState<PatientProfile | null>(
@@ -1275,13 +1287,7 @@ export default function ConsultationDetailPage() {
                   key={id}
                   status={status}
                   transitioning={transitioning}
-                  onBack={() => {
-                    requestNavigation(() => {
-                      clinicalWorkspaceKernel.dismissAll();
-                      dismissLegacySurfaces();
-                      router.push("/panel/consultas");
-                    });
-                  }}
+                  onBack={handleBackToConsultas}
                   onShare={openWorkspaceShare}
                   onContinuity={() => handleContinuityOpenChange(true)}
                   onTransition={
@@ -1416,7 +1422,7 @@ export default function ConsultationDetailPage() {
               consultationId={id}
               open={shareOpen}
               patientName={patientName}
-              onClose={() => clinicalWorkspaceKernel.dismiss("share")}
+              onClose={handleCloseShare}
             />
 
             {consultation.patientId ? (

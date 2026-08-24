@@ -33,10 +33,13 @@ export function UnsavedChangesDialog({
       backdropAriaLabel: "Cancelar",
       backdropClassName: "bg-slate-900/40",
     });
+  }, [open, onCancel]);
+
+  useEffect(() => {
     return () => {
       clinicalWorkspaceKernel.dismiss("unsaved");
     };
-  }, [open, onCancel]);
+  }, []);
 
   if (!open) return null;
 
