@@ -6,7 +6,9 @@
 **SHA:** `ef1d7d5cba5c6cc933287e30e9c76b125271443a`  
 **Preview deploy:** `heydoctor-frontend-n41n7grm7-heydoctors-projects.vercel.app`
 
-Sprint 2 remains blocked until explicit authorization.
+Sprint 2 is **CERTIFIED** at `0e512bef339acea3c67a11f4722ed132f0ae00e5`. See `docs/RC-19A_CERTIFIED_STATUS.md` and `docs/RC-19A_SPRINT_2_CERTIFIED_BASELINE.md`.
+
+These Sprint 1 surfaces remain frozen. Do not modify them without a new incident and explicit authorization.
 
 ## P0 certified
 
