@@ -19,21 +19,39 @@ let escapeAttached = false;
 let backdropEl: HTMLButtonElement | null = null;
 const visualListeners = new Set<() => void>();
 
+/** Cached snapshot for useSyncExternalStore — same reference while mode/surface stay equal. */
+let visualSnapshot: VisualWorkspaceState = {
+  mode: "frame",
+  activeSurface: null,
+};
+
 function notifyVisualState(): void {
   visualListeners.forEach((listener) => listener());
 }
 
+function visualModeFor(
+  kind: WorkspaceSurface["kind"],
+): VisualWorkspaceState["mode"] {
+  return kind === "drawer" ||
+    kind === "modal" ||
+    kind === "dialog" ||
+    kind === "fullscreen"
+    ? kind
+    : "frame";
+}
+
 export function getVisualWorkspaceState(): VisualWorkspaceState {
   const surface = blocking?.surface ?? null;
-  if (!surface) return { mode: "frame", activeSurface: null };
-  const mode =
-    surface.kind === "drawer" ||
-    surface.kind === "modal" ||
-    surface.kind === "dialog" ||
-    surface.kind === "fullscreen"
-      ? surface.kind
-      : "frame";
-  return { mode, activeSurface: surface.id };
+  const mode = surface ? visualModeFor(surface.kind) : "frame";
+  const activeSurface = surface?.id ?? null;
+  if (
+    visualSnapshot.mode === mode &&
+    visualSnapshot.activeSurface === activeSurface
+  ) {
+    return visualSnapshot;
+  }
+  visualSnapshot = { mode, activeSurface };
+  return visualSnapshot;
 }
 
 export function subscribeVisualWorkspaceState(listener: () => void): () => void {

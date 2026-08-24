@@ -17,6 +17,11 @@ export { WORKSPACE_CHROME_FALLBACK_PX } from "./chrome";
 const fullscreenListeners = new Set<() => void>();
 let fullscreenActive = false;
 
+const FULLSCREEN_SNAPSHOT: VisualWorkspaceState = {
+  mode: "fullscreen",
+  activeSurface: "teleconsulta",
+};
+
 function notifyFullscreen(): void {
   fullscreenListeners.forEach((listener) => listener());
 }
@@ -40,7 +45,7 @@ function exitFullscreen(): void {
 
 function getVisualState(): VisualWorkspaceState {
   if (fullscreenActive) {
-    return { mode: "fullscreen", activeSurface: "teleconsulta" };
+    return FULLSCREEN_SNAPSHOT;
   }
   return getVisualWorkspaceState();
 }
