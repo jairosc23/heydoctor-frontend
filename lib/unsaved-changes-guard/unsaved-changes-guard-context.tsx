@@ -53,6 +53,8 @@ export function UnsavedChangesGuardProvider({
 }) {
   const router = useRouter();
   const handlersRef = useRef<UnsavedChangesHandlers | null>(null);
+  const pendingNavRef = useRef<PendingNavigation | null>(null);
+  const navigateAfterCloseRef = useRef(false);
   const [pending, setPending] = useState<PendingNavigation | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -104,6 +106,61 @@ export function UnsavedChangesGuardProvider({
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, []);
 
+  useEffect(() => {
+    if (pending != null) return;
+    if (!navigateAfterCloseRef.current) return;
+    const nav = pendingNavRef.current;
+    navigateAfterCloseRef.current = false;
+    pendingNavRef.current = null;
+    if (!nav) return;
+    completeNavigation(nav);
+  }, [pending, completeNavigation]);
+
+  const onCancel = useCallback(() => {
+    if (saving) return;
+    navigateAfterCloseRef.current = false;
+    pendingNavRef.current = null;
+    setPending(null);
+    setError(null);
+  }, [saving]);
+
+  const onExitWithoutSaving = useCallback(() => {
+    if (!pending || saving) return;
+    pendingNavRef.current = pending;
+    navigateAfterCloseRef.current = true;
+    handlersRef.current?.discard?.();
+    setPending(null);
+    setError(null);
+  }, [pending, saving]);
+
+  const onSaveAndExit = useCallback(() => {
+    if (!pending || saving) return;
+    const nav = pending;
+    const save = handlersRef.current?.save;
+    if (!save) {
+      setPending(null);
+      completeNavigation(nav);
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    void save()
+      .then(() => {
+        setPending(null);
+        completeNavigation(nav);
+      })
+      .catch((err: unknown) => {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "No se pudieron guardar los cambios.",
+        );
+      })
+      .finally(() => {
+        setSaving(false);
+      });
+  }, [pending, saving, completeNavigation]);
+
   const value = useMemo(
     () => ({ requestNavigation, register }),
     [requestNavigation, register],
@@ -116,46 +173,9 @@ export function UnsavedChangesGuardProvider({
         open={pending != null}
         saving={saving}
         error={error}
-        onCancel={() => {
-          if (saving) return;
-          setPending(null);
-          setError(null);
-        }}
-        onExitWithoutSaving={() => {
-          if (!pending || saving) return;
-          const nav = pending;
-          handlersRef.current?.discard?.();
-          setPending(null);
-          setError(null);
-          completeNavigation(nav);
-        }}
-        onSaveAndExit={() => {
-          if (!pending || saving) return;
-          const nav = pending;
-          const save = handlersRef.current?.save;
-          if (!save) {
-            setPending(null);
-            completeNavigation(nav);
-            return;
-          }
-          setSaving(true);
-          setError(null);
-          void save()
-            .then(() => {
-              setPending(null);
-              completeNavigation(nav);
-            })
-            .catch((err: unknown) => {
-              setError(
-                err instanceof Error
-                  ? err.message
-                  : "No se pudieron guardar los cambios.",
-              );
-            })
-            .finally(() => {
-              setSaving(false);
-            });
-        }}
+        onCancel={onCancel}
+        onExitWithoutSaving={onExitWithoutSaving}
+        onSaveAndExit={onSaveAndExit}
       />
     </UnsavedChangesGuardContext.Provider>
   );
