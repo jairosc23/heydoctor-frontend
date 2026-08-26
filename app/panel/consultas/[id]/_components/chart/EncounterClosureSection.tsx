@@ -17,6 +17,7 @@ import {
   isPersistedDoctorSignatureMissing,
 } from "@/lib/consultation-signature";
 import { ClinicalCompletionSection } from "./ClinicalCompletionSection";
+import { CommercialSettlementSection } from "./CommercialSettlementSection";
 
 export interface EncounterClosureSectionProps {
   status: string;
@@ -136,6 +137,13 @@ export function EncounterClosureSection({
 
         {isSigned || isLocked ? (
           <ClinicalCompletionSection
+            encounterStatus={status}
+            enabled
+          />
+        ) : null}
+
+        {isSigned || isLocked ? (
+          <CommercialSettlementSection
             encounterStatus={status}
             enabled
           />
