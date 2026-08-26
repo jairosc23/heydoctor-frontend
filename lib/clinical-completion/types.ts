@@ -92,7 +92,6 @@ export function createPendingSnapshot(
     clinicalActId: extras.clinicalActId ?? newClinicalActId(),
     consultationId,
     encounterStatus,
-    state: "pending",
     prescriptionId: null,
     emissionId: null,
     validationCode: null,

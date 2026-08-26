@@ -35,7 +35,6 @@ function item(
 ): LongitudinalContinuityItem {
   const present = overrides.handoff === "present";
   return {
-    patientId: PATIENT,
     clinicalActId: present ? (overrides.clinicalActId ?? ACT_A) : null,
     completionState: present ? (overrides.completionState ?? "document_ready") : null,
     documentKind: present ? (overrides.documentKind ?? "visit_summary") : null,

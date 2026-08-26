@@ -442,10 +442,10 @@ describe("PP-11 PRODUCT-1 and PRODUCT-2", () => {
     const empty = projectPortalEncounterView(pkg());
     assert.equal(empty.metrics.portalHandoffPresent, 0);
     assert.equal(empty.metrics.portalDocumentKind, PORTAL_DOCUMENT_KIND_NONE);
-    assert.ok(
-      delivered.metrics.portalDocumentDelivered === 0 ||
-        delivered.metrics.portalHandoffPresent === 1,
-    );
+    const documentDelivered: number =
+      delivered.metrics.portalDocumentDelivered;
+    const handoffPresent: number = delivered.metrics.portalHandoffPresent;
+    assert.ok(documentDelivered === 0 || handoffPresent === 1);
     assert.deepEqual(
       Object.keys(PATIENT_PORTAL_CONTRACT),
       [...PRODUCT_EPIC_CONTRACT_SECTIONS],

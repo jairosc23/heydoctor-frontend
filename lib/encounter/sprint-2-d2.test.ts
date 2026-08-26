@@ -3,11 +3,6 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
-import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { describe, it } from "node:test";
-import { fileURLToPath } from "node:url";
 import { STATUS_LABELS } from "../../app/panel/consultas/[id]/_components/consultation-status";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../..");

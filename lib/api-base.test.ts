@@ -22,12 +22,13 @@ const snapshot = Object.fromEntries(
 ) as Record<(typeof ENV_KEYS)[number], string | undefined>;
 
 afterEach(() => {
+  const env = process.env as Record<string, string | undefined>;
   for (const key of ENV_KEYS) {
     const value = snapshot[key];
     if (value === undefined) {
-      delete process.env[key];
+      delete env[key];
     } else {
-      process.env[key] = value;
+      env[key] = value;
     }
   }
 });
