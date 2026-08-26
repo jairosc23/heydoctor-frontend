@@ -87,6 +87,7 @@ jobs:
       E2E_CONSULTATION_DM2: ${{ secrets.E2E_CONSULTATION_DM2 }}
       E2E_CONSULTATION_ACUTE: ${{ secrets.E2E_CONSULTATION_ACUTE }}
       E2E_CONSULTATION_PAYMENT: ${{ secrets.E2E_CONSULTATION_PAYMENT }}
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
       E2E_STRICT: "1"
     outputs:
       mode: ${{ steps.detect.outputs.mode }}
@@ -178,6 +179,7 @@ jobs:
       E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
       E2E_DOCTOR_EMAIL: ${{ secrets.E2E_DOCTOR_EMAIL }}
       E2E_DOCTOR_PASSWORD: ${{ secrets.E2E_DOCTOR_PASSWORD }}
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
     outputs:
       mode: ${{ steps.detect.outputs.mode }}
       result: ${{ steps.outcome.outputs.result }}
