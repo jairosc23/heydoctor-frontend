@@ -203,6 +203,9 @@ export async function cancelOpenAppointment(page: Page): Promise<void> {
 
 /** Availability enterprise section (doctor) or admin guidance. */
 export async function expectAvailabilitySurface(page: Page): Promise<void> {
+  await page
+    .getByRole("tab", { name: /disponibilidad/i })
+    .click();
   const availability = page.getByLabel(/disponibilidad enterprise/i);
   const adminHint = page.getByText(/seleccione un médico/i);
   await expect(availability.or(adminHint).first()).toBeVisible({

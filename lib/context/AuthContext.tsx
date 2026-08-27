@@ -41,6 +41,7 @@ import {
 } from "@/lib/context/auth-bootstrap";
 import {
   hasLikelySession,
+  isAuthRedirectStubPath,
   shouldSkipAuthBootstrapOnMount,
 } from "@/lib/auth-session-hints";
 import {
@@ -197,6 +198,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
     }
 
+    if (isAuthRedirectStubPath(pathname)) {
+      return () => {
+        mounted = false;
+        hydrationAbort.abort();
+      };
+    }
+
     if (authBootstrappedRef.current) {
       setLoading(false);
       return () => {
@@ -306,7 +314,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refreshUser = useCallback(async () => {
-    if (loading) {
+    if (loading || isAuthRedirectStubPath(pathname)) {
       return;
     }
     const existing = refreshUserInFlightRef.current;
@@ -365,7 +373,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
     return p;
-  }, [sessionGen, loading, clearSession]);
+  }, [sessionGen, loading, clearSession, pathname]);
 
   /**
    * Sesión API válida en /login: sincronizar cookie SSR y navegar con recarga completa.

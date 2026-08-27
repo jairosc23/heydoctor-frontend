@@ -32,6 +32,15 @@ export function hasLikelySession(): boolean {
   return Boolean(getAccessToken()?.trim());
 }
 
+/**
+ * Exact `/panel` only server-redirects to `/dashboard`. Refresh here is aborted
+ * by that navigation while Nest still rotates the cookie; the next document
+ * then replays the pre-rotation token (reuse → family revoke).
+ */
+export function isAuthRedirectStubPath(pathname: string | null): boolean {
+  return pathname === "/panel";
+}
+
 /** En rutas públicas sin token en RAM, omitir refresh en mount. */
 export function shouldSkipAuthBootstrapOnMount(pathname: string | null): boolean {
   return isPublicAuthRoute(pathname) && !hasLikelySession();
