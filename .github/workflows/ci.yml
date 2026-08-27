@@ -9,6 +9,8 @@
 #
 # PQ-01: Playwright hardening (retries, artifacts, test:e2e:p0).
 # F2-01: Agenda & Auth E2E reliability (auth triad only).
+# E2E_BASE_URL is resolved from the GitHub Deployment for github.sha
+# (Vercel Preview READY). It is never read from a Repository Secret.
 
 name: CI
 
@@ -22,6 +24,10 @@ on:
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
+
+permissions:
+  contents: read
+  deployments: read
 
 jobs:
   # ── Nivel 1 — obligatorias en cada PR ─────────────────────────
@@ -73,14 +79,111 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
+  # ── Preview URL for this SHA (GitHub Deployments / Vercel) ──
+  resolve-preview:
+    name: resolve-preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    outputs:
+      url: ${{ steps.resolve.outputs.url }}
+    steps:
+      - name: Resolve READY Vercel Preview for github.sha
+        id: resolve
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python3 << 'PY'
+          import json
+          import os
+          import sys
+          import time
+          import urllib.error
+          import urllib.request
+
+          token = os.environ["GITHUB_TOKEN"]
+          repo = os.environ["GITHUB_REPOSITORY"]
+          sha = os.environ["GITHUB_SHA"]
+          out = os.environ["GITHUB_OUTPUT"]
+          deadline = time.time() + 480
+          last = "no GitHub Deployments for this SHA yet"
+
+          def api(path):
+              req = urllib.request.Request(
+                  f"https://api.github.com{path}",
+                  headers={
+                      "Authorization": f"Bearer {token}",
+                      "Accept": "application/vnd.github+json",
+                      "X-GitHub-Api-Version": "2022-11-28",
+                  },
+              )
+              with urllib.request.urlopen(req, timeout=30) as resp:
+                  return json.load(resp)
+
+          while time.time() < deadline:
+              try:
+                  deps = api(f"/repos/{repo}/deployments?sha={sha}&per_page=25")
+              except urllib.error.HTTPError as e:
+                  last = f"GitHub Deployments API HTTP {e.code}"
+                  time.sleep(15)
+                  continue
+              if not isinstance(deps, list) or not deps:
+                  last = f"no GitHub Deployments for SHA {sha}"
+                  print(last, flush=True)
+                  time.sleep(15)
+                  continue
+              ready = []
+              for d in deps:
+                  did = d.get("id")
+                  env = d.get("environment") or ""
+                  prod = bool(d.get("production_environment"))
+                  try:
+                      statuses = api(f"/repos/{repo}/deployments/{did}/statuses")
+                  except urllib.error.HTTPError as e:
+                      last = f"deployment {did} statuses HTTP {e.code}"
+                      continue
+                  if not statuses:
+                      last = f"deployment {did} env={env} has no statuses"
+                      print(last, flush=True)
+                      continue
+                  top = statuses[0]
+                  state = top.get("state") or ""
+                  url = (top.get("environment_url") or "").rstrip("/")
+                  print(
+                      f"deployment {did} env={env} prod={prod} state={state} url={url}",
+                      flush=True,
+                  )
+                  if state in ("error", "failure"):
+                      last = f"deployment {did} env={env} state={state}"
+                      continue
+                  if state == "success" and url:
+                      ready.append((prod, did, url))
+                      continue
+                  last = f"deployment {did} env={env} state={state} (waiting for success)"
+              if ready:
+                  ready.sort(key=lambda item: (item[0] is True, -item[1]))
+                  url = ready[0][2]
+                  with open(out, "a", encoding="utf-8") as fh:
+                      fh.write(f"url={url}\n")
+                  print(f"Resolved Preview URL: {url}", flush=True)
+                  sys.exit(0)
+              time.sleep(15)
+
+          print(
+              f"::error::Infrastructure: no READY Vercel Preview for SHA {sha}. "
+              f"{last}. Playwright will not run.",
+              flush=True,
+          )
+          sys.exit(1)
+          PY
+
   # ── Nivel 2 — E2E P0 (degradación controlada sin secrets) ─────
   e2e-p0:
     name: e2e-p0
-    needs: [quality]
+    needs: [quality, resolve-preview]
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
+      E2E_BASE_URL: ${{ needs.resolve-preview.outputs.url }}
       E2E_DOCTOR_EMAIL: ${{ secrets.E2E_DOCTOR_EMAIL }}
       E2E_DOCTOR_PASSWORD: ${{ secrets.E2E_DOCTOR_PASSWORD }}
       E2E_CONSULTATION_HTA: ${{ secrets.E2E_CONSULTATION_HTA }}
@@ -98,7 +201,6 @@ jobs:
         run: |
           missing=()
           for key in \
-            E2E_BASE_URL \
             E2E_DOCTOR_EMAIL \
             E2E_DOCTOR_PASSWORD \
             E2E_CONSULTATION_HTA \
@@ -117,6 +219,15 @@ jobs:
             echo "mode=run" >> "$GITHUB_OUTPUT"
             echo "E2E P0 secrets configured — gate is blocking for this job"
           fi
+
+      - name: Require resolved Preview URL
+        if: steps.detect.outputs.mode == 'run'
+        run: |
+          if [[ -z "$E2E_BASE_URL" ]]; then
+            echo "::error::Infrastructure: resolved E2E_BASE_URL is empty; Playwright will not run."
+            exit 1
+          fi
+          echo "E2E_BASE_URL=${E2E_BASE_URL}"
 
       - uses: actions/checkout@v4
         if: steps.detect.outputs.mode == 'run'
@@ -172,11 +283,11 @@ jobs:
   # ── Nivel 2 — F2-01 Agenda + Auth (triad auth; degradación controlada) ─
   e2e-f2-01:
     name: e2e-f2-01
-    needs: [quality]
+    needs: [quality, resolve-preview]
     runs-on: ubuntu-latest
     timeout-minutes: 40
     env:
-      E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
+      E2E_BASE_URL: ${{ needs.resolve-preview.outputs.url }}
       E2E_DOCTOR_EMAIL: ${{ secrets.E2E_DOCTOR_EMAIL }}
       E2E_DOCTOR_PASSWORD: ${{ secrets.E2E_DOCTOR_PASSWORD }}
       VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
@@ -188,7 +299,7 @@ jobs:
         id: detect
         run: |
           missing=()
-          for key in E2E_BASE_URL E2E_DOCTOR_EMAIL E2E_DOCTOR_PASSWORD; do
+          for key in E2E_DOCTOR_EMAIL E2E_DOCTOR_PASSWORD; do
             if [[ -z "${!key}" ]]; then
               missing+=("$key")
             fi
@@ -200,6 +311,15 @@ jobs:
             echo "mode=run" >> "$GITHUB_OUTPUT"
             echo "F2-01 auth triad configured — Agenda/Auth gate blocking for this job"
           fi
+
+      - name: Require resolved Preview URL
+        if: steps.detect.outputs.mode == 'run'
+        run: |
+          if [[ -z "$E2E_BASE_URL" ]]; then
+            echo "::error::Infrastructure: resolved E2E_BASE_URL is empty; Playwright will not run."
+            exit 1
+          fi
+          echo "E2E_BASE_URL=${E2E_BASE_URL}"
 
       - uses: actions/checkout@v4
         if: steps.detect.outputs.mode == 'run'
@@ -255,13 +375,15 @@ jobs:
   # ── Aggregate — required check name «frontend» ────────────────
   frontend:
     name: frontend
-    needs: [quality, e2e-p0, e2e-f2-01]
+    needs: [quality, resolve-preview, e2e-p0, e2e-f2-01]
     if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Evaluate Quality Gates (PQ-09 + F2-01)
         env:
           QUALITY: ${{ needs.quality.result }}
+          PREVIEW: ${{ needs.resolve-preview.result }}
+          PREVIEW_URL: ${{ needs.resolve-preview.outputs.url }}
           E2E_JOB: ${{ needs.e2e-p0.result }}
           E2E_MODE: ${{ needs.e2e-p0.outputs.mode }}
           E2E_RESULT: ${{ needs.e2e-p0.outputs.result }}
@@ -271,17 +393,24 @@ jobs:
         run: |
           echo "## Frontend Quality Gates (PQ-09 + F2-01)"
           echo "L1 quality: ${QUALITY}"
+          echo "Preview resolve: ${PREVIEW} url=${PREVIEW_URL}"
           echo "L2 e2e-p0 job: ${E2E_JOB} (mode=${E2E_MODE} result=${E2E_RESULT})"
           echo "L2 e2e-f2-01 job: ${F201_JOB} (mode=${F201_MODE} result=${F201_RESULT})"
           echo ""
           echo "Policy:"
           echo "  - L1 must pass on every PR"
-          echo "  - L2 e2e-p0 blocks when 7 secrets configured; skipped otherwise"
+          echo "  - Preview URL is the READY GitHub Deployment for github.sha"
+          echo "  - L2 e2e-p0 blocks when consultation secrets configured; skipped otherwise"
           echo "  - L2 e2e-f2-01 blocks when auth triad configured; skipped otherwise"
           echo "  - L3 release checklist: docs/pq-09-quality-gates.md"
 
           if [[ "$QUALITY" != "success" ]]; then
             echo "::error::L1 quality failed"
+            exit 1
+          fi
+
+          if [[ "$PREVIEW" != "success" ]]; then
+            echo "::error::Infrastructure: no READY Vercel Preview for this SHA. Playwright was not executed."
             exit 1
           fi
 
