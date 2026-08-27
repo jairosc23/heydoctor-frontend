@@ -17,7 +17,6 @@ import { defineConfig, devices } from "@playwright/test";
  */
 
 const isCI = !!process.env.CI;
-const vercelBypass = process.env.VERCEL_AUTOMATION_BYPASS_SECRET?.trim();
 
 export default defineConfig({
   testDir: ".",
@@ -41,14 +40,6 @@ export default defineConfig({
       ],
   use: {
     baseURL: process.env.E2E_BASE_URL ?? "http://localhost:3000",
-    ...(vercelBypass
-      ? {
-          extraHTTPHeaders: {
-            "x-vercel-protection-bypass": vercelBypass,
-            "x-vercel-set-bypass-cookie": "true",
-          },
-        }
-      : {}),
     actionTimeout: 20_000,
     navigationTimeout: 60_000,
     trace: "retain-on-failure",
