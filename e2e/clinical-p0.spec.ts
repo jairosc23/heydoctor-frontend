@@ -11,6 +11,7 @@ import { HEYDOCTOR_COPILOT_BRAND } from "../lib/brand/heydoctor-copilot";
 import { CLINICAL_OVERLAY_Z } from "../lib/clinical-overlay-contract";
 import { getConsultationId } from "./helpers/env";
 import {
+  drawSignature,
   gotoConsultation,
   visibleEncounterSection,
 } from "./helpers/encounter";
@@ -168,19 +169,8 @@ test.describe("Clinical P0 — workspace oficial (Action WS + Smart WS ON)", () 
     await visibleEncounterSection(page, "encounter-section-20").scrollIntoViewIfNeeded();
     const signButton = page.getByRole("button", { name: /firmar consulta/i });
     if (await signButton.isVisible()) {
-      await signButton.click();
-      // SignatureCanvas — trazo mínimo si canvas presente
-      const canvas = page.locator("canvas").first();
-      if (await canvas.isVisible()) {
-        const box = await canvas.boundingBox();
-        if (box) {
-          await page.mouse.move(box.x + 10, box.y + 10);
-          await page.mouse.down();
-          await page.mouse.move(box.x + 80, box.y + 40);
-          await page.mouse.up();
-        }
-        await page.getByRole("button", { name: /confirmar|firmar/i }).click();
-      }
+      await drawSignature(page);
+      await page.getByRole("button", { name: /confirmar|firmar/i }).click();
     }
 
     await expect(page.getByText(/firmada|signed/i)).toBeVisible({
@@ -214,6 +204,7 @@ test.describe("Clinical P0 — workspace oficial (Action WS + Smart WS ON)", () 
     }
 
     await visibleEncounterSection(page, "encounter-section-20").scrollIntoViewIfNeeded();
+    await drawSignature(page);
     await page.getByRole("button", { name: /firmar consulta/i }).click();
     await expect(page.getByText(/firmada|signed/i)).toBeVisible({
       timeout: 30_000,

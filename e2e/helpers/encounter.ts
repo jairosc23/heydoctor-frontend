@@ -29,3 +29,17 @@ export async function gotoConsultation(
 
   await expect(chrome.or(layout).first()).toBeVisible({ timeout: 60_000 });
 }
+
+/** Trazo manuscrito mínimo en SignatureCanvas (`hasContent`). No confirma ni firma. */
+export async function drawSignature(page: Page): Promise<void> {
+  const canvas = page.locator("canvas").first();
+  if (await canvas.isVisible()) {
+    const box = await canvas.boundingBox();
+    if (box) {
+      await page.mouse.move(box.x + 10, box.y + 10);
+      await page.mouse.down();
+      await page.mouse.move(box.x + 80, box.y + 40);
+      await page.mouse.up();
+    }
+  }
+}
