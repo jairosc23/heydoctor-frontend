@@ -179,7 +179,7 @@ jobs:
   # ── Nivel 2 — E2E P0 (degradación controlada sin secrets) ─────
   e2e-p0:
     name: e2e-p0
-    needs: [quality, resolve-preview]
+    needs: [quality, resolve-preview, e2e-f2-01]
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
