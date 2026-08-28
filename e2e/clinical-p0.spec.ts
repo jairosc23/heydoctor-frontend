@@ -165,6 +165,7 @@ test.describe("Clinical P0 — workspace oficial (Action WS + Smart WS ON)", () 
       name: /recetas/i,
     }).click();
     await expect(page.getByTestId("clinical-module-sheet")).toBeVisible();
+    await closeClinicalModuleSheet(page);
 
     // Firma en bloque de cierre (§20)
     await visibleEncounterSection(page, "encounter-section-20").scrollIntoViewIfNeeded();
