@@ -2,6 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
   actionableActions,
+  EMPTY_ACTIONS,
   assertMedicalCopilotGovernance,
   envelopeIsOk,
   formatEventLabel,
@@ -58,6 +59,23 @@ describe("medical-copilot view-model", () => {
       ["a", "c"],
     );
     assert.equal(formatEventLabel("session_created"), "Session Created");
+  });
+
+  it("returns a stable empty list when no actions are pending", () => {
+    const empty = actionableActions([]);
+    assert.equal(empty, EMPTY_ACTIONS);
+    assert.equal(empty, actionableActions(undefined));
+    assert.equal(empty, actionableActions(null));
+    assert.equal(
+      empty,
+      actionableActions([
+        {
+          actionId: "b",
+          actionType: "review_referral_draft",
+          status: "approved",
+        },
+      ]),
+    );
   });
 
   it("accepts ok envelopes with governance", () => {

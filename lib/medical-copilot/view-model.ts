@@ -27,6 +27,10 @@ export function envelopeIsOk<T>(
   );
 }
 
+/** Stable empty list — callers must not mutate. */
+export const EMPTY_ACTIONS: MedicalCopilotActionSummary[] = [];
+Object.freeze(EMPTY_ACTIONS);
+
 export function sortTimelineEntries(
   entries: MedicalCopilotTimelineEntry[] | null | undefined,
 ): MedicalCopilotTimelineEntry[] {
@@ -37,10 +41,11 @@ export function sortTimelineEntries(
 export function actionableActions(
   actions: MedicalCopilotActionSummary[] | null | undefined,
 ): MedicalCopilotActionSummary[] {
-  if (!actions?.length) return [];
-  return actions.filter(
+  if (!actions?.length) return EMPTY_ACTIONS;
+  const pending = actions.filter(
     (action) => action.status === "created" || action.status === "queued",
   );
+  return pending.length === 0 ? EMPTY_ACTIONS : pending;
 }
 
 export function formatEventLabel(eventType: string): string {

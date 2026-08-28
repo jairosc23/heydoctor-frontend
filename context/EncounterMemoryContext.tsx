@@ -28,6 +28,7 @@ import type {
   EncounterMemoryPatch,
   EncounterMemorySnapshot,
 } from "@/lib/encounter/memory/types";
+import { actionableActions } from "@/lib/medical-copilot/view-model";
 
 export type EncounterMemoryContextValue = {
   memory: EncounterMemorySnapshot;
@@ -72,11 +73,15 @@ export function EncounterMemoryProvider({
 
   const { phase } = useClinicalWorkflow();
   const { status: dictationStatus, buffer, active } = useClinicalDictation();
-  const { pendingActions, actions } = useClinicalActions();
+  const { actions } = useClinicalActions();
   // Keep MedicalCopilot subscription alive for session readiness coupling.
   useMedicalCopilot();
 
   useEffect(() => {
+    const pendingActions = actionableActions(actions).map((action) => ({
+      id: action.actionId,
+      status: action.status,
+    }));
     const encounterDecisions = actions
       .filter((a) => a.status === "approved" || a.status === "rejected")
       .map((a) => ({
@@ -102,10 +107,7 @@ export function EncounterMemoryProvider({
         draftLength: buffer.draft?.length ?? 0,
         active,
       },
-      pendingActions: pendingActions.map((a) => ({
-        id: a.actionId,
-        status: a.status,
-      })),
+      pendingActions,
       encounterDecisions,
     });
   }, [
@@ -119,7 +121,6 @@ export function EncounterMemoryProvider({
     patientAge,
     patientName,
     patientSex,
-    pendingActions,
     phase,
   ]);
 

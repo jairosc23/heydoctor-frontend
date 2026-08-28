@@ -523,10 +523,11 @@ export function ClinicalNavigationRail({
       aria-label="Navegación de ficha clínica"
       data-testid="clinical-navigation-rail"
       data-orientation="vertical"
+      data-overlay-layer="navigation"
       data-care-path="signature-ready"
       data-disclosure-expanded={disclosureExpanded ? "true" : "false"}
       className={cn(
-        "clinical-depth-secondary clinical-overlay-chrome sticky flex flex-col overflow-hidden rounded-hd-lg border border-hd-border-subtle bg-hd-surface-raised p-hd-2 pb-hd-3 shadow-hd-1",
+        "clinical-depth-secondary clinical-overlay-navigation pointer-events-auto sticky flex flex-col overflow-hidden rounded-hd-lg border border-hd-border-subtle bg-hd-surface-raised p-hd-2 pb-hd-3 shadow-hd-1",
         className,
       )}
       style={{

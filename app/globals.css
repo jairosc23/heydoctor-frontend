@@ -36,6 +36,28 @@
   --hd-overlay-modal: 400;
   --hd-overlay-dialog: 500;
   --hd-overlay-system: 600;
+  /* main p-4 + workspace p-hd-3 — viewport-fixed drawers cannot assume chrome starts at the header edge */
+  --hd-clinical-scroll-inset: 1.75rem;
+  --hd-clinical-rail-col: 0px;
+}
+
+@media (min-width: 768px) {
+  :root {
+    --hd-clinical-scroll-inset: 3rem; /* main md:p-8 + workspace md:p-hd-4 */
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --hd-clinical-scroll-inset: 3.25rem; /* main md:p-8 + workspace lg:p-hd-5 */
+  }
+}
+
+@media (min-width: 1280px) {
+  :root {
+    /* encounter rail column max (220px) + gap-hd-3 */
+    --hd-clinical-rail-col: 14.5rem;
+  }
 }
 
 body {
@@ -74,12 +96,19 @@ body {
 }
 
 /*
- * Clinical content inset: never covers sidebar, panel header, or encounter chrome.
+ * Clinical content inset: never covers sidebar, panel header, encounter chrome
+ * (header + action bar), or the clinical navigation rail.
  * Shared by Copilot / Doctor DNA / Module Sheet backdrops.
+ *
+ * --hd-clinical-scroll-inset accounts for main + workspace padding so the
+ * viewport-fixed overlay starts below in-flow chrome, not at the header edge.
  */
 .clinical-overlay-clinical-content {
   position: fixed;
-  top: calc(var(--hd-panel-header-h, 4rem) + var(--encounter-chrome-h, 0px));
+  top: calc(
+    var(--hd-panel-header-h, 4rem) + var(--encounter-chrome-h, 0px) +
+      var(--hd-clinical-scroll-inset, 0px)
+  );
   right: 0;
   bottom: 0;
   left: 0;
@@ -87,13 +116,25 @@ body {
 
 .clinical-overlay-clinical-content-y {
   position: fixed;
-  top: calc(var(--hd-panel-header-h, 4rem) + var(--encounter-chrome-h, 0px));
+  top: calc(
+    var(--hd-panel-header-h, 4rem) + var(--encounter-chrome-h, 0px) +
+      var(--hd-clinical-scroll-inset, 0px)
+  );
   bottom: 0;
 }
 
 @media (min-width: 768px) {
   .clinical-overlay-clinical-content {
     left: var(--workspace-sidebar-w, var(--hd-sidebar-w, 16rem));
+  }
+}
+
+@media (min-width: 1280px) {
+  .clinical-overlay-clinical-content {
+    left: calc(
+      var(--workspace-sidebar-w, var(--hd-sidebar-w, 16rem)) +
+        var(--hd-clinical-scroll-inset, 0px) + var(--hd-clinical-rail-col, 0px)
+    );
   }
 }
 

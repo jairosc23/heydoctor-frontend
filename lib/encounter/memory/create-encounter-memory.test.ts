@@ -34,4 +34,21 @@ describe("Encounter Memory SSOT (P0 minimal)", () => {
     assert.deepEqual(next.activeProblems, ["HTA"]);
     assert.equal(next.dictationBufferRef?.draftLength, 12);
   });
+
+  it("returns the same snapshot when the patch does not change content", () => {
+    const m = createEmptyEncounterMemory({
+      consultationId: "c1",
+      patientId: "p1",
+    });
+    const first = applyEncounterMemoryPatch(m, {
+      encounterStatus: "in_progress",
+      activeProblems: ["HTA"],
+    });
+    const second = applyEncounterMemoryPatch(first, {
+      encounterStatus: "in_progress",
+      activeProblems: ["HTA"],
+    });
+    assert.equal(second, first);
+    assert.equal(second.updatedAt, first.updatedAt);
+  });
 });

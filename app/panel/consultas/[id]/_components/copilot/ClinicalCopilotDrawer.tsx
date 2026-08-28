@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useDoctorDna } from "@/hooks/useDoctorDna";
 import { EMPTY_PATIENT_CLINICAL_MEMORY } from "@/hooks/usePatientClinicalMemory";
 import { buildClinicalMemoryView } from "@/lib/clinical-memory";
@@ -347,6 +347,11 @@ export function ClinicalCopilotDrawer({
   const [activeSection, setActiveSection] =
     useState<HeyDoctorCopilotSectionId>(HEYDOCTOR_COPILOT_DEFAULT_SECTION);
 
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
   useEffect(() => {
     if (!open) {
       clinicalWorkspaceKernel.dismiss("copilot");
@@ -357,14 +362,14 @@ export function ClinicalCopilotDrawer({
       id: "copilot",
       kind: "drawer",
       blocking: true,
-      onDismiss: onClose,
+      onDismiss: () => onCloseRef.current(),
       backdropAriaLabel: HEYDOCTOR_COPILOT_COPY.close,
       backdropClassName: COPILOT_BACKDROP_CLASS,
     });
     return () => {
       clinicalWorkspaceKernel.dismiss("copilot");
     };
-  }, [open, onClose]);
+  }, [open]);
 
   useEffect(() => {
     if (!open || activeSection !== "continuity") return;
