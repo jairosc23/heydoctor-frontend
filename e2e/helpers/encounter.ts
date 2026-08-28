@@ -30,6 +30,16 @@ export async function gotoConsultation(
   await expect(chrome.or(layout).first()).toBeVisible({ timeout: 60_000 });
 }
 
+/**
+ * Cierra el Clinical Module Sheet con el control oficial del producto
+ * (`aria-label="Cerrar panel"`). No usa Escape, force ni DOM.
+ */
+export async function closeClinicalModuleSheet(page: Page): Promise<void> {
+  const sheet = page.getByTestId("clinical-module-sheet");
+  await sheet.getByRole("button", { name: "Cerrar panel" }).click();
+  await expect(sheet).toBeHidden();
+}
+
 /** Trazo manuscrito mínimo en SignatureCanvas (`hasContent`). No confirma ni firma. */
 export async function drawSignature(page: Page): Promise<void> {
   const canvas = page.locator("canvas").first();

@@ -11,6 +11,7 @@ import { HEYDOCTOR_COPILOT_BRAND } from "../lib/brand/heydoctor-copilot";
 import { CLINICAL_OVERLAY_Z } from "../lib/clinical-overlay-contract";
 import { getConsultationId } from "./helpers/env";
 import {
+  closeClinicalModuleSheet,
   drawSignature,
   gotoConsultation,
   visibleEncounterSection,
@@ -203,6 +204,7 @@ test.describe("Clinical P0 — workspace oficial (Action WS + Smart WS ON)", () 
       await createLab.click();
     }
 
+    await closeClinicalModuleSheet(page);
     await visibleEncounterSection(page, "encounter-section-20").scrollIntoViewIfNeeded();
     await drawSignature(page);
     await page.getByRole("button", { name: /firmar consulta/i }).click();
