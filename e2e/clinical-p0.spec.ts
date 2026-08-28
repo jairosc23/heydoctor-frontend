@@ -174,9 +174,13 @@ test.describe("Clinical P0 — workspace oficial (Action WS + Smart WS ON)", () 
       await page.getByRole("button", { name: /confirmar|firmar/i }).click();
     }
 
-    await expect(page.getByText(/firmada|signed/i)).toBeVisible({
+    await expect(page.getByTestId("encounter-signed-confirmation")).toBeVisible({
       timeout: 30_000,
     });
+    await expect(page.getByTestId("encounter-signed-confirmation")).toHaveAttribute(
+      "role",
+      "status",
+    );
 
     // Bloque de cierre médico legal visible
     await expect(page.getByTestId("encounter-closure-section")).toBeVisible();
@@ -208,9 +212,13 @@ test.describe("Clinical P0 — workspace oficial (Action WS + Smart WS ON)", () 
     await visibleEncounterSection(page, "encounter-section-20").scrollIntoViewIfNeeded();
     await drawSignature(page);
     await page.getByRole("button", { name: /firmar consulta/i }).click();
-    await expect(page.getByText(/firmada|signed/i)).toBeVisible({
+    await expect(page.getByTestId("encounter-signed-confirmation")).toBeVisible({
       timeout: 30_000,
     });
+    await expect(page.getByTestId("encounter-signed-confirmation")).toHaveAttribute(
+      "role",
+      "status",
+    );
   });
 
   test("P0-3 Consulta aguda — SOAP → documento → cierre", async ({
@@ -239,9 +247,13 @@ test.describe("Clinical P0 — workspace oficial (Action WS + Smart WS ON)", () 
 
     await visibleEncounterSection(page, "encounter-section-20").scrollIntoViewIfNeeded();
     await page.getByRole("button", { name: /firmar consulta/i }).click();
-    await expect(page.getByText(/firmada|signed/i)).toBeVisible({
+    await expect(page.getByTestId("encounter-signed-confirmation")).toBeVisible({
       timeout: 30_000,
     });
+    await expect(page.getByTestId("encounter-signed-confirmation")).toHaveAttribute(
+      "role",
+      "status",
+    );
 
     await page.getByTestId("clinical-action-bar").getByRole("button", {
       name: /documentos/i,
@@ -256,7 +268,11 @@ test.describe("Clinical P0 — workspace oficial (Action WS + Smart WS ON)", () 
     await gotoConsultation(page, consultationId!);
 
     // Debe estar signed antes de pagar (canPay ambiguo en completed — validar signed)
-    await expect(page.getByText(/firmada|signed/i)).toBeVisible();
+    await expect(page.getByTestId("encounter-signed-confirmation")).toBeVisible();
+    await expect(page.getByTestId("encounter-signed-confirmation")).toHaveAttribute(
+      "role",
+      "status",
+    );
 
     const payButton = page.getByRole("button", { name: /pagar|pago/i });
     await expect(payButton).toBeVisible();
