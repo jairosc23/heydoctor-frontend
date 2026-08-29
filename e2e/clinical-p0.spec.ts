@@ -7,7 +7,6 @@
  * En CI / E2E_STRICT faltan UUIDs → error explícito (no skip silencioso).
  */
 import { test, expect, configureP0Suite } from "./fixtures/p0";
-import { HEYDOCTOR_COPILOT_BRAND } from "../lib/brand/heydoctor-copilot";
 import { CLINICAL_OVERLAY_Z } from "../lib/clinical-overlay-contract";
 import { getConsultationId } from "./helpers/env";
 import {
@@ -241,9 +240,7 @@ test.describe("Clinical P0 — workspace oficial (Action WS + Smart WS ON)", () 
     // UC-01 abre el hub al hidratar el encounter. Contrato: afirmar, no click.
     const copilotHub = page.getByTestId("heydoctor-copilot-workspace");
     await expect(copilotHub).toBeVisible({ timeout: 15_000 });
-    await expect(
-      copilotHub.getByText(HEYDOCTOR_COPILOT_BRAND.productName),
-    ).toBeVisible();
+    await expect(copilotHub.getByTestId("heydoctor-copilot-hero")).toBeVisible();
 
     await page.keyboard.press("Escape");
 
