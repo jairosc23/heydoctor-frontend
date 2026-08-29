@@ -238,10 +238,11 @@ test.describe("Clinical P0 — workspace oficial (Action WS + Smart WS ON)", () 
       timeout: 20_000,
     });
 
-    // Copilot hub accesible
-    await page.getByRole("button", { name: /copilot|análisis clínico/i }).click();
+    // UC-01 abre el hub al hidratar el encounter. Contrato: afirmar, no click.
+    const copilotHub = page.getByTestId("heydoctor-copilot-workspace");
+    await expect(copilotHub).toBeVisible({ timeout: 15_000 });
     await expect(
-      page.getByText(HEYDOCTOR_COPILOT_BRAND.productName),
+      copilotHub.getByText(HEYDOCTOR_COPILOT_BRAND.productName),
     ).toBeVisible();
 
     await page.keyboard.press("Escape");
