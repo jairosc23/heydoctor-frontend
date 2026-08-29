@@ -274,7 +274,7 @@ test.describe("Clinical P0 — workspace oficial (Action WS + Smart WS ON)", () 
       "status",
     );
 
-    const payButton = page.getByRole("button", { name: /pagar|pago/i });
+    const payButton = page.getByTestId("encounter-pay-trigger");
     await expect(payButton).toBeVisible();
     await payButton.click();
 
