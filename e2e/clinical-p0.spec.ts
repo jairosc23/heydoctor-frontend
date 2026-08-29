@@ -245,6 +245,7 @@ test.describe("Clinical P0 — workspace oficial (Action WS + Smart WS ON)", () 
     await page.keyboard.press("Escape");
 
     await visibleEncounterSection(page, "encounter-section-20").scrollIntoViewIfNeeded();
+    await drawSignature(page);
     await page.getByRole("button", { name: /firmar consulta/i }).click();
     await expect(page.getByTestId("encounter-signed-confirmation")).toBeVisible({
       timeout: 30_000,
