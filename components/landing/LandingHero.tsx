@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import Container from "@/components/ui/Container";
+import Button from "@/components/ui/Button";
 import { WhatsappIcon } from "@/components/WhatsappIcon";
 import {
   LANDING_HERO_DOCTOR_HEIGHT,
@@ -42,36 +42,29 @@ export function LandingHero({ whatsAppUrl }: LandingHeroProps) {
               Médico online en menos de 1 minuto
             </h1>
 
-            <p
-              className="mb-3 text-lg font-semibold text-primary sm:text-xl"
-              style={{ fontFamily: FONT_HEADING }}
-            >
-              Atención médica online, sin esperas
-            </p>
-
             <p className="mb-6 max-w-lg text-base leading-7 text-gray-700">
               Videollamada segura desde el navegador. Atención profesional cuando
               la necesitas, sin colas ni trámites eternos.
             </p>
 
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-              <a
+              <Button
                 href={primaryHref}
+                variant="primary"
+                className="gap-2.5"
                 {...(primaryExternal
                   ? { target: "_blank", rel: "noopener noreferrer" }
                   : {})}
-                className="inline-flex min-h-[48px] items-center justify-center gap-2.5 rounded-full bg-[#25D366] px-7 text-base font-semibold text-white no-underline shadow-[0_4px_12px_rgba(37,211,102,0.18)] transition-colors duration-200 hover:bg-[#20BD5A] focus:outline-none focus:ring-2 focus:ring-[#25D366] focus:ring-offset-2"
               >
                 <WhatsappIcon size={20} />
                 Consulta por WhatsApp
-              </a>
-
-              <Link
-                href="/login"
-                className="inline-flex min-h-[48px] items-center justify-center rounded-full border border-primary bg-white px-7 text-base font-semibold text-primary no-underline transition-colors duration-200 hover:bg-primaryLight/40 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-              >
+              </Button>
+              <Button href="/medicos" variant="secondary">
+                Buscar médico
+              </Button>
+              <Button href="/for-doctors/apply" variant="secondary">
                 Soy médico
-              </Link>
+              </Button>
             </div>
           </div>
 

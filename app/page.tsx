@@ -139,10 +139,11 @@ export default function LandingPage() {
   const whatsAppUrl = getWhatsAppBookingUrl();
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-white font-sans text-gray-900">
+    <div className="min-h-screen overflow-x-hidden bg-hd-surface-chrome font-sans text-primaryDark">
       <GrowthLandingVisitBeacon />
       <LandingNav />
 
+      <main id="contenido-principal" tabIndex={-1} className="outline-none">
       <LandingHero whatsAppUrl={whatsAppUrl} />
 
       {/* ── ACCESO RÁPIDO (CTA guest + WhatsApp + QR) ── */}
@@ -230,6 +231,9 @@ export default function LandingPage() {
               <div className="flex flex-col gap-3">
                 <Button href="/demo/interactive" variant="primary" className="w-full">
                   Ver Demo Interactiva
+                </Button>
+                <Button href="/medicos" variant="secondary" className="w-full bg-white">
+                  Buscar médico y reservar
                 </Button>
                 <Button href="/consultar" variant="secondary" className="w-full bg-white">
                   Explorar Marketplace
@@ -500,6 +504,7 @@ export default function LandingPage() {
         </Container>
       </section>
 
+      </main>
       {/* ── FOOTER ── */}
       <LandingFooter whatsAppUrl={whatsAppUrl} />
     </div>

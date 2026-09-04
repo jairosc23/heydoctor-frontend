@@ -4,6 +4,11 @@ import {
   type JwtPayloadClaims,
 } from "@/lib/auth/jwt-utils";
 import { getSafePostLoginPath } from "@/lib/auth/safe-redirect";
+import {
+  adminRouteRedirect,
+  patientStaffSurfaceRedirect,
+  staffPatientSurfaceRedirect,
+} from "@/lib/auth/staff-route-access";
 import { buildCspWithNonce } from "@/lib/csp-nonce";
 
 const SESSION_COOKIE = "heydoctor_session";
@@ -57,6 +62,8 @@ const PROTECTED_PATHS = [
   "/dashboard",
   "/panel",
   "/portal",
+  "/cierre",
+  "/organizacion",
   "/consultas",
   "/patients",
   "/payment-success",
@@ -175,32 +182,30 @@ export function middleware(request: NextRequest) {
 
   const role = hasSession ? sessionRole(sessionCookie) : null;
 
-  // EPIC-2: keep patient sessions out of Staff UI surfaces (APIs already RBAC).
-  if (
-    hasSession &&
-    role === "patient" &&
-    (pathname.startsWith("/panel") ||
-      pathname === "/dashboard" ||
-      pathname.startsWith("/dashboard/"))
-  ) {
-    return applySecurityHeaders(
-      NextResponse.redirect(new URL("/portal", request.url)),
-      csp,
-    );
-  }
+  if (hasSession) {
+    const patientRedirect = patientStaffSurfaceRedirect(pathname, role);
+    if (patientRedirect) {
+      return applySecurityHeaders(
+        NextResponse.redirect(new URL(patientRedirect, request.url)),
+        csp,
+      );
+    }
 
-  // Staff must not use Patient Portal app routes (register remains public).
-  if (
-    hasSession &&
-    role &&
-    role !== "patient" &&
-    pathname.startsWith("/portal") &&
-    !pathname.startsWith("/portal/register")
-  ) {
-    return applySecurityHeaders(
-      NextResponse.redirect(new URL("/panel", request.url)),
-      csp,
-    );
+    const adminRedirect = adminRouteRedirect(pathname, role);
+    if (adminRedirect) {
+      return applySecurityHeaders(
+        NextResponse.redirect(new URL(adminRedirect, request.url)),
+        csp,
+      );
+    }
+
+    const staffRedirect = staffPatientSurfaceRedirect(pathname, role);
+    if (staffRedirect) {
+      return applySecurityHeaders(
+        NextResponse.redirect(new URL(staffRedirect, request.url)),
+        csp,
+      );
+    }
   }
 
   // GA-FIX BUG-1: preserve ?redirect= deep-links (e.g. medical-copilot).

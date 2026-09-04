@@ -12,6 +12,12 @@ import { useConsultationPrice } from "@/lib/hooks/useConsultationPrice";
 import { fetchPublicDoctors } from "@/lib/services/doctor-profiles";
 import Container from "@/components/ui/Container";
 import Button from "@/components/ui/Button";
+import {
+  HdEmptyState,
+  HdErrorState,
+  HdSkeleton,
+  HdSkipLink,
+} from "@/components/ui/HdFeedback";
 import Input from "@/components/ui/Input";
 
 const FONT_HEADING = "Montserrat, sans-serif";
@@ -98,6 +104,7 @@ export function ConsultarClient({
 
   return (
     <div className="min-h-screen bg-hd-surface-base pb-[env(safe-area-inset-bottom)]">
+      <HdSkipLink />
       <header className="border-b border-hd-border-subtle bg-hd-surface-chrome">
         <Container className="flex h-14 items-center justify-between sm:h-16">
           <Link href="/" className="no-underline">
@@ -105,9 +112,16 @@ export function ConsultarClient({
           </Link>
           <div className="flex items-center gap-2">
             <Button
+              href="/medicos"
+              variant="secondary"
+              className="hidden h-9 min-h-9 px-4 text-sm sm:inline-flex"
+            >
+              Reservar hora
+            </Button>
+            <Button
               href="/consulta-rapida"
               variant="primary"
-              className={`hidden h-9 min-h-9 px-4 text-sm sm:inline-flex ${CTA_PRIMARY}`}
+              className={`h-9 min-h-9 px-3 text-sm sm:px-4 ${CTA_PRIMARY}`}
             >
               Consulta rápida
             </Button>
@@ -122,7 +136,7 @@ export function ConsultarClient({
         </Container>
       </header>
 
-      <main>
+      <main id="contenido-principal" tabIndex={-1} className="outline-none">
         {/* Above-the-fold marketplace hero */}
         <section className="border-b border-hd-border-subtle bg-white">
           <Container className="max-w-5xl py-6 sm:py-8">
@@ -141,8 +155,11 @@ export function ConsultarClient({
                   Encuentra tu médico y reserva online
                 </h1>
                 <p className="mt-2 text-sm leading-relaxed text-primaryDark/70 sm:text-base">
-                  Explora especialidades y perfiles públicos. Sin plan PRO para
-                  descubrir médicos.
+                  Habla con un médico ahora o{" "}
+                  <Link href="/medicos" className="font-semibold text-primary">
+                    reserva una hora
+                  </Link>{" "}
+                  con disponibilidad pública.
                 </p>
                 <p className="mt-3 text-sm text-primaryDark">
                   <span className="font-semibold text-primaryMid">
@@ -194,31 +211,23 @@ export function ConsultarClient({
         </section>
 
         <Container className="max-w-5xl py-6 sm:py-8">
-          {loading ? (
-            <p className="text-sm text-primaryDark/60">Cargando médicos…</p>
-          ) : null}
+          {loading ? <HdSkeleton rows={3} /> : null}
 
           {loadError ? (
-            <div
-              role="alert"
-              className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950"
-            >
+            <HdErrorState>
               No pudimos cargar el listado ahora. Puedes intentar de nuevo o ir a{" "}
               <Link href="/consulta-rapida" className="font-semibold text-primary">
                 consulta rápida
               </Link>
               .
-            </div>
+            </HdErrorState>
           ) : null}
 
           {!loading && !loadError && filtered.length === 0 ? (
-            <div className="rounded-lg border border-hd-border-subtle bg-white px-4 py-8 text-center">
-              <p className="text-sm font-semibold text-primaryDark">
-                No hay médicos con ese filtro
-              </p>
-              <p className="mt-1 text-sm text-primaryDark/60">
-                Prueba otra especialidad o limpia la búsqueda.
-              </p>
+            <HdEmptyState
+              title="No hay médicos con ese filtro"
+              description="Prueba otra especialidad o limpia la búsqueda."
+            >
               <Button
                 type="button"
                 variant="secondary"
@@ -230,7 +239,7 @@ export function ConsultarClient({
               >
                 Limpiar filtros
               </Button>
-            </div>
+            </HdEmptyState>
           ) : null}
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
