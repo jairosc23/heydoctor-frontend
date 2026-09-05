@@ -109,6 +109,7 @@ export function buildCspWithNonce(
   addConnectList(connect, process.env.NEXT_PUBLIC_TURN_URLS);
   addConnectList(connect, process.env.WEBRTC_STUN_URLS);
 
+  connect.add("https://api.stripe.com");
   connect.add("stun:");
   connect.add("stuns:");
   connect.add("turn:");
@@ -119,8 +120,8 @@ export function buildCspWithNonce(
   }
 
   const scriptSrc = isProd
-    ? `'self' 'nonce-${nonce}' 'strict-dynamic' https://vercel.live https://va.vercel-scripts.com`
-    : `'self' 'nonce-${nonce}' 'unsafe-inline' 'unsafe-eval' https://vercel.live https://va.vercel-scripts.com`;
+    ? `'self' 'nonce-${nonce}' 'strict-dynamic' https://js.stripe.com https://vercel.live https://va.vercel-scripts.com`
+    : `'self' 'nonce-${nonce}' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://vercel.live https://va.vercel-scripts.com`;
 
   const directives = [
     "default-src 'self'",
@@ -134,7 +135,7 @@ export function buildCspWithNonce(
     "media-src 'self' blob:",
     "worker-src 'self' blob:",
     `connect-src ${Array.from(connect).join(" ")}`,
-    "frame-src 'self' https://vercel.live https://*.payku.cl",
+    "frame-src 'self' https://vercel.live https://js.stripe.com https://checkout.stripe.com https://hooks.stripe.com",
     "form-action 'self'",
     "manifest-src 'self'",
   ];
