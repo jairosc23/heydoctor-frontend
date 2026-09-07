@@ -18,6 +18,7 @@ import {
   getMe,
   ensureMiddlewareSessionForSsr,
   clearMiddlewareSession,
+  type AuthMfaPendingLoginResult,
 } from "@/lib/services/auth";
 import {
   refreshAccessToken,
@@ -68,7 +69,11 @@ function isUnauthorizedError(e: unknown): boolean {
     return true;
   }
   const msg =
-    e instanceof Error ? e.message : typeof e === "string" ? e : String(e ?? "");
+    e instanceof Error
+      ? e.message
+      : typeof e === "string"
+        ? e
+        : String(e ?? "");
   return msg.includes("401");
 }
 
@@ -77,7 +82,11 @@ type AuthContextValue = {
   isAuthenticated: boolean;
   loading: boolean;
   sessionRevalidating: boolean;
-  login: (email: string, password: string) => Promise<AuthUser>;
+  login: (
+    email: string,
+    password: string,
+  ) => Promise<AuthMfaPendingLoginResult | AuthUser>;
+  finishMfaLogin: () => Promise<AuthUser>;
   logout: () => Promise<void>;
   /** Recarga perfil: refresh por cookies y GET /auth/me. */
   refreshUser: () => Promise<void>;
@@ -153,18 +162,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return undefined;
   }, [sessionRevalidating, handleOverlayRecovery]);
 
-  const clearSession = useCallback(
-    async (options?: { expected?: boolean }) => {
-      if (!options?.expected) {
-        emitUnexpectedLogoutIfNeeded({ phase: "clear_session" });
-      }
-      setUser(null);
-      setAccessToken(null);
-      authBootstrappedRef.current = false;
-      await clearMiddlewareSession();
-    },
-    [],
-  );
+  const clearSession = useCallback(async (options?: { expected?: boolean }) => {
+    if (!options?.expected) {
+      emitUnexpectedLogoutIfNeeded({ phase: "clear_session" });
+    }
+    setUser(null);
+    setAccessToken(null);
+    authBootstrappedRef.current = false;
+    await clearMiddlewareSession();
+  }, []);
 
   const logout = useCallback(async () => {
     bumpSessionGen();
@@ -226,10 +232,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           );
           if (!refreshed) {
             if (!mounted || hydrationAbort.signal.aborted) return;
-            logAuth.warn("bootstrap refresh returned false; clearing local session", {
-              phase: "bootstrap",
-              step: "refresh",
-            });
+            logAuth.warn(
+              "bootstrap refresh returned false; clearing local session",
+              {
+                phase: "bootstrap",
+                step: "refresh",
+              },
+            );
             await clearSession({ expected: true });
             return;
           }
@@ -261,7 +270,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             AUTH_REQUEST_TIMEOUT_MS,
             "auth-bootstrap-getMe",
           );
-          if (!mounted || sessionGen() !== genAtStart || hydrationAbort.signal.aborted) {
+          if (
+            !mounted ||
+            sessionGen() !== genAtStart ||
+            hydrationAbort.signal.aborted
+          ) {
             return;
           }
           setUser(me);
@@ -408,37 +421,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [user, pathname]);
 
-  const login = useCallback(async (email: string, password: string) => {
+  const hydrateAuthenticatedUser = useCallback(async () => {
+    const me = await getMe({ skipRefreshRetry: true });
+    await ensureMiddlewareSessionForSsr();
+    authBootstrappedRef.current = true;
+    setUser(me);
+    setLoading(false);
+    return me;
+  }, []);
+
+  const finishMfaLogin = useCallback(async () => {
     return withTimeout(
-      (async () => {
-        bumpSessionGen();
-        try {
-          await loginRequest(email, password);
-          await new Promise((res) => setTimeout(res, 150));
-        } catch (e) {
-          await clearMiddlewareSession();
-          throw e;
-        }
-        try {
-          const me = await getMe({ skipRefreshRetry: true });
-          await ensureMiddlewareSessionForSsr();
-          authBootstrappedRef.current = true;
-          setUser(me);
-          setLoading(false);
-          return me;
-        } catch (e) {
-          await clearMiddlewareSession();
-          setAccessToken(null);
-          const detail = e instanceof Error ? e.message : String(e);
-          throw new Error(
-            `Inicio de sesión correcto, pero falló cargar el perfil (GET /api/auth/me): ${detail}`,
-          );
-        }
-      })(),
+      hydrateAuthenticatedUser(),
       AUTH_HYDRATION_MAX_MS,
-      "login-transaction",
+      "mfa-login-transaction",
     );
-  }, [bumpSessionGen]);
+  }, [hydrateAuthenticatedUser]);
+
+  const login = useCallback(
+    async (email: string, password: string) => {
+      return withTimeout(
+        (async () => {
+          bumpSessionGen();
+          let outcome;
+          try {
+            outcome = await loginRequest(email, password);
+            await new Promise((res) => setTimeout(res, 150));
+          } catch (e) {
+            await clearMiddlewareSession();
+            throw e;
+          }
+          if (outcome.kind === "mfa_pending") {
+            return outcome;
+          }
+          try {
+            return await hydrateAuthenticatedUser();
+          } catch (e) {
+            await clearMiddlewareSession();
+            setAccessToken(null);
+            const detail = e instanceof Error ? e.message : String(e);
+            throw new Error(
+              `Inicio de sesión correcto, pero falló cargar el perfil (GET /api/auth/me): ${detail}`,
+            );
+          }
+        })(),
+        AUTH_HYDRATION_MAX_MS,
+        "login-transaction",
+      );
+    },
+    [bumpSessionGen, hydrateAuthenticatedUser],
+  );
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -447,10 +479,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       sessionRevalidating,
       login,
+      finishMfaLogin,
       logout,
       refreshUser,
     }),
-    [user, loading, sessionRevalidating, login, logout, refreshUser],
+    [
+      user,
+      loading,
+      sessionRevalidating,
+      login,
+      finishMfaLogin,
+      logout,
+      refreshUser,
+    ],
   );
 
   return (

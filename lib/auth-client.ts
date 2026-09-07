@@ -31,10 +31,12 @@ import {
 import { apiFetch as fetchWithIncludedCredentials } from "./api-fetch-include";
 import { getLogger } from "./logger";
 
+import { getAccessToken, setAccessToken } from "./auth-access-memory";
+import { parseAuthLoginPayload, type AuthLoginOutcome } from "./auth-mfa";
 import {
-  getAccessToken,
-  setAccessToken,
-} from "./auth-access-memory";
+  clearMfaPendingState,
+  setMfaPendingState,
+} from "./auth-mfa-pending-memory";
 
 export { getAccessToken, setAccessToken };
 export { FetchTimeoutError };
@@ -136,9 +138,7 @@ function getTabId(): string {
   }
 }
 
-function broadcastAuthMessage(
-  type: "logout" | "token-refreshed",
-): void {
+function broadcastAuthMessage(type: "logout" | "token-refreshed"): void {
   if (typeof BroadcastChannel === "undefined") return;
   try {
     const ch = new BroadcastChannel(AUTH_TAB_CHANNEL);
@@ -163,7 +163,10 @@ export function consumeLastRefreshAborted(): boolean {
 }
 
 function attachMultiTabAuthSync(): void {
-  if (typeof window === "undefined" || typeof BroadcastChannel === "undefined") {
+  if (
+    typeof window === "undefined" ||
+    typeof BroadcastChannel === "undefined"
+  ) {
     return;
   }
   const ch = new BroadcastChannel(AUTH_TAB_CHANNEL);
@@ -404,19 +407,15 @@ export async function ensureAccessToken(): Promise<boolean> {
   return refreshAccessToken();
 }
 
-export interface AuthLoginResult {
-  user: {
-    id: string;
-    email: string;
-    name: string;
-    role?: string;
-  };
-}
+export type AuthLoginResult = AuthLoginOutcome;
 
 function normalizeBackendMessage(field: unknown): string | undefined {
   if (field == null) return undefined;
   if (Array.isArray(field)) {
-    return field.map((x) => String(x)).filter(Boolean).join(", ");
+    return field
+      .map((x) => String(x))
+      .filter(Boolean)
+      .join(", ");
   }
   if (typeof field === "string") return field;
   return String(field);
@@ -467,8 +466,7 @@ export async function authLogin(
     });
   } catch (cause) {
     emitAuthTelemetry("login_fail", { status: 0, network: true });
-    const detail =
-      cause instanceof Error ? cause.message : String(cause);
+    const detail = cause instanceof Error ? cause.message : String(cause);
     const isTimeout = cause instanceof FetchTimeoutError;
     throw new Error(
       isTimeout
@@ -510,42 +508,36 @@ export async function authLogin(
     throw new Error(msg);
   }
 
-  applyCsrfFromPayload(data);
+  let parsed;
+  try {
+    parsed = parseAuthLoginPayload(data);
+  } catch (err) {
+    emitAuthTelemetry("login_fail", {
+      status: res.status,
+      reason: "invalid_payload",
+    });
+    throw err;
+  }
 
-  const accessFromBody = data.access_token;
-  if (typeof accessFromBody === "string" && accessFromBody.trim()) {
-    setAccessToken(accessFromBody.trim());
-  } else {
+  if (parsed.outcome.kind === "mfa_pending") {
     setAccessToken(null);
+    setMfaPendingState({
+      token: parsed.pendingToken ?? "",
+      mfaEnrolled: parsed.outcome.mfaEnrolled,
+      user: parsed.outcome.user,
+    });
+    _lastHardRefreshFailAt = 0;
+    return parsed.outcome;
   }
 
-  const u = (data.user ?? null) as Record<string, unknown> | null;
-  if (!u || typeof u !== "object") {
-    emitAuthTelemetry("login_fail", { status: res.status, reason: "no_user" });
-    throw new Error("Respuesta de login inválida: falta user");
-  }
-
-  const fromNames = [u.firstName, u.lastName].filter(Boolean).join(" ").trim();
-  const fallback = fromNames || (u.email as string) || "";
-  const name = (u.name as string) ?? fallback;
-
-  const userId = String(u.id ?? "");
-  if (!userId) {
-    emitAuthTelemetry("login_fail", { status: res.status, reason: "no_user_id" });
-    throw new Error("Respuesta de login inválida: falta user");
-  }
+  applyCsrfFromPayload(data);
+  setAccessToken(parsed.accessToken);
+  clearMfaPendingState();
 
   _lastHardRefreshFailAt = 0;
-  emitAuthTelemetry("login_success", { userId });
+  emitAuthTelemetry("login_success", { userId: parsed.outcome.user.id });
 
-  return {
-    user: {
-      id: userId,
-      email: (u.email as string) ?? "",
-      name,
-      role: u.role as string | undefined,
-    },
-  };
+  return parsed.outcome;
 }
 
 export type AuthLogoutOptions = {
@@ -577,6 +569,7 @@ export async function authLogout(options?: AuthLogoutOptions): Promise<void> {
   // Staff channel only — Guest store is isolated (ARCH-REM-01 logout isolation).
   setAccessToken(null);
   setApiCsrfToken(null);
+  clearMfaPendingState();
   _lastHardRefreshFailAt = 0;
   await clearFirstPartySessionCookie();
 }

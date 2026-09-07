@@ -45,6 +45,13 @@ export const SENSITIVE_KEY_NAMES = new Set([
   "api_key",
   "apikey",
   "x-api-key",
+  "mfa_pending_token",
+  "mfapendingtoken",
+  "otpauthuri",
+  "otpauth",
+  "backupcodes",
+  "backup_codes",
+  "totp",
 ]);
 
 type SanitizeState = {

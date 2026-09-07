@@ -16,6 +16,7 @@ import {
   FirstPartySessionError,
   setFirstPartySessionFromAccessToken,
 } from "../first-party-session-cookie";
+import type { AuthLoginOutcome, AuthMfaPendingLoginResult } from "../auth-mfa";
 
 export type AuthUser = {
   id: string;
@@ -38,7 +39,11 @@ export type LoginResult = {
   user: LoginResultUser;
 };
 
-export async function syncMiddlewareSession(accessToken: string): Promise<void> {
+export type { AuthLoginOutcome, AuthMfaPendingLoginResult };
+
+export async function syncMiddlewareSession(
+  accessToken: string,
+): Promise<void> {
   await setFirstPartySessionFromAccessToken(accessToken);
 }
 
@@ -76,9 +81,8 @@ export async function clearMiddlewareSession(): Promise<void> {
 export async function login(
   email: string,
   password: string,
-): Promise<LoginResult> {
-  const result = await authLoginClient(email, password);
-  return { user: result.user };
+): Promise<AuthLoginOutcome> {
+  return authLoginClient(email, password);
 }
 
 export async function logout(): Promise<void> {

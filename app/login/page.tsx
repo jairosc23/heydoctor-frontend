@@ -9,16 +9,23 @@ import { BrandLogo } from "@/components/branding";
 import Card from "@/components/ui/Card";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
+import { MfaChallenge } from "@/components/auth/MfaChallenge";
 
 function LoginContent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [mfaEnrolled, setMfaEnrolled] = useState<boolean | null>(null);
   const searchParams = useSearchParams();
-  const { login } = useAuth();
+  const { login, finishMfaLogin } = useAuth();
 
   const rawRedirect = searchParams.get("redirect");
+
+  function redirectAuthenticated(role?: string) {
+    const redirect = getSafePostLoginPath(rawRedirect, role);
+    window.location.assign(redirect);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -32,10 +39,13 @@ function LoginContent() {
     setLoading(true);
 
     try {
-      const me = await login(email.trim(), password);
-      const redirect = getSafePostLoginPath(rawRedirect, me.role);
-      /** Navegación completa: el middleware SSR debe recibir `heydoctor_session` (no solo RSC client). */
-      window.location.assign(redirect);
+      const result = await login(email.trim(), password);
+      if ("kind" in result) {
+        setMfaEnrolled(result.mfaEnrolled);
+        setPassword("");
+        return;
+      }
+      redirectAuthenticated(result.role);
     } catch (err) {
       const msg =
         err instanceof Error ? err.message : "Error desconocido al iniciar sesión.";
@@ -83,6 +93,8 @@ function LoginContent() {
         >
           Acceso HeyDoctor
         </h2>
+        {mfaEnrolled === null ? (
+          <>
         <p className="mb-4 text-sm text-primaryDark/70">
           Médicos y pacientes — el destino se elige según tu rol.
         </p>
@@ -144,6 +156,20 @@ function LoginContent() {
             Registrarse
           </Link>
         </p>
+          </>
+        ) : (
+          <MfaChallenge
+            enrolled={mfaEnrolled}
+            onAuthenticated={async () => {
+              const me = await finishMfaLogin();
+              redirectAuthenticated(me.role);
+            }}
+            onCancel={() => {
+              setMfaEnrolled(null);
+              setError("");
+            }}
+          />
+        )}
       </Card>
     </div>
   );
