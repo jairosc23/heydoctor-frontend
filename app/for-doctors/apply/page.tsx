@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { Suspense, useLayoutEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { GlobalAddressFields } from "@/components/global-address";
 import { BrandLogo } from "@/components/branding";
 import Container from "@/components/ui/Container";
@@ -13,6 +14,11 @@ import {
   getCountryLabel,
   type AddressSelection,
 } from "@/lib/global-address-engine";
+import {
+  canSubmitDoctorApplication,
+  resolveDoctorApplyInviteToken,
+  stripDoctorApplyInviteFromUrl,
+} from "@/lib/doctor-apply-clinic";
 import { submitDoctorApplication } from "@/lib/services/doctor-applications";
 
 const FONT_HEADING = "Montserrat, sans-serif";
@@ -42,7 +48,11 @@ function countryPayloadLabel(code: string): string {
   return getCountryLabel(code, "es") || code;
 }
 
-export default function DoctorApplyPage() {
+function DoctorApplyContent() {
+  const searchParams = useSearchParams();
+  const [inviteToken] = useState(() =>
+    resolveDoctorApplyInviteToken(searchParams),
+  );
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [specialty, setSpecialty] = useState("");
@@ -54,12 +64,23 @@ export default function DoctorApplyPage() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
 
+  useLayoutEffect(() => {
+    stripDoctorApplyInviteFromUrl();
+  }, []);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!canSubmitDoctorApplication(inviteToken) || !inviteToken) {
+      setError(
+        "No se puede enviar la solicitud sin un enlace de clínica válido.",
+      );
+      return;
+    }
     setSubmitting(true);
     setError("");
     try {
       await submitDoctorApplication({
+        inviteToken,
         name: name.trim(),
         email: email.trim(),
         specialty,
@@ -72,6 +93,34 @@ export default function DoctorApplyPage() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (!canSubmitDoctorApplication(inviteToken)) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-hd-surface-base px-4 py-12">
+        <Card className="w-full max-w-md text-center shadow-premium">
+          <BrandLogo markOnly markSize={72} priority className="mx-auto mb-6" />
+          <h1
+            className="mb-3 text-[28px] font-bold text-primary"
+            style={{ fontFamily: FONT_HEADING }}
+          >
+            Enlace no válido
+          </h1>
+          <p className="mb-6 text-base leading-relaxed text-primaryDark/70">
+            Esta solicitud requiere un enlace de invitación de tu clínica. Si
+            llegaste aquí desde un enlace antiguo o incompleto, pide uno nuevo a
+            la clínica.
+          </p>
+          <Button
+            href="/"
+            variant="primary"
+            className={`w-full min-h-12 ${CTA_PRIMARY}`}
+          >
+            Volver al inicio
+          </Button>
+        </Card>
+      </div>
+    );
   }
 
   if (success) {
@@ -89,10 +138,15 @@ export default function DoctorApplyPage() {
             Solicitud enviada
           </h1>
           <p className="mb-6 text-base leading-relaxed text-primaryDark/70">
-            Gracias por tu interés en unirte a HeyDoctor. Revisaremos tu solicitud
-            y te contactaremos por correo electrónico en las próximas 48 horas.
+            Gracias por tu interés en unirte a HeyDoctor. Revisaremos tu
+            solicitud y te contactaremos por correo electrónico en las próximas
+            48 horas.
           </p>
-          <Button href="/" variant="primary" className={`w-full min-h-12 ${CTA_PRIMARY}`}>
+          <Button
+            href="/"
+            variant="primary"
+            className={`w-full min-h-12 ${CTA_PRIMARY}`}
+          >
             Volver al inicio
           </Button>
         </Card>
@@ -196,7 +250,10 @@ export default function DoctorApplyPage() {
                 }}
               />
 
-              <Field label="URL de licencia médica (opcional)" htmlFor="apply-license">
+              <Field
+                label="URL de licencia médica (opcional)"
+                htmlFor="apply-license"
+              >
                 <Input
                   id="apply-license"
                   type="url"
@@ -227,11 +284,17 @@ export default function DoctorApplyPage() {
 
           <p className="mt-6 text-center text-[13px] text-primaryDark/60">
             Al enviar tu solicitud aceptas nuestros{" "}
-            <Link href="/terms" className="font-semibold text-primary hover:underline">
+            <Link
+              href="/terms"
+              className="font-semibold text-primary hover:underline"
+            >
               Términos
             </Link>{" "}
             y{" "}
-            <Link href="/privacy" className="font-semibold text-primary hover:underline">
+            <Link
+              href="/privacy"
+              className="font-semibold text-primary hover:underline"
+            >
               Política de Privacidad
             </Link>
             .
@@ -239,6 +302,18 @@ export default function DoctorApplyPage() {
         </Container>
       </main>
     </div>
+  );
+}
+
+export default function DoctorApplyPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-hd-surface-base" aria-busy="true" />
+      }
+    >
+      <DoctorApplyContent />
+    </Suspense>
   );
 }
 
