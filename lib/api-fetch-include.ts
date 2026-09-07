@@ -18,6 +18,17 @@ function isAuthRefreshRequest(input: RequestInfo | URL): boolean {
   return /\b\/auth\/refresh\b/i.test(String(s));
 }
 
+/** Enroll/verify MFA: el Bearer debe ser el JWT `mfa_pending`, no el access token. */
+function isAuthMfaRequest(input: RequestInfo | URL): boolean {
+  const s =
+    typeof input === "string"
+      ? input
+      : input instanceof URL
+        ? `${input.pathname}${input.search}`
+        : "";
+  return /\b\/auth\/mfa\b/i.test(String(s));
+}
+
 export async function apiFetch(
   input: RequestInfo | URL,
   init: RequestInit = {},
@@ -35,7 +46,7 @@ export async function apiFetch(
   }
   const headers = new Headers(init.headers ?? undefined);
   const bearer = getAccessToken();
-  if (bearer && !isAuthRefreshRequest(input)) {
+  if (bearer && !isAuthRefreshRequest(input) && !isAuthMfaRequest(input)) {
     headers.set("Authorization", `Bearer ${bearer}`);
   }
   return fetch(input, {

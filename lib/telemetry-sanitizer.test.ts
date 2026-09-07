@@ -160,3 +160,18 @@ test("sanitizeTelemetryValue enforces global node budget on wide trees", () => {
   );
   assert.ok(elapsed < 1_000, `expected budget stop, took ${elapsed}ms`);
 });
+
+test("sanitizeTelemetryValue redacts MFA pending secrets", () => {
+  const out = sanitizeTelemetryValue({
+    mfa_pending_token: "pending.jwt.token",
+    otpauthUri: "otpauth://totp/HeyDoctor:a?secret=ABC",
+    backupCodes: ["deadbeef"],
+    totp: "123456",
+    pathname: "/login",
+  }) as Record<string, unknown>;
+  assert.equal(out.pathname, "/login");
+  assert.equal(out.mfa_pending_token, TELEMETRY_REDACTED);
+  assert.equal(out.otpauthUri, TELEMETRY_REDACTED);
+  assert.equal(out.backupCodes, TELEMETRY_REDACTED);
+  assert.equal(out.totp, TELEMETRY_REDACTED);
+});

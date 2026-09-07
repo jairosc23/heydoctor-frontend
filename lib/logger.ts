@@ -79,6 +79,11 @@ const SECRET_KEYS = new Set([
   "secret",
   "csrf",
   "x-csrf-token",
+  "mfa_pending_token",
+  "otpauthuri",
+  "otpauth",
+  "backupcodes",
+  "totp",
 ]);
 
 function redactValue(v: unknown): unknown {
