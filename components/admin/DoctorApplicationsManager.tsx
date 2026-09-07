@@ -4,8 +4,10 @@ import React, { useEffect, useState, useCallback } from "react";
 import {
   fetchDoctorApplications,
   reviewDoctorApplication,
+  createDoctorApplicationInvite,
   type DoctorApplication,
 } from "@/lib/services/doctor-applications";
+import { buildDoctorApplyInvitePath } from "@/lib/doctor-apply-clinic";
 
 const STATUS_CLASS: Record<string, string> = {
   pending: "bg-primaryMid text-white",
@@ -26,6 +28,9 @@ export default function DoctorApplicationsManager() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("");
   const [reviewingId, setReviewingId] = useState<string | null>(null);
+  const [inviteBusy, setInviteBusy] = useState(false);
+  const [inviteCopied, setInviteCopied] = useState(false);
+  const [inviteError, setInviteError] = useState("");
 
   const load = useCallback(async () => {
     try {
@@ -41,6 +46,22 @@ export default function DoctorApplicationsManager() {
   useEffect(() => {
     load();
   }, [load]);
+
+  async function handleCopyInvite() {
+    setInviteBusy(true);
+    setInviteError("");
+    setInviteCopied(false);
+    try {
+      const { inviteToken } = await createDoctorApplicationInvite();
+      const url = `${window.location.origin}${buildDoctorApplyInvitePath(inviteToken)}`;
+      await navigator.clipboard.writeText(url);
+      setInviteCopied(true);
+    } catch {
+      setInviteError("No se pudo copiar el enlace. Inténtalo de nuevo.");
+    } finally {
+      setInviteBusy(false);
+    }
+  }
 
   async function handleReview(id: string, decision: "approved" | "rejected") {
     setReviewingId(id);
@@ -65,17 +86,37 @@ export default function DoctorApplicationsManager() {
         >
           Solicitudes de Médicos
         </h3>
-        <select
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          className="rounded-lg border border-hd-border-subtle px-3 py-1.5 text-[13px] text-primaryDark outline-none focus:border-primary focus:ring-2 focus:ring-primaryLight"
-        >
-          <option value="">Todas</option>
-          <option value="pending">Pendientes</option>
-          <option value="approved">Aprobadas</option>
-          <option value="rejected">Rechazadas</option>
-        </select>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={handleCopyInvite}
+            disabled={inviteBusy}
+            className="rounded-lg border-0 bg-primary px-3.5 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+          >
+            {inviteBusy
+              ? "Generando..."
+              : inviteCopied
+                ? "Enlace copiado"
+                : "Copiar enlace de invitación"}
+          </button>
+          <select
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="rounded-lg border border-hd-border-subtle px-3 py-1.5 text-[13px] text-primaryDark outline-none focus:border-primary focus:ring-2 focus:ring-primaryLight"
+          >
+            <option value="">Todas</option>
+            <option value="pending">Pendientes</option>
+            <option value="approved">Aprobadas</option>
+            <option value="rejected">Rechazadas</option>
+          </select>
+        </div>
       </div>
+
+      {inviteError ? (
+        <p className="mb-3 text-sm text-red-600" role="alert">
+          {inviteError}
+        </p>
+      ) : null}
 
       {loading ? (
         <p className="text-sm text-primaryDark/70">Cargando...</p>

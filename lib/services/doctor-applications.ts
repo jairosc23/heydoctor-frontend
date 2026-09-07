@@ -1,6 +1,7 @@
 import { heydoctorApi } from "../heydoctor-api";
 
 export interface DoctorApplicationDto {
+  inviteToken: string;
   name: string;
   email: string;
   specialty: string;
@@ -23,7 +24,7 @@ export interface DoctorApplication {
 }
 
 export async function submitDoctorApplication(
-  dto: DoctorApplicationDto
+  dto: DoctorApplicationDto,
 ): Promise<DoctorApplication> {
   return heydoctorApi.post<DoctorApplication>("/doctor-applications", dto, {
     requireAuth: false,
@@ -31,19 +32,29 @@ export async function submitDoctorApplication(
 }
 
 export async function fetchDoctorApplications(
-  status?: string
+  status?: string,
 ): Promise<DoctorApplication[]> {
   const q = status ? `?status=${status}` : "";
   return heydoctorApi.get<DoctorApplication[]>(`/doctor-applications${q}`);
 }
 
+export async function createDoctorApplicationInvite(): Promise<{
+  inviteToken: string;
+  expiresAt: string;
+}> {
+  return heydoctorApi.post("/doctor-applications/invite", {});
+}
+
 export async function reviewDoctorApplication(
   id: string,
   decision: "approved" | "rejected",
-  rejectionReason?: string
+  rejectionReason?: string,
 ): Promise<DoctorApplication> {
-  return heydoctorApi.patch<DoctorApplication>(`/doctor-applications/${id}/review`, {
-    status: decision,
-    rejectionReason,
-  });
+  return heydoctorApi.patch<DoctorApplication>(
+    `/doctor-applications/${id}/review`,
+    {
+      status: decision,
+      rejectionReason,
+    },
+  );
 }
