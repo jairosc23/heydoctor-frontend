@@ -1,8 +1,8 @@
 # HeyDoctor — HIPAA Risk Register
 
-Version 0.2 | 2026-09-07 | DRAFT — all risks OPEN
+Version 0.4 | 2026-09-07 | DRAFT — all risks OPEN
 
-Method, evidence definitions and inventory: [risk analysis](hipaa-risk-analysis.md). Execution and closure workflow: [risk management plan](hipaa-risk-management-plan.md). Proposed role owners below are **not appointed individuals**: named owner and acceptance OPEN for every risk. No control is credited as production-verified. Each entry's current residual remains its initial score until evidence is reviewed. Target residual is conditional, not an accepted result; initial impact is retained and only likelihood is provisionally reduced pending effectiveness evidence. No exploitation is asserted. In each owner entry, the first role is the single proposed accountable role; following roles support delivery or review. MFA remains **NOT ACTIVATED**; deployment assertions reflect session reports only, not live attestation.
+Method, evidence definitions and inventory: [risk analysis](hipaa-risk-analysis.md). Execution and closure workflow: [risk management plan](hipaa-risk-management-plan.md). Proposed role owners below are **not appointed individuals**: named owner and acceptance OPEN for every risk. No control is credited as production-verified. Each entry's current residual remains its initial score until evidence is reviewed. Target residual is conditional, not an accepted result; initial impact is retained and only likelihood is provisionally reduced pending effectiveness evidence. No exploitation is asserted. In each owner entry, the first role is the single proposed accountable role; following roles support delivery or review. Original MFA checkpoint was **NOT ACTIVATED**; see the 2026-09-08 follow-up before inferring current state; deployment assertions reflect session reports only, not live attestation.
 
 ## Summary
 
@@ -94,10 +94,10 @@ Method, evidence definitions and inventory: [risk analysis](hipaa-risk-analysis.
 - Threat: Ransomware, deletion or outage causes unrecoverable records or prolonged care disruption.
 - Vulnerability / uncertainty: Backup coverage, isolation, restore integrity, RPO/RTO and availability of decryption keys unknown.
 - Impact dimension: I/A. Likelihood 3, impact 5, score 15; rationale: Loss or corruption of clinical storage can interrupt care and recovery.
-- Control state: OPEN; no restore evidence.
+- Control state: OPEN; no backup, PITR, encryption or restore capability verified. [BR-01](hipaa-backup-restore-control.md) is draft documentation only, not an implemented control.
 - Mitigation: Approve clinical RPO/RTO; verify isolated/immutable recovery copies as appropriate; restore DB/files and dependencies in isolation; test reconciliation and emergency operations.
 - Proposed accountable / delivery owner: Platform lead / clinical owner. Named assignment OPEN.
-- Evidence / closure requirement: Require backup success history, retention/access config, timestamped restore exercise, measured RPO/RTO, integrity checks and key-recovery test. Artifact location, collector, date and reviewer OPEN unless E01–E06 explicitly provides limited session evidence.
+- Evidence / closure requirement: BR-E01–BR-E10 in [BR-01](hipaa-backup-restore-control.md), all OPEN; separately authorized drill required. Require backup success history, retention/access config, timestamped restore exercise, measured RPO/RTO, integrity checks and key-recovery test. Artifact location, collector, date and reviewer OPEN unless E01–E06 explicitly provides limited session evidence.
 - Current residual: 15 High, provisional; no verified production reduction. Target residual: 2×5=10 Medium, subject to witnessed effectiveness and acceptance.
 - Status: OPEN. Work item R06; due gate and timing in the management plan. Last assessed 2026-09-07; next review and acceptance date OPEN.
 
@@ -237,3 +237,7 @@ Names identify session references or candidate service categories, not a confirm
 | GitHub, CI, support/ticketing and developer tools | Privileged deployment path; ePHI only if logs, fixtures or attachments contain it | Repos verified; ePHI presence not verified | Prove no-ePHI boundary or include actual processing/agreements; review privileged access either way | OPEN |
 
 For each actual processor add: vendor owner, contract owner, service/account ID (non-secret), ePHI categories, purpose, destination/region, subprocessors, signed-document reference, security assessment date, incident contact, retention/deletion terms and next review. Vendor removal from scope requires recorded evidence, not a blank row.
+
+## Backup/PITR evidence follow-up — 2026-09-08
+
+See [read-only infrastructure and source evidence](hipaa-backup-restore-evidence.md), BR-O01–BR-O09. Production service-to-DB configuration and volume metadata are partially verified; backup/PITR, encryption, retention/access and target readiness remain OPEN. Versioned backup/restore scripts have documented drill blockers. R06 remains 15 High, target 10 Medium; no operational risk is closed. This follow-up continues BR-01 and does not authorize execution. Earlier MFA non-deployment statements describe the original checkpoint: later user-reported accidental deployment supersedes that historical assumption; current runtime and successful activation remain unverified here.

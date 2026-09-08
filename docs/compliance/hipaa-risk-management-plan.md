@@ -1,6 +1,6 @@
 # HeyDoctor — HIPAA Risk Management Plan
 
-Version 0.2 | 2026-09-07 | DRAFT — proposed actions only
+Version 0.4 | 2026-09-07 | DRAFT — proposed actions only
 
 Related documents: [analysis](hipaa-risk-analysis.md), [register](hipaa-risk-register.md). No action below authorizes a deployment, migration, environment change, production test, vendor data transfer or architecture redesign. These require separate authorization. This task creates documentation only. No HIPAA compliance, BAA, encryption or operational evidence is asserted.
 
@@ -31,7 +31,7 @@ All entries remain OPEN. Register IDs are stable work-item IDs until linked to t
 
 ## 3. MFA controlled-activation gate — R01, R05, R06, R12
 
-This is a planning dependency, not an instruction to execute. Approved BE baseline is 47918208c126d1222309e0330c7d1363205f2dc6; FE baseline is 0c67a8f96ebe8f0c90616013506735b39bbf9736. **MFA remains NOT ACTIVATED.** Deployment state is recorded from session reports, not live attestation; source tests and a repository push are insufficient for closure.
+This is a planning dependency, not an instruction to execute. Approved BE baseline is 47918208c126d1222309e0330c7d1363205f2dc6; FE baseline is 0c67a8f96ebe8f0c90616013506735b39bbf9736. **Original MFA checkpoint: NOT ACTIVATED; current state requires re-attestation as described in the 2026-09-08 follow-up.** Deployment state is recorded from session reports, not live attestation; source tests and a repository push are insufficient for closure.
 
 1. Authorize a change window; validate immutable artifacts, actual enforcement configuration, compatibility and operator recovery independent of staff login. Provision MFA_TOTP_SECRET_KEY using the approved BE format and secure storage; preserve the same durable key across instances. Never place its value in this repository or evidence captures.
 2. Verify DB backup and approved restoration plan; run the approved additive migration 1757800000000-CreateUserMfaFactors once only under separate authorization. Record migration/version evidence.
@@ -51,6 +51,8 @@ Use synthetic ePHI wherever possible. If a production observation is necessary, 
 - **Protection/recovery package (R05/R06/R10/R11):** resource-specific storage and transport coverage, device controls, isolated restore with measured data loss/recovery duration, referential/document integrity and key availability. Vendor claims or green backup jobs alone do not establish a successful restore.
 - **Response/continuity package (R07/R15):** tabletop credential theft, possible data disclosure and ransomware/outage; capture detection, containment authorization, clinical continuity, evidence preservation, vendor contacts and notification decisions. Privacy/legal determines applicable recipients and deadlines; this foundation does not invent a uniform notification deadline.
 - **Inventory/integrity package (R13/R14):** reconcile data locations and retention with actual exports/backups/AI stores; test existing provenance and clinical approval behavior without changing contracts.
+
+Backup/recovery procedure for R06: [BR-01 backup and restore control](hipaa-backup-restore-control.md). Proposed core RPO ≤15 minutes and RTO ≤4 hours require clinical/security approval; no backup or PITR capability is verified. Evidence BR-E01–BR-E10 and a separately authorized isolated drill are required. R06 remains OPEN, 15 High; the existing T0+14-day gate is unchanged. This addition is draft pending review and does not change the MFA activation state.
 
 ## 5. Evidence, closure and residual acceptance
 
@@ -77,3 +79,7 @@ Review the register quarterly and the complete analysis annually, and immediatel
 Decision: **documentation-only final consistency review complete; ready to version as a draft, not ready for a positive production HIPAA assurance or activation decision.** Documentation approval does not authorize operational changes.
 
 Reference: HIPAA risk management addresses identified risks through safeguards and documented decisions; the framework and requirements must be assessed for the actual entity and systems. [HHS Security Rule summary](https://www.hhs.gov/hipaa/for-professionals/security/laws-regulations/index.html). Cloud assurance and BAA determinations must address actual ePHI handling. [HHS cloud guidance](https://www.hhs.gov/hipaa/for-professionals/special-topics/health-information-technology/cloud-computing/index.html).
+
+## Backup/PITR evidence follow-up — 2026-09-08
+
+See [read-only infrastructure and source evidence](hipaa-backup-restore-evidence.md), BR-O01–BR-O09. Production service-to-DB configuration and volume metadata are partially verified; backup/PITR, encryption, retention/access and target readiness remain OPEN. Versioned backup/restore scripts have documented drill blockers. R06 remains 15 High, target 10 Medium; no operational risk is closed. This follow-up continues BR-01 and does not authorize execution. Earlier MFA non-deployment statements describe the original checkpoint: later user-reported accidental deployment supersedes that historical assumption; current runtime and successful activation remain unverified here.

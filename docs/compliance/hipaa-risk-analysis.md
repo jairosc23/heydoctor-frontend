@@ -1,6 +1,6 @@
 # HeyDoctor — HIPAA Risk Analysis
 
-Version: 0.2 | Assessment date: 2026-09-07 | Status: DRAFT — READY FOR HUMAN REVIEW, NOT APPROVED
+Version: 0.4 | Assessment date: 2026-09-07 | Status: DRAFT — READY FOR HUMAN REVIEW, NOT APPROVED
 
 Accountable reviewer: proposed Security Officer; named appointment and acceptance OPEN. Privacy/legal applicability review OPEN. This is a documentation foundation, not a completed enterprise risk analysis, operational certification, or a claim of HIPAA compliance. No production, vendor-account, environment, or database inspection was performed for this assessment. No deployment, migration, configuration change, commit or push is authorized by this document.
 
@@ -48,9 +48,11 @@ Inventory completion must identify each environment, region, account, system own
 | E05 | Earlier MFA patch review reported 0 Critical/High findings; pending JWT held in RAM; local QR generation; redaction keys observed | Narrow source review, not penetration testing, whole-system assurance or audit certification |
 | E06 | This three-document foundation | Documentation created and documentation-only consistency review completed; named ownership, human approval and operational verification OPEN |
 
-Current MFA state: **NOT ACTIVATED**. BE and FE are recorded as VERSIONED — NOT DEPLOYED according to the session release/activation context, not a production inspection; no activation was executed here. A repository push does not establish the actual deployed FE version; live deployment attestation remains OPEN. Pending/session separation, TOTP, backup codes and factor encryption logic are source evidence, not proof of deployed protection. MFA key provisioning, migration execution and enrollment remain OPEN. Other observed session, role, audit and sanitizer controls are VERSIONED — DEPLOYMENT OPEN. DB, backup and device encryption are OPEN, regardless of MFA factor encryption code.
+Original 2026-09-07 MFA checkpoint: **NOT ACTIVATED**; superseded as a live-state assertion by the 2026-09-08 evidence follow-up. BE and FE are recorded as VERSIONED — NOT DEPLOYED according to the session release/activation context, not a production inspection; no activation was executed here. A repository push does not establish the actual deployed FE version; live deployment attestation remains OPEN. Pending/session separation, TOTP, backup codes and factor encryption logic are source evidence, not proof of deployed protection. MFA key provisioning, migration execution and enrollment remain OPEN. Other observed session, role, audit and sanitizer controls are VERSIONED — DEPLOYMENT OPEN. DB, backup and device encryption are OPEN, regardless of MFA factor encryption code.
 
 Evidence needed for closure must carry artifact ID, controlled location, collector, collection date, environment, commit/image/configuration version, test method, result, reviewer and expiry/revalidation trigger. Store sensitive artifacts in a restricted evidence repository; link only redacted references here. All absent artifact locations are OPEN. The register is authoritative for per-risk evidence requirements.
+
+Backup/recovery detail for A04/A08 and R06: [BR-01 backup and restore control](hipaa-backup-restore-control.md), draft pending review. Scope, proposed RPO/RTO, responsibilities, evidence and drill gates are documented; actual backup/PITR/encryption/restore capabilities remain OPEN. No operational control or risk score is changed by this addition.
 
 ## 4. Scoring method
 
@@ -77,3 +79,7 @@ For cloud services handling ePHI, determine the entity's role and applicable BAA
 Proposed review cadence: quarterly register review, annual full reassessment, and immediate review after incidents, major changes, new vendors/data flows or failed control tests. These are internal proposed intervals. Retain required Security Rule documentation for six years from creation or last effective date, whichever is later; this is distinct from clinical-record retention. Privacy/legal must approve the retention schedule. Source: HHS Security Rule summary linked above. No proposed regulatory amendment is treated as an effective requirement in this foundation.
 
 Approvals: Security Officer OPEN; Privacy/legal OPEN; clinical owner OPEN; platform owner OPEN; executive risk acceptance OPEN. Revision 0.2 records documentation-only review: aligned role accountability, clarified MFA evidence limits and retained initial impact in conditional residual targets. This foundation is ready to version as a draft; organizational approval and operational readiness remain OPEN.
+
+## Backup/PITR evidence follow-up — 2026-09-08
+
+See [read-only infrastructure and source evidence](hipaa-backup-restore-evidence.md), BR-O01–BR-O09. Production service-to-DB configuration and volume metadata are partially verified; backup/PITR, encryption, retention/access and target readiness remain OPEN. Versioned backup/restore scripts have documented drill blockers. R06 remains 15 High, target 10 Medium; no operational risk is closed. This follow-up continues BR-01 and does not authorize execution. Earlier MFA non-deployment statements describe the original checkpoint: later user-reported accidental deployment supersedes that historical assumption; current runtime and successful activation remain unverified here.
