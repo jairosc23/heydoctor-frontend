@@ -50,8 +50,7 @@ export const teleconsultaFullscreenGateShell: React.CSSProperties = {
 };
 
 const gateMutedText = "m-0 text-white/60";
-const gateErrorTitle =
-  "m-0 mb-3 text-xl font-bold text-red-200";
+const gateErrorTitle = "m-0 mb-3 text-xl font-bold text-red-200";
 const gateLink =
   "font-semibold text-primary no-underline hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-primaryDark";
 
@@ -135,9 +134,8 @@ export function TeleconsultaVideoSession({
     () => inviteRouteActive && !!inviteTokenGate?.trim(),
   );
   const [inviteInvalid, setInviteInvalid] = useState(false);
-  const [inviteData, setInviteData] = useState<PublicTeleconsultationInvite | null>(
-    null,
-  );
+  const [inviteData, setInviteData] =
+    useState<PublicTeleconsultationInvite | null>(null);
 
   const [deepLinkLoading, setDeepLinkLoading] = useState(() => !!deepLinkGate);
   const [deepLinkAllowed, setDeepLinkAllowed] = useState(() => !deepLinkGate);
@@ -172,16 +170,8 @@ export function TeleconsultaVideoSession({
       onEndCall();
       return;
     }
-    router.push(
-      effectiveIsGuest ? endCallGuestHref : endCallAuthHref,
-    );
-  }, [
-    onEndCall,
-    router,
-    effectiveIsGuest,
-    endCallGuestHref,
-    endCallAuthHref,
-  ]);
+    router.push(effectiveIsGuest ? endCallGuestHref : endCallAuthHref);
+  }, [onEndCall, router, effectiveIsGuest, endCallGuestHref, endCallAuthHref]);
 
   const [authReady, setAuthReady] = useState(
     () => mode === "guest" || inviteRouteActive,
@@ -405,7 +395,7 @@ export function TeleconsultaVideoSession({
         setConsentBootstrapError(
           e instanceof Error
             ? e.message
-            : "No se pudo comprobar el consentimiento."
+            : "No se pudo comprobar el consentimiento.",
         );
       } finally {
         if (!cancelled) setConsentLoading(false);
@@ -447,9 +437,9 @@ export function TeleconsultaVideoSession({
   const resolvedCallChrome: VideoCallCallChrome = useMemo(
     () => ({
       backHref:
-        callChrome?.backHref ??
-        (effectiveIsGuest ? "/" : "/panel/consultas"),
-      backLabel: callChrome?.backLabel ?? (effectiveIsGuest ? "Salir" : "Volver"),
+        callChrome?.backHref ?? (effectiveIsGuest ? "/" : "/panel/consultas"),
+      backLabel:
+        callChrome?.backLabel ?? (effectiveIsGuest ? "Salir" : "Volver"),
       title:
         callChrome?.title ??
         (effectivePeerName?.trim()
@@ -465,8 +455,7 @@ export function TeleconsultaVideoSession({
     ],
   );
 
-  const effectiveIsDoctor =
-    inviteData != null ? false : isDoctor;
+  const effectiveIsDoctor = inviteData != null ? false : isDoctor;
 
   if (inviteTokenGate !== undefined) {
     if (inviteLoading) {
@@ -479,7 +468,9 @@ export function TeleconsultaVideoSession({
     if (inviteInvalid || !inviteData) {
       return (
         <div style={teleconsultaFullscreenGateShell}>
-          <p className={`w-full px-6 py-6 text-center text-base leading-relaxed ${gateMutedText}`}>
+          <p
+            className={`w-full px-6 py-6 text-center text-base leading-relaxed ${gateMutedText}`}
+          >
             Este enlace ya no es válido o expiró
           </p>
         </div>
@@ -499,7 +490,10 @@ export function TeleconsultaVideoSession({
       return (
         <div style={teleconsultaFullscreenGateShell}>
           <div className="w-full px-6 py-6 text-center">
-            <h2 className={gateErrorTitle} style={{ fontFamily: "Montserrat, sans-serif" }}>
+            <h2
+              className={gateErrorTitle}
+              style={{ fontFamily: "Montserrat, sans-serif" }}
+            >
               Acceso denegado
             </h2>
             <p className={`mb-5 leading-relaxed ${gateMutedText}`}>
@@ -550,7 +544,10 @@ export function TeleconsultaVideoSession({
     return (
       <div style={teleconsultaFullscreenGateShell}>
         <div className="w-full px-6 py-6 text-center">
-          <h2 className={gateErrorTitle} style={{ fontFamily: "Montserrat, sans-serif" }}>
+          <h2
+            className={gateErrorTitle}
+            style={{ fontFamily: "Montserrat, sans-serif" }}
+          >
             Acceso denegado
           </h2>
           <p className={`mb-5 leading-relaxed ${gateMutedText}`}>
@@ -575,9 +572,7 @@ export function TeleconsultaVideoSession({
   if (consentLoading) {
     return (
       <div style={teleconsultaFullscreenGateShell}>
-        <p className={gateMutedText}>
-          Comprobando consentimiento…
-        </p>
+        <p className={gateMutedText}>Comprobando consentimiento…</p>
       </div>
     );
   }
@@ -627,7 +622,7 @@ export function TeleconsultaVideoSession({
             setConsentError(
               e instanceof Error
                 ? e.message
-                : "No se pudo registrar el consentimiento. Inténtalo de nuevo."
+                : "No se pudo registrar el consentimiento. Inténtalo de nuevo.",
             );
           } finally {
             setConsentSubmitting(false);
@@ -654,10 +649,32 @@ export function TeleconsultaVideoSession({
 
   if (effectiveMode === "auth") {
     if (loading) {
-      return null;
+      return (
+        <div style={teleconsultaFullscreenGateShell}>
+          <p className={gateMutedText}>Preparando sesión…</p>
+        </div>
+      );
     }
     if (!user) {
-      return null;
+      return (
+        <div style={teleconsultaFullscreenGateShell}>
+          <div className="w-full px-6 py-6 text-center">
+            <h2
+              className={gateErrorTitle}
+              style={{ fontFamily: "Montserrat, sans-serif" }}
+            >
+              Sesión requerida
+            </h2>
+            <p className={`mb-5 leading-relaxed ${gateMutedText}`}>
+              No hay una sesión activa para esta teleconsulta. Vuelve a entrar
+              desde el portal o inicia sesión.
+            </p>
+            <Link href={deepLinkDeniedLoginHref} className={gateLink}>
+              Ir a login →
+            </Link>
+          </div>
+        </div>
+      );
     }
   }
 

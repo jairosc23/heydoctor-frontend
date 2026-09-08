@@ -12,10 +12,11 @@ import {
 } from "@/lib/webrtc-recording-api";
 import { sendCallMetrics } from "@/lib/send-webrtc-metrics";
 import { ensureAccessToken, getAccessToken } from "@/lib/auth-client";
+import { clearGuestSignalingToken } from "@/lib/guest-signaling-memory";
 import {
-  clearGuestSignalingToken,
-  getGuestSignalingToken,
-} from "@/lib/guest-signaling-memory";
+  guestSignalingAuthForBootstrap,
+  shouldClearGuestTokenOnTeardown,
+} from "@/lib/webrtc-guest-bootstrap";
 import { getLogger } from "@/lib/logger";
 import { logLocalGetUserMediaOk } from "@/lib/video-playback-diagnostics";
 import type { Socket } from "socket.io-client";
@@ -427,7 +428,9 @@ export type UseTelemedicineCallResult = {
   /** Recuperación explícita de cámara (iOS/Safari background). */
   recoverCamera: () => Promise<void>;
   startCall: () => Promise<void>;
-  endCall: () => void;
+  endCall: (options?: {
+    reason?: "start_reset" | "effect_cleanup" | "hangup";
+  }) => void;
   startScreenShare: () => Promise<void>;
   stopScreenShare: () => Promise<void>;
   startRecording: (userConsent: boolean) => Promise<void>;
@@ -1198,60 +1201,65 @@ export function useTelemedicineCall(
     ],
   );
 
-  const endCall = useCallback(() => {
-    detachMonitor();
-    reconnectingIceRef.current = false;
-    videoSuspendedByPolicyRef.current = false;
-    roomPeerCountRef.current = 1;
-    try {
-      screenShareTrackRef.current?.stop();
-    } catch {
-      /* ignore */
-    }
-    screenShareTrackRef.current = null;
-    setScreenSharing(false);
-    capturedVideoTrackRef.current = null;
-    metricsSamplesRef.current = 0;
-    poorNetworkStreakRef.current = 0;
-    goodNetworkStreakRef.current = 0;
-    lastQualityInputsRef.current = null;
-    iceConnectionStateRef.current = null;
-    lastIceRestartAtMsRef.current = null;
-    setConnectionQuality(null);
-    setVideoSuspendedForNetwork(false);
-    try {
-      pcRef.current?.getSenders().forEach((s) => s.track?.stop());
-      pcRef.current?.close();
-    } catch {
-      /* ignore */
-    }
-    pcRef.current = null;
-    remoteStreamRef.current = null;
-    setRemoteStream(null);
+  const endCall = useCallback(
+    (options?: { reason?: "start_reset" | "effect_cleanup" | "hangup" }) => {
+      detachMonitor();
+      reconnectingIceRef.current = false;
+      videoSuspendedByPolicyRef.current = false;
+      roomPeerCountRef.current = 1;
+      try {
+        screenShareTrackRef.current?.stop();
+      } catch {
+        /* ignore */
+      }
+      screenShareTrackRef.current = null;
+      setScreenSharing(false);
+      capturedVideoTrackRef.current = null;
+      metricsSamplesRef.current = 0;
+      poorNetworkStreakRef.current = 0;
+      goodNetworkStreakRef.current = 0;
+      lastQualityInputsRef.current = null;
+      iceConnectionStateRef.current = null;
+      lastIceRestartAtMsRef.current = null;
+      setConnectionQuality(null);
+      setVideoSuspendedForNetwork(false);
+      try {
+        pcRef.current?.getSenders().forEach((s) => s.track?.stop());
+        pcRef.current?.close();
+      } catch {
+        /* ignore */
+      }
+      pcRef.current = null;
+      remoteStreamRef.current = null;
+      setRemoteStream(null);
 
-    const sock = socketRef.current;
-    if (sock?.connected) {
-      sock.emit("leave", { consultationId });
-    }
-    if (ownSocketRef.current && sock) {
-      sock.disconnect();
-    }
-    socketRef.current = null;
-    ownSocketRef.current = false;
-    joinConsultationEmitAtMsRef.current = null;
+      const sock = socketRef.current;
+      if (sock?.connected) {
+        sock.emit("leave", { consultationId });
+      }
+      if (ownSocketRef.current && sock) {
+        sock.disconnect();
+      }
+      socketRef.current = null;
+      ownSocketRef.current = false;
+      joinConsultationEmitAtMsRef.current = null;
 
-    setLocalStream((prev) => {
-      prev?.getTracks().forEach((t) => t.stop());
-      return null;
-    });
-    setConnectionState(null);
-    setIceConnectionState(null);
-    setVideoTier(0);
-    videoTierRef.current = 0;
-    if (guestCall) {
-      clearGuestSignalingToken();
-    }
-  }, [consultationId, detachMonitor, guestCall]);
+      setLocalStream((prev) => {
+        prev?.getTracks().forEach((t) => t.stop());
+        return null;
+      });
+      setConnectionState(null);
+      setIceConnectionState(null);
+      setVideoTier(0);
+      videoTierRef.current = 0;
+      if (
+        shouldClearGuestTokenOnTeardown(guestCall, options?.reason ?? "hangup")
+      ) {
+        clearGuestSignalingToken();
+      }
+    },
+    [consultationId, detachMonitor, guestCall],
+  );
 
   const stopScreenShare = useCallback(async () => {
     const st = screenShareTrackRef.current;
@@ -1345,7 +1353,7 @@ export function useTelemedicineCall(
   );
 
   const startCall = useCallback(async () => {
-    endCall();
+    endCall({ reason: "start_reset" });
     remoteIdRef.current = null;
     roomPeerCountRef.current = 1;
     iceRestartCountRef.current = 0;
@@ -1366,9 +1374,14 @@ export function useTelemedicineCall(
       const origin = backendOrigin.replace(/\/$/, "");
       // ARCH-REM-01: Guest channel never sends Staff cookies; Staff unchanged.
       if (guestCall) {
-        const guestToken = getGuestSignalingToken()?.trim();
-        if (!guestToken) {
-          const msg = "Enlace de invitado inválido o expirado.";
+        let guestAuth: ReturnType<typeof guestSignalingAuthForBootstrap>;
+        try {
+          guestAuth = guestSignalingAuthForBootstrap();
+        } catch (err) {
+          const msg =
+            err instanceof Error
+              ? err.message
+              : "Enlace de invitado inválido o expirado.";
           onError?.(msg);
           throw new Error(msg);
         }
@@ -1377,7 +1390,7 @@ export function useTelemedicineCall(
           transports: ["websocket", "polling"],
           withCredentials: false,
           autoConnect: true,
-          auth: { channel: "guest", token: guestToken },
+          auth: guestAuth,
         });
       } else {
         const mem = getAccessToken()?.trim();
@@ -1703,7 +1716,7 @@ export function useTelemedicineCall(
     } catch (e) {
       const msg = humanizeCallError(e);
       onError?.(msg);
-      endCall();
+      endCall({ reason: "start_reset" });
       throw new Error(msg);
     }
   }, [
@@ -1757,7 +1770,7 @@ export function useTelemedicineCall(
     };
   }, [runIceRestart, recoverCamera]);
 
-  useEffect(() => () => endCall(), [endCall]);
+  useEffect(() => () => endCall({ reason: "effect_cleanup" }), [endCall]);
 
   return {
     localStream,
