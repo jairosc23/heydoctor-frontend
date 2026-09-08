@@ -24,7 +24,7 @@ Read-only metadata outputs were reviewed in-session; the table is a sanitized tr
 
 - **Backup verified: NO.** Workflow code and a persistent volume are verified; a successful job, backup ID/object, freshness, completeness and decryptability are not.
 - **PITR verified: NO.** No enablement, base-backup chain, archive-health or earliest/latest recoverable timestamp evidence obtained. No recovery was attempted.
-- **Encryption verified: NO.** The image name contains ssl, but negotiated transport and storage protection were not tested. The uploader requests ServerSideEncryption=AES256; it does not inspect returned encryption metadata. This is intent, not evidence of actual object, DB, volume or key protection.
+- **Encryption verified: NO.** The image name contains ssl, but negotiated transport and storage protection were not tested. The versioned uploader at fc4b252c requests ServerSideEncryption=AES256; it does not inspect returned encryption metadata. This is intent, not evidence of actual object, DB, volume or key protection.
 - **Retention/access verified: NO.** Code says 30 days; destination lifecycle/object lock, pagination-complete deletion, IAM/owner/delegate reviews, contracts and actual retention window are OPEN.
 - **RPO/RTO:** proposed 15-minute core RPO / 4-hour RTO unchanged; approval and measurement OPEN. A daily dump alone cannot establish a 15-minute RPO; completion and scheduling delays can make its exposure longer than a day. No restore timing evidence exists.
 - **Restore target ready: NO.** Staging existence does not prove an empty isolated destination, capacity, access, encryption, BAA coverage or blocked side effects. No target has been approved or provisioned.
@@ -37,7 +37,7 @@ Read-only metadata outputs were reviewed in-session; the table is a sanitized tr
 4. **Retention evidence:** cleanup lists a single object page and treats cleanup exceptions as warnings. A successful backup job therefore cannot prove complete 30-day retention enforcement. Writer/deleter credential permissions and isolation remain OPEN.
 5. **TLS and integrity limits:** backup accepts an existing sslmode without enforcing a verified policy; blindly adding `?sslmode=require` can mishandle a URL with existing query parameters. Gzip integrity and head-object existence do not prove SQL completeness, restored integrity or encryption. Full stderr can include sensitive diagnostics; review safe evidence handling before executing.
 
-No scripts were modified or run. These are concrete observations within existing R06/R05/R12/R13 treatment, not new risk IDs. Owner: proposed Platform lead with Security and BE/data reviewers; named owner OPEN. Require an approved provider-specific method or separate code remediation, synthetic failure/target-safety tests, then a separately authorized isolated drill. R06 stays 15 High, conditional residual target 10 Medium; all 16 operational risks remain OPEN.
+At the initial checkpoint no scripts were modified or run. The local remediation follow-up below supersedes that work status. These are concrete observations within existing R06/R05/R12/R13 treatment, not new risk IDs. Owner: proposed Platform lead with Security and BE/data reviewers; named owner OPEN. Require an approved provider-specific method or separate code remediation, synthetic failure/target-safety tests, then a separately authorized isolated drill. R06 stays 15 High, conditional residual target 10 Medium; all 16 operational risks remain OPEN.
 
 ## Provider documentation — capability, not HeyDoctor attestation
 
@@ -54,3 +54,22 @@ Map BR-E01 to BR-O01–BR-O06 as PARTIAL only. BR-E02–BR-E10 remain OPEN. Obta
 Release baseline caution: earlier documents recorded MFA as not deployed. A later user checkpoint reported Production BE fc4b252c containing MFA with staff login failure. Its eventual correction/current runtime was not verified in this backup review. Use the actual source/schema/key manifest at drill approval; neither a pre-MFA release nor successful MFA activation can be assumed. No MFA state was changed here.
 
 READY RESTORE DRILL REVIEW: NO for an executable drill; YES only for review of these evidence gaps. No restore, backup trigger, env change, deploy or Production write occurred.
+
+## Local remediation follow-up — checkpoint 88ee8acb
+
+Status: local uncommitted changes only; no push, deployment, real backup or restore. Backend fixes are isolated in the workspace `work/backup-fixes`, based on fc4b252cf6cda8d3e05fe2cb02c45127f4d0ec0f. They do not modify the application or MFA. Frontend compliance checkpoint remains 88ee8acb92886dc94f008b5826d5b59e70649c48.
+
+| Gap | Local treatment | Remaining operational evidence |
+|---|---|---|
+| Restore prefix | Exact timestamp filename; download from the writer's postgres-backups/ prefix | Approved actual backup manifest and destination mapping OPEN |
+| SQL error handling | psql -X, ON_ERROR_STOP=1 and single transaction; validate gzip before SQL; generic failure logs, private temporary directory cleaned on exit | Real PostgreSQL import, role/extension compatibility and integrity validation OPEN; transaction is not a sandbox for untrusted dump SQL |
+| Target safety | No DATABASE_URL fallback; explicit acknowledgement, loopback heydoctor_restore_* target without URI query overrides, Production environment refusal, empty relation preflight before download | Loopback can be a tunnel; independently verify no Production routing, dedicated instance, restricted role, disk encryption, capacity, egress/jobs disabled and no concurrent writers. This helper does not provision or attest isolation |
+| Retention | Validate positive days before I/O, paginate all object pages, fail on cleanup errors | Actual retained history, versioned-object expiry/legal holds and delete privileges OPEN. Existing 30-day default preserved; proposed 35-day policy remains unapproved |
+| Backup TLS/object verification | Preserve connection query parameters; require sslmode require/verify-ca/verify-full; check uploaded size and AES256 response metadata | require does not establish server identity; actual negotiated TLS, storage/key protection and provider support OPEN. Unsupported SSE response fails closed; do not infer protection from mocked tests |
+| Sensitive diagnostics | Connection URI passed via libpq environment, raw DB/storage errors withheld, private temporary files cleaned | Host/process access and restricted operational troubleshooting/alerting ownership OPEN |
+
+Verification: 14 offline Python unittest cases with simulated psql, pg_dump, pg_isready, AWS CLI and boto3; no real DB or object-store connection. Coverage includes successful prefix/endpoint selection, SQL failure, nonempty/remote/Production/missing target rejection, URI override rejection, corrupt archive, TLS policy, pagination, invalid retention, missing encryption metadata and deletion failure. Shell syntax and whitespace checks accompany these tests. Passing mocks demonstrate local control flow only, not backup recoverability, encryption or RPO/RTO.
+
+Infrastructure recheck: Railway CLI volume metadata read could not refresh OAuth (Operation not permitted), then returned Unauthorized. No authentication/env change attempted. BR-O01–BR-O06 remain prior collected observations, not refreshed attestation; no backup inventory or newly verified capability was obtained. Authorized infrastructure access is required to collect actual backup IDs, PITR chain/window, encryption/key evidence, retention/IAM and named accountable owner/delegate. Unknown remains OPEN.
+
+Executable drill remains blocked: approved source/target manifest, trusted dump provenance, isolated destination proof, named owner/operator/reviewer, vendor/BAA determination, key access, approved RPO/RTO and explicit restore authorization are all required. Do not run this helper merely because the local tests pass. R06 remains OPEN High 15; conditional residual target Medium 10 unchanged. R05/R12/R13 dependencies remain OPEN. All 16 operational risks remain OPEN (0 Critical / 13 High / 3 Medium).
