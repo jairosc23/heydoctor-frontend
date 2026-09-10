@@ -43,6 +43,11 @@ export type PublicBookingStatus = {
   telemedicineReady: boolean;
   clinicId?: string;
   bookingToken?: string;
+  doctorName?: string | null;
+  doctorSlug?: string | null;
+  specialty?: string | null;
+  documentsAvailable?: boolean;
+  followUpAvailable?: boolean;
 };
 
 export type PublicTelemedicinePrep = {
@@ -75,9 +80,6 @@ async function parseError(res: Response): Promise<string> {
   }
   // Checkout / payment endpoints: never expose provider or HTTP internals.
   if (res.url.includes("/checkout") || res.status >= 500) {
-    if (raw) {
-      console.error("[public-booking]", res.status, raw);
-    }
     return sanitizePaymentApiMessage(raw, res.status);
   }
   if (typeof raw === "string" && raw.trim()) {
@@ -99,12 +101,16 @@ export async function fetchPublicDoctorSlots(
   from: string,
   to: string,
   slotMinutes = 30,
+  care: { patientCountry: string; patientSubdivision?: string },
 ): Promise<PublicSlotsResponse> {
   const qs = new URLSearchParams({
     from,
     to,
     slotMinutes: String(slotMinutes),
+    patientCountry: care.patientCountry.trim().toUpperCase(),
   });
+  const subdivision = care.patientSubdivision?.trim().toUpperCase();
+  if (subdivision) qs.set("patientSubdivision", subdivision);
   const url = `${getApiBase()}/public/doctors/${encodeURIComponent(slug)}/availability/slots?${qs}`;
   let res: Response;
   try {
@@ -136,6 +142,8 @@ export async function createPublicBooking(
     patientTimezone?: string;
     idempotencyKey?: string;
     consentVersion?: string;
+    patientCountry: string;
+    patientSubdivision?: string;
   },
 ): Promise<PublicBookingCreated> {
   const url = `${getApiBase()}/public/doctors/${encodeURIComponent(slug)}/bookings`;

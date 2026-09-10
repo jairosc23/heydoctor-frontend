@@ -50,12 +50,15 @@ export function PublicDoctorBooking({
   const router = useRouter();
   const [slots, setSlots] = useState<PublicAvailabilitySlot[]>([]);
   const [clinicTimezone, setClinicTimezone] = useState("America/Santiago");
-  const [loadingSlots, setLoadingSlots] = useState(true);
+  const [loadingSlots, setLoadingSlots] = useState(false);
   const [selected, setSelected] = useState<PublicAvailabilitySlot | null>(null);
   const [patientName, setPatientName] = useState("");
   const [patientEmail, setPatientEmail] = useState("");
   const [reason, setReason] = useState("");
   const [consent, setConsent] = useState(false);
+  const [patientCountry, setPatientCountry] = useState("");
+  const [patientSubdivision, setPatientSubdivision] = useState("");
+  const [jurisdictionReady, setJurisdictionReady] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -65,7 +68,15 @@ export function PublicDoctorBooking({
     return { from: from.toISOString(), to: to.toISOString() };
   }, []);
 
+  const careCountry = patientCountry.trim().toUpperCase();
+  const careSubdivision = patientSubdivision.trim().toUpperCase();
+
   const loadSlots = useCallback(async () => {
+    if (!/^[A-Z]{2}$/.test(careCountry)) {
+      setSlots([]);
+      setLoadingSlots(false);
+      return;
+    }
     setLoadingSlots(true);
     setError(null);
     try {
@@ -74,6 +85,10 @@ export function PublicDoctorBooking({
         range.from,
         range.to,
         30,
+        {
+          patientCountry: careCountry,
+          patientSubdivision: careSubdivision || undefined,
+        },
       );
       setSlots(res.slots);
       setClinicTimezone(res.clinicTimezone);
@@ -87,11 +102,12 @@ export function PublicDoctorBooking({
     } finally {
       setLoadingSlots(false);
     }
-  }, [doctorSlug, range.from, range.to]);
+  }, [careCountry, careSubdivision, doctorSlug, range.from, range.to]);
 
   useEffect(() => {
+    if (!jurisdictionReady) return;
     void loadSlots();
-  }, [loadSlots]);
+  }, [jurisdictionReady, loadSlots]);
 
   async function onBook() {
     if (!selected) {
@@ -100,6 +116,10 @@ export function PublicDoctorBooking({
     }
     if (!patientName.trim() || !patientEmail.trim()) {
       setError("Nombre y correo son obligatorios.");
+      return;
+    }
+    if (!/^[A-Z]{2}$/.test(careCountry)) {
+      setError("Declara el país de atención (código ISO de 2 letras).");
       return;
     }
     if (!consent) {
@@ -118,6 +138,8 @@ export function PublicDoctorBooking({
         reason: reason.trim() || undefined,
         patientTimezone: clinicTimezone,
         consentVersion: "public-booking-v1",
+        patientCountry: careCountry,
+        patientSubdivision: careSubdivision || undefined,
         idempotencyKey:
           typeof crypto !== "undefined" && "randomUUID" in crypto
             ? crypto.randomUUID()
@@ -164,11 +186,63 @@ export function PublicDoctorBooking({
         Reservar cita con {doctorName}
       </h2>
       <p className="mb-4 text-sm text-primaryDark/60">
-        Elige un horario, completa tus datos y confirma el pago para preparar tu
-        teleconsulta.
+        Declara el país de atención antes de ver horarios. Solo se muestran
+        médicos con licencia verificada en esa jurisdicción.
       </p>
 
-      {loadingSlots ? (
+      <div className="mb-4 grid gap-3 sm:grid-cols-2">
+        <label className="grid gap-1 text-sm">
+          <span className="font-medium text-primaryDark">
+            País de atención (ISO-2)
+          </span>
+          <input
+            className="rounded-lg border border-hd-border-subtle px-3 py-2 uppercase"
+            value={patientCountry}
+            onChange={(e) => {
+              setPatientCountry(e.target.value.toUpperCase());
+              setJurisdictionReady(false);
+              setSlots([]);
+              setSelected(null);
+            }}
+            maxLength={2}
+            placeholder="CL"
+            autoComplete="country"
+          />
+        </label>
+        <label className="grid gap-1 text-sm">
+          <span className="font-medium text-primaryDark">
+            Subdivisión (opcional)
+          </span>
+          <input
+            className="rounded-lg border border-hd-border-subtle px-3 py-2 uppercase"
+            value={patientSubdivision}
+            onChange={(e) => {
+              setPatientSubdivision(e.target.value.toUpperCase());
+              setJurisdictionReady(false);
+              setSlots([]);
+              setSelected(null);
+            }}
+            maxLength={8}
+            placeholder="US-CA"
+          />
+        </label>
+        <div className="sm:col-span-2">
+          <button
+            type="button"
+            className="rounded-lg border border-primary bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+            disabled={!/^[A-Z]{2}$/.test(careCountry)}
+            onClick={() => setJurisdictionReady(true)}
+          >
+            Ver horarios en esta jurisdicción
+          </button>
+        </div>
+      </div>
+
+      {!jurisdictionReady ? (
+        <p className="mb-4 text-sm text-primaryDark/50">
+          Indica el país de atención para cargar disponibilidad.
+        </p>
+      ) : loadingSlots ? (
         <p className="text-sm text-primaryDark/50">Cargando horarios…</p>
       ) : slots.length === 0 ? (
         <p className="text-sm text-primaryDark/50">

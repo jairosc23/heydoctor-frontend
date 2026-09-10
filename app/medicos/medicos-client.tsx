@@ -25,15 +25,23 @@ const FIELD =
 export function MedicosClient({
   initialQuery,
   initialSpecialty,
+  initialCountry,
+  initialSubdivision,
 }: {
   initialQuery: string;
   initialSpecialty: string;
+  initialCountry: string;
+  initialSubdivision: string;
 }) {
   const router = useRouter();
   const [query, setQuery] = useState(initialQuery);
   const [specialty, setSpecialty] = useState(initialSpecialty);
+  const [patientCountry, setPatientCountry] = useState(initialCountry);
+  const [patientSubdivision, setPatientSubdivision] = useState(initialSubdivision);
   const [appliedQuery, setAppliedQuery] = useState(initialQuery);
   const [appliedSpecialty, setAppliedSpecialty] = useState(initialSpecialty);
+  const [appliedCountry, setAppliedCountry] = useState(initialCountry);
+  const [appliedSubdivision, setAppliedSubdivision] = useState(initialSubdivision);
   const [specialties, setSpecialties] = useState<PublicSpecialty[]>([]);
   const [doctors, setDoctors] = useState<PublicAvailabilityDoctor[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,7 +54,30 @@ export function MedicosClient({
     setLoading(true);
     setLoadError(false);
 
-    const filters = { q: appliedQuery, specialty: appliedSpecialty };
+    const country = appliedCountry.trim().toUpperCase();
+    if (!/^[A-Z]{2}$/.test(country)) {
+      fetchPublicSpecialties()
+        .then((specialtyRows) => {
+          if (cancelled) return;
+          setSpecialties(specialtyRows);
+          setDoctors([]);
+          setLoading(false);
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setLoadError(true);
+          setLoading(false);
+        });
+      return () => {
+        cancelled = true;
+      };
+    }
+    const filters = {
+      q: appliedQuery,
+      specialty: appliedSpecialty,
+      patientCountry: country,
+      patientSubdivision: appliedSubdivision.trim().toUpperCase() || undefined,
+    };
     Promise.all([
       fetchPublicSpecialties(),
       fetchPublicDoctorDirectory(filters),
@@ -87,14 +118,25 @@ export function MedicosClient({
     return () => {
       cancelled = true;
     };
-  }, [appliedQuery, appliedSpecialty, windowRange.from, windowRange.to]);
+  }, [appliedQuery, appliedSpecialty, appliedCountry, appliedSubdivision, windowRange.from, windowRange.to]);
 
-  function applyFilters(nextQuery = query, nextSpecialty = specialty) {
+  function applyFilters(
+    nextQuery = query,
+    nextSpecialty = specialty,
+    nextCountry = patientCountry,
+    nextSubdivision = patientSubdivision,
+  ) {
+    const country = nextCountry.trim().toUpperCase();
+    const subdivision = nextSubdivision.trim().toUpperCase();
     setAppliedQuery(nextQuery.trim());
     setAppliedSpecialty(nextSpecialty);
+    setAppliedCountry(country);
+    setAppliedSubdivision(subdivision);
     const params = new URLSearchParams();
     if (nextQuery.trim()) params.set("q", nextQuery.trim());
     if (nextSpecialty) params.set("specialty", nextSpecialty);
+    if (country) params.set("patientCountry", country);
+    if (subdivision) params.set("patientSubdivision", subdivision);
     const qs = params.toString();
     router.replace(qs ? `/medicos?${qs}` : "/medicos", { scroll: false });
   }
@@ -123,12 +165,38 @@ export function MedicosClient({
             </p>
 
             <form
-              className="mt-5 grid gap-3 sm:grid-cols-[1fr_220px_auto]"
+              className="mt-5 grid gap-3 sm:grid-cols-[1fr_140px_160px_220px_auto]"
               onSubmit={(event) => {
                 event.preventDefault();
                 applyFilters();
               }}
             >
+              <label className="block">
+                <span className="sr-only">País de atención</span>
+                <Input
+                  value={patientCountry}
+                  onChange={(event) =>
+                    setPatientCountry(event.target.value.toUpperCase())
+                  }
+                  placeholder="País ISO-2 *"
+                  className={FIELD}
+                  maxLength={2}
+                  autoComplete="country"
+                  required
+                />
+              </label>
+              <label className="block">
+                <span className="sr-only">Subdivisión</span>
+                <Input
+                  value={patientSubdivision}
+                  onChange={(event) =>
+                    setPatientSubdivision(event.target.value.toUpperCase())
+                  }
+                  placeholder="Subdivisión"
+                  className={FIELD}
+                  maxLength={8}
+                />
+              </label>
               <label className="block">
                 <span className="sr-only">Buscar médico</span>
                 <Input
@@ -204,7 +272,14 @@ export function MedicosClient({
             </HdErrorState>
           ) : null}
 
-          {!loading && !loadError && doctors.length === 0 ? (
+          {!loading && !loadError && !/^[A-Z]{2}$/.test(appliedCountry) ? (
+            <HdEmptyState title="Declara el país de atención">
+              Indica el código ISO-2 del país donde recibes la atención para
+              ver solo médicos con licencia verificada en esa jurisdicción.
+            </HdEmptyState>
+          ) : null}
+
+          {!loading && !loadError && /^[A-Z]{2}$/.test(appliedCountry) && doctors.length === 0 ? (
             <HdEmptyState title="No hay médicos con ese filtro">
               <Button
                 type="button"
