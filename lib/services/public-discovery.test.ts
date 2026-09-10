@@ -6,8 +6,12 @@ describe("public discovery contracts", () => {
   it("builds a credentials-free doctors path with filters", () => {
     assert.equal(publicDoctorsPath(), "/public/doctors");
     assert.equal(
-      publicDoctorsPath({ q: " cardio ", specialty: "Cardiología" }),
-      "/public/doctors?q=cardio&specialty=Cardiolog%C3%ADa",
+      publicDoctorsPath({
+        q: " cardio ",
+        specialty: "Cardiología",
+        patientCountry: "CL",
+      }),
+      "/public/doctors?q=cardio&specialty=Cardiolog%C3%ADa&patientCountry=CL",
     );
   });
 
@@ -17,8 +21,9 @@ describe("public discovery contracts", () => {
         specialty: "Medicina General",
         from: "2030-01-01T00:00:00.000Z",
         to: "2030-01-08T00:00:00.000Z",
+        patientCountry: "CL",
       }),
-      "/public/availability?specialty=Medicina+General&from=2030-01-01T00%3A00%3A00.000Z&to=2030-01-08T00%3A00%3A00.000Z",
+      "/public/availability?specialty=Medicina+General&from=2030-01-01T00%3A00%3A00.000Z&to=2030-01-08T00%3A00%3A00.000Z&patientCountry=CL",
     );
   });
 });
