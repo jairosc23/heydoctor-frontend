@@ -77,10 +77,14 @@ function queryString(params: Record<string, string | undefined>): string {
 export function publicDoctorsPath(filters?: {
   q?: string;
   specialty?: string;
+  patientCountry?: string;
+  patientSubdivision?: string;
 }): string {
   return `/public/doctors${queryString({
     q: filters?.q,
     specialty: filters?.specialty,
+    patientCountry: filters?.patientCountry,
+    patientSubdivision: filters?.patientSubdivision,
   })}`;
 }
 
@@ -89,12 +93,16 @@ export function publicAvailabilityPath(filters?: {
   specialty?: string;
   from?: string;
   to?: string;
+  patientCountry?: string;
+  patientSubdivision?: string;
 }): string {
   return `/public/availability${queryString({
     q: filters?.q,
     specialty: filters?.specialty,
     from: filters?.from,
     to: filters?.to,
+    patientCountry: filters?.patientCountry,
+    patientSubdivision: filters?.patientSubdivision,
   })}`;
 }
 
@@ -105,6 +113,8 @@ export function fetchPublicSpecialties(): Promise<PublicSpecialty[]> {
 export function fetchPublicDoctorDirectory(filters?: {
   q?: string;
   specialty?: string;
+  patientCountry?: string;
+  patientSubdivision?: string;
 }): Promise<PublicDoctorCard[]> {
   return publicGet<PublicDoctorCard[]>(publicDoctorsPath(filters));
 }
@@ -114,6 +124,8 @@ export function fetchPublicAvailability(filters?: {
   specialty?: string;
   from?: string;
   to?: string;
+  patientCountry?: string;
+  patientSubdivision?: string;
 }): Promise<PublicAvailabilitySearch> {
   return publicGet<PublicAvailabilitySearch>(publicAvailabilityPath(filters));
 }

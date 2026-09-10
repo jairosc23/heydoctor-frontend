@@ -17,6 +17,8 @@ import {
   type DoctorProfileCompletenessField,
   type MyDoctorProfileResponse,
 } from "@/lib/services/my-doctor-profile";
+import { HdErrorState, HdSkeleton } from "@/components/ui/HdFeedback";
+import { ProfessionalLicensesPanel } from "@/components/settings/professional-licenses-panel";
 
 type ProfessionalProfileForm = {
   name: string;
@@ -264,20 +266,20 @@ export default function ProfessionalProfilePage() {
         </div>
 
         {loading && (
-          <p className="mt-4 text-sm text-primaryDark/70">Cargando perfil...</p>
+          <div className="mt-4">
+            <HdSkeleton rows={2} />
+          </div>
         )}
 
         {!loading && missingLabels.length > 0 && (
-          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
-            <p className="m-0 text-sm font-semibold text-amber-900">
-              Campos faltantes
-            </p>
-            <ul className="mb-0 mt-2 list-disc space-y-1 pl-5 text-sm text-amber-900">
+          <HdErrorState className="mt-4">
+            <p className="m-0 text-sm font-semibold">Campos faltantes</p>
+            <ul className="mb-0 mt-2 list-disc space-y-1 pl-5">
               {missingLabels.map((label) => (
                 <li key={label}>{label}</li>
               ))}
             </ul>
-          </div>
+          </HdErrorState>
         )}
 
         {!loading && completeness?.isComplete && (
@@ -369,6 +371,8 @@ export default function ProfessionalProfilePage() {
           </div>
         </form>
       </section>
+
+      <ProfessionalLicensesPanel />
     </div>
   );
 }

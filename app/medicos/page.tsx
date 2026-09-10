@@ -9,13 +9,20 @@ export const metadata = {
 export default async function MedicosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; specialty?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    specialty?: string;
+    patientCountry?: string;
+    patientSubdivision?: string;
+  }>;
 }) {
   const query = await searchParams;
   return (
     <MedicosClient
       initialQuery={query.q ?? ""}
       initialSpecialty={query.specialty ?? ""}
+      initialCountry={(query.patientCountry ?? "").toUpperCase()}
+      initialSubdivision={(query.patientSubdivision ?? "").toUpperCase()}
     />
   );
 }
