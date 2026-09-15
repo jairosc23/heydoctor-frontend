@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
-import { Analytics } from "@vercel/analytics/react";
 import { AnalyticsProvider } from "@/components/AnalyticsProvider";
 import { CookieBanner } from "@/components/CookieBanner";
 import { GlobalWhatsAppFab } from "@/components/GlobalWhatsAppFab";
@@ -63,7 +62,6 @@ export default async function RootLayout({
         </BrandMarkProvider>
         <CookieBanner />
         <GlobalWhatsAppFab />
-        <Analytics />
       </body>
     </html>
   );

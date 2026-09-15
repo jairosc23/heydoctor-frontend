@@ -48,7 +48,6 @@ export const EPIC3_DAILY_HUB_API_ALLOWLIST = [
   "/appointments",
   "/ai/consultation-assist",
   "/ai/consultation-summary",
-  "/api/ai/consultation-assist",
   "/ai/runs/",
   "/medical-copilot/runtime",
   "/medical-copilot/session",

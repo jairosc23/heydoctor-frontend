@@ -19,23 +19,24 @@ export type ConsultationAssistResponse = {
   generalEducation: string[];
 };
 
+/** Nest `/ai/consultation-assist` via `getApiBase()` (Railway when HD_API_EDGE is OFF). */
+export function consultationAssistUrl(): string {
+  return `${getApiBase().replace(/\/$/, "")}/ai/consultation-assist`;
+}
+
 /**
- * POST vía `/api/ai/consultation-assist` en el origen Next (proxy → Nest),
- * con Bearer en memoria si existe, para no depender solo de cookies cruzadas.
+ * POST browser → Nest `/ai/consultation-assist`.
+ * Same CORS/CSRF/Bearer path as other clinical POSTs (`getApiBase` + `apiFetch`).
+ * Does not traverse a Vercel Next route handler.
  */
 export function requestConsultationAssist(
-  body: ConsultationAssistRequest
+  body: ConsultationAssistRequest,
 ): Promise<ConsultationAssistResponse> {
   const token = typeof window !== "undefined" ? getAccessToken()?.trim() : null;
-  const url =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/api/ai/consultation-assist`
-      : `${getApiBase()}/ai/consultation-assist`;
-
   const headers = new Headers();
   if (token) headers.set("Authorization", `Bearer ${token}`);
 
-  return apiFetch<ConsultationAssistResponse>(url, {
+  return apiFetch<ConsultationAssistResponse>(consultationAssistUrl(), {
     method: "POST",
     body: JSON.stringify(body),
     headers,
