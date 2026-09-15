@@ -32,6 +32,7 @@ import {
   createPaymentSession,
   fetchConsultationPaymentStatus,
 } from "@/lib/services/payments";
+import { retainClinicalPaymentReturn } from "@/lib/services/clinical-payment-return";
 import {
   trackConsultationCompletedIfNeeded,
   trackConsultationPaid,
@@ -1134,6 +1135,11 @@ export default function ConsultationDetailPage() {
         paymentId: session.paymentId,
         amount,
         currency,
+      });
+      retainClinicalPaymentReturn({
+        kind: "consultation",
+        paymentId: session.paymentId,
+        consultationId: id,
       });
       window.location.href = session.paymentUrl;
     } catch (err) {

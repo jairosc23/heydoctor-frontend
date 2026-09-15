@@ -10,6 +10,10 @@ import {
   type PublicAvailabilitySlot,
   PublicBookingError,
 } from "@/lib/services/public-booking";
+import {
+  isSimulatedCheckoutUrl,
+  retainClinicalPaymentReturn,
+} from "@/lib/services/clinical-payment-return";
 
 const FONT_HEADING = "Montserrat, sans-serif";
 
@@ -132,6 +136,12 @@ export function PublicDoctorBooking({
       try {
         const checkout = await startPublicBookingCheckout(booking.bookingToken);
         if (checkout.paymentUrl) {
+          retainClinicalPaymentReturn({
+            kind: "booking",
+            paymentId: checkout.paymentId,
+            bookingToken: booking.bookingToken,
+            simulated: isSimulatedCheckoutUrl(checkout.paymentUrl),
+          });
           window.location.href = checkout.paymentUrl;
           return;
         }

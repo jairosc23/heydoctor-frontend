@@ -11,6 +11,7 @@ import {
   initiateCommercialPayment,
   observeCommercialSettlement,
 } from "@/lib/commercial-settlement/workflow";
+import { retainClinicalPaymentReturn } from "@/lib/services/clinical-payment-return";
 import { cn } from "@/lib/utils";
 
 export function CommercialSettlementSection({
@@ -65,7 +66,12 @@ export function CommercialSettlementSection({
         encounterId: resolvedId,
       });
       setSnapshot(result.snapshot);
-      if (result.paymentUrl) {
+      if (result.paymentUrl && result.snapshot.paymentSessionId) {
+        retainClinicalPaymentReturn({
+          kind: "consultation",
+          paymentId: result.snapshot.paymentSessionId,
+          consultationId: resolvedId,
+        });
         window.location.href = result.paymentUrl;
       }
     } catch (err) {

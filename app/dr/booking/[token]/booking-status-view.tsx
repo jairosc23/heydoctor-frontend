@@ -19,6 +19,10 @@ import {
   PAYMENT_UNAVAILABLE_USER_MESSAGE,
   toPaymentUserMessage,
 } from "@/lib/payment-user-errors";
+import {
+  isSimulatedCheckoutUrl,
+  retainClinicalPaymentReturn,
+} from "@/lib/services/clinical-payment-return";
 
 const FONT_HEADING = "Montserrat, sans-serif";
 
@@ -85,6 +89,12 @@ export function PublicBookingStatusView({
     try {
       const checkout = await startPublicBookingCheckout(token);
       if (checkout.paymentUrl) {
+        retainClinicalPaymentReturn({
+          kind: "booking",
+          paymentId: checkout.paymentId,
+          bookingToken: token,
+          simulated: isSimulatedCheckoutUrl(checkout.paymentUrl),
+        });
         window.location.href = checkout.paymentUrl;
       }
     } catch (e) {
