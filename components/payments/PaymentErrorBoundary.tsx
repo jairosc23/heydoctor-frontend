@@ -33,7 +33,7 @@ export class PaymentErrorBoundary extends Component<Props, State> {
   render() {
     if (!this.state.hasError) return this.props.children;
 
-    const href = this.props.continueHref ?? "/consultar";
+    const href = this.props.continueHref ?? "/medicos";
     const label = this.props.continueLabel ?? "Seguir explorando";
 
     return (

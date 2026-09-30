@@ -125,7 +125,7 @@ export function PublicBookingStatusView({
             >
               <p className="mb-2">{PAYMENT_UNAVAILABLE_USER_MESSAGE}</p>
               <Link
-                href="/consultar"
+                href="/medicos"
                 className="font-medium text-primary no-underline hover:underline"
               >
                 Seguir explorando el Marketplace

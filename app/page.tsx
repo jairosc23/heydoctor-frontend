@@ -234,7 +234,7 @@ export default function LandingPage() {
                 <Button href="/medicos" variant="secondary" className="w-full bg-white">
                   Buscar médico y reservar
                 </Button>
-                <Button href="/consultar" variant="secondary" className="w-full bg-white">
+                <Button href="/medicos" variant="secondary" className="w-full bg-white">
                   Explorar Marketplace
                 </Button>
               </div>
