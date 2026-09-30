@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import Container from "@/components/ui/Container";
+import Button from "@/components/ui/Button";
 import { WhatsappIcon } from "@/components/WhatsappIcon";
 import {
   LANDING_HERO_DOCTOR_HEIGHT,
@@ -65,6 +66,10 @@ export function LandingHero({ whatsAppUrl }: LandingHeroProps) {
                 <WhatsappIcon size={20} />
                 Consulta por WhatsApp
               </a>
+
+              <Button href="/medicos" variant="secondary">
+                Buscar médico
+              </Button>
 
               <Link
                 href="/login"
