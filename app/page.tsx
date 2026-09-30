@@ -231,6 +231,9 @@ export default function LandingPage() {
                 <Button href="/demo/interactive" variant="primary" className="w-full">
                   Ver Demo Interactiva
                 </Button>
+                <Button href="/medicos" variant="secondary" className="w-full bg-white">
+                  Buscar médico y reservar
+                </Button>
                 <Button href="/consultar" variant="secondary" className="w-full bg-white">
                   Explorar Marketplace
                 </Button>
