@@ -9,7 +9,7 @@ import { WhatsappIcon } from "@/components/WhatsappIcon";
 
 const NAV_LINKS = [
   { href: "/medicos", label: "Buscar médico" },
-  { href: "/consultar", label: "Marketplace" },
+  { href: "/medicos", label: "Marketplace" },
   { href: "/pricing", label: "Planes PRO" },
   { href: "/for-doctors/apply", label: "Para Médicos" },
 ] as const;

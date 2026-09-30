@@ -91,7 +91,7 @@ function PricingContent() {
             Iniciar sesión
           </Link>
           <Link
-            href="/consultar"
+            href="/medicos"
             className="rounded font-medium text-primary no-underline hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
           >
             Marketplace
@@ -145,7 +145,7 @@ function PricingContent() {
             >
               <p className="mb-2">{error}</p>
               <Link
-                href="/consultar"
+                href="/medicos"
                 className="font-medium text-primary no-underline hover:underline"
               >
                 Continuar explorando el Marketplace
@@ -181,7 +181,7 @@ export default function PricingPage() {
         <p className="px-4 py-12 text-sm text-primaryDark/70">Cargando pricing…</p>
       }
     >
-      <PaymentErrorBoundary continueHref="/consultar" continueLabel="Ir al Marketplace">
+      <PaymentErrorBoundary continueHref="/medicos" continueLabel="Ir al Marketplace">
         <PricingContent />
       </PaymentErrorBoundary>
     </Suspense>
