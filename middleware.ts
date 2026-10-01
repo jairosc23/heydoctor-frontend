@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { canonicalHostRedirectTarget } from "@/lib/canonical-host";
 import {
   parseJwtPayload,
   type JwtPayloadClaims,
@@ -146,6 +147,15 @@ function buildRequestHeaders(
  * P2-A1: enterprise middleware always runs — no runtime escape hatch.
  */
 export function middleware(request: NextRequest) {
+  const canonicalUrl = canonicalHostRedirectTarget(
+    request.nextUrl.hostname,
+    request.nextUrl.pathname,
+    request.nextUrl.search,
+  );
+  if (canonicalUrl) {
+    return NextResponse.redirect(canonicalUrl, 307);
+  }
+
   const nonce = createNonce();
   const csp = buildCspForRequest(request, nonce);
   const requestHeaders = buildRequestHeaders(request, nonce, csp);
