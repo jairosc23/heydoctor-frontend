@@ -7,7 +7,6 @@
 import { test as base, expect, type BrowserContext, type Page } from "@playwright/test";
 import { loginAsDoctor } from "../helpers/auth";
 import { isE2EAuthReady } from "../helpers/env";
-import { attachVercelPreviewBypass } from "../helpers/vercel-preview-bypass";
 
 type P0Fixtures = {
   /** Authenticated doctor page (one session per worker). */
@@ -35,11 +34,6 @@ function contextOptions(): {
 }
 
 export const test = base.extend<P0Fixtures>({
-  context: async ({ context }, use) => {
-    await attachVercelPreviewBypass(context);
-    await use(context);
-  },
-
   doctorPage: async ({ browser }, use) => {
     test.skip(
       !isE2EAuthReady(),
@@ -48,7 +42,6 @@ export const test = base.extend<P0Fixtures>({
 
     if (!workerSession.page || workerSession.page.isClosed()) {
       workerSession.context = await browser.newContext(contextOptions());
-      await attachVercelPreviewBypass(workerSession.context);
       workerSession.page = await workerSession.context.newPage();
       await loginAsDoctor(workerSession.page);
     } else if (workerSession.page.url().includes("/login")) {
