@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PatientGrowthHeader } from "@/components/patient-growth/patient-growth-header";
@@ -11,10 +11,20 @@ import { HdEmptyState, HdErrorState, HdSkeleton } from "@/components/ui/HdFeedba
 import Input from "@/components/ui/Input";
 import { defaultAvailabilityWindow } from "@/lib/patient-growth/discovery";
 import {
+  adminLevelLabel,
+  buildMedicosQuery,
+  countryDisplayName,
+  isNationalCoverage,
+  subdivisionAfterCountryChange,
+  subdivisionDisplayName,
+} from "@/lib/patient-growth/jurisdiction-ui";
+import {
   fetchPublicAvailability,
   fetchPublicDoctorDirectory,
+  fetchPublicJurisdictions,
   fetchPublicSpecialties,
   type PublicAvailabilityDoctor,
+  type PublicJurisdiction,
   type PublicSpecialty,
 } from "@/lib/services/public-discovery";
 
@@ -43,11 +53,68 @@ export function MedicosClient({
   const [appliedCountry, setAppliedCountry] = useState(initialCountry);
   const [appliedSubdivision, setAppliedSubdivision] = useState(initialSubdivision);
   const [specialties, setSpecialties] = useState<PublicSpecialty[]>([]);
+  const [jurisdictions, setJurisdictions] = useState<PublicJurisdiction[]>([]);
   const [doctors, setDoctors] = useState<PublicAvailabilityDoctor[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
 
   const windowRange = useMemo(() => defaultAvailabilityWindow(7), []);
+  const selectedJurisdiction = jurisdictions.find(
+    (row) => row.countryCode === patientCountry,
+  );
+  const subdivisionChoices = selectedJurisdiction?.subdivisions ?? [];
+  const hideSubdivision = isNationalCoverage(subdivisionChoices);
+
+  const jurisdictionReconciled = useRef(false);
+
+  useEffect(() => {
+    if (jurisdictionReconciled.current) return;
+    let cancelled = false;
+    fetchPublicJurisdictions()
+      .then((rows) => {
+        if (cancelled) return;
+        jurisdictionReconciled.current = true;
+        setJurisdictions(rows);
+        const current = rows.find((row) => row.countryCode === initialCountry);
+        if (initialCountry && !current) {
+          setPatientCountry("");
+          setPatientSubdivision("");
+          setAppliedCountry("");
+          setAppliedSubdivision("");
+          router.replace(
+            buildMedicosQuery({
+              q: initialQuery,
+              specialty: initialSpecialty,
+            }),
+            { scroll: false },
+          );
+          return;
+        }
+        if (!current) return;
+        const nextSubdivision = subdivisionAfterCountryChange(
+          initialSubdivision,
+          current.subdivisions,
+        );
+        if (nextSubdivision === initialSubdivision) return;
+        setPatientSubdivision(nextSubdivision);
+        setAppliedSubdivision(nextSubdivision);
+        router.replace(
+          buildMedicosQuery({
+            q: initialQuery,
+            specialty: initialSpecialty,
+            patientCountry: initialCountry,
+            patientSubdivision: nextSubdivision,
+          }),
+          { scroll: false },
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setLoadError(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [initialCountry, initialQuery, initialSpecialty, initialSubdivision, router]);
 
   useEffect(() => {
     let cancelled = false;
@@ -128,17 +195,32 @@ export function MedicosClient({
   ) {
     const country = nextCountry.trim().toUpperCase();
     const subdivision = nextSubdivision.trim().toUpperCase();
+    setQuery(nextQuery);
+    setSpecialty(nextSpecialty);
+    setPatientCountry(country);
+    setPatientSubdivision(subdivision);
     setAppliedQuery(nextQuery.trim());
     setAppliedSpecialty(nextSpecialty);
     setAppliedCountry(country);
     setAppliedSubdivision(subdivision);
-    const params = new URLSearchParams();
-    if (nextQuery.trim()) params.set("q", nextQuery.trim());
-    if (nextSpecialty) params.set("specialty", nextSpecialty);
-    if (country) params.set("patientCountry", country);
-    if (subdivision) params.set("patientSubdivision", subdivision);
-    const qs = params.toString();
-    router.replace(qs ? `/medicos?${qs}` : "/medicos", { scroll: false });
+    router.replace(
+      buildMedicosQuery({
+        q: nextQuery,
+        specialty: nextSpecialty,
+        patientCountry: country,
+        patientSubdivision: subdivision,
+      }),
+      { scroll: false },
+    );
+  }
+
+  function onCountryChange(nextCountry: string) {
+    const row = jurisdictions.find((item) => item.countryCode === nextCountry);
+    const nextSubdivision = subdivisionAfterCountryChange(
+      patientSubdivision,
+      row?.subdivisions ?? [],
+    );
+    applyFilters(query, specialty, nextCountry, nextSubdivision);
   }
 
   return (
@@ -165,38 +247,56 @@ export function MedicosClient({
             </p>
 
             <form
-              className="mt-5 grid gap-3 sm:grid-cols-[1fr_140px_160px_220px_auto]"
+              className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)_220px_auto]"
               onSubmit={(event) => {
                 event.preventDefault();
                 applyFilters();
               }}
             >
               <label className="block">
-                <span className="sr-only">País de atención</span>
-                <Input
+                <span className="mb-1 block text-xs font-semibold text-primaryDark">
+                  País
+                </span>
+                <select
                   value={patientCountry}
-                  onChange={(event) =>
-                    setPatientCountry(event.target.value.toUpperCase())
-                  }
-                  placeholder="País ISO-2 *"
-                  className={FIELD}
-                  maxLength={2}
-                  autoComplete="country"
+                  onChange={(event) => onCountryChange(event.target.value)}
+                  className={`w-full outline-none transition-all duration-200 ${FIELD}`}
                   required
-                />
+                >
+                  <option value="">Selecciona un país</option>
+                  {jurisdictions.map((row) => (
+                    <option key={row.countryCode} value={row.countryCode}>
+                      {countryDisplayName(row.countryCode)}
+                    </option>
+                  ))}
+                </select>
               </label>
-              <label className="block">
-                <span className="sr-only">Subdivisión</span>
-                <Input
-                  value={patientSubdivision}
-                  onChange={(event) =>
-                    setPatientSubdivision(event.target.value.toUpperCase())
-                  }
-                  placeholder="Subdivisión"
-                  className={FIELD}
-                  maxLength={8}
-                />
-              </label>
+              {hideSubdivision ? null : (
+                <label className="block">
+                  <span className="mb-1 block text-xs font-semibold text-primaryDark">
+                    {adminLevelLabel(patientCountry)}
+                  </span>
+                  <select
+                    value={patientSubdivision}
+                    onChange={(event) => {
+                      const next = event.target.value;
+                      setPatientSubdivision(next);
+                      applyFilters(query, specialty, patientCountry, next);
+                    }}
+                    className={`w-full outline-none transition-all duration-200 ${FIELD}`}
+                    disabled={!patientCountry}
+                  >
+                    <option value="">
+                      {patientCountry ? "Sin especificar" : "Selecciona un país"}
+                    </option>
+                    {subdivisionChoices.map((code) => (
+                      <option key={code} value={code}>
+                        {subdivisionDisplayName(code)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
               <label className="block">
                 <span className="sr-only">Buscar médico</span>
                 <Input
@@ -273,9 +373,9 @@ export function MedicosClient({
           ) : null}
 
           {!loading && !loadError && !/^[A-Z]{2}$/.test(appliedCountry) ? (
-            <HdEmptyState title="Declara el país de atención">
-              Indica el código ISO-2 del país donde recibes la atención para
-              ver solo médicos con licencia verificada en esa jurisdicción.
+            <HdEmptyState title="Elige el país de atención">
+              El listado muestra solo países donde hay un profesional público
+              con licencia verificada.
             </HdEmptyState>
           ) : null}
 

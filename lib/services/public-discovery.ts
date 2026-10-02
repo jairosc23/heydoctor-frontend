@@ -22,6 +22,11 @@ export type PublicSpecialty = {
   doctorCount: number;
 };
 
+export type PublicJurisdiction = {
+  countryCode: string;
+  subdivisions: string[];
+};
+
 export type PublicAvailabilityDoctor = PublicDoctorCard & {
   clinicTimezone: string | null;
   nextSlot: { startsAt: string; endsAt: string } | null;
@@ -104,6 +109,14 @@ export function publicAvailabilityPath(filters?: {
     patientCountry: filters?.patientCountry,
     patientSubdivision: filters?.patientSubdivision,
   })}`;
+}
+
+export function publicJurisdictionsPath(): string {
+  return "/public/jurisdictions";
+}
+
+export function fetchPublicJurisdictions(): Promise<PublicJurisdiction[]> {
+  return publicGet<PublicJurisdiction[]>(publicJurisdictionsPath());
 }
 
 export function fetchPublicSpecialties(): Promise<PublicSpecialty[]> {

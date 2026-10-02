@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { publicAvailabilityPath, publicDoctorsPath } from "./public-discovery";
+import {
+  publicAvailabilityPath,
+  publicDoctorsPath,
+  publicJurisdictionsPath,
+} from "./public-discovery";
 
 describe("public discovery contracts", () => {
   it("builds a credentials-free doctors path with filters", () => {
@@ -13,6 +17,10 @@ describe("public discovery contracts", () => {
       }),
       "/public/doctors?q=cardio&specialty=Cardiolog%C3%ADa&patientCountry=CL",
     );
+  });
+
+  it("builds the public jurisdictions catalog path", () => {
+    assert.equal(publicJurisdictionsPath(), "/public/jurisdictions");
   });
 
   it("builds an availability search path over the public slot engine", () => {
