@@ -1,0 +1,120 @@
+{
+  "initiative": "PQ-09",
+  "title": "CI/CD Quality Gates",
+  "epic": "EPIC-1C",
+  "generatedAt": "2026-07-17",
+  "note": "Authorized scope overrides earlier backlog label (mock Copilot E2E); this delivery is pipeline quality gates only.",
+  "dependsOn": ["PQ-01"],
+  "branches": {
+    "work": "feature/v1.1-platform-evolution"
+  },
+  "repos": {
+    "frontend": "jairosc23/heydoctor-frontend",
+    "backend": "SAVAC-HeyDoctor/heydoctor-backend-pro"
+  },
+  "filesModified": {
+    "frontend": [
+      ".github/workflows/ci.yml",
+      ".github/workflows/release.yml",
+      "docs/pq-09-quality-gates.md",
+      "docs/pq-09-quality-gates.json"
+    ],
+    "backend": [
+      ".github/workflows/ci.yml",
+      ".github/workflows/release.yml"
+    ]
+  },
+  "levels": {
+    "L1_pullRequest": {
+      "frontend": ["lint", "typecheck", "build", "unit"],
+      "backend": ["format:check", "lint:ci", "build"],
+      "secretsRequired": false,
+      "blocking": true
+    },
+    "L2_mergeMain": {
+      "frontend": {
+        "checks": ["playwright-p0"],
+        "whenSecretsPresent": "blocking",
+        "whenSecretsAbsent": "skipped-controlled-degradation"
+      },
+      "backend": {
+        "checks": ["migrations", "unit", "api-e2e"],
+        "blocking": true,
+        "secretsRequired": false
+      }
+    },
+    "L3_release": {
+      "enforcement": "checklist-in-release-gates-job",
+      "requires": [
+        "aggregate-ci-green-on-tag",
+        "frontend-e2e-not-skipped",
+        "backend-l2-pass",
+        "ops-migration-show-and-smoke-manual"
+      ],
+      "deploys": false
+    }
+  },
+  "requiredChecks": {
+    "frontend": "frontend",
+    "backend": "backend",
+    "note": "Aggregate job names preserved for existing branch protection"
+  },
+  "secretsStrategy": {
+    "frontendE2E": {
+      "keys": [
+        "E2E_BASE_URL",
+        "E2E_DOCTOR_EMAIL",
+        "E2E_DOCTOR_PASSWORD",
+        "E2E_CONSULTATION_HTA",
+        "E2E_CONSULTATION_DM2",
+        "E2E_CONSULTATION_ACUTE",
+        "E2E_CONSULTATION_PAYMENT"
+      ],
+      "absentBehavior": "e2e-p0 mode=skipped; aggregate PASS with notice",
+      "presentBehavior": "e2e-p0 blocking; artifacts uploaded"
+    },
+    "backendSlack": {
+      "keys": ["SLACK_WEBHOOK_URL"],
+      "absentBehavior": "notify no-op"
+    }
+  },
+  "jobGraphs": {
+    "frontend": ["quality", "e2e-p0", "frontend"],
+    "backend": ["quality", "test", "backend", "notify"]
+  },
+  "validations": {
+    "staticWorkflowDesign": "pass",
+    "githubActionsRuntime": "not-executed-pending-push",
+    "businessLogicUntouched": true
+  },
+  "risks": [
+    {
+      "id": "R1",
+      "summary": "Org main without E2E secrets yields L2 FE skip",
+      "severity": "medium"
+    },
+    {
+      "id": "R2",
+      "summary": "P0-4 Payku conditional skip remains from PQ-01",
+      "severity": "medium"
+    },
+    {
+      "id": "R3",
+      "summary": "L3 checklist not auto-enforced",
+      "severity": "low"
+    }
+  ],
+  "goNoGoAdoption": {
+    "decision": "GO",
+    "operationalConditions": [
+      "configure-7-e2e-secrets-on-frontend-repo",
+      "branch-protection-requires-frontend-and-backend",
+      "do-not-treat-skipped-e2e-as-release-ready"
+    ]
+  },
+  "certification": {
+    "result": "PASS",
+    "title": "PQ-09 CI/CD Quality Gates",
+    "awaiting": "explicit authorization for next Platform Quality initiative"
+  }
+}

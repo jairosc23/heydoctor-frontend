@@ -1,0 +1,101 @@
+{
+  "checklistId": "enterprise-production-go-live-checklist",
+  "product": "HeyDoctor Enterprise (Medical Copilot + Agenda Enterprise)",
+  "status": "PREPARED_NOT_AUTHORIZED",
+  "mergeExecuted": false,
+  "deployExecuted": false,
+  "phases": [
+    {
+      "id": 1,
+      "name": "Merge Backend AG→RC2",
+      "authorized": false,
+      "completed": false,
+      "gates": ["format", "lint", "build", "tests"],
+      "rollback": "merge --abort or revert -m 1"
+    },
+    {
+      "id": 2,
+      "name": "Merge Frontend AG→RC2",
+      "authorized": false,
+      "completed": false,
+      "dependsOn": [1],
+      "gates": ["lint", "tests", "build"],
+      "rollback": "merge --abort or revert -m 1"
+    },
+    {
+      "id": 3,
+      "name": "Integrated QA + smoke",
+      "authorized": false,
+      "completed": false,
+      "dependsOn": [1, 2],
+      "refs": [
+        "docs/enterprise-smoke-test-checklist.md",
+        "docs/enterprise-post-merge-validation.md"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Merge RC2→main (BE then FE)",
+      "authorized": false,
+      "completed": false,
+      "dependsOn": [3]
+    },
+    {
+      "id": 5,
+      "name": "Railway migrate + health + smoke",
+      "authorized": false,
+      "completed": false,
+      "dependsOn": [3],
+      "migrationsExpected": [
+        "1751300000000-MedicalCopilotFoundation",
+        "1752600000000-ScheduleBlocksIsActive",
+        "1752700000000-WaitlistPriorityReason",
+        "1752800000000-ReminderPoliciesAndOffset",
+        "1752900000000-ClinicAndDoctorTimezone"
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Vercel Preview smoke + flags",
+      "authorized": false,
+      "completed": false,
+      "dependsOn": [5]
+    },
+    {
+      "id": 7,
+      "name": "Production promote BE+FE",
+      "authorized": false,
+      "completed": false,
+      "dependsOn": [5, 6]
+    },
+    {
+      "id": 8,
+      "name": "Post go-live 24-72h",
+      "authorized": false,
+      "completed": false,
+      "dependsOn": [7],
+      "refs": ["docs/enterprise-post-deploy-validation.md"]
+    }
+  ],
+  "documents": [
+    "docs/enterprise-merge-execution-runbook.md",
+    "docs/enterprise-release-sequence.md",
+    "docs/enterprise-production-promotion-runbook.md",
+    "docs/enterprise-rollback-runbook.md",
+    "docs/enterprise-smoke-test-checklist.md",
+    "docs/enterprise-post-merge-validation.md",
+    "docs/enterprise-post-deploy-validation.md",
+    "docs/enterprise-production-go-live-checklist.json"
+  ],
+  "hardStops": [
+    "No merge without explicit authorization",
+    "No deploy without explicit authorization",
+    "No force-push to main or release branches",
+    "Abort on merge-tree conflict or P0 smoke failure"
+  ],
+  "goNoGo": {
+    "runbooksPrepared": "GO",
+    "executePhase1Merge": "NO_GO_AWAITING_EXPLICIT_AUTHORIZATION",
+    "productionGoLive": "NO_GO"
+  }
+}

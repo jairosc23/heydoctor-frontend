@@ -1,0 +1,364 @@
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import React, { useState, useRef, useEffect } from "react";
+import { BrandLogo } from "@/components/branding";
+import { WhatsappIcon } from "@/components/WhatsappIcon";
+import Container from "@/components/ui/Container";
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import Input from "@/components/ui/Input";
+import { GuestConsultationError } from "@/lib/services/public-consultations";
+import { getWhatsAppBookingUrl } from "@/lib/whatsapp-url";
+import { useConsultationEngine } from "@/hooks/useConsultationEngine";
+
+const FONT_HEADING = "Montserrat, sans-serif";
+const NAME_MAX = 120;
+const REASON_MAX = 4000;
+
+/** Tokens CTA primario DS (Landing / Login). */
+const CTA_PRIMARY =
+  "rounded-lg border-0 bg-primary shadow-none !shadow-[0_4px_12px_rgba(7,138,146,0.22)] hover:bg-primaryMid hover:scale-100 focus:outline-none focus:ring-2 focus:ring-primaryLight focus:ring-offset-2 disabled:hover:bg-primary disabled:hover:scale-100";
+
+/** Tokens CTA secundario DS. */
+const CTA_SECONDARY =
+  "rounded-lg border border-hd-border-default bg-hd-surface-chrome text-primaryDark shadow-none hover:bg-hd-surface-muted hover:scale-100 focus:outline-none focus:ring-2 focus:ring-primaryLight focus:ring-offset-2";
+
+const FIELD =
+  "min-h-12 rounded-lg border-hd-border-default px-3 py-3 text-base text-primaryDark focus:border-primary focus:ring-2 focus:ring-primaryLight";
+
+/**
+ * Flujo público en 3 pasos (sin login): nombre → motivo → confirmar y entrar.
+ */
+export default function GuestConsultationPage() {
+  const router = useRouter();
+  const { createGuestConsultation } = useConsultationEngine();
+  const [whatsAppUrl, setWhatsAppUrl] = useState<string | null>(null);
+  const [step, setStepRaw] = useState(1);
+  const [name, setName] = useState("");
+  const [reason, setReason] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const reasonInputRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    setWhatsAppUrl(getWhatsAppBookingUrl(window.location.origin));
+  }, []);
+
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      if (step === 1) nameInputRef.current?.focus();
+      else if (step === 2) reasonInputRef.current?.focus();
+    }, 50);
+    return () => window.clearTimeout(t);
+  }, [step]);
+
+  const setStep = (n: number) => {
+    setError(null);
+    setStepRaw(n);
+  };
+
+  const trimmedName = name.trim();
+  const trimmedReason = reason.trim();
+  const step1Ok = trimmedName.length > 0;
+  const step2Ok = trimmedReason.length > 0;
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!step1Ok || !step2Ok || submitting) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const res = await createGuestConsultation({
+        name: trimmedName,
+        reason: trimmedReason,
+      });
+      router.push(`/teleconsulta/${res.consultationId}`);
+    } catch (e) {
+      const message =
+        e instanceof GuestConsultationError
+          ? e.message
+          : "No se pudo crear la consulta. Inténtalo de nuevo.";
+      setError(message);
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-hd-surface-base pb-[env(safe-area-inset-bottom)]">
+      <header className="border-b border-hd-border-subtle bg-hd-surface-chrome shadow-hd-1">
+        <Container className="flex h-16 items-center justify-between">
+          <Link href="/" className="no-underline">
+            <BrandLogo variant="nav" priority />
+          </Link>
+          <Link
+            href="/login"
+            className="inline-flex h-10 min-h-10 items-center rounded-lg border border-primary bg-hd-surface-chrome px-5 text-sm font-medium text-primary no-underline transition-colors duration-hd-base hover:bg-primaryLight focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            style={{ fontFamily: FONT_HEADING }}
+          >
+            Iniciar Sesión
+          </Link>
+        </Container>
+      </header>
+
+      <main className="py-8 sm:py-12">
+        <Container className="max-w-xl">
+          <div className="mb-8 text-center">
+            <h1
+              className="mb-3 text-2xl font-bold tracking-tight text-primary sm:text-3xl"
+              style={{ fontFamily: FONT_HEADING }}
+            >
+              Médico online en menos de 1 minuto
+            </h1>
+            <p className="mx-auto max-w-md text-sm leading-relaxed text-primaryDark/70">
+              Tres pasos. Sin cuenta. Te llevamos directo a la videollamada segura.
+            </p>
+          </div>
+
+          <StepIndicator step={step} />
+
+          <Card className="p-6 shadow-premium sm:p-8">
+            <form onSubmit={onSubmit} noValidate>
+              {step === 1 && (
+                <div className="space-y-4">
+                  <div>
+                    <label
+                      htmlFor="guest-name"
+                      className="mb-1 block text-sm font-semibold text-primaryDark"
+                      style={{ fontFamily: FONT_HEADING }}
+                    >
+                      Paso 1 · Tu nombre
+                    </label>
+                    <Input
+                      ref={nameInputRef}
+                      id="guest-name"
+                      type="text"
+                      value={name}
+                      onChange={(e) =>
+                        setName(e.target.value.slice(0, NAME_MAX))
+                      }
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          if (step1Ok && !submitting) setStep(2);
+                        }
+                      }}
+                      placeholder="Ej: María González"
+                      required
+                      autoComplete="name"
+                      maxLength={NAME_MAX}
+                      disabled={submitting}
+                      className={FIELD}
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="primary"
+                    disabled={!step1Ok || submitting}
+                    className={`w-full min-h-12 text-base ${CTA_PRIMARY}`}
+                    onClick={() => step1Ok && setStep(2)}
+                  >
+                    Continuar
+                  </Button>
+                </div>
+              )}
+
+              {step === 2 && (
+                <div className="space-y-4">
+                  <div>
+                    <label
+                      htmlFor="guest-reason"
+                      className="mb-1 block text-sm font-semibold text-primaryDark"
+                      style={{ fontFamily: FONT_HEADING }}
+                    >
+                      Paso 2 · Motivo de la consulta
+                    </label>
+                    <textarea
+                      ref={reasonInputRef}
+                      id="guest-reason"
+                      value={reason}
+                      onChange={(e) =>
+                        setReason(e.target.value.slice(0, REASON_MAX))
+                      }
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          if (step2Ok && !submitting) setStep(3);
+                        }
+                      }}
+                      placeholder="Describe brevemente cómo te sientes o qué necesitas."
+                      required
+                      rows={5}
+                      maxLength={REASON_MAX}
+                      disabled={submitting}
+                      className={`w-full resize-none outline-none transition-all duration-200 disabled:opacity-60 ${FIELD}`}
+                    />
+                    <p className="mt-1 text-[11px] text-primaryDark/50">
+                      {trimmedReason.length}/{REASON_MAX}
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-3 sm:flex-row-reverse sm:justify-between">
+                    <Button
+                      type="button"
+                      variant="primary"
+                      disabled={!step2Ok || submitting}
+                      className={`w-full min-h-12 text-base sm:flex-1 ${CTA_PRIMARY}`}
+                      onClick={() => step2Ok && setStep(3)}
+                    >
+                      Revisar
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className={`w-full min-h-12 ${CTA_SECONDARY}`}
+                      onClick={() => setStep(1)}
+                    >
+                      Atrás
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {step === 3 && (
+                <div className="space-y-5">
+                  <div className="rounded-xl border border-hd-border-subtle bg-hd-surface-muted p-4 text-sm">
+                    <p
+                      className="m-0 mb-2 font-semibold text-primaryDark"
+                      style={{ fontFamily: FONT_HEADING }}
+                    >
+                      Paso 3 · Confirma y entra
+                    </p>
+                    <dl className="m-0 space-y-3">
+                      <div>
+                        <dt className="text-[11px] font-bold uppercase tracking-wide text-primaryDark/60">
+                          Nombre
+                        </dt>
+                        <dd className="m-0 text-primaryDark">{trimmedName}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-[11px] font-bold uppercase tracking-wide text-primaryDark/60">
+                          Motivo
+                        </dt>
+                        <dd className="m-0 whitespace-pre-wrap text-primaryDark/90">
+                          {trimmedReason}
+                        </dd>
+                      </div>
+                    </dl>
+                  </div>
+
+                  {error && (
+                    <p
+                      role="alert"
+                      className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+                    >
+                      {error}
+                    </p>
+                  )}
+
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    disabled={!step1Ok || !step2Ok || submitting}
+                    className={`w-full min-h-12 text-base ${CTA_PRIMARY}`}
+                  >
+                    {submitting ? "Entrando…" : "Entrar a la videollamada"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className={`w-full min-h-12 ${CTA_SECONDARY}`}
+                    disabled={submitting}
+                    onClick={() => setStep(2)}
+                  >
+                    Editar motivo
+                  </Button>
+
+                  <p className="text-center text-[11px] leading-relaxed text-primaryDark/60">
+                    Al continuar aceptas los{" "}
+                    <Link href="/terms" className="font-semibold text-primary hover:underline">
+                      Términos
+                    </Link>{" "}
+                    y la{" "}
+                    <Link href="/privacy" className="font-semibold text-primary hover:underline">
+                      Política de Privacidad
+                    </Link>
+                    .
+                  </p>
+                </div>
+              )}
+            </form>
+          </Card>
+
+          {whatsAppUrl && (
+            <div className="mt-6 text-center">
+              <p className="mb-2 text-xs text-primaryDark/60">¿Prefieres WhatsApp?</p>
+              <a
+                href={whatsAppUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#25D366] px-4 py-2 text-sm font-semibold text-white no-underline shadow-[0_6px_16px_rgba(37,211,102,0.16)] transition-colors duration-hd-base hover:bg-[#20BD5A] focus:outline-none focus:ring-2 focus:ring-[#25D366] focus:ring-offset-2"
+              >
+                <WhatsappIcon />
+                Chatear por WhatsApp
+              </a>
+            </div>
+          )}
+        </Container>
+      </main>
+    </div>
+  );
+}
+
+function StepIndicator({ step }: { step: number }) {
+  const labels = ["Nombre", "Motivo", "Entrar"];
+  return (
+    <ol
+      className="mb-6 flex items-center justify-center gap-2 sm:gap-4"
+      aria-label="Progreso"
+    >
+      {labels.map((label, i) => {
+        const n = i + 1;
+        const active = step === n;
+        const done = step > n;
+        return (
+          <li key={label} className="flex items-center gap-2 sm:gap-4">
+            <div className="flex flex-col items-center gap-1">
+              <span
+                className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold ${
+                  done
+                    ? "bg-primary text-white"
+                    : active
+                      ? "bg-primaryMid text-white ring-2 ring-primary/30"
+                      : "bg-hd-border-default text-primaryDark/70"
+                }`}
+                aria-current={active ? "step" : undefined}
+              >
+                {done ? "✓" : n}
+              </span>
+              <span
+                className={`hidden text-[10px] font-semibold uppercase tracking-wide sm:block ${
+                  active ? "text-primary" : "text-primaryDark/60"
+                }`}
+                style={{ fontFamily: FONT_HEADING }}
+              >
+                {label}
+              </span>
+            </div>
+            {i < labels.length - 1 ? (
+              <span
+                className={`mb-4 hidden h-0.5 w-6 sm:mb-5 sm:inline-block sm:w-10 ${
+                  step > n ? "bg-primary" : "bg-hd-border-default"
+                }`}
+                aria-hidden
+              />
+            ) : null}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+

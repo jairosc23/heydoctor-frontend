@@ -1,0 +1,90 @@
+{
+  "certificationId": "agenda-enterprise-f1-f10",
+  "product": "Agenda Enterprise",
+  "branch": "feature/agenda-enterprise",
+  "date": "2026-07-16",
+  "phases": {
+    "1_availability": "certified",
+    "2_rules": "certified",
+    "3_slots": "certified",
+    "4_blocks": "certified",
+    "5_waitlist": "certified",
+    "6_reminders": "certified",
+    "7_timezone": "certified",
+    "8_ux": "certified",
+    "9_dashboard": "certified",
+    "10_qa_production_readiness": "certified"
+  },
+  "operationalChecklist": {
+    "availability": true,
+    "rules": true,
+    "slots": true,
+    "blocks": true,
+    "waitlist": true,
+    "reminders": true,
+    "timezone": true,
+    "dashboard": true,
+    "workspaceUx": true,
+    "permissions": true,
+    "clinicScope": true,
+    "doctorScope": true,
+    "reactQuery": true,
+    "loadingStates": true,
+    "errorStates": true,
+    "responsive": true,
+    "accessibilityBaseline": true
+  },
+  "technicalAudit": {
+    "architecture": "pass",
+    "ssotReuse": "pass",
+    "noNewApisPhase10": "pass",
+    "noNewTablesPhase10": "pass",
+    "noBusinessLogicPhase10": "pass",
+    "noDuplicationIntroduced": "pass",
+    "medicalCopilotFrozen": "pass"
+  },
+  "gates": {
+    "backendCommitRequired": false,
+    "frontendCommitRequired": true,
+    "frontendTsc": "pass",
+    "frontendTests": "pass_460",
+    "frontendBuild": "pass"
+  },
+  "gitPolicy": {
+    "merge": false,
+    "deploy": false,
+    "pushBranch": true
+  },
+  "risks": [
+    {
+      "id": "R1",
+      "severity": "medium",
+      "summary": "Slot occupancy derived on FE may briefly diverge from BE engine"
+    },
+    {
+      "id": "R2",
+      "severity": "medium",
+      "summary": "Reminders admin without real delivery provider"
+    },
+    {
+      "id": "R3",
+      "severity": "low",
+      "summary": "Admin must select doctor for availability queries"
+    }
+  ],
+  "explicitNonStarts": [
+    "Agenda Enterprise v2",
+    "Google Calendar",
+    "Outlook",
+    "ICS",
+    "Analytics",
+    "IA Agenda",
+    "Marketplace Agenda",
+    "Production deploy"
+  ],
+  "finalVerdict": {
+    "agendaEnterpriseCertifiedOnBranch": true,
+    "productionDeployAuthorizedByThisPhase": false,
+    "stopAfterPhase10": true
+  }
+}

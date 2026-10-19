@@ -1,0 +1,26 @@
+{
+  "manifest": "Repository Manifest",
+  "generatedAt": "2026-07-16T15:42:00.893Z",
+  "backend": {
+    "branch": "release/medical-copilot-v1.0-rc2",
+    "headAtVerificationStart": "86be4c6539906c55df43521760dbcc24aa0f04c4",
+    "tracking": "origin/release/medical-copilot-v1.0-rc2",
+    "aheadOfMain": 5,
+    "tags": [
+      "medical-copilot-v1.0-rc2",
+      "medical-copilot-v1.0-ga-fix"
+    ],
+    "workingTreeAtStart": "clean"
+  },
+  "frontend": {
+    "branch": "release/medical-copilot-v1.0-rc2",
+    "headAtVerificationStart": "011078ee6e96b8d8a1fc60aadba8c7f6141ed1ad",
+    "tracking": "origin/release/medical-copilot-v1.0-rc2",
+    "aheadOfMain": 4,
+    "tags": [
+      "medical-copilot-v1.0-rc2",
+      "medical-copilot-v1.0-ga-fix"
+    ],
+    "workingTreeAtStart": "clean except untracked V6.1_PR1 doc"
+  }
+}

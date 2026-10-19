@@ -1,0 +1,31 @@
+*.tsbuildinfo
+node_modules/
+.next/
+dist/
+build/
+.DS_Store
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Credenciales E2E locales (Phase 19.2 — copiar desde e2e/.env.e2e.example)
+.env.e2e
+
+# Artefactos de auditoría / capturas temporales (no producto)
+visual-audit/
+playwright-report/
+test-results/
+coverage/
+e2e/.auth/
+.cursor/
+
+# Monorepo sibling (cuando el clon standalone vive junto al backend en el mismo disco)
+heydoctor-backend-pro/
+
+# Vercel CLI local project link
+.vercel
+
+# Local env files (precise; avoid .env* which hides *.example templates)
+.env
+.env.local
+.env.*.local

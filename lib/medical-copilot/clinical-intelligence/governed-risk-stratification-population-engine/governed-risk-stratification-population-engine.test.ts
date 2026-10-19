@@ -1,0 +1,11 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+import { mapGovernedRiskStratificationPopulationEngineEnvelope } from "./governed-risk-stratification-population-engine-mapper";
+describe("Risk Stratification", () => {
+  it("maps envelope with HITL seals", () => {
+    const mapped = mapGovernedRiskStratificationPopulationEngineEnvelope({ status: "ok", data: { status: "PROPOSED_FOR_PHYSICIAN_REVIEW", title: "Risk Stratification", applicableCount: 1,
+      entries: [{ entryId: "e1", entryTitle: "Entry", domain: "d", topic: "t", summary: "s", explanation: "x", evidenceRefs: [], populationRole: "r", applicability: "APPLICABLE", confidence: "medium" }],
+      enginesPresent: [], governance: { requiresPhysicianReview: true, usesLlm: false } } });
+    assert.ok(mapped); assert.equal(mapped!.usesLlm, false); assert.equal(mapped!.entries.length, 1);
+  });
+});

@@ -1,0 +1,10 @@
+export type AiLayerProviderId = "noop" | "openai";
+export const CLINICAL_INTELLIGENCE_TRACE_VERSION = "1.0.0" as const;
+export const CLINICAL_INTELLIGENCE_TRACE_GOVERNANCE = { requiresPhysicianReview: true as const, executesAction: false as const, autoPersistedToEmr: false as const };
+export type ClinicalIntelligenceTraceSlot = { id: string; sourceRefId: string | null; order: number; kind: "ci_trace_slot"; status: "ok" | "empty" | "rejected"; slotKey: string; };
+export type ClinicalIntelligenceTraceMetadata = { sessionId: string; consultationId: string; patientId: string; planId: string;
+  clinicalIntelligenceGraphId: string;
+  governedReasoningOutputId: string;
+  generatedAt: string; builderVersion: typeof CLINICAL_INTELLIGENCE_TRACE_VERSION; status: "ok" | "empty" | "rejected"; slotCount: number; selectedProviderId: AiLayerProviderId; };
+export type ClinicalIntelligenceTrace = { clinicalIntelligenceTraceId: string; providerId: AiLayerProviderId; traceSlots: ClinicalIntelligenceTraceSlot[]; governance: typeof CLINICAL_INTELLIGENCE_TRACE_GOVERNANCE; metadata: ClinicalIntelligenceTraceMetadata; };
+export type ClinicalIntelligenceTraceBuilderResult = { source: "clinical_intelligence_trace"; builderVersion: typeof CLINICAL_INTELLIGENCE_TRACE_VERSION; clinicalIntelligenceTrace: ClinicalIntelligenceTrace; governance: typeof CLINICAL_INTELLIGENCE_TRACE_GOVERNANCE; reason: string | null; generatedAt: string; };

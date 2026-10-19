@@ -1,0 +1,272 @@
+"use client";
+
+import {
+  formatPatientDocument,
+  formatPatientSex,
+  jsonLinesToList,
+  resolvePatientAge,
+} from "@/lib/patient-profile-display";
+import { formatPatientDisplayName } from "@/lib/services/patients";
+import { EMPTY_PATIENT_CLINICAL_MEMORY } from "@/hooks/usePatientClinicalMemory";
+import { ClinicalMemoryCard } from "./memory/ClinicalMemoryCard";
+import { PatientMemoryCard } from "@/components/clinical/PatientMemoryCard";
+import { ClinicalCollapsiblePanel } from "./ClinicalCollapsiblePanel";
+import type { PatientContextRailProps } from "./PatientContextRail";
+
+function SummaryCell({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0 rounded-hd-md border border-slate-100 bg-slate-50/70 px-hd-3 py-hd-2">
+      <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+        {label}
+      </p>
+      <p className="line-clamp-2 text-xs font-medium leading-snug text-slate-900">
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function formatLastConsultation(value?: string): string {
+  if (!value) return "Consulta previa";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Consulta previa";
+  return date.toLocaleDateString("es-CL", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+export function ClinicalContextPanels({
+  patientId,
+  patient,
+  profile,
+  loading,
+  error,
+  fallbackName = "Paciente",
+  currentConsultationId,
+  encounterDiagnosis,
+  snapshotConditionLabels,
+  smartWorkspaceEnabled = false,
+  clinicalMemory,
+  clinicalMemoryLoading,
+  clinicalMemoryError,
+  clinicalFoundationOutputs,
+  clinicalFoundationLoading,
+  clinicalFoundationError,
+  onOpenFullRecord,
+}: PatientContextRailProps) {
+  if (!patientId) return null;
+
+  const memory = clinicalMemory ?? EMPTY_PATIENT_CLINICAL_MEMORY;
+  const memoryLoading = Boolean(clinicalMemoryLoading);
+  const memoryError = clinicalMemoryError ?? null;
+  const displayName = patient ? formatPatientDisplayName(patient) : fallbackName;
+  const ageLabel = patient ? resolvePatientAge(patient) : "—";
+  const sexLabel = patient ? formatPatientSex(patient.sex) : "—";
+  const documentLabel = patient ? formatPatientDocument(patient) : "—";
+  const allergyLines = profile ? jsonLinesToList(profile.allergies) : [];
+  const activeProblems = memory.activeConditions.slice(0, 3);
+  const activeMedications = memory.currentMedications.slice(0, 3);
+  const lastConsultation = memory.recentConsultations[0];
+  const foundationSummaryLines =
+    clinicalFoundationOutputs?.clinicalSummary?.lines ?? [];
+  const foundationFindings = clinicalFoundationOutputs?.clinicalFindings ?? [];
+  const foundationGaps = clinicalFoundationOutputs?.documentationGaps ?? [];
+
+  return (
+    <section
+      aria-label="Contexto clínico longitudinal"
+      className="space-y-hd-3"
+      data-testid="clinical-context-panels"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-hd-2 rounded-hd-lg border border-hd-border-subtle bg-hd-surface-raised px-hd-4 py-hd-3 text-xs text-slate-600 shadow-hd-1">
+        <p>
+          <span className="font-semibold text-slate-900">{displayName}</span>
+          {" · "}
+          {ageLabel} · {sexLabel}
+          {documentLabel !== "—" ? ` · ${documentLabel}` : ""}
+        </p>
+        {onOpenFullRecord ? (
+          <button
+            type="button"
+            onClick={onOpenFullRecord}
+            className="font-semibold text-primary hover:underline"
+            data-testid="encounter-open-full-record"
+          >
+            Ver ficha completa
+          </button>
+        ) : null}
+      </div>
+
+      {error ? (
+        <p
+          className="rounded-hd-md border border-amber-200 bg-amber-50 px-hd-3 py-hd-2 text-xs text-amber-900"
+          role="alert"
+        >
+          {error}
+        </p>
+      ) : null}
+      {memoryError ? (
+        <p
+          className="rounded-hd-md border border-amber-200 bg-amber-50 px-hd-3 py-hd-2 text-xs text-amber-900"
+          role="alert"
+        >
+          Memoria clínica no disponible en este momento.
+        </p>
+      ) : null}
+      {clinicalFoundationError ? (
+        <p
+          className="rounded-hd-md border border-amber-200 bg-amber-50 px-hd-3 py-hd-2 text-xs text-amber-900"
+          role="alert"
+        >
+          Foundation no disponible; se mantiene el contexto clínico local.
+        </p>
+      ) : null}
+
+      <section className="rounded-hd-lg border border-hd-border-subtle bg-white px-hd-4 py-hd-3 shadow-hd-1">
+        <p className="mb-hd-2 text-[10px] font-semibold uppercase tracking-wide text-primary/80">
+          Resumen clínico
+        </p>
+        <div className="grid gap-hd-2 text-xs md:grid-cols-2 xl:grid-cols-5">
+          <SummaryCell label="Diagnóstico principal" value={encounterDiagnosis || "Sin diagnóstico"} />
+          <SummaryCell
+            label="Problemas activos"
+            value={
+              memoryLoading
+                ? "Cargando..."
+                : activeProblems.length > 0
+                  ? activeProblems.map((item) => item.label).join(" · ")
+                  : "Sin problemas activos"
+            }
+          />
+          <SummaryCell
+            label="Medicamentos activos"
+            value={
+              memoryLoading
+                ? "Cargando..."
+                : activeMedications.length > 0
+                  ? activeMedications.map((item) => item.name).join(" · ")
+                  : "Sin medicamentos activos"
+            }
+          />
+          <SummaryCell
+            label="Alergias"
+            value={allergyLines.length > 0 ? allergyLines.join(" · ") : "Sin alergias"}
+          />
+          <SummaryCell
+            label="Última consulta"
+            value={
+              memoryLoading
+                ? "Cargando..."
+                : lastConsultation
+                  ? `${formatLastConsultation(lastConsultation.createdAt)} · ${
+                      lastConsultation.diagnosisLabel ||
+                      lastConsultation.diagnosisCode ||
+                      "Consulta médica"
+                    }`
+                  : "Sin consultas previas"
+            }
+          />
+        </div>
+      </section>
+
+      {foundationSummaryLines.length > 0 ||
+      foundationFindings.length > 0 ||
+      foundationGaps.length > 0 ? (
+        <section className="rounded-hd-lg border border-primary/10 bg-primaryLight/30 px-hd-4 py-hd-3 shadow-hd-1">
+          <div className="mb-hd-2 flex flex-wrap items-center justify-between gap-hd-2">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-primary">
+              Clinical Foundation
+            </p>
+            <p className="text-[10px] text-slate-500">Fuente backend primaria</p>
+          </div>
+          {foundationSummaryLines.length > 0 ? (
+            <ul className="space-y-1 text-xs leading-relaxed text-slate-700">
+              {foundationSummaryLines.slice(0, 4).map((line) => (
+                <li key={line.id}>{line.text}</li>
+              ))}
+            </ul>
+          ) : null}
+          {foundationFindings.length > 0 ? (
+            <div className="mt-hd-2 flex flex-wrap gap-1.5">
+              {foundationFindings.slice(0, 5).map((finding) => (
+                <span
+                  key={finding.id}
+                  className="rounded-full border border-primary/10 bg-white px-2 py-1 text-[10px] font-medium text-slate-700"
+                >
+                  {finding.label}: {finding.value}
+                </span>
+              ))}
+            </div>
+          ) : null}
+          {foundationGaps.length > 0 ? (
+            <div className="mt-hd-2 rounded-hd-md border border-amber-200 bg-amber-50 px-hd-3 py-hd-2">
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
+                Documentation gaps
+              </p>
+              <ul className="space-y-1 text-xs text-amber-900">
+                {foundationGaps.slice(0, 3).map((gap) => (
+                  <li key={gap.id}>{gap.label}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+        </section>
+      ) : clinicalFoundationLoading ? (
+        <p className="rounded-hd-md border border-slate-100 bg-slate-50 px-hd-3 py-hd-2 text-xs text-slate-500">
+          Cargando Clinical Foundation...
+        </p>
+      ) : null}
+
+      <div className="grid gap-hd-3">
+        <ClinicalCollapsiblePanel
+          title="Clinical Memory™"
+          eyebrow="Contexto longitudinal"
+          storageKey="clinical-encounter-panel-memory"
+          defaultExpanded
+          contentClassName="min-h-[12rem]"
+        >
+          {loading ? (
+            <p className="text-sm text-slate-500">Cargando memoria clínica…</p>
+          ) : (
+            <ClinicalMemoryCard
+              patientId={patientId}
+              encounterDiagnosis={encounterDiagnosis}
+              snapshotConditionLabels={snapshotConditionLabels}
+              allergyLines={allergyLines}
+              compact={smartWorkspaceEnabled}
+              memory={memory}
+              memoryLoading={memoryLoading}
+              memoryError={memoryError}
+              className="border-0 bg-transparent p-0 shadow-none"
+            />
+          )}
+        </ClinicalCollapsiblePanel>
+
+        <ClinicalCollapsiblePanel
+          title="Clinical Timeline™"
+          eyebrow="Continuidad clínica"
+          storageKey="clinical-encounter-panel-timeline"
+          defaultExpanded
+          contentClassName="min-h-[14rem]"
+        >
+          {loading ? (
+            <p className="text-sm text-slate-500">Cargando línea temporal…</p>
+          ) : (
+            <PatientMemoryCard
+              patientId={patientId}
+              currentConsultationId={currentConsultationId}
+              progressiveDisclosure={false}
+              initialEventLimit={5}
+              memory={memory}
+              memoryLoading={memoryLoading}
+              memoryError={memoryError}
+              className="border-0 bg-transparent p-0 shadow-none"
+            />
+          )}
+        </ClinicalCollapsiblePanel>
+      </div>
+    </section>
+  );
+}

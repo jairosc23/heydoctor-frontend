@@ -1,0 +1,30 @@
+{
+  "generatedAt": "2026-07-16T03:21:41.306Z",
+  "frontend": {
+    "certifiedPanels": 474,
+    "panelFilesGlob": 553,
+    "e2e": [
+      "ar2-foundation.spec.ts",
+      "clinical-p0.spec.ts",
+      "ga-fix-deeplink.spec.ts",
+      "medical-copilot-rc2.spec.ts",
+      "visual-encounter-audit.spec.ts"
+    ],
+    "unitTestFiles": 634,
+    "operational": [
+      "rc3-operational",
+      "rc4-operational",
+      "rc5-operational"
+    ],
+    "docs": [
+      "medical-copilot-rc4.md",
+      "medical-copilot-rc5.md",
+      "medical-copilot-ssot-catalog-rc3.md"
+    ]
+  },
+  "metricsFromRc5Diagnostics": {
+    "panels": 474,
+    "endpoints": 430,
+    "packages": 18
+  }
+}

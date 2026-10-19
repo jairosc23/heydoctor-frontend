@@ -1,0 +1,518 @@
+"use client";
+
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { usePatientProfilePersistFeedback } from "@/hooks/usePatientProfilePersistFeedback";
+import { buildAntecedentsFlushPayload } from "@/lib/patient-antecedents-flush";
+import {
+  jsonLinesToList,
+  jsonLinesToText,
+} from "@/lib/patient-profile-display";
+import {
+  habitLinesFromProfile,
+  habitsFromProfile,
+  PATIENT_HABIT_FIELDS,
+  type PatientHabitDraft,
+} from "@/lib/patient-profile-habits";
+import {
+  upsertPatientProfile,
+  type PatientProfile,
+} from "@/lib/services/patients";
+import { cn } from "@/lib/utils";
+import { ClinicalEncounterSection } from "./ClinicalEncounterSection";
+
+const TEXTAREA_CLASS =
+  "min-h-[88px] w-full rounded-hd-md border border-slate-300 bg-white px-hd-3 py-hd-2 text-sm text-slate-800 shadow-sm placeholder:text-slate-400 disabled:bg-slate-50 disabled:text-slate-500";
+
+function mergeLines(...groups: string[][]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const group of groups) {
+    for (const line of group) {
+      if (!seen.has(line)) {
+        seen.add(line);
+        out.push(line);
+      }
+    }
+  }
+  return out;
+}
+
+type AntecedentsDraft = {
+  personalText: string;
+  medicationsText: string;
+  allergiesText: string;
+  familyText: string;
+} & PatientHabitDraft;
+
+function draftFromProfile(profile: PatientProfile | null): AntecedentsDraft {
+  // Read-mode merges chronic + surgeries + disabilities under "personales".
+  // Editor must start from the same merged view or data looks "lost" on edit.
+  const personalLines = mergeLines(
+    jsonLinesToList(profile?.chronicConditions),
+    jsonLinesToList(profile?.surgeries),
+    jsonLinesToList(profile?.disabilities),
+  );
+  return {
+    personalText: personalLines.join("\n"),
+    medicationsText: jsonLinesToText(profile?.medications),
+    allergiesText: jsonLinesToText(profile?.allergies),
+    familyText: jsonLinesToText(profile?.familyHistory),
+    ...habitsFromProfile(profile),
+  };
+}
+
+function draftKeyOf(draft: AntecedentsDraft): string {
+  return JSON.stringify(draft);
+}
+
+export type PatientAntecedentsSectionHandle = {
+  /** Persiste el perfil si hay cambios. Retorna true si escribió en la ficha del paciente. */
+  flush: () => Promise<boolean>;
+  getDraftKey: () => string;
+  isDirty: () => boolean;
+  /** Blocks further PUT flushes (literal "Salir sin guardar"). */
+  abandon: () => void;
+};
+
+export interface PatientLongitudinalSectionsProps {
+  profile: PatientProfile | null;
+  loading?: boolean;
+  patientId?: string | null;
+  editable?: boolean;
+  onProfileSaved?: (profile: PatientProfile) => void;
+  onDraftKeyChange?: (draftKey: string) => void;
+  onDirtyChange?: (dirty: boolean) => void;
+  onPersistError?: (message: string) => void;
+}
+
+function AntecedentChips({
+  label,
+  lines,
+  emptyLabel,
+  critical,
+}: {
+  label: string;
+  lines: string[];
+  emptyLabel: string;
+  critical?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-hd-md border border-hd-border-subtle bg-white px-hd-3 py-hd-2.5",
+        critical && "border-red-200 bg-red-50",
+      )}
+      data-testid={`antecedents-group-${label.toLowerCase().replace(/\s+/g, "-")}`}
+    >
+      <p
+        className={cn(
+          "mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600",
+          critical && "text-red-800",
+        )}
+      >
+        {label}
+      </p>
+      {lines.length === 0 ? (
+        <p className="text-sm text-slate-400">{emptyLabel}</p>
+      ) : (
+        <ul className="flex flex-wrap gap-1.5">
+          {lines.map((line) => (
+            <li
+              key={line}
+              className={cn(
+                "max-w-full rounded-full border px-2.5 py-1 text-xs font-medium leading-snug",
+                critical
+                  ? "border-red-200 bg-white text-red-900"
+                  : "border-slate-200 bg-slate-50 text-slate-800",
+              )}
+            >
+              <span className="break-words">{line}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function EditableField({
+  label,
+  value,
+  onChange,
+  placeholder,
+  critical,
+  disabled,
+  testId,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  critical?: boolean;
+  disabled?: boolean;
+  testId: string;
+}) {
+  return (
+    <label
+      className={cn(
+        "block rounded-hd-md border border-slate-300 bg-white px-hd-3 py-hd-2 shadow-sm",
+        critical && "border-red-300 bg-red-50/40",
+      )}
+    >
+      <span
+        className={cn(
+          "mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-700",
+          critical && "text-red-800",
+        )}
+      >
+        {label}
+      </span>
+      <textarea
+        className={TEXTAREA_CLASS}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        disabled={disabled}
+        data-testid={testId}
+        rows={4}
+      />
+      <span className="mt-1 block text-[11px] text-slate-500">
+        Una entrada por línea. Se guarda en la ficha del paciente.
+      </span>
+    </label>
+  );
+}
+
+export const PatientAntecedentsSection = forwardRef<
+  PatientAntecedentsSectionHandle,
+  PatientLongitudinalSectionsProps
+>(function PatientAntecedentsSection(
+  {
+    profile,
+    loading,
+    patientId,
+    editable = false,
+    onProfileSaved,
+    onDraftKeyChange,
+    onDirtyChange,
+    onPersistError,
+  },
+  ref,
+) {
+  const [draft, setDraft] = useState<AntecedentsDraft>(() =>
+    draftFromProfile(profile),
+  );
+  const [baselineKey, setBaselineKey] = useState(() =>
+    draftKeyOf(draftFromProfile(profile)),
+  );
+  const [saving, setSaving] = useState(false);
+  const persist = usePatientProfilePersistFeedback();
+  const profileUpdatedAt = profile?.updatedAt ?? null;
+  const draftRef = useRef(draft);
+  const baselineKeyRef = useRef(baselineKey);
+  const flushPromiseRef = useRef<Promise<boolean> | null>(null);
+  const skipFlushRef = useRef(false);
+  const patientIdRef = useRef(patientId);
+  const profileRef = useRef(profile);
+  profileRef.current = profile;
+
+  useEffect(() => {
+    draftRef.current = draft;
+  }, [draft]);
+
+  useEffect(() => {
+    baselineKeyRef.current = baselineKey;
+  }, [baselineKey]);
+
+  useEffect(() => {
+    const patientChanged = patientIdRef.current !== patientId;
+    patientIdRef.current = patientId;
+    // Always reload when the patient changes. Only protect dirty drafts
+    // against same-patient profile prop refreshes (updatedAt / identity).
+    if (
+      !patientChanged &&
+      draftKeyOf(draftRef.current) !== baselineKeyRef.current
+    ) {
+      return;
+    }
+    const next = draftFromProfile(profile);
+    setDraft(next);
+    const nextKey = draftKeyOf(next);
+    setBaselineKey(nextKey);
+    baselineKeyRef.current = nextKey;
+    draftRef.current = next;
+  }, [patientId, profileUpdatedAt, profile]);
+
+  const currentDraftKey = useMemo(() => draftKeyOf(draft), [draft]);
+  const dirty = currentDraftKey !== baselineKey;
+
+  useEffect(() => {
+    onDraftKeyChange?.(currentDraftKey);
+  }, [currentDraftKey, onDraftKeyChange]);
+
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+  }, [dirty, onDirtyChange]);
+
+  useEffect(() => {
+    if (dirty) persist.markDirty();
+  }, [dirty, persist.markDirty]);
+
+  const abandon = useCallback(() => {
+    skipFlushRef.current = true;
+  }, []);
+
+  const flush = useCallback(async (): Promise<boolean> => {
+    // Persistencia no depende de editMode: salir de edición / autosave / F5
+    // deben poder escribir el draft dirty aunque la UI esté en solo lectura.
+    if (skipFlushRef.current) return false;
+    if (!patientId) return false;
+
+    // Coalesce concurrent flushes so manual save never no-ops while autosave runs.
+    if (flushPromiseRef.current) {
+      await flushPromiseRef.current;
+      if (skipFlushRef.current) return false;
+      if (draftKeyOf(draftRef.current) === baselineKeyRef.current) {
+        return false;
+      }
+    }
+
+    const current = draftRef.current;
+    const key = draftKeyOf(current);
+    if (key === baselineKeyRef.current) return false;
+
+    const run = (async (): Promise<boolean> => {
+      if (skipFlushRef.current) return false;
+      setSaving(true);
+      persist.beginPersist();
+      try {
+        // PR-A: partition merged personales — never wipe surgeries/disabilities
+        // that still appear in the editor (backend omits only when undefined).
+        const updated = await upsertPatientProfile(
+          patientId,
+          buildAntecedentsFlushPayload(current, profileRef.current),
+        );
+        const synced = draftFromProfile(updated);
+        setDraft(synced);
+        const syncedKey = draftKeyOf(synced);
+        setBaselineKey(syncedKey);
+        baselineKeyRef.current = syncedKey;
+        draftRef.current = synced;
+        onProfileSaved?.(updated);
+        persist.completeSuccess();
+        return true;
+      } catch (err) {
+        const message =
+          err instanceof Error
+            ? err.message
+            : "No se pudieron guardar los antecedentes. Intente Guardar de nuevo.";
+        persist.fail(message);
+        onPersistError?.(message);
+        throw err;
+      } finally {
+        setSaving(false);
+      }
+    })();
+
+    flushPromiseRef.current = run;
+    try {
+      return await run;
+    } finally {
+      if (flushPromiseRef.current === run) {
+        flushPromiseRef.current = null;
+      }
+    }
+  }, [
+    onPersistError,
+    onProfileSaved,
+    patientId,
+    persist.beginPersist,
+    persist.completeSuccess,
+    persist.fail,
+  ]);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      flush,
+      abandon,
+      getDraftKey: () => draftKeyOf(draftRef.current),
+      isDirty: () => draftKeyOf(draftRef.current) !== baselineKeyRef.current,
+    }),
+    [abandon, flush],
+  );
+
+  const chronic = jsonLinesToList(profile?.chronicConditions);
+  const surgeries = jsonLinesToList(profile?.surgeries);
+  const trauma = jsonLinesToList(profile?.disabilities);
+  const personalLines = mergeLines(chronic, surgeries, trauma);
+  const medicationLines = jsonLinesToList(profile?.medications);
+  const allergyLines = jsonLinesToList(profile?.allergies);
+  const habitLines = habitLinesFromProfile(profile);
+  const familyLines = jsonLinesToList(profile?.familyHistory);
+  const hasAllergies =
+    allergyLines.length > 0 || draft.allergiesText.trim().length > 0;
+  const canEdit = Boolean(editable && patientId);
+
+  return (
+    <ClinicalEncounterSection
+      sectionNumber={4}
+      title="Antecedentes del paciente"
+      id="encounter-section-4"
+    >
+      {loading ? (
+        <p className="text-sm text-slate-500">Cargando antecedentes…</p>
+      ) : canEdit ? (
+        <div className="space-y-hd-3" data-testid="antecedents-editor">
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <span className="rounded-hd-md border border-primary/20 bg-primaryLight/40 px-2 py-0.5 font-semibold text-primary">
+              Antecedentes — editable
+            </span>
+            {persist.phase !== "clean" && persist.label ? (
+              <span
+                className={cn(
+                  "font-semibold",
+                  persist.phase === "error"
+                    ? "text-red-700"
+                    : persist.phase === "pending" ||
+                        persist.phase === "pending_again"
+                      ? "text-amber-700"
+                      : "text-teal-800",
+                )}
+                data-testid="antecedents-persist-status"
+                data-persist-phase={persist.phase}
+              >
+                {persist.label}
+                {persist.phase === "error" ? " — Reintentar con Guardar" : ""}
+              </span>
+            ) : null}
+          </div>
+          <p className="text-xs text-slate-500">
+            Use «Guardar» en la ficha clínica para confirmar los cambios en la
+            ficha del paciente.
+          </p>
+          <div className="grid gap-hd-3 md:grid-cols-2">
+            <EditableField
+              label="Antecedentes personales"
+              value={draft.personalText}
+              onChange={(personalText) =>
+                setDraft((prev) => ({ ...prev, personalText }))
+              }
+              placeholder="Una condición por línea"
+              disabled={saving}
+              testId="antecedents-personal"
+            />
+            <EditableField
+              label="Medicamentos habituales"
+              value={draft.medicationsText}
+              onChange={(medicationsText) =>
+                setDraft((prev) => ({ ...prev, medicationsText }))
+              }
+              placeholder="Un medicamento por línea"
+              disabled={saving}
+              testId="antecedents-medications"
+            />
+            <EditableField
+              label="Alergias"
+              value={draft.allergiesText}
+              onChange={(allergiesText) =>
+                setDraft((prev) => ({ ...prev, allergiesText }))
+              }
+              placeholder="Una alergia por línea"
+              critical={hasAllergies}
+              disabled={saving}
+              testId="antecedents-allergies"
+            />
+            <EditableField
+              label="Antecedentes familiares"
+              value={draft.familyText}
+              onChange={(familyText) =>
+                setDraft((prev) => ({ ...prev, familyText }))
+              }
+              placeholder="Un antecedente familiar por línea"
+              disabled={saving}
+              testId="antecedents-family"
+            />
+            <div
+              className="rounded-hd-md border border-slate-300 bg-white px-hd-3 py-hd-2 shadow-sm md:col-span-2"
+              data-testid="antecedents-habits-editor"
+            >
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-700">
+                Hábitos
+              </p>
+              <div className="grid gap-hd-2 sm:grid-cols-2">
+                {PATIENT_HABIT_FIELDS.map(({ key, label }) => (
+                  <label key={key} className="block">
+                    <span className="mb-1 block text-[11px] font-semibold text-slate-600">
+                      {label}
+                    </span>
+                    <input
+                      className="w-full rounded-hd-md border border-slate-300 bg-white px-hd-3 py-hd-2 text-sm text-slate-800 shadow-sm placeholder:text-slate-400 disabled:bg-slate-50"
+                      value={draft[key]}
+                      onChange={(e) =>
+                        setDraft((prev) => ({
+                          ...prev,
+                          [key]: e.target.value,
+                        }))
+                      }
+                      placeholder="Ej. nunca, ocasional, diario"
+                      disabled={saving}
+                      data-testid={`antecedents-habit-${key}`}
+                    />
+                  </label>
+                ))}
+              </div>
+              <p className="mt-1 text-[11px] text-slate-500">
+                Texto libre. Se guarda en la ficha del paciente (no como lista
+                JSONB).
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="grid gap-hd-3 md:grid-cols-2">
+          {!editable ? (
+            <p className="md:col-span-2 text-xs text-slate-500">
+              Solo lectura. Active «Editar consulta» para modificar
+              antecedentes.
+            </p>
+          ) : null}
+          <AntecedentChips
+            label="Antecedentes personales"
+            lines={personalLines}
+            emptyLabel="Sin antecedentes personales registrados."
+          />
+          <AntecedentChips
+            label="Medicamentos habituales"
+            lines={medicationLines}
+            emptyLabel="Sin medicamentos habituales registrados."
+          />
+          <AntecedentChips
+            label="Alergias"
+            lines={allergyLines}
+            emptyLabel="Sin alergias documentadas en la ficha del paciente."
+            critical={hasAllergies}
+          />
+          <AntecedentChips
+            label="Hábitos"
+            lines={habitLines}
+            emptyLabel="Sin hábitos registrados."
+          />
+          <AntecedentChips
+            label="Antecedentes familiares"
+            lines={familyLines}
+            emptyLabel="Sin antecedentes familiares registrados."
+          />
+        </div>
+      )}
+    </ClinicalEncounterSection>
+  );
+});

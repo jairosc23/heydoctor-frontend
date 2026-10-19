@@ -1,0 +1,19 @@
+{
+  "validationId": "enterprise-release-final-validation-phase-3",
+  "branch": "release/medical-copilot-v1.0-rc2",
+  "frontendHead": "61c78131722a22106c1908ed1bbb2b59d68a63e4",
+  "backendHead": "0112945caa216211367ce02112ea1d2abd79ac68",
+  "unifiedReleaseValidOnRc2": true,
+  "phase3Certified": true,
+  "playwright": "SKIPPED",
+  "products": {
+    "medicalCopilot": "RC3-RC6_present",
+    "agendaEnterprise": "F1-F10_present"
+  },
+  "nextPhase": "phase_4_merge_to_main_readiness",
+  "goNoGo": {
+    "releaseOnRc2": "GO",
+    "mergeMain": "NO_GO",
+    "deploy": "NO_GO"
+  }
+}

@@ -1,0 +1,10 @@
+export type AiLayerProviderId = "noop" | "openai";
+export const GOVERNED_CLINICAL_INTELLIGENCE_SESSION_VERSION = "1.0.0" as const;
+export const GOVERNED_CLINICAL_INTELLIGENCE_SESSION_GOVERNANCE = { requiresPhysicianReview: true as const, executesAction: false as const, autoPersistedToEmr: false as const };
+export type GovernedClinicalIntelligenceSessionSlot = { id: string; sourceRefId: string | null; order: number; kind: "ci_session_slot"; status: "ok" | "empty" | "rejected"; slotKey: string; };
+export type GovernedClinicalIntelligenceSessionMetadata = { sessionId: string; consultationId: string; patientId: string; planId: string;
+  clinicalIntelligenceValidationId: string;
+  reviewSessionId: string;
+  generatedAt: string; builderVersion: typeof GOVERNED_CLINICAL_INTELLIGENCE_SESSION_VERSION; status: "ok" | "empty" | "rejected"; slotCount: number; selectedProviderId: AiLayerProviderId; };
+export type GovernedClinicalIntelligenceSession = { governedClinicalIntelligenceSessionId: string; providerId: AiLayerProviderId; sessionSlots: GovernedClinicalIntelligenceSessionSlot[]; governance: typeof GOVERNED_CLINICAL_INTELLIGENCE_SESSION_GOVERNANCE; metadata: GovernedClinicalIntelligenceSessionMetadata; };
+export type GovernedClinicalIntelligenceSessionBuilderResult = { source: "governed_clinical_intelligence_session"; builderVersion: typeof GOVERNED_CLINICAL_INTELLIGENCE_SESSION_VERSION; governedClinicalIntelligenceSession: GovernedClinicalIntelligenceSession; governance: typeof GOVERNED_CLINICAL_INTELLIGENCE_SESSION_GOVERNANCE; reason: string | null; generatedAt: string; };

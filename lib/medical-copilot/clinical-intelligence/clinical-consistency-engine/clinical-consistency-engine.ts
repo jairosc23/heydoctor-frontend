@@ -1,0 +1,11 @@
+export type AiLayerProviderId = "noop" | "openai";
+export const CLINICAL_CONSISTENCY_ENGINE_VERSION = "1.0.0" as const;
+export const CLINICAL_CONSISTENCY_ENGINE_GOVERNANCE = { requiresPhysicianReview: true as const, executesAction: false as const, autoPersistedToEmr: false as const };
+export type ClinicalConsistencyEngineSlot = { id: string; sourceRefId: string | null; order: number; kind: "consistency_engine_slot"; status: "ok" | "empty" | "rejected"; slotKey: string; };
+export type ClinicalConsistencyEngineMetadata = { sessionId: string; consultationId: string; patientId: string; planId: string;
+  evidenceReasoningEngineId: string;
+  contextId: string;
+  clinicalPlanId: string;
+  generatedAt: string; builderVersion: typeof CLINICAL_CONSISTENCY_ENGINE_VERSION; status: "ok" | "empty" | "rejected"; slotCount: number; selectedProviderId: AiLayerProviderId; };
+export type ClinicalConsistencyEngine = { clinicalConsistencyEngineId: string; providerId: AiLayerProviderId; consistencySlots: ClinicalConsistencyEngineSlot[]; governance: typeof CLINICAL_CONSISTENCY_ENGINE_GOVERNANCE; metadata: ClinicalConsistencyEngineMetadata; };
+export type ClinicalConsistencyEngineBuilderResult = { source: "clinical_consistency_engine"; builderVersion: typeof CLINICAL_CONSISTENCY_ENGINE_VERSION; clinicalConsistencyEngine: ClinicalConsistencyEngine; governance: typeof CLINICAL_CONSISTENCY_ENGINE_GOVERNANCE; reason: string | null; generatedAt: string; };

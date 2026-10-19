@@ -1,0 +1,35 @@
+{
+  "reportId": "enterprise-linear-main-promotion-phase-5c",
+  "date": "2026-07-16",
+  "status": "CERTIFIED",
+  "strategy": "git merge --squash origin/release/medical-copilot-v1.0-rc2 onto main",
+  "deployExecuted": false,
+  "backend": {
+    "mainCommit": "feb92995486b5ac654ce029b9d9bccc9212be3f3",
+    "pushed": true,
+    "diffVsRc2AtPromotion": "empty",
+    "mergeCommitsIntroduced": 0,
+    "gates": {
+      "format": "PASS",
+      "lint": "PASS_0_errors_55_warnings",
+      "build": "PASS",
+      "tests": "PASS_264_suites_922_tests"
+    }
+  },
+  "frontend": {
+    "mainCommit": "bc6729d220535764481259d09d6b0735c9ba333b",
+    "pushed": true,
+    "diffVsRc2AtPromotion": "empty",
+    "mergeCommitsIntroduced": 0,
+    "gates": {
+      "lint_tsc": "PASS",
+      "build": "PASS",
+      "tests": "PASS_1050"
+    }
+  },
+  "sourceBranch": "release/medical-copilot-v1.0-rc2",
+  "sourceIntact": true,
+  "githubLinearHistoryAccepted": true,
+  "phase5cCertified": true,
+  "nextPhase": "phase_6_railway_vercel_preview"
+}

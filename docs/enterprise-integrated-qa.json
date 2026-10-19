@@ -1,0 +1,43 @@
+{
+  "reportId": "enterprise-integrated-qa-phase-3",
+  "date": "2026-07-16",
+  "branch": "release/medical-copilot-v1.0-rc2",
+  "heads": {
+    "frontend": "61c78131722a22106c1908ed1bbb2b59d68a63e4",
+    "backend": "0112945caa216211367ce02112ea1d2abd79ac68"
+  },
+  "gates": {
+    "backend": {
+      "format": "PASS",
+      "lint": "PASS_0_errors_55_warnings",
+      "build": "PASS",
+      "tests": "PASS_264_suites_922_tests"
+    },
+    "frontend": {
+      "lint_tsc": "PASS",
+      "tests": "PASS_1050",
+      "build": "PASS"
+    },
+    "playwright": {
+      "status": "SKIPPED",
+      "reason": "environment_unavailable_no_dotenv_e2e"
+    }
+  },
+  "integrity": {
+    "agendaEnterpriseSurfacesPresent": true,
+    "medicalCopilotRc3toRc6Present": true,
+    "governedPanels": 474,
+    "migrationsUnified": true,
+    "breakingChangesDetected": false
+  },
+  "risks": [
+    "playwright_not_executed",
+    "backend_eslint_warnings_preexisting",
+    "manual_clinical_smoke_deferred"
+  ],
+  "goNoGo": {
+    "phase3IntegratedQa": "GO",
+    "mergeToMain": "NOT_EXECUTED",
+    "deploy": "NOT_EXECUTED"
+  }
+}

@@ -1,0 +1,42 @@
+export const GOVERNED_CONSULTATION_PERSISTENCE_EXECUTION_GOVERNANCE = {
+  requiresPhysicianReview: true as const,
+  executesAction: false as const,
+  autoPersistedToEmr: false as const,
+  draftApproved: false as const,
+  writesEmr: false as const,
+};
+
+export type GovernedConsultationPersistenceExecutionGovernance = typeof GOVERNED_CONSULTATION_PERSISTENCE_EXECUTION_GOVERNANCE;
+
+export type GovernedConsultationPersistenceExecutionComponentKey =
+  | "validation"
+  | "transaction"
+  | "repository"
+  | "execution"
+  | "audit"
+  | "rollback"
+  | "outcome";
+
+export type GovernedConsultationPersistenceExecutionComponentPresence = {
+  key: GovernedConsultationPersistenceExecutionComponentKey;
+  label: string;
+  present: boolean;
+  readOnly: true;
+  persisted: false;
+};
+
+export type GovernedConsultationPersistenceExecutionResult = {
+  runtime: unknown;
+  status: string | null;
+  components: GovernedConsultationPersistenceExecutionComponentPresence[];
+  governance: GovernedConsultationPersistenceExecutionGovernance;
+  reason: string | null;
+  readOnly: true;
+  persisted: false;
+  writesEmr: boolean;
+  writeAttempted: boolean;
+  writeExecuted: boolean;
+  repositoryInvoked: boolean;
+  rollbackExecuted: boolean;
+  entityPersisted: boolean;
+};

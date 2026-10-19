@@ -1,0 +1,20 @@
+# The tree has no git, so Railway does not apply .gitignore.
+# Keep the upload to source that the staging build needs.
+node_modules/
+.next/
+dist/
+build/
+docs/
+e2e/
+coverage/
+playwright-report/
+test-results/
+visual-audit/
+.vercel/
+.cursor/
+heydoctor-backend-pro/
+*.tsbuildinfo
+.env
+.env.local
+.env.*.local
+.env.e2e

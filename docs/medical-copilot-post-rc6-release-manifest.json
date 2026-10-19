@@ -1,0 +1,21 @@
+{
+  "manifest": "Release Manifest",
+  "generatedAt": "2026-07-16T15:42:18.858Z",
+  "version": "medical-copilot-v1.0-rc6-final-verification",
+  "branch": "release/medical-copilot-v1.0-rc2",
+  "backendCommit": "86be4c6539906c55df43521760dbcc24aa0f04c4",
+  "frontendCommit": "011078ee6e96b8d8a1fc60aadba8c7f6141ed1ad",
+  "packages": 18,
+  "endpoints": 430,
+  "workflows": 21,
+  "builders": 17,
+  "panels": 474,
+  "tests": {
+    "backend": "902/902",
+    "frontend": "1023/1023"
+  },
+  "playwright": "10/10",
+  "documentation": "RC3-RC6 + post-RC6 final verification",
+  "ssotFrozen": true,
+  "functionalChanges": false
+}

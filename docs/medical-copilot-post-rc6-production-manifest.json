@@ -1,0 +1,30 @@
+{
+  "manifest": "Production Manifest",
+  "generatedAt": "2026-07-16T15:42:00.893Z",
+  "READY": [
+    "RC6 freeze certified",
+    "POST-RC6 engineering verification PASS",
+    "SSOT frozen",
+    "Ready to start clinical QA"
+  ],
+  "NOT_READY": [
+    "Production deploy",
+    "Merge to main"
+  ],
+  "BLOCKERS": [
+    "Clinical QA pending",
+    "Human GO approval pending"
+  ],
+  "RIESGOS": [
+    "HITL vs persistence execution path (documented RC6)",
+    "Optional AuditService gaps (documented)",
+    "No external EMR connectors",
+    "Known Jest worker teardown noise (non-blocking)"
+  ],
+  "DEPENDENCIAS": [
+    "JWT/CSRF/feature flags",
+    "Correct FE build-time API URL",
+    "Kill-switch ops readiness",
+    "QA credentials"
+  ]
+}

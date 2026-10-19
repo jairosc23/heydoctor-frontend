@@ -1,0 +1,43 @@
+{
+  "manifest": "Deployment Manifest",
+  "generatedAt": "2026-07-16T15:42:00.893Z",
+  "deployExecuted": false,
+  "backendPlatform": "Railway",
+  "frontendPlatform": "Vercel",
+  "apiReference": "https://pro-api.heydoctor.health",
+  "requiredFrontendEnv": [
+    "NEXT_PUBLIC_HEYDOCTOR_API_URL",
+    "NEXT_PUBLIC_MEDICAL_COPILOT",
+    "NEXT_PUBLIC_CLINICAL_ACTION_WORKSPACE",
+    "NEXT_PUBLIC_SMART_CLINICAL_WORKSPACE"
+  ],
+  "requiredBackendEnv": [
+    "NODE_ENV",
+    "BACKEND_PUBLIC_URL",
+    "JWT_SECRET",
+    "MEDICAL_COPILOT_ENABLED"
+  ],
+  "order": [
+    "1. Backend Railway health",
+    "2. Frontend Vercel Preview",
+    "3. Smoke + clinical QA",
+    "4. Promote FE Production only after GO"
+  ],
+  "rollback": [
+    "FE: previous Vercel deployment / disable Copilot flags",
+    "BE: previous Railway deploy + MEDICAL_COPILOT_ENABLED=false"
+  ],
+  "smokeTests": [
+    "API health",
+    "deep-link medical-copilot",
+    "kill-switch",
+    "session ownership",
+    "Playwright critical"
+  ],
+  "postDeployChecklist": [
+    "health OK",
+    "no 5xx on governed facade",
+    "kill-switch verified",
+    "Sentry/release correlation"
+  ]
+}

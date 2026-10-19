@@ -1,0 +1,69 @@
+{
+  "assessmentId": "heydoctor-enterprise-global-2026-07-16",
+  "risks": [
+    {
+      "id": "R-GIT-01",
+      "area": "release",
+      "severity": "high",
+      "summary": "Dual-branch divergence FE/BE between Copilot RC2 and Agenda enterprise",
+      "mitigation": "Explicit reconcile merge before unified deploy; never force-push"
+    },
+    {
+      "id": "R-COPILOT-01",
+      "area": "performance_scale",
+      "severity": "high",
+      "summary": "Copilot sessions in-memory — multi-replica inconsistency without sticky/Redis",
+      "mitigation": "Single replica or session affinity until durable session store"
+    },
+    {
+      "id": "R-E2E-01",
+      "area": "qa",
+      "severity": "high",
+      "summary": "Playwright RC2 critical not validated with credentials in this audit",
+      "mitigation": "Run medical-copilot-rc2 project against staging with .env.e2e before prod GO"
+    },
+    {
+      "id": "R-AGENDA-01",
+      "area": "correctness",
+      "severity": "medium",
+      "summary": "Slot occupancy derived on FE may briefly diverge from BE engine",
+      "mitigation": "Invalidate/refetch after mutations; monitor QA"
+    },
+    {
+      "id": "R-AGENDA-02",
+      "area": "product",
+      "severity": "medium",
+      "summary": "Reminders admin without real delivery provider",
+      "mitigation": "Operate as SSOT admin only; no SMS/email claims"
+    },
+    {
+      "id": "R-UX-01",
+      "area": "product",
+      "severity": "medium",
+      "summary": "Two AI surfaces on consultation (legacy drawer + RC2 workspace)",
+      "mitigation": "Ops training; kill switch only affects RC2 path documented"
+    },
+    {
+      "id": "R-SEC-01",
+      "area": "security",
+      "severity": "low",
+      "summary": "Agenda lacks dedicated feature flag for emergency disable",
+      "mitigation": "FE rollback or route hide via deploy; shared auth remains"
+    },
+    {
+      "id": "R-OPS-01",
+      "area": "operations",
+      "severity": "medium",
+      "summary": "Independent Vercel/Railway deploys can skew FE/BE contracts",
+      "mitigation": "Deployment order BE then FE; smoke both products"
+    },
+    {
+      "id": "R-COUPLING-01",
+      "area": "architecture",
+      "severity": "low",
+      "summary": "Optional appointmentId on Copilot session metadata",
+      "mitigation": "Keep optional; no Agenda UI dependency"
+    }
+  ],
+  "overallRiskLevel": "medium_high_until_branch_reconcile_and_e2e_staging"
+}

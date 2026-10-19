@@ -1,0 +1,10 @@
+export type AiLayerProviderId = "noop" | "openai";
+export const EVIDENCE_RANKING_WORKSPACE_VERSION = "1.0.0" as const;
+export const EVIDENCE_RANKING_WORKSPACE_GOVERNANCE = { requiresPhysicianReview: true as const, executesAction: false as const, autoPersistedToEmr: false as const };
+export type EvidenceRankingWorkspaceSlot = { id: string; sourceRefId: string | null; order: number; kind: "evidence_ranking_slot"; status: "ok" | "empty" | "rejected"; slotKey: string; };
+export type EvidenceRankingWorkspaceMetadata = { sessionId: string; consultationId: string; patientId: string; planId: string;
+  clinicalHypothesisWorkspaceId: string;
+  evidenceReasoningEngineId: string;
+  generatedAt: string; builderVersion: typeof EVIDENCE_RANKING_WORKSPACE_VERSION; status: "ok" | "empty" | "rejected"; slotCount: number; selectedProviderId: AiLayerProviderId; };
+export type EvidenceRankingWorkspace = { evidenceRankingWorkspaceId: string; providerId: AiLayerProviderId; rankingSlots: EvidenceRankingWorkspaceSlot[]; governance: typeof EVIDENCE_RANKING_WORKSPACE_GOVERNANCE; metadata: EvidenceRankingWorkspaceMetadata; };
+export type EvidenceRankingWorkspaceBuilderResult = { source: "evidence_ranking_workspace"; builderVersion: typeof EVIDENCE_RANKING_WORKSPACE_VERSION; evidenceRankingWorkspace: EvidenceRankingWorkspace; governance: typeof EVIDENCE_RANKING_WORKSPACE_GOVERNANCE; reason: string | null; generatedAt: string; };

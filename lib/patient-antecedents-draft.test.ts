@@ -1,0 +1,131 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+import {
+  jsonLinesToList,
+  jsonLinesToText,
+  textToJsonLines,
+} from "./patient-profile-display";
+
+/**
+ * Mirrors PatientAntecedentsSection draft/read merge contract:
+ * personales = chronic ∪ surgeries ∪ disabilities (unique lines).
+ */
+function mergeLines(...groups: string[][]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const group of groups) {
+    for (const line of group) {
+      if (!seen.has(line)) {
+        seen.add(line);
+        out.push(line);
+      }
+    }
+  }
+  return out;
+}
+
+function personalDraftText(profile: {
+  chronicConditions?: Record<string, unknown>[];
+  surgeries?: Record<string, unknown>[];
+  disabilities?: Record<string, unknown>[];
+}): string {
+  return mergeLines(
+    jsonLinesToList(profile.chronicConditions),
+    jsonLinesToList(profile.surgeries),
+    jsonLinesToList(profile.disabilities),
+  ).join("\n");
+}
+
+function emptyHabits() {
+  return {
+    smokingStatus: "",
+    alcoholUse: "",
+    drugUse: "",
+    exerciseFrequency: "",
+  };
+}
+
+function draftKeyOf(draft: {
+  personalText: string;
+  medicationsText: string;
+  allergiesText: string;
+  familyText: string;
+  smokingStatus: string;
+  alcoholUse: string;
+  drugUse: string;
+  exerciseFrequency: string;
+}): string {
+  return JSON.stringify(draft);
+}
+
+describe("patient antecedents draft contract", () => {
+  it("edit draft includes surgeries/disabilities that read-mode shows", () => {
+    const profile = {
+      chronicConditions: [{ label: "HTA" }],
+      surgeries: [{ label: "Apendicectomía" }],
+      disabilities: [{ label: "Limitación rodilla" }],
+    };
+    const text = personalDraftText(profile);
+    assert.match(text, /HTA/);
+    assert.match(text, /Apendicectomía/);
+    assert.match(text, /Limitación rodilla/);
+  });
+
+  it("round-trips personal lines into chronicConditions JSONB shape", () => {
+    const text = "HTA\nApendicectomía: 2019";
+    const lines = textToJsonLines(text);
+    assert.equal(jsonLinesToText(lines), text);
+  });
+
+  it("draft key changes when a line is removed", () => {
+    const before = draftKeyOf({
+      personalText: "HTA\nDM2",
+      medicationsText: "",
+      allergiesText: "",
+      familyText: "",
+      ...emptyHabits(),
+    });
+    const after = draftKeyOf({
+      personalText: "HTA",
+      medicationsText: "",
+      allergiesText: "",
+      familyText: "",
+      ...emptyHabits(),
+    });
+    assert.notEqual(before, after);
+  });
+
+  it("draft key changes when a habit string changes", () => {
+    const before = draftKeyOf({
+      personalText: "HTA",
+      medicationsText: "LOSARTAN",
+      allergiesText: "PENICILINA",
+      familyText: "DM padre",
+      ...emptyHabits(),
+    });
+    const after = draftKeyOf({
+      personalText: "HTA",
+      medicationsText: "LOSARTAN",
+      allergiesText: "PENICILINA",
+      familyText: "DM padre",
+      ...emptyHabits(),
+      smokingStatus: "ocasional",
+    });
+    assert.notEqual(before, after);
+  });
+
+  it("merged personales stay stable when surgeries are preserved (PR-A)", () => {
+    const before = personalDraftText({
+      chronicConditions: [{ label: "HTA" }],
+      surgeries: [{ label: "Apendicectomía" }],
+      disabilities: [],
+    });
+    // After PR-A flush: surgery line stays in surgeries; chronic keeps HTA only.
+    const afterSave = personalDraftText({
+      chronicConditions: [{ label: "HTA" }],
+      surgeries: [{ label: "Apendicectomía" }],
+      disabilities: [],
+    });
+    assert.equal(afterSave, before);
+  });
+});

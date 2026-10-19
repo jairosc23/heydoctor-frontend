@@ -1,0 +1,166 @@
+"use client";
+
+import { CLINICAL_SECTION_TITLE } from "@/lib/clinical-design-tokens";
+import type { CopilotContextView } from "@/lib/clinical-copilot-intelligence";
+import { CopilotSourceStrip } from "./CopilotSourceStrip";
+
+function ContextRow({
+  label,
+  value,
+  mono = false,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+}) {
+  return (
+    <div className="rounded-hd-md border border-hd-border-subtle bg-hd-surface-raised px-hd-2 py-hd-2">
+      <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
+        {label}
+      </p>
+      <p
+        className={
+          mono
+            ? "mt-0.5 font-mono text-xs text-slate-800"
+            : "mt-0.5 text-xs leading-snug text-slate-800"
+        }
+      >
+        {value}
+      </p>
+    </div>
+  );
+}
+
+export function CopilotContextEngine({ context }: { context: CopilotContextView }) {
+  return (
+    <section aria-label="Context Engine" className="space-y-hd-3">
+      <div>
+        <h3 className={CLINICAL_SECTION_TITLE}>Context Engine v2™</h3>
+        <p className="text-[11px] text-slate-500">
+          Clinical Data Foundation — contexto clínico real
+        </p>
+      </div>
+
+      <CopilotSourceStrip sources={context.sources} />
+
+      <div>
+        <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-primary/80">
+          Memoria clínica
+        </p>
+        {context.clinicalMemory.length === 0 ? (
+          <p className="text-[11px] text-slate-500">
+            Sin memoria clínica construida en contexto
+          </p>
+        ) : (
+          <ul className="space-y-1">
+            {context.clinicalMemory.map((line) => (
+              <li
+                key={line}
+                className="rounded-hd-md border border-primary/15 bg-primaryLight/25 px-hd-2 py-1 text-xs text-slate-700"
+              >
+                {line}
+              </li>
+            ))}
+          </ul>
+        )}
+        {context.clinicalMemoryConfidence ? (
+          <p className="mt-1 text-[10px] text-slate-500">
+            Confidence: {context.clinicalMemoryConfidence}
+          </p>
+        ) : null}
+      </div>
+
+      <div className="grid gap-hd-2">
+        <ContextRow
+          label="Diagnóstico activo"
+          value={context.activeDiagnosis ?? "No disponible en contexto"}
+        />
+        <ContextRow
+          label="Motivo de consulta"
+          value={context.soapSummary.chiefComplaint}
+        />
+        <ContextRow label="SOAP — plan" value={context.soapSummary.plan} />
+        <ContextRow
+          label="SOAP — notas"
+          value={context.soapSummary.notesPreview}
+        />
+      </div>
+
+      {context.vitalsSummary ? (
+        <ContextRow label="Signos vitales" value={context.vitalsSummary} />
+      ) : null}
+
+      {context.physicalExamSummary ? (
+        <ContextRow label="Examen físico" value={context.physicalExamSummary} />
+      ) : null}
+
+      {context.longitudinalSummary ? (
+        <ContextRow label="Longitudinal" value={context.longitudinalSummary} />
+      ) : null}
+
+      {context.doctorDnaObservation ? (
+        <ContextRow label="Doctor DNA™" value={context.doctorDnaObservation} />
+      ) : null}
+
+      <div>
+        <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wide text-slate-400">
+          Medicamentos activos
+        </p>
+        {context.activeMedications.length === 0 ? (
+          <p className="text-[11px] text-slate-500">Sin medicación en memoria</p>
+        ) : (
+          <ul className="space-y-1">
+            {context.activeMedications.map((med) => (
+              <li
+                key={med}
+                className="rounded-hd-md border border-hd-border-subtle bg-teal-50/40 px-hd-2 py-1 text-xs text-slate-700"
+              >
+                {med}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div>
+        <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wide text-slate-400">
+          Timeline reciente
+        </p>
+        {context.recentTimeline.length === 0 ? (
+          <p className="text-[11px] text-slate-500">Sin consultas previas en memoria</p>
+        ) : (
+          <ul className="space-y-1">
+            {context.recentTimeline.map((item) => (
+              <li
+                key={item}
+                className="rounded-hd-md border border-hd-border-subtle bg-hd-surface-muted px-hd-2 py-1 text-xs text-slate-700"
+              >
+                {item}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div>
+        <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wide text-slate-400">
+          Laboratorios
+        </p>
+        {context.pendingLabs.length === 0 ? (
+          <p className="text-[11px] text-slate-500">Sin labs en memoria</p>
+        ) : (
+          <ul className="flex flex-wrap gap-1">
+            {context.pendingLabs.map((lab) => (
+              <li
+                key={lab}
+                className="rounded-full border border-amber-200/80 bg-amber-50 px-2 py-0.5 text-[11px] text-amber-900"
+              >
+                {lab}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </section>
+  );
+}

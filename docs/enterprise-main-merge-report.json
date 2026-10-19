@@ -1,0 +1,54 @@
+{
+  "reportId": "enterprise-main-merge-report-phase-5",
+  "date": "2026-07-16",
+  "status": "BLOCKED_PUSH_TO_MAIN",
+  "phase5CertifiedComplete": false,
+  "deployExecuted": false,
+  "source": "release/medical-copilot-v1.0-rc2",
+  "target": "main",
+  "backend": {
+    "localNoFfMergeSha": "052ad6e7b306014a206e3d822cbda52859ace417",
+    "rc2Tip": "b7aa0ba42aa55ffc79c4dc87fa0fd15b32d670c7",
+    "originMainUnchanged": "356e97f586bdb94b8a2f5901333cb39ee4e742d1",
+    "gates": {
+      "format": "PASS",
+      "lint": "PASS_0_errors_55_warnings",
+      "build": "PASS",
+      "tests": "PASS_264_suites_922_tests"
+    },
+    "push": {
+      "result": "REJECTED",
+      "code": "GH006",
+      "rule": "main must not contain merge commits",
+      "violatingCommit": "0112945caa216211367ce02112ea1d2abd79ac68"
+    }
+  },
+  "frontend": {
+    "rc2Tip": "6883691a",
+    "originMainUnchanged": "82de5585d33024f421f6a75c84f8622e05755fdc",
+    "push": {
+      "result": "REJECTED",
+      "code": "GH006",
+      "rule": "main must not contain merge commits",
+      "violatingCommit": "61c78131722a22106c1908ed1bbb2b59d68a63e4"
+    }
+  },
+  "blockingMergeCommitsInReleaseHistory": {
+    "backend": "0112945 merge(agenda): integrate Agenda Enterprise into Medical Copilot RC2",
+    "frontend": "61c78131 merge(agenda): integrate Agenda Enterprise into Medical Copilot RC2"
+  },
+  "unblockOptions": [
+    "A_relax_main_branch_protection_allow_merge_commits",
+    "B_authorized_linearize_history_rebase_or_squash_then_ff",
+    "C_admin_override_via_github"
+  ],
+  "actionsNotTaken": [
+    "force_push",
+    "rebase_without_auth",
+    "squash_without_auth",
+    "change_branch_protection",
+    "deploy"
+  ],
+  "releaseBranchIntact": true,
+  "nextStep": "await_explicit_authorization_to_unblock_or_phase_6"
+}

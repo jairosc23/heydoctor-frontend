@@ -1,0 +1,87 @@
+{
+  "initiative": "PQ-01",
+  "title": "Playwright P0 Hardening",
+  "epic": "EPIC-1B",
+  "generatedAt": "2026-07-17",
+  "repo": "jairosc23/heydoctor-frontend",
+  "branch": "feature/v1.1-platform-evolution",
+  "scope": {
+    "includes": [
+      "playwright-config",
+      "fixtures",
+      "helpers",
+      "auth",
+      "session-isolation",
+      "timeouts",
+      "retries",
+      "reporters",
+      "ci-artifacts",
+      "env-example-hygiene",
+      "documentation"
+    ],
+    "excludes": [
+      "new-functional-tests",
+      "medical-copilot-product",
+      "agenda-enterprise-product",
+      "backend",
+      "apis",
+      "production-deploy"
+    ]
+  },
+  "filesCreated": [
+    "e2e/helpers/env.ts",
+    "e2e/helpers/auth.ts",
+    "e2e/helpers/encounter.ts",
+    "e2e/fixtures/p0.ts",
+    "docs/pq-01-playwright-hardening.md",
+    "docs/pq-01-playwright-hardening.json"
+  ],
+  "filesModified": [
+    "e2e/clinical-p0.spec.ts",
+    "e2e/playwright.config.ts",
+    "e2e/.env.e2e.example",
+    "e2e/run-e2e.sh",
+    "e2e/README.md",
+    ".github/workflows/ci.yml",
+    "package.json",
+    ".gitignore"
+  ],
+  "validations": {
+    "playwrightListP0Tests": 6,
+    "localRunWithoutSecrets": "6 skipped",
+    "typecheck": "pass",
+    "authenticatedPreviewRun": "not-executed-in-agent-environment"
+  },
+  "remainingLimitations": [
+    {
+      "id": "L1",
+      "summary": "P0-4 Payku may skip without payment=success",
+      "severity": "high"
+    },
+    {
+      "id": "L2",
+      "summary": "Mutable staging seeds reduce idempotency",
+      "severity": "medium"
+    },
+    {
+      "id": "L3",
+      "summary": "CI skips E2E when secrets missing (job still green)",
+      "severity": "medium"
+    }
+  ],
+  "goNoGoMandatoryCiGate": {
+    "decision": "GO_CONDITIONAL",
+    "blockingWhenSecretsPresent": true,
+    "alwaysOnFailWithoutSecrets": false,
+    "blockersForAlwaysOn": [
+      "repository-secrets-guaranteed",
+      "branch-protection-policy",
+      "p0-4-payku-mitigation-or-tier-c"
+    ]
+  },
+  "certification": {
+    "result": "PASS",
+    "title": "PQ-01 Playwright P0 Hardening",
+    "awaiting": "explicit authorization for PQ-09"
+  }
+}

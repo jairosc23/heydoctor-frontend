@@ -1,0 +1,125 @@
+{
+  "feature": "F2-01",
+  "title": "Agenda & Auth End-to-End Reliability",
+  "epic": "EPIC-2B",
+  "generatedAt": "2026-07-17",
+  "repo": "jairosc23/heydoctor-frontend",
+  "branch": "feature/v1.1-platform-evolution",
+  "mode": "e2e-only",
+  "scope": {
+    "includes": [
+      "login",
+      "logout",
+      "session persistence reload",
+      "session loss recovery",
+      "protected route guard",
+      "authenticated navigation",
+      "agenda shell",
+      "availability surface",
+      "new appointment modal",
+      "create edit cancel cycle"
+    ],
+    "excludes": [
+      "clinical logic",
+      "medical copilot",
+      "webrtc",
+      "backend functional changes",
+      "api contract changes",
+      "migrations",
+      "deploy",
+      "main branch"
+    ]
+  },
+  "filesCreated": [
+    "e2e/agenda-auth-reliability.spec.ts",
+    "e2e/helpers/agenda.ts",
+    "e2e/fixtures/agenda-auth.ts",
+    "docs/f2-01-agenda-auth-e2e.md",
+    "docs/f2-01-agenda-auth-e2e.json"
+  ],
+  "filesModified": [
+    "e2e/helpers/auth.ts",
+    "e2e/playwright.config.ts",
+    "package.json",
+    ".github/workflows/ci.yml",
+    "e2e/.env.e2e.example",
+    "scripts/dx-doctor.mjs"
+  ],
+  "scenarios": {
+    "auth": [
+      "AUTH-01",
+      "AUTH-02",
+      "AUTH-03",
+      "AUTH-04",
+      "AUTH-05",
+      "AUTH-06"
+    ],
+    "agenda": ["AGENDA-01", "AGENDA-02", "AGENDA-03", "AGENDA-04"],
+    "totalTests": 10
+  },
+  "reuse": {
+    "pq01": ["loginAsDoctor", "doctorPage fixture", "serial suite", "retries traces artifacts"],
+    "pq09": ["controlled degradation CI pattern"],
+    "parallelFixtureStack": false
+  },
+  "ci": {
+    "job": "e2e-f2-01",
+    "requiredSecrets": [
+      "E2E_BASE_URL",
+      "E2E_DOCTOR_EMAIL",
+      "E2E_DOCTOR_PASSWORD"
+    ],
+    "absentBehavior": "skipped controlled degradation",
+    "presentBehavior": "blocking + artifact upload",
+    "npmScript": "test:e2e:f2-01",
+    "playwrightProject": "chromium-desktop-agenda-auth"
+  },
+  "validations": {
+    "playwrightList": 10,
+    "runWithoutSecrets": {
+      "skipped": 10,
+      "exitCode": 0
+    },
+    "authenticatedPreviewRun": "not_executed_local_missing_env_e2e"
+  },
+  "pendingDependencies": [
+    {
+      "id": "secrets-triad",
+      "impact": "CI job skipped until configured"
+    },
+    {
+      "id": "F2-05-qa-patients",
+      "impact": "AGENDA-04 soft-skips without patients"
+    },
+    {
+      "id": "preview-api-cookies",
+      "impact": "required for green authenticated run"
+    }
+  ],
+  "residualRisks": [
+    "AGENDA-04 dataset dependent",
+    "schedule collisions with blocks",
+    "JWT expiry not forced (cookie wipe models loss)",
+    "gate soft when secrets absent"
+  ],
+  "suiteStatus": {
+    "authCritical": "protected",
+    "agendaShell": "protected",
+    "agendaCrud": "conditionally_protected",
+    "ciCompatible": true,
+    "previewCompatible": true,
+    "debugArtifacts": true
+  },
+  "goNoGoProtectAgendaEvolution": {
+    "decision": "GO_CONDITIONAL",
+    "conditions": [
+      "configure auth triad in CI/Preview",
+      "F2-05 recommended for full AGENDA-04 green"
+    ]
+  },
+  "certification": {
+    "result": "PASS",
+    "title": "F2-01 Agenda & Auth End-to-End Reliability",
+    "awaiting": "explicit authorization for Feature F2-02"
+  }
+}

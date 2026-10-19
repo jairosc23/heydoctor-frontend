@@ -1,0 +1,11 @@
+export type AiLayerProviderId = "noop" | "openai";
+export const CLINICAL_INTELLIGENCE_GRAPH_VERSION = "1.0.0" as const;
+export const CLINICAL_INTELLIGENCE_GRAPH_GOVERNANCE = { requiresPhysicianReview: true as const, executesAction: false as const, autoPersistedToEmr: false as const };
+export type ClinicalIntelligenceGraphSlot = { id: string; sourceRefId: string | null; order: number; kind: "ci_graph_slot"; status: "ok" | "empty" | "rejected"; slotKey: string; };
+export type ClinicalIntelligenceGraphMetadata = { sessionId: string; consultationId: string; patientId: string; planId: string;
+  clinicalIntelligenceContextId: string;
+  evidenceReasoningEngineId: string;
+  clinicalReasoningGraphId: string;
+  generatedAt: string; builderVersion: typeof CLINICAL_INTELLIGENCE_GRAPH_VERSION; status: "ok" | "empty" | "rejected"; slotCount: number; selectedProviderId: AiLayerProviderId; };
+export type ClinicalIntelligenceGraph = { clinicalIntelligenceGraphId: string; providerId: AiLayerProviderId; graphSlots: ClinicalIntelligenceGraphSlot[]; governance: typeof CLINICAL_INTELLIGENCE_GRAPH_GOVERNANCE; metadata: ClinicalIntelligenceGraphMetadata; };
+export type ClinicalIntelligenceGraphBuilderResult = { source: "clinical_intelligence_graph"; builderVersion: typeof CLINICAL_INTELLIGENCE_GRAPH_VERSION; clinicalIntelligenceGraph: ClinicalIntelligenceGraph; governance: typeof CLINICAL_INTELLIGENCE_GRAPH_GOVERNANCE; reason: string | null; generatedAt: string; };

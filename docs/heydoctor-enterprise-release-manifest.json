@@ -1,0 +1,36 @@
+{
+  "manifestVersion": "1.0.0",
+  "manifestType": "release",
+  "product": "HeyDoctor Enterprise Platform",
+  "components": ["medical-copilot", "agenda-enterprise"],
+  "date": "2026-07-16",
+  "mode": "audit_only_no_promotion",
+  "baselines": {
+    "medicalCopilot": {
+      "branch": "release/medical-copilot-v1.0-rc2",
+      "frontend": "ed2d1d38b7bf1c547a38e775547853ded3918310",
+      "backend": "046ac2e9e416b1cd0bf89107270a1dc56ad2be02",
+      "status": "certified_rc6_post_rc6"
+    },
+    "agendaEnterprise": {
+      "branch": "feature/agenda-enterprise",
+      "frontend": "3902bf6c031c4b590b341e14f33bcefbe40f8543",
+      "backend": "82841419d6f25050808ea2aa93891180e843a56e",
+      "status": "certified_f1_f10"
+    }
+  },
+  "divergence": {
+    "frontendVsCopilotRelease": { "ahead": 10, "behind": 5 },
+    "backendVsCopilotRelease": { "ahead": 5, "behind": 6 },
+    "unifiedTagReady": false
+  },
+  "includes": {
+    "newFeatures": false,
+    "newApis": false,
+    "newTables": false,
+    "documentationOnlyPlusMinimalTestFix": true
+  },
+  "mergeExecuted": false,
+  "deployExecuted": false,
+  "promotionExecuted": false
+}

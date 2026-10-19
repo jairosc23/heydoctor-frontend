@@ -1,0 +1,6 @@
+import { getMedicalCopilotGovernedDiagnosticPatternRecognitionDiagnosticIntelEngine } from "@/lib/medical-copilot/api";
+import { mapGovernedDiagnosticPatternRecognitionDiagnosticIntelEngineEnvelope } from "./governed-diagnostic-pattern-recognition-diagnostic-intel-engine-mapper";
+import type { GovernedDiagnosticPatternRecognitionDiagnosticIntelEngineResult } from "./governed-diagnostic-pattern-recognition-diagnostic-intel-engine";
+export type GovernedDiagnosticPatternRecognitionDiagnosticIntelEngineReadAdapter = { get: (sessionId: string) => Promise<GovernedDiagnosticPatternRecognitionDiagnosticIntelEngineResult | null> };
+export async function getGovernedDiagnosticPatternRecognitionDiagnosticIntelEngine(sessionId: string): Promise<GovernedDiagnosticPatternRecognitionDiagnosticIntelEngineResult | null> { return mapGovernedDiagnosticPatternRecognitionDiagnosticIntelEngineEnvelope(await getMedicalCopilotGovernedDiagnosticPatternRecognitionDiagnosticIntelEngine(sessionId)); }
+export const governedDiagnosticPatternRecognitionDiagnosticIntelEngineReadAdapter: GovernedDiagnosticPatternRecognitionDiagnosticIntelEngineReadAdapter = { get: getGovernedDiagnosticPatternRecognitionDiagnosticIntelEngine };

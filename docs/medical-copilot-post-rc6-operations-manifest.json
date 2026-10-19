@@ -1,0 +1,14 @@
+{
+  "manifest": "Operations Manifest",
+  "generatedAt": "2026-07-16T15:42:00.893Z",
+  "killSwitch": "MEDICAL_COPILOT_ENABLED / NEXT_PUBLIC_MEDICAL_COPILOT",
+  "observability": "RC5 internal percentiles (no external sinks required)",
+  "contractDrift": "rc5-contract-baseline.json",
+  "runbooks": [
+    "medical-copilot-rc6-operational-guide.md",
+    "medical-copilot-rc6-recovery-guide.md",
+    "ENTERPRISE_OPERATIONAL_RELEASE_RUNBOOK.md (FE)"
+  ],
+  "merge": false,
+  "deploy": false
+}

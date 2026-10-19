@@ -1,0 +1,10 @@
+export type AiLayerProviderId = "noop" | "openai";
+export const PHYSICIAN_INTELLIGENCE_WORKSPACE_VERSION = "1.0.0" as const;
+export const PHYSICIAN_INTELLIGENCE_WORKSPACE_GOVERNANCE = { requiresPhysicianReview: true as const, executesAction: false as const, autoPersistedToEmr: false as const };
+export type PhysicianIntelligenceWorkspaceSlot = { id: string; sourceRefId: string | null; order: number; kind: "physician_intelligence_slot"; status: "ok" | "empty" | "rejected"; slotKey: string; };
+export type PhysicianIntelligenceWorkspaceMetadata = { sessionId: string; consultationId: string; patientId: string; planId: string;
+  clinicalIntelligenceRuntimeId: string;
+  physicianReasoningReviewId: string;
+  generatedAt: string; builderVersion: typeof PHYSICIAN_INTELLIGENCE_WORKSPACE_VERSION; status: "ok" | "empty" | "rejected"; slotCount: number; selectedProviderId: AiLayerProviderId; };
+export type PhysicianIntelligenceWorkspace = { physicianIntelligenceWorkspaceId: string; providerId: AiLayerProviderId; workspaceSlots: PhysicianIntelligenceWorkspaceSlot[]; governance: typeof PHYSICIAN_INTELLIGENCE_WORKSPACE_GOVERNANCE; metadata: PhysicianIntelligenceWorkspaceMetadata; };
+export type PhysicianIntelligenceWorkspaceBuilderResult = { source: "physician_intelligence_workspace"; builderVersion: typeof PHYSICIAN_INTELLIGENCE_WORKSPACE_VERSION; physicianIntelligenceWorkspace: PhysicianIntelligenceWorkspace; governance: typeof PHYSICIAN_INTELLIGENCE_WORKSPACE_GOVERNANCE; reason: string | null; generatedAt: string; };

@@ -1,0 +1,86 @@
+{
+  "checklistId": "agenda-enterprise-release-checklist",
+  "product": "Agenda Enterprise",
+  "phase": 10,
+  "items": [
+    {
+      "id": "REL-01",
+      "category": "release",
+      "item": "Fases 1–9 presentes y cableadas en /panel/agenda",
+      "status": "pass"
+    },
+    {
+      "id": "REL-02",
+      "category": "release",
+      "item": "Backend SSOT HEAD 82841419 (o merge posterior equivalente)",
+      "status": "pass"
+    },
+    {
+      "id": "REL-03",
+      "category": "release",
+      "item": "Medical Copilot / AI / RC3–RC6 no modificados en PR Agenda",
+      "status": "pass"
+    },
+    {
+      "id": "REL-04",
+      "category": "qa",
+      "item": "npm run lint (tsc) pass",
+      "status": "pass",
+      "evidence": "460 unit tests green; tsc --noEmit clean; production build ok"
+    },
+    {
+      "id": "REL-05",
+      "category": "qa",
+      "item": "npm test pass",
+      "status": "pass",
+      "evidence": "460/460"
+    },
+    {
+      "id": "REL-06",
+      "category": "qa",
+      "item": "npm run build pass",
+      "status": "pass"
+    },
+    {
+      "id": "REL-07",
+      "category": "deployment",
+      "item": "Migraciones enterprise + timezone aplicadas en target",
+      "status": "pending_environment"
+    },
+    {
+      "id": "REL-08",
+      "category": "deployment",
+      "item": "Smoke staging Dashboard/Calendario/Disponibilidad/Operaciones/Ajustes",
+      "status": "pending_environment"
+    },
+    {
+      "id": "REL-09",
+      "category": "operational",
+      "item": "Guías ops/recovery/deployment revisadas",
+      "status": "pass"
+    },
+    {
+      "id": "REL-10",
+      "category": "governance",
+      "item": "Aprobación humana merge",
+      "status": "pending"
+    },
+    {
+      "id": "REL-11",
+      "category": "governance",
+      "item": "Aprobación humana deploy producción",
+      "status": "pending"
+    },
+    {
+      "id": "REL-12",
+      "category": "governance",
+      "item": "Phase 10 no ejecutó merge ni deploy",
+      "status": "pass"
+    }
+  ],
+  "goNoGo": {
+    "branchCertification": "GO",
+    "merge": "NO_GO_UNTIL_REL-10",
+    "productionDeploy": "NO_GO_UNTIL_REL-07_REL-08_REL-11"
+  }
+}

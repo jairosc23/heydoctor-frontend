@@ -1,0 +1,92 @@
+{
+  "analysisId": "enterprise-conflict-analysis-2026-07-16",
+  "method": [
+    "git merge-base",
+    "git log exclusive ranges",
+    "git diff --name-status from merge-base",
+    "comm overlapping paths",
+    "git merge-tree --write-tree both directions",
+    "blob identity check on overlapping docs"
+  ],
+  "frontend": {
+    "overlappingPaths": [
+      "docs/heydoctor-enterprise-architecture.md",
+      "docs/heydoctor-enterprise-audit.md",
+      "docs/heydoctor-enterprise-deployment-manifest.json",
+      "docs/heydoctor-enterprise-final-certification.json",
+      "docs/heydoctor-enterprise-go-no-go.json",
+      "docs/heydoctor-enterprise-operational-manifest.json",
+      "docs/heydoctor-enterprise-production-readiness.md",
+      "docs/heydoctor-enterprise-release-manifest.json",
+      "docs/heydoctor-enterprise-risk-assessment.json"
+    ],
+    "overlappingContentIdentical": true,
+    "contentConflictsExpected": 0,
+    "deletes": [],
+    "renames": [],
+    "packageLock": { "changedOnAgenda": false, "changedOnCopilot": false },
+    "pnpmLock": { "present": false },
+    "routeOverlap": false,
+    "barrelOverlap": false,
+    "agendaOnlySharedTouches": [
+      "lib/services/auth.ts",
+      "lib/services/auth-session.ts",
+      "lib/services/clinic.ts",
+      "lib/services/appointments.ts",
+      "lib/services/my-doctor-profile.ts",
+      "app/panel/config/page.tsx",
+      "app/panel/agenda/page.tsx"
+    ],
+    "copilotOnlyProductTouches": [
+      "app/panel/consultas/[id]/medical-copilot/page.tsx",
+      "app/panel/consultas/[id]/page.tsx",
+      "lib/medical-copilot/**",
+      "components/medical-copilot/**"
+    ],
+    "diffstatFromBase": {
+      "agenda": "78 files, +8276/-102",
+      "copilot": "3866 files, +159130/-18"
+    }
+  },
+  "backend": {
+    "overlappingPaths": [
+      "heydoctor-backend-pro/docs/heydoctor-enterprise-architecture.md",
+      "heydoctor-backend-pro/docs/heydoctor-enterprise-audit.md",
+      "heydoctor-backend-pro/docs/heydoctor-enterprise-deployment-manifest.json",
+      "heydoctor-backend-pro/docs/heydoctor-enterprise-final-certification.json",
+      "heydoctor-backend-pro/docs/heydoctor-enterprise-go-no-go.json",
+      "heydoctor-backend-pro/docs/heydoctor-enterprise-operational-manifest.json",
+      "heydoctor-backend-pro/docs/heydoctor-enterprise-production-readiness.md",
+      "heydoctor-backend-pro/docs/heydoctor-enterprise-release-manifest.json",
+      "heydoctor-backend-pro/docs/heydoctor-enterprise-risk-assessment.json"
+    ],
+    "overlappingContentIdentical": true,
+    "contentConflictsExpected": 0,
+    "deletes": [],
+    "renames": [],
+    "packageLock": { "changedOnAgenda": false, "changedOnCopilot": false },
+    "pnpmLock": { "present": false },
+    "moduleOverlap": false,
+    "migrationNameCollision": false,
+    "agendaModules": [
+      "appointments.module.ts",
+      "clinic.module.ts"
+    ],
+    "copilotModules": [
+      "ai.module.ts"
+    ],
+    "sharedPathNonOverlap": {
+      "agendaAuth": "src/auth/auth.service.ts",
+      "copilotRequestContext": "src/common/request-context.storage.ts"
+    },
+    "diffstatFromBase": {
+      "agenda": "48 files, +3036/-37",
+      "copilot": "896 files, +108817/-191"
+    }
+  },
+  "verdict": {
+    "hardConflictBlockers": [],
+    "softProcessBlockers": ["B1_no_execute", "B2_e2e_env", "B3_human_approval"],
+    "lossOfCodeRiskIfMergeNoFf": "low"
+  }
+}

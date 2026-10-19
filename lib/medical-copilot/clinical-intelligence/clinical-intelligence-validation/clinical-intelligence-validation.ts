@@ -1,0 +1,10 @@
+export type AiLayerProviderId = "noop" | "openai";
+export const CLINICAL_INTELLIGENCE_VALIDATION_VERSION = "1.0.0" as const;
+export const CLINICAL_INTELLIGENCE_VALIDATION_GOVERNANCE = { requiresPhysicianReview: true as const, executesAction: false as const, autoPersistedToEmr: false as const };
+export type ClinicalIntelligenceValidationSlot = { id: string; sourceRefId: string | null; order: number; kind: "ci_validation_slot"; status: "ok" | "empty" | "rejected"; slotKey: string; };
+export type ClinicalIntelligenceValidationMetadata = { sessionId: string; consultationId: string; patientId: string; planId: string;
+  physicianIntelligenceWorkspaceId: string;
+  clinicalConsistencyEngineId: string;
+  generatedAt: string; builderVersion: typeof CLINICAL_INTELLIGENCE_VALIDATION_VERSION; status: "ok" | "empty" | "rejected"; slotCount: number; selectedProviderId: AiLayerProviderId; };
+export type ClinicalIntelligenceValidation = { clinicalIntelligenceValidationId: string; providerId: AiLayerProviderId; validationSlots: ClinicalIntelligenceValidationSlot[]; governance: typeof CLINICAL_INTELLIGENCE_VALIDATION_GOVERNANCE; metadata: ClinicalIntelligenceValidationMetadata; };
+export type ClinicalIntelligenceValidationBuilderResult = { source: "clinical_intelligence_validation"; builderVersion: typeof CLINICAL_INTELLIGENCE_VALIDATION_VERSION; clinicalIntelligenceValidation: ClinicalIntelligenceValidation; governance: typeof CLINICAL_INTELLIGENCE_VALIDATION_GOVERNANCE; reason: string | null; generatedAt: string; };

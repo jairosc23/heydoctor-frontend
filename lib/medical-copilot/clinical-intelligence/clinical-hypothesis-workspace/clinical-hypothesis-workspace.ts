@@ -1,0 +1,10 @@
+export type AiLayerProviderId = "noop" | "openai";
+export const CLINICAL_HYPOTHESIS_WORKSPACE_VERSION = "1.0.0" as const;
+export const CLINICAL_HYPOTHESIS_WORKSPACE_GOVERNANCE = { requiresPhysicianReview: true as const, executesAction: false as const, autoPersistedToEmr: false as const };
+export type ClinicalHypothesisWorkspaceSlot = { id: string; sourceRefId: string | null; order: number; kind: "hypothesis_workspace_slot"; status: "ok" | "empty" | "rejected"; slotKey: string; };
+export type ClinicalHypothesisWorkspaceMetadata = { sessionId: string; consultationId: string; patientId: string; planId: string;
+  governedReasoningOutputId: string;
+  differentialReasoningEngineId: string;
+  generatedAt: string; builderVersion: typeof CLINICAL_HYPOTHESIS_WORKSPACE_VERSION; status: "ok" | "empty" | "rejected"; slotCount: number; selectedProviderId: AiLayerProviderId; };
+export type ClinicalHypothesisWorkspace = { clinicalHypothesisWorkspaceId: string; providerId: AiLayerProviderId; hypothesisSlots: ClinicalHypothesisWorkspaceSlot[]; governance: typeof CLINICAL_HYPOTHESIS_WORKSPACE_GOVERNANCE; metadata: ClinicalHypothesisWorkspaceMetadata; };
+export type ClinicalHypothesisWorkspaceBuilderResult = { source: "clinical_hypothesis_workspace"; builderVersion: typeof CLINICAL_HYPOTHESIS_WORKSPACE_VERSION; clinicalHypothesisWorkspace: ClinicalHypothesisWorkspace; governance: typeof CLINICAL_HYPOTHESIS_WORKSPACE_GOVERNANCE; reason: string | null; generatedAt: string; };
