@@ -12,7 +12,17 @@ const LINKS = [
   { href: "/consultar", label: "Urgente ahora" },
 ] as const;
 
-export function PatientGrowthHeader() {
+export function PatientGrowthHeader({
+  patientCountry = "",
+  patientSubdivision = "",
+}: {
+  patientCountry?: string;
+  patientSubdivision?: string;
+} = {}) {
+  const careQuery = new URLSearchParams();
+  if (patientCountry.trim()) careQuery.set("patientCountry", patientCountry.trim().toUpperCase());
+  if (patientSubdivision.trim()) careQuery.set("patientSubdivision", patientSubdivision.trim().toUpperCase());
+  const urgentHref = careQuery.size ? `/consultar?${careQuery.toString()}` : "/consultar";
   return (
     <header className="border-b border-hd-border-subtle bg-hd-surface-chrome shadow-hd-1">
       <HdSkipLink />
@@ -27,7 +37,7 @@ export function PatientGrowthHeader() {
           {LINKS.map((link) => (
             <Link
               key={link.href}
-              href={link.href}
+              href={link.href === "/consultar" ? urgentHref : link.href}
               className="rounded-lg px-3 py-2 text-sm font-medium text-primaryDark no-underline transition-colors hover:text-primary"
               style={{ fontFamily: FONT_HEADING }}
             >
