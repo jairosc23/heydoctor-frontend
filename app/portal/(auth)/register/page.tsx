@@ -82,10 +82,18 @@ function RegisterPatientForm() {
           pública.
         </p>
         {!bookingToken || !inviteToken ? (
-          <p className="mb-4 rounded-lg bg-amber-50 px-3 py-2 text-left text-sm text-amber-900">
-            Falta el comprobante de reserva. Reserva una cita pública y abre
-            «Crear cuenta paciente» desde el estado de la reserva.
-          </p>
+          <div className="mb-4 rounded-lg bg-amber-50 px-3 py-3 text-left text-sm text-amber-900">
+            <p>
+              Para registrarte como paciente necesitas una reserva pública y su invitación.
+              Puedes obtenerlas al reservar una cita con un profesional.
+            </p>
+            <Link
+              href="/medicos"
+              className="mt-2 inline-block rounded font-semibold text-primary underline underline-offset-2 focus:outline-none focus:ring-2 focus:ring-primaryLight"
+            >
+              Buscar médico y reservar
+            </Link>
+          </div>
         ) : null}
         <form onSubmit={handleSubmit} className="space-y-3 text-left">
           <Input
