@@ -1,0 +1,46 @@
+name: HeyDoctor P1-B Isolated Quality Gate
+
+on:
+  push:
+    branches:
+      - fix/web-p1b-patient-access-20261025
+
+permissions:
+  contents: read
+
+concurrency:
+  group: p1b-quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  p1b-quality:
+    name: P1-B patient access QA (no deploy)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - name: Checkout exact pushed SHA
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify isolated P1-B branch
+        run: |
+          test "${GITHUB_REF_NAME}" = "fix/web-p1b-patient-access-20261025"
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Unit tests
+        run: npm test
+      - name: Component tests
+        run: npm run test:component
+      - name: Next build
+        run: npm run build
