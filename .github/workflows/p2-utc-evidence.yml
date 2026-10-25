@@ -1,0 +1,65 @@
+name: HeyDoctor P2 UTC Evidence
+
+on:
+  push:
+    branches: [fix/web-p2-public-qa-20261025]
+    paths:
+      - .github/workflows/p2-utc-evidence.yml
+
+permissions:
+  contents: read
+
+jobs:
+  verify-utc:
+    name: Live UTC vs Santiago (GET only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Compare live API UTC with staging UI observation
+        env:
+          EXPECTED_CLINIC_TIMEZONE: America/Santiago
+          OBSERVED_UI_LOCAL: "2026-10-26 08:00"
+        run: |
+          node <<'NODE'
+          const assert = require('node:assert/strict');
+          const base = 'https://staging-api.heydoctor.health';
+          const url = new URL('/public/doctors/e2e-ci-doctor/availability/slots', base);
+          url.search = new URLSearchParams({
+            from: '2026-10-26T00:00:00.000Z',
+            to: '2026-11-09T23:59:59.000Z',
+            slotMinutes: '30',
+            patientCountry: 'CL'
+          }).toString();
+          async function main() {
+            const response = await fetch(url, { method: 'GET', headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(20000) });
+            console.log('API_HTTP_STATUS=' + response.status);
+            assert.equal(response.status, 200, 'Live availability GET must return 200');
+            const data = await response.json();
+            assert.equal(typeof data.clinicTimezone, 'string', 'clinicTimezone required from JSON');
+            assert.equal(data.clinicTimezone, process.env.EXPECTED_CLINIC_TIMEZONE, 'Unexpected clinic timezone');
+            assert.ok(Array.isArray(data.slots) && data.slots.length > 0, 'Expected non-empty slots array');
+            const slot = data.slots[0];
+            assert.equal(typeof slot.startsAt, 'string', 'First startsAt must be a string');
+            assert.match(slot.startsAt, /(Z|[+-]\d\d:\d\d)$/, 'startsAt needs explicit UTC offset');
+            const iso = new Date(slot.startsAt);
+            assert.ok(!Number.isNaN(iso.getTime()), 'startsAt invalid');
+            const parts = new Intl.DateTimeFormat('en-CA', {
+              timeZone: data.clinicTimezone, year: 'numeric', month: '2-digit',
+              day: '2-digit', hour: '2-digit', minute: '2-digit',
+              hourCycle: 'h23'
+            }).formatToParts(iso);
+            const val = (type) => parts.find(p => p.type === type)?.value;
+            const local = `${val('year')}-${val('month')}-${val('day')} ${val('hour')}:${val('minute')}`;
+            console.log('API_UTC=' + iso.toISOString());
+            console.log('CLINIC_TIMEZONE=' + data.clinicTimezone);
+            console.log('EXPECTED_LOCAL=' + local);
+            console.log('UI_LOCAL_OBSERVED=' + process.env.OBSERVED_UI_LOCAL);
+            console.log('SLOT_COUNT=' + data.slots.length);
+            assert.equal(local, process.env.OBSERVED_UI_LOCAL, 'Live API does not match Work staging UI observation');
+            console.log('P2_UTC_VERDICT=PASS');
+          }
+          main().catch(e => { console.error('P2_UTC_VERDICT=FAIL: ' + e.message); process.exitCode = 1; });
+          NODE
