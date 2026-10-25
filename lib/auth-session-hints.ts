@@ -10,6 +10,8 @@ export const PUBLIC_AUTH_ROUTES = new Set([
   "/login",
   "/register",
   "/consultar",
+  "/medicos",
+  "/especialidades",
   "/consulta-rapida",
   "/cookies",
   "/privacy",
@@ -22,6 +24,7 @@ export const PUBLIC_AUTH_ROUTES = new Set([
 export function isPublicAuthRoute(pathname: string | null): boolean {
   if (!pathname) return false;
   if (PUBLIC_AUTH_ROUTES.has(pathname)) return true;
+  if (/^\/dr\/[^/]+$/.test(pathname)) return true;
   if (pathname.startsWith("/teleconsulta/invitado/")) return true;
   return false;
 }
