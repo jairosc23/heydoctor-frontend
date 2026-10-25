@@ -205,7 +205,7 @@ export function PublicBookingStatusView({
                   }
                   return (
                     <Button
-                      href={`/portal/register?bookingToken=${encodeURIComponent(token)}&inviteToken=${encodeURIComponent(inviteToken)}`}
+                      href={`/portal/register?bookingToken=${encodeURIComponent(token)}`}
                       variant="secondary"
                     >
                       Crear cuenta paciente y guardar esta cita
