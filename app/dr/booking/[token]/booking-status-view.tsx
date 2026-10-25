@@ -15,6 +15,7 @@ import {
   PublicBookingError,
 } from "@/lib/services/public-booking";
 import { readPortalInvite } from "@/lib/services/portal-invite-storage";
+import { patientRegistrationHref } from "@/lib/services/portal-registration-link";
 import {
   PAYMENT_UNAVAILABLE_USER_MESSAGE,
   toPaymentUserMessage,
@@ -205,7 +206,7 @@ export function PublicBookingStatusView({
                   }
                   return (
                     <Button
-                      href={`/portal/register?bookingToken=${encodeURIComponent(token)}`}
+                      href={patientRegistrationHref(token)}
                       variant="secondary"
                     >
                       Crear cuenta paciente y guardar esta cita
