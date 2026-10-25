@@ -21,9 +21,10 @@ test("registry staging host is only the QA API", async () => {
   const previous = process.env.NEXT_PUBLIC_HEYDOCTOR_API_URL;
   process.env.NEXT_PUBLIC_HEYDOCTOR_API_URL = "https://pro-api.heydoctor.health";
   const { heydoctorApi } = await import("../heydoctor-api");
-  const original = heydoctorApi.get;
+  const mutableApi = heydoctorApi as { get: typeof heydoctorApi.get };
+  const original = mutableApi.get;
   let calls = 0;
-  heydoctorApi.get = (async () => {
+  mutableApi.get = (async () => {
     calls += 1;
     return [];
   }) as typeof heydoctorApi.get;
@@ -34,7 +35,7 @@ test("registry staging host is only the QA API", async () => {
     );
     assert.equal(calls, 0);
   } finally {
-    heydoctorApi.get = original;
+    mutableApi.get = original;
     if (previous === undefined) delete process.env.NEXT_PUBLIC_HEYDOCTOR_API_URL;
     else process.env.NEXT_PUBLIC_HEYDOCTOR_API_URL = previous;
   }
@@ -75,9 +76,10 @@ test("foreign registry read is not_found and list stays on the consultation", as
   const previous = process.env.NEXT_PUBLIC_HEYDOCTOR_API_URL;
   process.env.NEXT_PUBLIC_HEYDOCTOR_API_URL = `https://${QA_REGISTRY_HOST}`;
   const { heydoctorApi } = await import("../heydoctor-api");
-  const original = heydoctorApi.get;
+  const mutableApi = heydoctorApi as { get: typeof heydoctorApi.get };
+  const original = mutableApi.get;
   const seen: string[] = [];
-  heydoctorApi.get = (async (path: string) => {
+  mutableApi.get = (async (path: string) => {
     seen.push(path);
     if (path.endsWith(`/${DOC}`)) throw new ApiError("Clinical document not found", 404);
     return [
@@ -112,7 +114,7 @@ test("foreign registry read is not_found and list stays on the consultation", as
     assert.equal(listed[0]?.consultationId, CONSULT);
     assert.equal(seen.some((path) => path.includes("preview") || path.includes("pdf")), false);
   } finally {
-    heydoctorApi.get = original;
+    mutableApi.get = original;
     if (previous === undefined) delete process.env.NEXT_PUBLIC_HEYDOCTOR_API_URL;
     else process.env.NEXT_PUBLIC_HEYDOCTOR_API_URL = previous;
   }
