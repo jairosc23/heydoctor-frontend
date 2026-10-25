@@ -145,7 +145,7 @@ export function MedicosClient({
 
   return (
     <div className="min-h-screen bg-hd-surface-base pb-[env(safe-area-inset-bottom)]">
-      <PatientGrowthHeader />
+      <PatientGrowthHeader patientCountry={patientCountry} patientSubdivision={patientSubdivision} />
       <main id="contenido-principal" tabIndex={-1} className="outline-none">
         <section className="border-b border-hd-border-subtle bg-white">
           <Container className="max-w-5xl py-6 sm:py-8">
