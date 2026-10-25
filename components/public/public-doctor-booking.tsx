@@ -30,19 +30,24 @@ function addDays(d: Date, n: number): Date {
   return x;
 }
 
-function formatSlotLabel(iso: string, timeZone: string): string {
+function isValidClinicTimezone(timeZone: string): boolean {
   try {
-    return new Intl.DateTimeFormat("es-CL", {
-      timeZone,
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(new Date(iso));
+    new Intl.DateTimeFormat("en-US", { timeZone });
+    return true;
   } catch {
-    return new Date(iso).toLocaleString("es-CL");
+    return false;
   }
+}
+
+function formatSlotLabel(iso: string, timeZone: string): string {
+  return new Intl.DateTimeFormat("es-CL", {
+    timeZone,
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(iso));
 }
 
 export function PublicDoctorBooking({
@@ -97,8 +102,12 @@ export function PublicDoctorBooking({
           patientSubdivision: careSubdivision || undefined,
         },
       );
-      setSlots(res.slots);
+      // Reject invalid IANA zones rather than silently displaying browser-local time.
+      if (!res.clinicTimezone || !isValidClinicTimezone(res.clinicTimezone)) {
+        throw new PublicBookingError("Zona horaria de la clínica no disponible.", 0);
+      }
       setClinicTimezone(res.clinicTimezone);
+      setSlots(res.slots);
     } catch (e) {
       setError(
         e instanceof PublicBookingError
@@ -106,6 +115,7 @@ export function PublicDoctorBooking({
           : "No se pudo cargar la disponibilidad.",
       );
       setSlots([]);
+      setClinicTimezone(null);
     } finally {
       setLoadingSlots(false);
     }
@@ -214,6 +224,7 @@ export function PublicDoctorBooking({
               setPatientCountry(e.target.value.toUpperCase());
               setJurisdictionReady(false);
               setSlots([]);
+              setClinicTimezone(null);
               setSelected(null);
             }}
             maxLength={2}
@@ -232,6 +243,7 @@ export function PublicDoctorBooking({
               setPatientSubdivision(e.target.value.toUpperCase());
               setJurisdictionReady(false);
               setSlots([]);
+              setClinicTimezone(null);
               setSelected(null);
             }}
             maxLength={8}
