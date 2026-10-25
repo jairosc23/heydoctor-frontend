@@ -10,6 +10,10 @@ test("isPublicAuthRoute reconoce rutas publicas", () => {
   assert.equal(isPublicAuthRoute("/"), true);
   assert.equal(isPublicAuthRoute("/login"), true);
   assert.equal(isPublicAuthRoute("/register"), true);
+  assert.equal(isPublicAuthRoute("/medicos"), true);
+  assert.equal(isPublicAuthRoute("/especialidades"), true);
+  assert.equal(isPublicAuthRoute("/dr/e2e-ci-doctor"), true);
+  assert.equal(isPublicAuthRoute("/dr/booking/token"), false);
   assert.equal(isPublicAuthRoute("/panel"), false);
   assert.equal(isPublicAuthRoute("/panel/consultas"), false);
 });
