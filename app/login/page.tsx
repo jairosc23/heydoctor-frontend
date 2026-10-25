@@ -155,15 +155,29 @@ function LoginContent() {
             ¿Olvidaste tu contraseña? / Forgot password?
           </Link>
         </p>
-        <p className="mt-2 text-sm text-gray-600">
-          ¿No tienes cuenta?{" "}
-          <Link
-            href="/register"
-            className="rounded font-semibold text-primary no-underline hover:underline focus:outline-none focus:ring-2 focus:ring-primaryLight focus:ring-offset-2"
-          >
-            Registrarse
-          </Link>
-        </p>
+        <div className="mt-5 space-y-3 border-t border-gray-200 pt-4 text-left">
+          <div>
+            <p className="text-sm font-semibold text-primaryDark">¿Eres paciente?</p>
+            <p className="mt-1 text-sm text-gray-600">
+              Para crear tu cuenta, primero reserva una cita y utiliza el enlace de invitación recibido.
+            </p>
+            <Link
+              href="/medicos"
+              className="mt-2 inline-block rounded font-semibold text-primary underline underline-offset-2 focus:outline-none focus:ring-2 focus:ring-primaryLight focus:ring-offset-2"
+            >
+              Buscar médico y reservar
+            </Link>
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-primaryDark">¿Representas una clínica?</p>
+            <Link
+              href="/register"
+              className="mt-1 inline-block rounded font-semibold text-primary underline underline-offset-2 focus:outline-none focus:ring-2 focus:ring-primaryLight focus:ring-offset-2"
+            >
+              Registrar mi clínica
+            </Link>
+          </div>
+        </div>
           </>
         ) : (
           <MfaChallenge
