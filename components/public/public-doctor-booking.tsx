@@ -54,7 +54,7 @@ export function PublicDoctorBooking({
 }) {
   const router = useRouter();
   const [slots, setSlots] = useState<PublicAvailabilitySlot[]>([]);
-  const [clinicTimezone, setClinicTimezone] = useState("America/Santiago");
+  const [clinicTimezone, setClinicTimezone] = useState<string | null>(null);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [selected, setSelected] = useState<PublicAvailabilitySlot | null>(null);
   const [patientName, setPatientName] = useState("");
@@ -148,7 +148,7 @@ export function PublicDoctorBooking({
         startsAt: selected.startsAt,
         endsAt: selected.endsAt,
         reason: reason.trim() || undefined,
-        patientTimezone: clinicTimezone,
+        patientTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone || undefined,
         consentVersion: "public-booking-v1",
         patientCountry: careCountry,
         patientSubdivision: careSubdivision || undefined,
@@ -260,8 +260,12 @@ export function PublicDoctorBooking({
         <p className="text-sm text-primaryDark/50">
           No hay horarios públicos disponibles en los próximos 14 días.
         </p>
-      ) : (
-        <div className="mb-4 grid max-h-56 grid-cols-1 gap-2 overflow-y-auto sm:grid-cols-2">
+      ) : clinicTimezone ? (
+        <div>
+          <p className="mb-2 text-sm text-primaryDark/70">
+            Horarios de atención en zona de la clínica: <strong>{clinicTimezone}</strong>
+          </p>
+          <div className="mb-4 grid max-h-56 grid-cols-1 gap-2 overflow-y-auto sm:grid-cols-2">
           {slots.slice(0, 40).map((slot) => {
             const active = selected?.startsAt === slot.startsAt;
             return (
@@ -279,10 +283,15 @@ export function PublicDoctorBooking({
               </button>
             );
           })}
+          </div>
         </div>
+      ) : (
+        <p className="text-sm text-primaryDark/70" role="alert">
+          No se pudo determinar la zona horaria de atención.
+        </p>
       )}
 
-      {preview && bookingIntent(submitEnabled) === "preview" ? (
+      {preview && clinicTimezone && bookingIntent(submitEnabled) === "preview" ? (
         <div className="mt-4 rounded-lg border border-hd-border-subtle bg-hd-surface-base p-3 text-sm text-primaryDark">
           <p className="font-medium">Vista previa de la reserva</p>
           <p>{formatPreviewSlot(preview.startsAt, clinicTimezone)}</p>
