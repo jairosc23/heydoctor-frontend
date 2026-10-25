@@ -29,13 +29,16 @@ jobs:
           const url = new URL('/api/public/doctors/e2e-ci-doctor/availability/slots', base);
           url.search = new URLSearchParams({
             from: '2026-10-26T00:00:00.000Z',
-            to: '2026-11-09T23:59:59.000Z',
+            to: '2026-11-02T00:00:00.000Z',
             slotMinutes: '30',
             patientCountry: 'CL'
           }).toString();
           async function main() {
             const response = await fetch(url, { method: 'GET', headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(20000) });
             console.log('API_HTTP_STATUS=' + response.status);
+            if (!response.ok) {
+              console.error('API_GET_ERROR=' + (await response.text()).slice(0, 350).replace(/[\\r\\n]/g, ' '));
+            }
             assert.equal(response.status, 200, 'Live availability GET must return 200');
             const data = await response.json();
             assert.equal(typeof data.clinicTimezone, 'string', 'clinicTimezone required from JSON');
