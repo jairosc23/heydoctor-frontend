@@ -26,7 +26,7 @@ jobs:
           node <<'NODE'
           const assert = require('node:assert/strict');
           const base = 'https://staging-api.heydoctor.health';
-          const url = new URL('/public/doctors/e2e-ci-doctor/availability/slots', base);
+          const url = new URL('/api/public/doctors/e2e-ci-doctor/availability/slots', base);
           url.search = new URLSearchParams({
             from: '2026-10-26T00:00:00.000Z',
             to: '2026-11-09T23:59:59.000Z',
