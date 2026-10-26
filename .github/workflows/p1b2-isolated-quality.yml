@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - fix/web-p1b2-patient-continuity-20261025
+      - qa/web-p2e-patient-handoff-20261026
 
 permissions:
   contents: read
@@ -26,7 +27,10 @@ jobs:
           persist-credentials: false
       - name: Verify isolated P1-B.2 branch and SHA
         run: |
-          test "${GITHUB_REF_NAME}" = "fix/web-p1b2-patient-continuity-20261025"
+          case "${GITHUB_REF_NAME}" in
+            fix/web-p1b2-patient-continuity-20261025|qa/web-p2e-patient-handoff-20261026) ;;
+            *) exit 1 ;;
+          esac
           test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
       - name: Setup Node 22
         uses: actions/setup-node@v4
