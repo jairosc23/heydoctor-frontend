@@ -1,0 +1,45 @@
+name: HeyDoctor P2-F Isolated Browser QA
+
+on:
+  push:
+    branches:
+      - qa/web-p2f-browser-patient-20261026
+
+permissions:
+  contents: read
+
+concurrency:
+  group: p2f-browser-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser-patient:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CI: "true"
+      NEXT_TELEMETRY_DISABLED: "1"
+      NEXT_PUBLIC_BOOKING_SUBMIT_ENABLED: "false"
+      BOOKING_SUBMIT_ENABLED: "false"
+      NEXT_PUBLIC_API_URL: "http://127.0.0.1:59999/api"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify exact isolated branch and SHA
+        run: |
+          test "${GITHUB_REF_NAME}" = "qa/web-p2f-browser-patient-20261026"
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Build local Web with booking disabled
+        run: npm run build
+      - name: Install browser
+        run: npx playwright install --with-deps chromium
+      - name: Run isolated browser patient handoff smoke
+        run: npx playwright test --config=playwright.p2f.config.ts
