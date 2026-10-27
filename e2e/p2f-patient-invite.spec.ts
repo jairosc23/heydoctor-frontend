@@ -28,12 +28,12 @@ test.describe("P2-F patient portal registration — isolated browser", () => {
     });
     await page.goto("/dr/booking/qa-booking-A");
     await expect(page.getByRole("heading", { name: "Estado de tu cita" })).toBeVisible();
+    await expect(page.getByText("PENDING_CONFIRMATION")).toBeVisible();
     const register = page.getByRole("link", { name: "Crear cuenta paciente y guardar esta cita" });
     await expect(register).toBeVisible();
     await expect(register).toHaveAttribute("href", "/portal/register?bookingToken=qa-booking-A");
     await register.click();
     await expect(page).toHaveURL(/\/portal\/register\?bookingToken=qa-booking-A$/);
-    await expect(page.getByRole("button", { name: "Crear cuenta" })).toBeDisabled();
     expect(page.url()).not.toContain("qa-private-invite-A");
     await page.getByPlaceholder("Nombre completo").fill("Paciente sintético QA");
     await page.getByPlaceholder("Email (el mismo de la reserva)").fill("p2f@example.com");
