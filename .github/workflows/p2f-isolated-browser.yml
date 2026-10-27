@@ -21,7 +21,7 @@ jobs:
       NEXT_TELEMETRY_DISABLED: "1"
       NEXT_PUBLIC_BOOKING_SUBMIT_ENABLED: "false"
       BOOKING_SUBMIT_ENABLED: "false"
-      NEXT_PUBLIC_API_URL: "http://127.0.0.1:59999/api"
+      NEXT_PUBLIC_HEYDOCTOR_API_URL: "http://127.0.0.1:3000"
     steps:
       - uses: actions/checkout@v4
         with:
