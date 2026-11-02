@@ -2,7 +2,7 @@
 export const LANDING_HERO_MOCK_COMPOSITE = true;
 
 /** Official hero doctor image (drop-in when design provides the file). */
-export const LANDING_HERO_DOCTOR_OFFICIAL_BASENAME = "hero-doctor";
+export const LANDING_HERO_DOCTOR_OFFICIAL_BASENAME = "hero-doctor-approved";
 
 /** Safe fallback while the official hero image is not in the repository. */
 export const LANDING_HERO_DOCTOR_FALLBACK = "/og-image.jpg";
@@ -11,8 +11,8 @@ export const LANDING_HERO_DOCTOR_FALLBACK = "/og-image.jpg";
 export const LANDING_PATIENT_PIP_OFFICIAL_BASENAME = "patient-pip";
 
 /** Intrinsic size of the official Landing Hero SSOT asset (do not crop). */
-export const LANDING_HERO_DOCTOR_WIDTH = 1024;
-export const LANDING_HERO_DOCTOR_HEIGHT = 768;
+export const LANDING_HERO_DOCTOR_WIDTH = 1672;
+export const LANDING_HERO_DOCTOR_HEIGHT = 941;
 
 export const LANDING_PATIENT_PIP_WIDTH = 128;
 export const LANDING_PATIENT_PIP_HEIGHT = 170;
