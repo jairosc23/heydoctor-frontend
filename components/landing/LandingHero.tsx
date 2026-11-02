@@ -30,7 +30,7 @@ export function LandingHero({ whatsAppUrl }: LandingHeroProps) {
       className="bg-white py-8 sm:py-10 lg:py-12"
     >
       <Container>
-        <div className="grid items-center gap-8 md:grid-cols-[minmax(0,1.08fr)_minmax(320px,440px)] md:gap-8">
+        <div className="grid items-center gap-8 md:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)] md:gap-8">
           <div className="max-w-[520px]">
             <h1
               id="landing-hero-title"
@@ -98,7 +98,7 @@ function LandingHeroVisual({
   patientPipSrc: string | null;
 }) {
   return (
-    <div className="relative mx-auto w-full max-w-[400px] md:max-w-none">
+    <div className="relative mx-auto w-full max-w-[480px] md:max-w-none">
       {/*
         Composite hero JPG already includes white frame + PiP + controls.
         Avoid a second chrome layer (slate pad / heavy shadow / double radius)
