@@ -23,6 +23,8 @@ jobs:
           cache-dependency-path: package-lock.json
       - name: Update compatible locked dependencies (no major upgrades)
         run: |
+          npm install --global npm@11
+          npm --version
           rm package-lock.json
           npm install --package-lock-only --ignore-scripts
       - name: Record compatible lockfile changes
