@@ -22,7 +22,9 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
       - name: Update compatible locked dependencies (no major upgrades)
-        run: npm update --package-lock-only --ignore-scripts
+        run: |
+          rm package-lock.json
+          npm install --package-lock-only --ignore-scripts
       - name: Record compatible lockfile changes
         run: |
           git config user.name "github-actions[bot]"
