@@ -1,0 +1,63 @@
+name: Production Dependency Security Gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/production-dependency-audit.yml"
+      - "package.json"
+      - "package-lock.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-audit:
+    name: production-dependency-audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Audit production dependency graph (no installation, no secrets)
+        run: |
+          npm audit --omit=dev --json > dependency-audit.json || true
+          node <<'NODE'
+          const fs = require('node:fs');
+          const report = JSON.parse(fs.readFileSync('dependency-audit.json', 'utf8'));
+          if (report.error) {
+            console.error('AUDIT_UNAVAILABLE:', report.error.code || 'unknown');
+            process.exit(2);
+          }
+          const entries = Object.entries(report.vulnerabilities || {})
+            .filter(([, v]) => ['critical','high'].includes(v.severity))
+            .map(([name, v]) => ({
+              package: name, severity: v.severity,
+              direct: !!v.isDirect, installed: v.range || 'unknown',
+              fix: v.fixAvailable === false ? 'none indicated'
+                   : typeof v.fixAvailable === 'object'
+                     ? (v.fixAvailable.name || '') + '@' + (v.fixAvailable.version || '')
+                     : 'available'
+            }));
+          const totals = report.metadata?.vulnerabilities || {};
+          const summary = [
+            '## Production dependency audit (npm --omit=dev)',
+            '',
+            'Critical: **' + (totals.critical ?? '?') + '**; High: **' +
+              (totals.high ?? '?') + '**; Moderate: **' + (totals.moderate ?? '?') + '**.',
+            '',
+            '| Package | Severity | Direct? | Fix indicated |',
+            '|---|---|---|---|',
+            ...entries.map(v => `| ${v.package} | ${v.severity} | ${v.direct} | ${v.fix} |`),
+            '',
+            'Read-only audit. No dependency upgrades or production changes.'
+          ].join('\n');
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary + '\n');
+          console.log(summary);
+          if ((totals.critical || 0) > 0) process.exitCode = 1;
+          NODE
