@@ -8,7 +8,7 @@ export interface PaymentSession {
 export async function createPaymentSession(
   consultationId: string
 ): Promise<PaymentSession> {
-  return heydoctorApi.post<PaymentSession>("/payku/create-payment-session", {
+  return heydoctorApi.post<PaymentSession>("/payments/create-payment-session", {
     consultationId,
   });
 }
@@ -24,6 +24,6 @@ export async function fetchConsultationPaymentStatus(
   consultationId: string
 ): Promise<ConsultationPaymentStatus> {
   return heydoctorApi.get<ConsultationPaymentStatus>(
-    `/payku/consultation/${consultationId}/payment-status`
+    `/payments/consultation/${encodeURIComponent(consultationId)}/payment-status`
   );
 }
