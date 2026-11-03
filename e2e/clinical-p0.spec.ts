@@ -40,7 +40,7 @@ test.describe("Clinical P0 — workspace oficial (Action WS + Smart WS ON)", () 
       await expect(header.getByTestId("context-bar-continuity-row")).toBeVisible();
     }
     await expect(
-      header.getByText(/Borrador|En consulta|Firmado|Bloqueado|Cancelado/),
+      header.getByText(/Borrador|En consulta|Completada|Firmada|Bloqueado|Cancelado/),
     ).toBeVisible();
 
     await expect(chrome).toHaveCSS("position", "sticky");
