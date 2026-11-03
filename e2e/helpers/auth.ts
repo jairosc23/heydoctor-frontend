@@ -51,14 +51,15 @@ export async function loginAsDoctor(page: Page): Promise<void> {
   await emailField.fill(email);
   await passwordField.fill(password);
 
-  await Promise.all([
-    page.waitForURL((url) => !url.pathname.includes("/login"), {
-      timeout: 45_000,
-    }),
-    submit.click(),
-  ]);
-
-  await expect(page).not.toHaveURL(/\/login/);
+  // Do not race click with waitForURL("load"): Next.js may replace the
+  // frame during the auth redirect (net::ERR_ABORTED). Playwright's URL
+  // assertion retries across navigations without treating an aborted load
+  // as an auth failure. Require a protected staff route, not merely
+  // leaving /login (which could otherwise pass on an error/public page).
+  await submit.click();
+  await expect(page).toHaveURL(/\/(panel|dashboard)(\/|$)/, {
+    timeout: 45_000,
+  });
 }
 
 /** Re-auth helper when a test detects session loss mid-flow. */
