@@ -155,9 +155,14 @@ test.describe("Clinical P0 — workspace oficial (Action WS + Smart WS ON)", () 
     if (await notesArea.isVisible()) {
       await notesArea.fill("Control HTA — PA 145/92 mmHg. Continuar losartán 50mg.");
     }
-    await expect(page.getByText(/guardado|saved/i)).toBeVisible({
+    await expect(page.getByTestId("autosave-synced")).toBeVisible({
       timeout: 20_000,
     });
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(page.getByTestId("encounter-treatment")).toHaveValue(
+      "Control HTA — PA 145/92 mmHg. Continuar losartán 50mg.",
+      { timeout: 20_000 },
+    );
 
     // Receta vía Action Bar
     await page.getByTestId("clinical-action-bar").getByRole("button", {
@@ -233,9 +238,14 @@ test.describe("Clinical P0 — workspace oficial (Action WS + Smart WS ON)", () 
 
     const treatment = page.locator("#soap-treatment");
     await treatment.fill("Analgésico PRN. Reposo. Control si persiste >48h.");
-    await expect(page.getByText(/guardado|saved/i)).toBeVisible({
+    await expect(page.getByTestId("autosave-synced")).toBeVisible({
       timeout: 20_000,
     });
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(page.getByTestId("encounter-treatment")).toHaveValue(
+      "Analgésico PRN. Reposo. Control si persiste >48h.",
+      { timeout: 20_000 },
+    );
 
     // UC-01 abre el hub al hidratar el encounter. Contrato: afirmar, no click.
     const copilotHub = page.getByTestId("heydoctor-copilot-workspace");
