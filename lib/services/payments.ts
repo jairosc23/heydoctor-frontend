@@ -31,6 +31,6 @@ export async function fetchConsultationPaymentStatus(
   consultationId: string
 ): Promise<ConsultationPaymentStatus> {
   return heydoctorApi.get<ConsultationPaymentStatus>(
-    `/payments/consultation/${encodeURIComponent(consultationId)}/payment-status`
+    enterprisePaymentStatusPath(consultationId)
   );
 }
