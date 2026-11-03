@@ -429,6 +429,8 @@ export default function ConsultationDetailPage() {
         if (cancelled) return;
         setPaymentStep("idle");
         if (st.isPaid) {
+          // El proveedor solo confirma vía webhook/BD: el redirect no acredita el pago.
+          void trackConsultationPaid(id);
           setSaveMsg("Pago confirmado.");
           timeouts.set(() => setSaveMsg(""), 5000);
         } else if (st.hasPending) {
@@ -1130,11 +1132,6 @@ export default function ConsultationDetailPage() {
     });
     try {
       const session = await createPaymentSession(id);
-      void trackConsultationPaid(id, {
-        paymentId: session.paymentId,
-        amount,
-        currency,
-      });
       window.location.href = session.paymentUrl;
     } catch (err) {
       const msg = paymentFailureUserMessage(err);
