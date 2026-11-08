@@ -499,6 +499,8 @@ export function useTelemedicineCall(
   const iceConnectionStateRef = useRef<RTCIceConnectionState | null>(null);
   const reconnectingIceRef = useRef(false);
   const capturedVideoTrackRef = useRef<MediaStreamTrack | null>(null);
+  const cameraStreamRef = useRef<MediaStream | null>(null);
+  const recoveringCameraRef = useRef(false);
   const screenShareTrackRef = useRef<MediaStreamTrack | null>(null);
   const videoSuspendedByPolicyRef = useRef(false);
   const metricsSamplesRef = useRef(0);
@@ -957,29 +959,55 @@ export function useTelemedicineCall(
   );
 
   const recoverCamera = useCallback(async () => {
+    // iOS can mute a live track while another app owns the camera.
+    // Read from a ref: callbacks registered during the initial join must not
+    // capture the null localStream value from the first React render.
+    if (document.visibilityState === "hidden" || recoveringCameraRef.current) return;
+    const pc = pcRef.current;
+    const current = cameraStreamRef.current;
+    if (!pc || !current || pc.signalingState === "closed" ||
+        videoSuspendedByPolicyRef.current) return;
+    const tracks = current.getVideoTracks();
+    if (!tracks.some((track) => track.readyState === "ended" || track.muted)) return;
     const now = Date.now();
     if (now - lastCameraRecoverAtMsRef.current < 2500) return;
     lastCameraRecoverAtMsRef.current = now;
-    const pc = pcRef.current;
-    const current = localStream;
-    if (!pc || !current) return;
-    const ended = current
-      .getVideoTracks()
-      .some((t) => t.readyState === "ended");
-    if (!ended) return;
+    recoveringCameraRef.current = true;
     lastLocalVideoEndedAtMsRef.current = now;
     try {
       const preferred = activeCameraDeviceIdRef.current;
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: false,
-        video: preferred
-          ? { deviceId: { exact: preferred } }
-          : (mediaConstraints.video ?? true),
-      });
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: preferred
+            ? { deviceId: { exact: preferred } }
+            : (mediaConstraints.video ?? true),
+        });
+      } catch (error) {
+        // A device ID may change after an iOS camera handoff.
+        if (!preferred) throw error;
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: false, video: mediaConstraints.video ?? true,
+        });
+      }
       const track = stream.getVideoTracks()[0];
       if (!track) return;
+      if (pcRef.current !== pc || pc.signalingState === "closed") {
+        stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
       const sender = pc.getSenders().find((s) => s.track?.kind === "video");
-      await sender?.replaceTrack(track);
+      if (!sender) {
+        stream.getTracks().forEach((t) => t.stop());
+        throw new Error("video_sender_unavailable");
+      }
+      try {
+        await sender.replaceTrack(track);
+      } catch (error) {
+        stream.getTracks().forEach((t) => t.stop());
+        throw error;
+      }
       for (const t of current.getVideoTracks()) {
         try {
           t.stop();
@@ -990,6 +1018,11 @@ export function useTelemedicineCall(
       }
       current.addTrack(track);
       capturedVideoTrackRef.current = track;
+      cameraStreamRef.current = current;
+      const settings = track.getSettings?.();
+      if (settings?.deviceId) activeCameraDeviceIdRef.current = settings.deviceId;
+      track.addEventListener("ended", () => { void recoverCamera(); }, { once: true });
+      track.addEventListener("mute", () => { void recoverCamera(); });
       setLocalStream(new MediaStream(current.getTracks()));
       await reportWebrtcResilienceMetric("media_recovery_failures", {
         backendOrigin,
@@ -1009,8 +1042,10 @@ export function useTelemedicineCall(
         consultationId,
         reason: "camera_recovery_failed",
       });
+    } finally {
+      recoveringCameraRef.current = false;
     }
-  }, [backendOrigin, consultationId, localStream, mediaConstraints.video]);
+  }, [backendOrigin, consultationId, mediaConstraints.video]);
 
   const attachSignalingHandlers = useCallback(
     (socket: Socket, pc: RTCPeerConnection) => {
@@ -1215,6 +1250,7 @@ export function useTelemedicineCall(
       screenShareTrackRef.current = null;
       setScreenSharing(false);
       capturedVideoTrackRef.current = null;
+      cameraStreamRef.current = null;
       metricsSamplesRef.current = 0;
       poorNetworkStreakRef.current = 0;
       goodNetworkStreakRef.current = 0;
@@ -1446,6 +1482,7 @@ export function useTelemedicineCall(
       const stream =
         await navigator.mediaDevices.getUserMedia(mediaConstraints);
       logLocalGetUserMediaOk(stream, logVideo);
+      cameraStreamRef.current = stream;
       setLocalStream(stream);
 
       capturedVideoTrackRef.current = stream.getVideoTracks()[0] ?? null;
@@ -1459,6 +1496,10 @@ export function useTelemedicineCall(
         } catch {
           /* ignore */
         }
+        initialVideo.addEventListener("mute", () => {
+          // Safari may not fire ended. A hidden page waits for visibility.
+          void recoverCamera();
+        });
         initialVideo.addEventListener(
           "ended",
           () => {
