@@ -1,3 +1,4 @@
+import { resolveRetainedVideoSender } from "@/lib/webrtc-video-sender";
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -267,14 +268,6 @@ function parseOutboundVideoStats(
  * Poll getStats and move video quality tier up/down.
  * Prioritizes audio by lowering video before touching audio.
  */
-/** Sender identity survives adaptive video suspension (`replaceTrack(null)`). */
-export function resolveRetainedVideoSender<T extends { track: { kind: string } | null }>(
-  senders: readonly T[], retained: T | null,
-): T | null {
-  if (retained && senders.includes(retained)) return retained;
-  return senders.find((sender) => sender.track?.kind === "video") ?? null;
-}
-
 export function createAdaptiveVideoMonitor(
   pc: RTCPeerConnection,
   getVideoSender: () => RTCRtpSender | undefined,
