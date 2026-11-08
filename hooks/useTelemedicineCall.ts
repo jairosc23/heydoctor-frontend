@@ -993,7 +993,7 @@ export function useTelemedicineCall(
       }
       const track = stream.getVideoTracks()[0];
       if (!track) return;
-      if (pcRef.current !== pc || pc.signalingState === "closed") {
+      if (pcRef.current !== pc) {
         stream.getTracks().forEach((t) => t.stop());
         return;
       }
