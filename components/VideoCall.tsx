@@ -689,8 +689,8 @@ export const VideoCall = forwardRef<VideoCallRecordingHandle, VideoCallProps>(
         role="dialog"
         aria-label={displayTitle}
       >
-        <header className="flex shrink-0 items-center justify-between gap-3 border-b border-hd-border-subtle bg-hd-surface-chrome px-4 py-3 pt-[max(env(safe-area-inset-top),12px)] shadow-hd-1">
-          <div className="flex min-w-0 items-center gap-3">
+        <header className="flex shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-hd-border-subtle bg-hd-surface-chrome px-4 pb-3 pt-[max(env(safe-area-inset-top),12px)] shadow-hd-1">
+          <div className="flex min-w-0 max-w-full items-center gap-3">
             <BrandLogo markOnly markSize={28} className="shrink-0" />
             <Link
               href={callChrome.backHref}
@@ -699,7 +699,7 @@ export const VideoCall = forwardRef<VideoCallRecordingHandle, VideoCallProps>(
               ← {callChrome.backLabel}
             </Link>
           </div>
-          <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
+          <div className="flex min-w-0 w-full items-center justify-between gap-2 sm:w-auto sm:flex-1 sm:justify-end">
             <h1
               className="m-0 min-w-0 truncate text-right text-[15px] font-semibold text-primaryDark"
               style={{ fontFamily: "Montserrat, sans-serif" }}
