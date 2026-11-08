@@ -267,6 +267,14 @@ function parseOutboundVideoStats(
  * Poll getStats and move video quality tier up/down.
  * Prioritizes audio by lowering video before touching audio.
  */
+/** Sender identity survives adaptive video suspension (`replaceTrack(null)`). */
+export function resolveRetainedVideoSender<T extends { track: { kind: string } | null }>(
+  senders: readonly T[], retained: T | null,
+): T | null {
+  if (retained && senders.includes(retained)) return retained;
+  return senders.find((sender) => sender.track?.kind === "video") ?? null;
+}
+
 export function createAdaptiveVideoMonitor(
   pc: RTCPeerConnection,
   getVideoSender: () => RTCRtpSender | undefined,
@@ -499,6 +507,8 @@ export function useTelemedicineCall(
   const iceConnectionStateRef = useRef<RTCIceConnectionState | null>(null);
   const reconnectingIceRef = useRef(false);
   const capturedVideoTrackRef = useRef<MediaStreamTrack | null>(null);
+  // Keep the sender across replaceTrack(null), which removes its track.kind.
+  const videoSenderRef = useRef<RTCRtpSender | null>(null);
   const cameraStreamRef = useRef<MediaStream | null>(null);
   const recoveringCameraRef = useRef(false);
   const screenShareTrackRef = useRef<MediaStreamTrack | null>(null);
@@ -997,7 +1007,7 @@ export function useTelemedicineCall(
         stream.getTracks().forEach((t) => t.stop());
         return;
       }
-      const sender = pc.getSenders().find((s) => s.track?.kind === "video");
+      const sender = resolveRetainedVideoSender(pc.getSenders(), videoSenderRef.current);
       if (!sender) {
         stream.getTracks().forEach((t) => t.stop());
         throw new Error("video_sender_unavailable");
@@ -1250,6 +1260,7 @@ export function useTelemedicineCall(
       screenShareTrackRef.current = null;
       setScreenSharing(false);
       capturedVideoTrackRef.current = null;
+      videoSenderRef.current = null;
       cameraStreamRef.current = null;
       metricsSamplesRef.current = 0;
       poorNetworkStreakRef.current = 0;
@@ -1307,7 +1318,7 @@ export function useTelemedicineCall(
     }
     setScreenSharing(false);
     const pc = pcRef.current;
-    const videoSender = pc?.getSenders().find((s) => s.track?.kind === "video");
+    const videoSender = pc ? resolveRetainedVideoSender(pc.getSenders(), videoSenderRef.current) : null;
     if (!videoSender) return;
     const cam = capturedVideoTrackRef.current;
     try {
@@ -1328,7 +1339,7 @@ export function useTelemedicineCall(
     }
     const pc = pcRef.current;
     if (!pc) return;
-    const videoSender = pc.getSenders().find((s) => s.track?.kind === "video");
+    const videoSender = resolveRetainedVideoSender(pc.getSenders(), videoSenderRef.current);
     if (!videoSender) return;
     try {
       const dm = await navigator.mediaDevices.getDisplayMedia({
@@ -1532,7 +1543,7 @@ export function useTelemedicineCall(
         pc.addTrack(track, stream);
       }
       for (const track of stream.getVideoTracks()) {
-        pc.addTrack(track, stream);
+        videoSenderRef.current = pc.addTrack(track, stream);
       }
 
       await prioritizeAudioOverVideo(pc, videoTierRef.current);
@@ -1645,7 +1656,7 @@ export function useTelemedicineCall(
 
       stopStatsRef.current = createAdaptiveVideoMonitor(
         pc,
-        () => pc.getSenders().find((s) => s.track?.kind === "video"),
+        () => resolveRetainedVideoSender(pc.getSenders(), videoSenderRef.current) ?? undefined,
         {
           intervalMs: 2500,
           onTierChange: (tier) => {
@@ -1687,9 +1698,7 @@ export function useTelemedicineCall(
               goodNetworkStreakRef.current = 0;
             }
 
-            const videoSender = pc
-              .getSenders()
-              .find((s) => s.track?.kind === "video");
+            const videoSender = resolveRetainedVideoSender(pc.getSenders(), videoSenderRef.current);
 
             if (
               poorNetworkStreakRef.current >= 2 &&
@@ -1702,7 +1711,8 @@ export function useTelemedicineCall(
               try {
                 await videoSender.replaceTrack(null);
               } catch {
-                /* ignore */
+                videoSuspendedByPolicyRef.current = false;
+                setVideoSuspendedForNetwork(false);
               }
             }
 
@@ -1712,14 +1722,15 @@ export function useTelemedicineCall(
               capturedVideoTrackRef.current &&
               videoSender
             ) {
-              videoSuspendedByPolicyRef.current = false;
-              setVideoSuspendedForNetwork(false);
               goodNetworkStreakRef.current = 0;
               try {
                 await videoSender.replaceTrack(capturedVideoTrackRef.current);
+                videoSuspendedByPolicyRef.current = false;
+                setVideoSuspendedForNetwork(false);
                 await prioritizeAudioOverVideo(pc, videoTierRef.current);
               } catch {
-                /* ignore */
+                videoSuspendedByPolicyRef.current = true;
+                setVideoSuspendedForNetwork(true);
               }
             }
 
