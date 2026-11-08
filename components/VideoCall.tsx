@@ -30,6 +30,7 @@ import {
   Settings,
 } from "lucide-react";
 import { getBackendOrigin } from "@/lib/api-base";
+import { updateVideoFrameWatchdog } from "@/lib/webrtc-frame-watchdog";
 import { useAuth } from "@/lib/context/AuthContext";
 import { logger } from "@/lib/logger";
 import { getLogger } from "@/lib/logger";
@@ -121,6 +122,7 @@ export const VideoCall = forwardRef<VideoCallRecordingHandle, VideoCallProps>(
     const [camOn, setCamOn] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [mediaReady, setMediaReady] = useState(false);
+    const [remoteVideoStalled, setRemoteVideoStalled] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
     const [chatPanelOpen, setChatPanelOpen] = useState(false);
     const [devicesOpen, setDevicesOpen] = useState(false);
@@ -429,6 +431,30 @@ export const VideoCall = forwardRef<VideoCallRecordingHandle, VideoCallProps>(
         ? `Teleconsulta · ${peerDisplayName.trim()}`
         : "Teleconsulta");
 
+    // A live MediaStreamTrack does not prove that the remote video is rendering.
+    useEffect(() => {
+      let status = { lastFrames: null as number | null, stagnantSince: null as number | null };
+      setRemoteVideoStalled(false);
+      if (!remoteStream || connectionState !== "connected") return;
+      const id = window.setInterval(() => {
+        const el = remoteVideoRef.current;
+        const videoTrack = remoteStream.getVideoTracks()[0];
+        if (!el || !videoTrack || document.visibilityState !== "visible" ||
+            connectionState !== "connected" || el.paused || el.seeking) {
+          status = { lastFrames: null, stagnantSince: null };
+          setRemoteVideoStalled(false);
+          return;
+        }
+        // currentTime advances when playback progresses; unlike track.readyState,
+        // it detects a frozen image in the remote video element.
+        const sample = Math.floor(el.currentTime * 10);
+        const result = updateVideoFrameWatchdog(status, sample, Date.now(), 10000);
+        status = result.state;
+        setRemoteVideoStalled(result.stalled);
+      }, 2500);
+      return () => window.clearInterval(id);
+    }, [remoteStream, connectionState]);
+
     const hasRemoteLive = useMemo(
       () =>
         !!remoteStream &&
@@ -726,6 +752,10 @@ export const VideoCall = forwardRef<VideoCallRecordingHandle, VideoCallProps>(
               {!remoteStream ? (
                 <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-gray-400">
                   <span>Esperando al otro participante...</span>
+                </div>
+              ) : remoteVideoStalled ? (
+                <div className="pointer-events-none absolute inset-0 z-[1] flex items-center justify-center bg-black/70 px-4 text-center text-white" role="status">
+                  Video remoto interrumpido. El audio puede continuar mientras se recupera la imagen.
                 </div>
               ) : !hasRemoteLive ? (
                 <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-gray-400">
