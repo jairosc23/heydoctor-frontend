@@ -13,7 +13,7 @@ describe("M4 outbound frame watchdog", () => {
     expect(updateVideoFrameWatchdog(first.state, 20, 8999).stalled).toBe(false);
     const stalled = updateVideoFrameWatchdog(first.state, 20, 9000);
     expect(stalled.stalled).toBe(true);
-    expect(updateVideoFrameWatchdog(stalled.state, 20, 10000).stalled).toBe(false);
+    expect(updateVideoFrameWatchdog(stalled.state, 20, 10000).stalled).toBe(true);
   });
   it("keeps a video interruption visible until new frames arrive", () => {
     const initial = updateVideoFrameWatchdog({ lastFrames: null, stagnantSince: null }, 40, 1000);
