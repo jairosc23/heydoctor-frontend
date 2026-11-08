@@ -18,7 +18,8 @@ export function updateVideoFrameWatchdog(
   const since = previous.stagnantSince ?? now;
   const stalled = now - since >= thresholdMs;
   return {
-    state: { lastFrames: frames, stagnantSince: stalled ? now : since },
+    // Latch the interruption until frames actually advance; avoid UI flicker.
+    state: { lastFrames: frames, stagnantSince: since },
     stalled,
   };
 }
