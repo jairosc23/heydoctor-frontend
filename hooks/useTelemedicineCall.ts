@@ -1,5 +1,7 @@
-import { resolveRetainedVideoSender } from "@/lib/webrtc-video-sender";
 "use client";
+
+import { resolveRetainedVideoSender } from "@/lib/webrtc-video-sender";
+import { updateVideoFrameWatchdog } from "@/lib/webrtc-frame-watchdog";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -504,6 +506,9 @@ export function useTelemedicineCall(
   const videoSenderRef = useRef<RTCRtpSender | null>(null);
   const cameraStreamRef = useRef<MediaStream | null>(null);
   const recoveringCameraRef = useRef(false);
+  const frameWatchdogRef = useRef<{ lastFrames: number | null; stagnantSince: number | null }>({ lastFrames: null, stagnantSince: null });
+  const frameWatchdogBusyRef = useRef(false);
+  const forceCameraRecoveryRef = useRef(false);
   const screenShareTrackRef = useRef<MediaStreamTrack | null>(null);
   const videoSuspendedByPolicyRef = useRef(false);
   const metricsSamplesRef = useRef(0);
@@ -971,11 +976,12 @@ export function useTelemedicineCall(
     if (!pc || !current || pc.signalingState === "closed" ||
         videoSuspendedByPolicyRef.current) return;
     const tracks = current.getVideoTracks();
-    if (!tracks.some((track) => track.readyState === "ended" || track.muted)) return;
+    if (!forceCameraRecoveryRef.current && !tracks.some((track) => track.readyState === "ended" || track.muted)) return;
     const now = Date.now();
     if (now - lastCameraRecoverAtMsRef.current < 2500) return;
     lastCameraRecoverAtMsRef.current = now;
     recoveringCameraRef.current = true;
+    forceCameraRecoveryRef.current = false;
     lastLocalVideoEndedAtMsRef.current = now;
     try {
       const preferred = activeCameraDeviceIdRef.current;
@@ -995,7 +1001,10 @@ export function useTelemedicineCall(
         });
       }
       const track = stream.getVideoTracks()[0];
-      if (!track) return;
+      if (!track) {
+        stream.getTracks().forEach((t) => t.stop());
+        throw new Error("camera_track_unavailable");
+      }
       if (pcRef.current !== pc) {
         stream.getTracks().forEach((t) => t.stop());
         return;
@@ -1022,6 +1031,7 @@ export function useTelemedicineCall(
       current.addTrack(track);
       capturedVideoTrackRef.current = track;
       cameraStreamRef.current = current;
+      frameWatchdogRef.current = { lastFrames: null, stagnantSince: null };
       const settings = track.getSettings?.();
       if (settings?.deviceId) activeCameraDeviceIdRef.current = settings.deviceId;
       track.addEventListener("ended", () => { void recoverCamera(); }, { once: true });
@@ -1255,6 +1265,8 @@ export function useTelemedicineCall(
       capturedVideoTrackRef.current = null;
       videoSenderRef.current = null;
       cameraStreamRef.current = null;
+      frameWatchdogRef.current = { lastFrames: null, stagnantSince: null };
+      forceCameraRecoveryRef.current = false;
       metricsSamplesRef.current = 0;
       poorNetworkStreakRef.current = 0;
       goodNetworkStreakRef.current = 0;
@@ -1487,6 +1499,7 @@ export function useTelemedicineCall(
         await navigator.mediaDevices.getUserMedia(mediaConstraints);
       logLocalGetUserMediaOk(stream, logVideo);
       cameraStreamRef.current = stream;
+      frameWatchdogRef.current = { lastFrames: null, stagnantSince: null };
       setLocalStream(stream);
 
       capturedVideoTrackRef.current = stream.getVideoTracks()[0] ?? null;
@@ -1781,6 +1794,49 @@ export function useTelemedicineCall(
     socketPath,
     wirePeerConnection,
   ]);
+
+  // Outbound frames monitor: an iOS track may remain live/unmuted yet stop
+  // delivering frames. Observe actual RTP frames (not UI "connected" state).
+  useEffect(() => {
+    let cancelled = false;
+    const poll = async () => {
+      const pc = pcRef.current;
+      const track = capturedVideoTrackRef.current;
+      if (!pc || !track || frameWatchdogBusyRef.current) return;
+      const eligible = document.visibilityState === "visible" &&
+        pc.connectionState === "connected" &&
+        !videoSuspendedByPolicyRef.current && !screenShareTrackRef.current &&
+        track.enabled && track.readyState === "live";
+      if (!eligible) {
+        frameWatchdogRef.current = { lastFrames: null, stagnantSince: null };
+        return;
+      }
+      frameWatchdogBusyRef.current = true;
+      try {
+        const reports = await pc.getStats();
+        if (cancelled || pc !== pcRef.current) return;
+        let frames: number | null = null;
+        reports.forEach((report) => {
+          if (report.type === "outbound-rtp" && report.kind === "video" &&
+              typeof report.framesSent === "number") frames = report.framesSent;
+        });
+        if (frames === null) return; // Unsupported browser: do not guess.
+        const result = updateVideoFrameWatchdog(frameWatchdogRef.current, frames, Date.now(), 8000);
+        frameWatchdogRef.current = result.state;
+        if (result.stalled && !recoveringCameraRef.current &&
+            Date.now() - lastCameraRecoverAtMsRef.current >= 2500) {
+          forceCameraRecoveryRef.current = true;
+          await recoverCamera();
+        }
+      } catch {
+        // Missing stats must never disrupt an otherwise valid consultation.
+      } finally {
+        frameWatchdogBusyRef.current = false;
+      }
+    };
+    const id = window.setInterval(() => { void poll(); }, 2500);
+    return () => { cancelled = true; window.clearInterval(id); };
+  }, [recoverCamera]);
 
   useEffect(() => {
     const onVisibility = () => {
