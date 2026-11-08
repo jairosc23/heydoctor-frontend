@@ -655,6 +655,7 @@ export function useTelemedicineCall(
   }, [
     backendOrigin,
     consultationId,
+    guestCall,
     iceRestartInitiatorOnly,
     isInitiator,
     onError,
@@ -1069,7 +1070,7 @@ export function useTelemedicineCall(
     } finally {
       recoveringCameraRef.current = false;
     }
-  }, [backendOrigin, consultationId, mediaConstraints.video]);
+  }, [backendOrigin, consultationId, guestCall, mediaConstraints.video]);
 
   const attachSignalingHandlers = useCallback(
     (socket: Socket, pc: RTCPeerConnection) => {
