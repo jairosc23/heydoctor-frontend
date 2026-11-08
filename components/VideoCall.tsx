@@ -445,9 +445,14 @@ export const VideoCall = forwardRef<VideoCallRecordingHandle, VideoCallProps>(
           setRemoteVideoStalled(false);
           return;
         }
-        // currentTime advances when playback progresses; unlike track.readyState,
-        // it detects a frozen image in the remote video element.
-        const sample = Math.floor(el.currentTime * 10);
+        // Decode counters measure actual rendered-frame progress. Playback time
+        // alone can advance while a video is frozen and must not be trusted.
+        const quality = el.getVideoPlaybackQuality?.();
+        const webkitFrames = (el as HTMLVideoElement & {
+          webkitDecodedFrameCount?: number;
+        }).webkitDecodedFrameCount;
+        const sample = quality?.totalVideoFrames ?? webkitFrames;
+        if (typeof sample !== "number") return;
         const result = updateVideoFrameWatchdog(status, sample, Date.now(), 10000);
         status = result.state;
         setRemoteVideoStalled(result.stalled);
