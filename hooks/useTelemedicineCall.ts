@@ -621,12 +621,14 @@ export function useTelemedicineCall(
     void reportWebrtcResilienceMetric("reconnect_attempts", {
       backendOrigin,
       consultationId,
+      guestChannel: guestCall,
       reason: lastIceFailureReasonRef.current ?? "ice_restart",
       count: 1,
     });
     void reportWebrtcResilienceMetric("ice_restart_count", {
       backendOrigin,
       consultationId,
+      guestChannel: guestCall,
       reason: lastIceFailureReasonRef.current ?? "ice_restart",
       count: 1,
     });
@@ -767,6 +769,7 @@ export function useTelemedicineCall(
             void reportWebrtcResilienceMetric("reconnect_success", {
               backendOrigin,
               consultationId,
+              guestChannel: guestCall,
               requestId: joinTraceIdRef.current,
               reason: lastIceFailureReasonRef.current ?? "connected",
               count: 1,
@@ -1046,6 +1049,7 @@ export function useTelemedicineCall(
       await reportWebrtcResilienceMetric("media_recovery_failures", {
         backendOrigin,
         consultationId,
+        guestChannel: guestCall,
         reason: "camera_recovered",
         count: 0,
       });
@@ -1053,6 +1057,7 @@ export function useTelemedicineCall(
       await reportWebrtcResilienceMetric("media_recovery_failures", {
         backendOrigin,
         consultationId,
+        guestChannel: guestCall,
         reason: "camera_recovery_failed",
         count: 1,
       });
