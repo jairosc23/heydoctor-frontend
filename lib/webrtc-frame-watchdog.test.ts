@@ -15,6 +15,13 @@ describe("M4 outbound frame watchdog", () => {
     expect(stalled.stalled).toBe(true);
     expect(updateVideoFrameWatchdog(stalled.state, 20, 10000).stalled).toBe(false);
   });
+  it("keeps a video interruption visible until new frames arrive", () => {
+    const initial = updateVideoFrameWatchdog({ lastFrames: null, stagnantSince: null }, 40, 1000);
+    const stalled = updateVideoFrameWatchdog(initial.state, 40, 9000);
+    expect(stalled.stalled).toBe(true);
+    expect(updateVideoFrameWatchdog(stalled.state, 40, 12000).stalled).toBe(true);
+    expect(updateVideoFrameWatchdog(stalled.state, 41, 12500).stalled).toBe(false);
+  });
   it("resets invalid samples rather than triggering recovery", () => {
     expect(updateVideoFrameWatchdog({lastFrames: 10, stagnantSince: 100}, NaN, 20000).stalled).toBe(false);
   });
