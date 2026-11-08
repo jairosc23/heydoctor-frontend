@@ -97,6 +97,7 @@ function isPublicPath(pathname: string): boolean {
   if (pathname.startsWith("/login")) return true;
   if (pathname.startsWith("/register")) return true;
   if (pathname.startsWith("/portal/register")) return true;
+  if (pathname === "/teleconsulta/invitado") return true;
   if (pathname.startsWith("/teleconsulta/invitado/")) return true;
   if (pathname.startsWith("/dr/")) return true;
   return false;
