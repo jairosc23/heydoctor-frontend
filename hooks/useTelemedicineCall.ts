@@ -958,7 +958,7 @@ export function useTelemedicineCall(
     [localStream],
   );
 
-  const recoverCamera = useCallback(async () => {
+  const recoverCamera: () => Promise<void> = useCallback(async () => {
     // iOS can mute a live track while another app owns the camera.
     // Read from a ref: callbacks registered during the initial join must not
     // capture the null localStream value from the first React render.
