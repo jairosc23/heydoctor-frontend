@@ -1020,6 +1020,12 @@ export function useTelemedicineCall(
         stream.getTracks().forEach((t) => t.stop());
         throw error;
       }
+      // An awaited native/browser replacement can finish after the call ended.
+      // Never resurrect capture or React state for a superseded consultation.
+      if (pcRef.current !== pc || cameraStreamRef.current !== current) {
+        stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
       for (const t of current.getVideoTracks()) {
         try {
           t.stop();
