@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 import { resolveRetainedVideoSender } from "./webrtc-video-sender";
 
 type Sender = { track: { kind: string } | null };
@@ -7,18 +8,18 @@ describe("video sender retained through network suspension", () => {
     const audio: Sender = { track: { kind: "audio" } };
     const video: Sender = { track: { kind: "video" } };
     const senders = [audio, video];
-    expect(resolveRetainedVideoSender(senders, video)).toBe(video);
+    assert.equal(resolveRetainedVideoSender(senders, video), video);
     video.track = null;
-    expect(resolveRetainedVideoSender(senders, video)).toBe(video);
+    assert.equal(resolveRetainedVideoSender(senders, video), video);
   });
   it("never returns stale senders from a closed peer", () => {
     const old: Sender = { track: null };
     const fresh: Sender = { track: { kind: "video" } };
-    expect(resolveRetainedVideoSender([fresh], old)).toBe(fresh);
-    expect(resolveRetainedVideoSender([], old)).toBeNull();
+    assert.equal(resolveRetainedVideoSender([fresh], old), fresh);
+    assert.equal(resolveRetainedVideoSender([], old), null);
   });
   it("never confuses audio and video", () => {
     const audio: Sender = { track: { kind: "audio" } };
-    expect(resolveRetainedVideoSender([audio], null)).toBeNull();
+    assert.equal(resolveRetainedVideoSender([audio], null), null);
   });
 });
