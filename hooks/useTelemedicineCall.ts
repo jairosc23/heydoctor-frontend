@@ -493,6 +493,8 @@ export function useTelemedicineCall(
   const videoTierRef = useRef<AdaptationTier>(0);
   const remoteIdRef = useRef<string | null>(null);
   const roomPeerCountRef = useRef(1);
+  // After a peer leaves, the old SDP cannot be reused as an initial offer.
+  const remotePeerDepartedRef = useRef(false);
   const makingOfferRef = useRef(false);
   const iceRestartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const disconnectedSinceRef = useRef<number | null>(null);
@@ -1196,20 +1198,36 @@ export function useTelemedicineCall(
             });
           }
           if (typeof peerCount === "number" && peerCount > 1 && isInitiator) {
-            void createInitialOfferIfNeeded("room_state");
+            if (remotePeerDepartedRef.current) {
+              remotePeerDepartedRef.current = false;
+              lastIceFailureReasonRef.current = "peer_returned";
+              scheduleIceRestartDebounced();
+            } else {
+              void createInitialOfferIfNeeded("room_state");
+            }
           }
         },
       );
 
       socket.on("peer-joined", async ({ userId }: { userId: string }) => {
+        const returningPeer = remotePeerDepartedRef.current;
         remoteIdRef.current = userId;
         onRemoteUserId?.(userId);
         logVideo.info("webrtc_peer_joined", {
           event: "webrtc_peer_joined",
           consultationId,
           remoteIdPresent: true,
+          returningPeer,
         });
-        await createInitialOfferIfNeeded("peer_joined");
+        if (returningPeer && isInitiator) {
+          remotePeerDepartedRef.current = false;
+          lastIceFailureReasonRef.current = "peer_returned";
+          // An existing stable SDP offer is not a *first* offer. Perform a
+          // bounded renegotiation so the returning WebView gets fresh ICE.
+          scheduleIceRestartDebounced();
+        } else {
+          await createInitialOfferIfNeeded("peer_joined");
+        }
       });
 
       socket.on(
@@ -1305,8 +1323,13 @@ export function useTelemedicineCall(
       );
 
       socket.on("peer-left", () => {
+        remotePeerDepartedRef.current = true;
+        roomPeerCountRef.current = 1;
         remoteIdRef.current = null;
         onRemoteUserId?.(null);
+        // Do not display media from a peer that no longer occupies the room.
+        remoteStreamRef.current = null;
+        setRemoteStream(null);
       });
     },
     [
@@ -1325,6 +1348,7 @@ export function useTelemedicineCall(
       reconnectingIceRef.current = false;
       videoSuspendedByPolicyRef.current = false;
       roomPeerCountRef.current = 1;
+      remotePeerDepartedRef.current = false;
       try {
         screenShareTrackRef.current?.stop();
       } catch {
@@ -1478,6 +1502,7 @@ export function useTelemedicineCall(
     endCall({ reason: "start_reset" });
     remoteIdRef.current = null;
     roomPeerCountRef.current = 1;
+    remotePeerDepartedRef.current = false;
     iceRestartCountRef.current = 0;
     reconnectAttemptsRef.current = 0;
     lastIceRestartAtMsRef.current = null;
