@@ -1076,6 +1076,24 @@ export function useTelemedicineCall(
 
   const attachSignalingHandlers = useCallback(
     (socket: Socket, pc: RTCPeerConnection) => {
+      // ICE candidates can arrive before setRemoteDescription resolves.
+      // Dropping them loses viable network paths and can strand both peers.
+      // The queue is scoped to this RTCPeerConnection and bounded.
+      const earlyCandidates: RTCIceCandidateInit[] = [];
+      const flushEarlyCandidates = async () => {
+        if (!pc.remoteDescription || pc.signalingState === "closed") return;
+        for (const candidate of earlyCandidates.splice(0)) {
+          try {
+            await pc.addIceCandidate(new RTCIceCandidate(candidate));
+          } catch (error) {
+            logVideo.warn("webrtc_early_ice_candidate_rejected", {
+              event: "webrtc_early_ice_candidate_rejected",
+              consultationId,
+              errorName: error instanceof Error ? error.name : "unknown",
+            });
+          }
+        }
+      };
       socket.off("offer");
       socket.off("answer");
       socket.off("ice-candidate");
@@ -1254,6 +1272,7 @@ export function useTelemedicineCall(
                 ]).catch(() => undefined);
               }
               await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+              await flushEarlyCandidates();
               logVideo.info("webrtc_set_remote_description", {
                 event: "webrtc_set_remote_description",
                 consultationId,
@@ -1292,6 +1311,7 @@ export function useTelemedicineCall(
           try {
             if (pc.signalingState === "have-local-offer") {
               await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+              await flushEarlyCandidates();
               logVideo.info("webrtc_set_remote_description", {
                 event: "webrtc_set_remote_description",
                 consultationId,
@@ -1313,16 +1333,26 @@ export function useTelemedicineCall(
           fromUserId: string;
         }) => {
           try {
-            if (candidate && pc.remoteDescription) {
-              await pc.addIceCandidate(new RTCIceCandidate(candidate));
+            if (!candidate || pc.signalingState === "closed" || pcRef.current !== pc) return;
+            if (!pc.remoteDescription) {
+              // Bound memory usage if an SDP never arrives; no credentials/SDP logged.
+              if (earlyCandidates.length >= 128) earlyCandidates.shift();
+              earlyCandidates.push(candidate);
+              return;
             }
-          } catch {
-            /* ignore stale candidates */
+            await pc.addIceCandidate(new RTCIceCandidate(candidate));
+          } catch (error) {
+            logVideo.warn("webrtc_ice_candidate_rejected", {
+              event: "webrtc_ice_candidate_rejected",
+              consultationId,
+              errorName: error instanceof Error ? error.name : "unknown",
+            });
           }
         },
       );
 
       socket.on("peer-left", () => {
+        earlyCandidates.length = 0;
         remotePeerDepartedRef.current = true;
         roomPeerCountRef.current = 1;
         remoteIdRef.current = null;
