@@ -135,6 +135,7 @@ export const VideoCall = forwardRef<VideoCallRecordingHandle, VideoCallProps>(
     const {
       localStream,
       remoteStream,
+      remotePeerAbsent,
       connectionQuality,
       connectionState,
       iceConnectionState,
@@ -435,7 +436,7 @@ export const VideoCall = forwardRef<VideoCallRecordingHandle, VideoCallProps>(
     useEffect(() => {
       let status = { lastFrames: null as number | null, stagnantSince: null as number | null };
       setRemoteVideoStalled(false);
-      if (!remoteStream || connectionState !== "connected") return;
+      if (!remoteStream || remotePeerAbsent || connectionState !== "connected") return;
       const id = window.setInterval(() => {
         const el = remoteVideoRef.current;
         const videoTrack = remoteStream.getVideoTracks()[0];
@@ -458,7 +459,7 @@ export const VideoCall = forwardRef<VideoCallRecordingHandle, VideoCallProps>(
         setRemoteVideoStalled(result.stalled);
       }, 2500);
       return () => window.clearInterval(id);
-    }, [remoteStream, connectionState]);
+    }, [remoteStream, remotePeerAbsent, connectionState]);
 
     const hasRemoteLive = useMemo(
       () =>
@@ -754,7 +755,11 @@ export const VideoCall = forwardRef<VideoCallRecordingHandle, VideoCallProps>(
                 playsInline
                 className="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover"
               />
-              {!remoteStream ? (
+              {remotePeerAbsent ? (
+                <div className="pointer-events-none absolute inset-0 z-[1] flex items-center justify-center bg-black/75 px-4 text-center text-white" role="status">
+                  El otro participante salió o perdió la conexión. Esperando su regreso seguro…
+                </div>
+              ) : !remoteStream ? (
                 <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-gray-400">
                   <span>Esperando al otro participante...</span>
                 </div>
