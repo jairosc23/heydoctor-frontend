@@ -398,6 +398,8 @@ export type UseTelemedicineCallOptions = {
 export type UseTelemedicineCallResult = {
   localStream: MediaStream | null;
   remoteStream: MediaStream | null;
+  /** Remote user explicitly left or lost the signaling connection. */
+  remotePeerAbsent: boolean;
   connectionState: RTCPeerConnectionState | null;
   iceConnectionState: RTCIceConnectionState | null;
   videoTier: AdaptationTier;
@@ -495,6 +497,7 @@ export function useTelemedicineCall(
   const roomPeerCountRef = useRef(1);
   // After a peer leaves, the old SDP cannot be reused as an initial offer.
   const remotePeerDepartedRef = useRef(false);
+  const [remotePeerAbsent, setRemotePeerAbsent] = useState(false);
   const makingOfferRef = useRef(false);
   const iceRestartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const disconnectedSinceRef = useRef<number | null>(null);
@@ -1201,6 +1204,7 @@ export function useTelemedicineCall(
           }
           if (typeof peerCount === "number") {
             roomPeerCountRef.current = peerCount;
+            if (peerCount > 1) setRemotePeerAbsent(false);
             const emitAt = joinConsultationEmitAtMsRef.current;
             logVideo.info("join_consultation_room_state", {
               event: "join_consultation_room_state",
@@ -1229,6 +1233,7 @@ export function useTelemedicineCall(
 
       socket.on("peer-joined", async ({ userId }: { userId: string }) => {
         const returningPeer = remotePeerDepartedRef.current;
+        setRemotePeerAbsent(false);
         remoteIdRef.current = userId;
         onRemoteUserId?.(userId);
         logVideo.info("webrtc_peer_joined", {
@@ -1353,6 +1358,7 @@ export function useTelemedicineCall(
 
       socket.on("peer-left", () => {
         earlyCandidates.length = 0;
+        setRemotePeerAbsent(true);
         remotePeerDepartedRef.current = true;
         roomPeerCountRef.current = 1;
         remoteIdRef.current = null;
@@ -1379,6 +1385,7 @@ export function useTelemedicineCall(
       videoSuspendedByPolicyRef.current = false;
       roomPeerCountRef.current = 1;
       remotePeerDepartedRef.current = false;
+      setRemotePeerAbsent(false);
       try {
         screenShareTrackRef.current?.stop();
       } catch {
@@ -1533,6 +1540,7 @@ export function useTelemedicineCall(
     remoteIdRef.current = null;
     roomPeerCountRef.current = 1;
     remotePeerDepartedRef.current = false;
+    setRemotePeerAbsent(false);
     iceRestartCountRef.current = 0;
     reconnectAttemptsRef.current = 0;
     lastIceRestartAtMsRef.current = null;
@@ -2001,6 +2009,7 @@ export function useTelemedicineCall(
   return {
     localStream,
     remoteStream,
+    remotePeerAbsent,
     connectionState,
     iceConnectionState,
     videoTier,
