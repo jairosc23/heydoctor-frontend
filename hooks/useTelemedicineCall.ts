@@ -1082,14 +1082,69 @@ export function useTelemedicineCall(
       socket.off("peer-ice-state");
       socket.off("room-state");
 
-      // W2 — Socket.IO Manager reconnect → bounded ICE restart.
+      // Socket.IO creates a NEW server-side socket on reconnect. Nest removes
+      // the former socket's room membership on disconnect: restarting ICE
+      // without rejoining leaves two healthy sockets in different rooms.
+      // Rejoin the *same authorized consultation* before renegotiating.
+      let roomRejoinInProgress = false;
       const onSocketReconnect = () => {
+        if (socketRef.current !== socket || pcRef.current !== pc ||
+            !socket.connected || roomRejoinInProgress) return;
+        roomRejoinInProgress = true;
         lastIceFailureReasonRef.current = "socket_reconnected";
+        setConnectionQuality("reconnecting");
         logVideo.info("webrtc_socket_reconnected", {
           event: "webrtc_socket_reconnected",
           consultationId,
         });
-        scheduleIceRestartDebounced();
+
+        const rejoin = (attempt: number) => {
+          if (socketRef.current !== socket || pcRef.current !== pc ||
+              !socket.connected || pc.signalingState === "closed") {
+            roomRejoinInProgress = false;
+            return;
+          }
+          socket.timeout(10_000).emit(
+            "join-consultation",
+            { consultationId },
+            (err: Error | null, ack: unknown) => {
+              if (socketRef.current !== socket || pcRef.current !== pc ||
+                  !socket.connected || pc.signalingState === "closed") {
+                roomRejoinInProgress = false;
+                return;
+              }
+              const result = ack && typeof ack === "object"
+                ? ack as { ok?: boolean; consultationId?: string }
+                : null;
+              if (err || result?.ok !== true ||
+                  result.consultationId !== consultationId) {
+                logVideo.warn("webrtc_room_rejoin_failed", {
+                  event: "webrtc_room_rejoin_failed",
+                  consultationId,
+                  attempt,
+                  timedOut: Boolean(err?.message?.toLowerCase().includes("timed out")),
+                });
+                if (attempt < 2) {
+                  window.setTimeout(() => rejoin(attempt + 1), computeWebrtcReconnectDelay(attempt, 1_500, 8_000));
+                } else {
+                  roomRejoinInProgress = false;
+                  onError?.("No fue posible recuperar la sala. Reingresa de forma segura a la videoconsulta.");
+                }
+                return;
+              }
+              roomRejoinInProgress = false;
+              logVideo.info("webrtc_room_rejoined", {
+                event: "webrtc_room_rejoined",
+                consultationId,
+                attempt,
+              });
+              // room-state/peer-joined now provide accurate room occupancy.
+              // Only after ACK may the existing bounded ICE controller run.
+              scheduleIceRestartDebounced();
+            },
+          );
+        };
+        rejoin(0);
       };
       socket.io.removeAllListeners("reconnect");
       socket.io.on("reconnect", onSocketReconnect);
