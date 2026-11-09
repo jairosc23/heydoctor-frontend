@@ -708,10 +708,16 @@ export const VideoCall = forwardRef<VideoCallRecordingHandle, VideoCallProps>(
               {displayTitle}
             </h1>
             <div className="pointer-events-none shrink-0">
-              <ConnectionQualityBadge
-                quality={connectionQuality}
-                showWhenIdle
-              />
+              {remotePeerAbsent ? (
+                <span role="status" className="inline-flex items-center rounded-full border border-amber-400/50 bg-amber-50 px-3 py-1 text-sm font-semibold text-amber-900">
+                  Participante ausente
+                </span>
+              ) : (
+                <ConnectionQualityBadge
+                  quality={connectionQuality}
+                  showWhenIdle
+                />
+              )}
             </div>
             {isDev ? (
               <button
