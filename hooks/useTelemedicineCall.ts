@@ -1146,8 +1146,11 @@ export function useTelemedicineCall(
         };
         rejoin(0);
       };
-      socket.io.removeAllListeners("reconnect");
-      socket.io.on("reconnect", onSocketReconnect);
+      // Subscribe at the namespace level: the Manager's reconnect event may
+      // precede namespace authentication, when socket.connected is still false.
+      // This handler is registered after the initial successful connect.
+      socket.off("connect");
+      socket.on("connect", onSocketReconnect);
 
       // W2 — peer-reported ICE degradation (already emitted by Nest gateway).
       socket.on(
