@@ -25,11 +25,12 @@ export function calculatePacketLossDelta(
   }
   const sentDelta = current.sent - previous.sent;
   const lostDelta = current.lost - previous.lost;
-  const total = sentDelta + lostDelta;
+  // packetsSent already counts transmitted packets, including those lost remotely.
+  // Do not add lostDelta again or losses will be systematically understated.
   return {
     sentDelta,
     lostDelta,
-    lossRatio: total > 0 ? Math.min(1, Math.max(0, lostDelta / total)) : 0,
+    lossRatio: sentDelta > 0 ? Math.min(1, Math.max(0, lostDelta / sentDelta)) : 0,
     reset: false,
   };
 }
