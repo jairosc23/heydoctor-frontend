@@ -1,5 +1,8 @@
 "use client";
 
+import { resolveRetainedVideoSender } from "@/lib/webrtc-video-sender";
+import { updateVideoFrameWatchdog } from "@/lib/webrtc-frame-watchdog";
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   deriveConnectionQuality,
@@ -395,6 +398,8 @@ export type UseTelemedicineCallOptions = {
 export type UseTelemedicineCallResult = {
   localStream: MediaStream | null;
   remoteStream: MediaStream | null;
+  /** Remote user explicitly left or lost the signaling connection. */
+  remotePeerAbsent: boolean;
   connectionState: RTCPeerConnectionState | null;
   iceConnectionState: RTCIceConnectionState | null;
   videoTier: AdaptationTier;
@@ -490,6 +495,9 @@ export function useTelemedicineCall(
   const videoTierRef = useRef<AdaptationTier>(0);
   const remoteIdRef = useRef<string | null>(null);
   const roomPeerCountRef = useRef(1);
+  // After a peer leaves, the old SDP cannot be reused as an initial offer.
+  const remotePeerDepartedRef = useRef(false);
+  const [remotePeerAbsent, setRemotePeerAbsent] = useState(false);
   const makingOfferRef = useRef(false);
   const iceRestartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const disconnectedSinceRef = useRef<number | null>(null);
@@ -499,6 +507,13 @@ export function useTelemedicineCall(
   const iceConnectionStateRef = useRef<RTCIceConnectionState | null>(null);
   const reconnectingIceRef = useRef(false);
   const capturedVideoTrackRef = useRef<MediaStreamTrack | null>(null);
+  // Keep the sender across replaceTrack(null), which removes its track.kind.
+  const videoSenderRef = useRef<RTCRtpSender | null>(null);
+  const cameraStreamRef = useRef<MediaStream | null>(null);
+  const recoveringCameraRef = useRef(false);
+  const frameWatchdogRef = useRef<{ lastFrames: number | null; stagnantSince: number | null }>({ lastFrames: null, stagnantSince: null });
+  const frameWatchdogBusyRef = useRef(false);
+  const forceCameraRecoveryRef = useRef(false);
   const screenShareTrackRef = useRef<MediaStreamTrack | null>(null);
   const videoSuspendedByPolicyRef = useRef(false);
   const metricsSamplesRef = useRef(0);
@@ -582,7 +597,22 @@ export function useTelemedicineCall(
     const pc = pcRef.current;
     if (!pc || makingOfferRef.current) return;
     if (iceRestartInitiatorOnly && !isInitiator) return;
-    if (pc.signalingState !== "stable") return;
+    // A remote WebView can disappear before answering the previous offer.
+    // Roll back that stale local offer so a returning peer receives a fresh
+    // negotiation; otherwise the ICE restart silently returns forever.
+    if (pc.signalingState === "have-local-offer" && socketRef.current?.connected && remoteIdRef.current) {
+      try {
+        await pc.setLocalDescription({ type: "rollback" });
+      } catch (error) {
+        logVideo.warn("webrtc_stale_offer_rollback_failed", {
+          event: "webrtc_stale_offer_rollback_failed",
+          consultationId,
+          errorName: error instanceof Error ? error.name : "unknown",
+        });
+        return;
+      }
+    }
+    if (pcRef.current !== pc || pc.signalingState !== "stable") return;
 
     const nowMs = Date.now();
     if (
@@ -611,12 +641,14 @@ export function useTelemedicineCall(
     void reportWebrtcResilienceMetric("reconnect_attempts", {
       backendOrigin,
       consultationId,
+      guestChannel: guestCall,
       reason: lastIceFailureReasonRef.current ?? "ice_restart",
       count: 1,
     });
     void reportWebrtcResilienceMetric("ice_restart_count", {
       backendOrigin,
       consultationId,
+      guestChannel: guestCall,
       reason: lastIceFailureReasonRef.current ?? "ice_restart",
       count: 1,
     });
@@ -643,6 +675,7 @@ export function useTelemedicineCall(
   }, [
     backendOrigin,
     consultationId,
+    guestCall,
     iceRestartInitiatorOnly,
     isInitiator,
     onError,
@@ -753,10 +786,14 @@ export function useTelemedicineCall(
             reconnectAttempts: reconnectAttemptsRef.current,
           });
           reconnectingIceRef.current = false;
+          // A successfully restored transport starts a new bounded recovery
+          // window, instead of exhausting retries for the lifetime of a call.
+          iceRestartCountRef.current = 0;
           if (reportSuccess) {
             void reportWebrtcResilienceMetric("reconnect_success", {
               backendOrigin,
               consultationId,
+              guestChannel: guestCall,
               requestId: joinTraceIdRef.current,
               reason: lastIceFailureReasonRef.current ?? "connected",
               count: 1,
@@ -956,30 +993,66 @@ export function useTelemedicineCall(
     [localStream],
   );
 
-  const recoverCamera = useCallback(async () => {
+  const recoverCamera: () => Promise<void> = useCallback(async () => {
+    // iOS can mute a live track while another app owns the camera.
+    // Read from a ref: callbacks registered during the initial join must not
+    // capture the null localStream value from the first React render.
+    if (document.visibilityState === "hidden" || recoveringCameraRef.current) return;
+    const pc = pcRef.current;
+    const current = cameraStreamRef.current;
+    if (!pc || !current || pc.signalingState === "closed" ||
+        videoSuspendedByPolicyRef.current) return;
+    const tracks = current.getVideoTracks();
+    if (!forceCameraRecoveryRef.current && !tracks.some((track) => track.readyState === "ended" || track.muted)) return;
     const now = Date.now();
     if (now - lastCameraRecoverAtMsRef.current < 2500) return;
     lastCameraRecoverAtMsRef.current = now;
-    const pc = pcRef.current;
-    const current = localStream;
-    if (!pc || !current) return;
-    const ended = current
-      .getVideoTracks()
-      .some((t) => t.readyState === "ended");
-    if (!ended) return;
+    recoveringCameraRef.current = true;
+    forceCameraRecoveryRef.current = false;
     lastLocalVideoEndedAtMsRef.current = now;
     try {
       const preferred = activeCameraDeviceIdRef.current;
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: false,
-        video: preferred
-          ? { deviceId: { exact: preferred } }
-          : (mediaConstraints.video ?? true),
-      });
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: preferred
+            ? { deviceId: { exact: preferred } }
+            : (mediaConstraints.video ?? true),
+        });
+      } catch (error) {
+        // A device ID may change after an iOS camera handoff.
+        if (!preferred) throw error;
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: false, video: mediaConstraints.video ?? true,
+        });
+      }
       const track = stream.getVideoTracks()[0];
-      if (!track) return;
-      const sender = pc.getSenders().find((s) => s.track?.kind === "video");
-      await sender?.replaceTrack(track);
+      if (!track) {
+        stream.getTracks().forEach((t) => t.stop());
+        throw new Error("camera_track_unavailable");
+      }
+      if (pcRef.current !== pc) {
+        stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
+      const sender = resolveRetainedVideoSender(pc.getSenders(), videoSenderRef.current);
+      if (!sender) {
+        stream.getTracks().forEach((t) => t.stop());
+        throw new Error("video_sender_unavailable");
+      }
+      try {
+        await sender.replaceTrack(track);
+      } catch (error) {
+        stream.getTracks().forEach((t) => t.stop());
+        throw error;
+      }
+      // An awaited native/browser replacement can finish after the call ended.
+      // Never resurrect capture or React state for a superseded consultation.
+      if (pcRef.current !== pc || cameraStreamRef.current !== current) {
+        stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
       for (const t of current.getVideoTracks()) {
         try {
           t.stop();
@@ -990,10 +1063,17 @@ export function useTelemedicineCall(
       }
       current.addTrack(track);
       capturedVideoTrackRef.current = track;
+      cameraStreamRef.current = current;
+      frameWatchdogRef.current = { lastFrames: null, stagnantSince: null };
+      const settings = track.getSettings?.();
+      if (settings?.deviceId) activeCameraDeviceIdRef.current = settings.deviceId;
+      track.addEventListener("ended", () => { void recoverCamera(); }, { once: true });
+      track.addEventListener("mute", () => { void recoverCamera(); });
       setLocalStream(new MediaStream(current.getTracks()));
       await reportWebrtcResilienceMetric("media_recovery_failures", {
         backendOrigin,
         consultationId,
+        guestChannel: guestCall,
         reason: "camera_recovered",
         count: 0,
       });
@@ -1001,6 +1081,7 @@ export function useTelemedicineCall(
       await reportWebrtcResilienceMetric("media_recovery_failures", {
         backendOrigin,
         consultationId,
+        guestChannel: guestCall,
         reason: "camera_recovery_failed",
         count: 1,
       });
@@ -1009,11 +1090,31 @@ export function useTelemedicineCall(
         consultationId,
         reason: "camera_recovery_failed",
       });
+    } finally {
+      recoveringCameraRef.current = false;
     }
-  }, [backendOrigin, consultationId, localStream, mediaConstraints.video]);
+  }, [backendOrigin, consultationId, guestCall, mediaConstraints.video]);
 
   const attachSignalingHandlers = useCallback(
     (socket: Socket, pc: RTCPeerConnection) => {
+      // ICE candidates can arrive before setRemoteDescription resolves.
+      // Dropping them loses viable network paths and can strand both peers.
+      // The queue is scoped to this RTCPeerConnection and bounded.
+      const earlyCandidates: RTCIceCandidateInit[] = [];
+      const flushEarlyCandidates = async () => {
+        if (!pc.remoteDescription || pc.signalingState === "closed") return;
+        for (const candidate of earlyCandidates.splice(0)) {
+          try {
+            await pc.addIceCandidate(new RTCIceCandidate(candidate));
+          } catch (error) {
+            logVideo.warn("webrtc_early_ice_candidate_rejected", {
+              event: "webrtc_early_ice_candidate_rejected",
+              consultationId,
+              errorName: error instanceof Error ? error.name : "unknown",
+            });
+          }
+        }
+      };
       socket.off("offer");
       socket.off("answer");
       socket.off("ice-candidate");
@@ -1022,17 +1123,75 @@ export function useTelemedicineCall(
       socket.off("peer-ice-state");
       socket.off("room-state");
 
-      // W2 — Socket.IO Manager reconnect → bounded ICE restart.
+      // Socket.IO creates a NEW server-side socket on reconnect. Nest removes
+      // the former socket's room membership on disconnect: restarting ICE
+      // without rejoining leaves two healthy sockets in different rooms.
+      // Rejoin the *same authorized consultation* before renegotiating.
+      let roomRejoinInProgress = false;
       const onSocketReconnect = () => {
+        if (socketRef.current !== socket || pcRef.current !== pc ||
+            !socket.connected || roomRejoinInProgress) return;
+        roomRejoinInProgress = true;
         lastIceFailureReasonRef.current = "socket_reconnected";
+        setConnectionQuality("reconnecting");
         logVideo.info("webrtc_socket_reconnected", {
           event: "webrtc_socket_reconnected",
           consultationId,
         });
-        scheduleIceRestartDebounced();
+
+        const rejoin = (attempt: number) => {
+          if (socketRef.current !== socket || pcRef.current !== pc ||
+              !socket.connected || pc.signalingState === "closed") {
+            roomRejoinInProgress = false;
+            return;
+          }
+          socket.timeout(10_000).emit(
+            "join-consultation",
+            { consultationId },
+            (err: Error | null, ack: unknown) => {
+              if (socketRef.current !== socket || pcRef.current !== pc ||
+                  !socket.connected || pc.signalingState === "closed") {
+                roomRejoinInProgress = false;
+                return;
+              }
+              const result = ack && typeof ack === "object"
+                ? ack as { ok?: boolean; consultationId?: string }
+                : null;
+              if (err || result?.ok !== true ||
+                  result.consultationId !== consultationId) {
+                logVideo.warn("webrtc_room_rejoin_failed", {
+                  event: "webrtc_room_rejoin_failed",
+                  consultationId,
+                  attempt,
+                  timedOut: Boolean(err?.message?.toLowerCase().includes("timed out")),
+                });
+                if (attempt < 2) {
+                  window.setTimeout(() => rejoin(attempt + 1), computeWebrtcReconnectDelay(attempt, 1_500, 8_000));
+                } else {
+                  roomRejoinInProgress = false;
+                  onError?.("No fue posible recuperar la sala. Reingresa de forma segura a la videoconsulta.");
+                }
+                return;
+              }
+              roomRejoinInProgress = false;
+              logVideo.info("webrtc_room_rejoined", {
+                event: "webrtc_room_rejoined",
+                consultationId,
+                attempt,
+              });
+              // room-state/peer-joined now provide accurate room occupancy.
+              // Only after ACK may the existing bounded ICE controller run.
+              scheduleIceRestartDebounced();
+            },
+          );
+        };
+        rejoin(0);
       };
-      socket.io.removeAllListeners("reconnect");
-      socket.io.on("reconnect", onSocketReconnect);
+      // Subscribe at the namespace level: the Manager's reconnect event may
+      // precede namespace authentication, when socket.connected is still false.
+      // This handler is registered after the initial successful connect.
+      socket.off("connect");
+      socket.on("connect", onSocketReconnect);
 
       // W2 — peer-reported ICE degradation (already emitted by Nest gateway).
       socket.on(
@@ -1063,6 +1222,7 @@ export function useTelemedicineCall(
           }
           if (typeof peerCount === "number") {
             roomPeerCountRef.current = peerCount;
+            if (peerCount > 1) setRemotePeerAbsent(false);
             const emitAt = joinConsultationEmitAtMsRef.current;
             logVideo.info("join_consultation_room_state", {
               event: "join_consultation_room_state",
@@ -1078,20 +1238,38 @@ export function useTelemedicineCall(
             });
           }
           if (typeof peerCount === "number" && peerCount > 1 && isInitiator) {
-            void createInitialOfferIfNeeded("room_state");
+            if (remotePeerDepartedRef.current) {
+              remotePeerDepartedRef.current = false;
+              lastIceFailureReasonRef.current = "peer_returned";
+              scheduleIceRestartDebounced();
+            } else {
+              void createInitialOfferIfNeeded("room_state");
+            }
           }
         },
       );
 
       socket.on("peer-joined", async ({ userId }: { userId: string }) => {
+        const returningPeer = remotePeerDepartedRef.current;
+        roomPeerCountRef.current = Math.max(2, roomPeerCountRef.current);
+        setRemotePeerAbsent(false);
         remoteIdRef.current = userId;
         onRemoteUserId?.(userId);
         logVideo.info("webrtc_peer_joined", {
           event: "webrtc_peer_joined",
           consultationId,
           remoteIdPresent: true,
+          returningPeer,
         });
-        await createInitialOfferIfNeeded("peer_joined");
+        if (returningPeer && isInitiator) {
+          remotePeerDepartedRef.current = false;
+          lastIceFailureReasonRef.current = "peer_returned";
+          // An existing stable SDP offer is not a *first* offer. Perform a
+          // bounded renegotiation so the returning WebView gets fresh ICE.
+          scheduleIceRestartDebounced();
+        } else {
+          await createInitialOfferIfNeeded("peer_joined");
+        }
       });
 
       socket.on(
@@ -1118,6 +1296,7 @@ export function useTelemedicineCall(
                 ]).catch(() => undefined);
               }
               await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+              await flushEarlyCandidates();
               logVideo.info("webrtc_set_remote_description", {
                 event: "webrtc_set_remote_description",
                 consultationId,
@@ -1156,6 +1335,7 @@ export function useTelemedicineCall(
           try {
             if (pc.signalingState === "have-local-offer") {
               await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+              await flushEarlyCandidates();
               logVideo.info("webrtc_set_remote_description", {
                 event: "webrtc_set_remote_description",
                 consultationId,
@@ -1177,18 +1357,36 @@ export function useTelemedicineCall(
           fromUserId: string;
         }) => {
           try {
-            if (candidate && pc.remoteDescription) {
-              await pc.addIceCandidate(new RTCIceCandidate(candidate));
+            if (!candidate || pc.signalingState === "closed" || pcRef.current !== pc) return;
+            if (!pc.remoteDescription) {
+              // Bound memory usage if an SDP never arrives; no credentials/SDP logged.
+              if (earlyCandidates.length >= 128) earlyCandidates.shift();
+              earlyCandidates.push(candidate);
+              return;
             }
-          } catch {
-            /* ignore stale candidates */
+            await pc.addIceCandidate(new RTCIceCandidate(candidate));
+          } catch (error) {
+            logVideo.warn("webrtc_ice_candidate_rejected", {
+              event: "webrtc_ice_candidate_rejected",
+              consultationId,
+              errorName: error instanceof Error ? error.name : "unknown",
+            });
           }
         },
       );
 
       socket.on("peer-left", () => {
+        earlyCandidates.length = 0;
+        setRemotePeerAbsent(true);
+        remotePeerDepartedRef.current = true;
+        roomPeerCountRef.current = 1;
         remoteIdRef.current = null;
         onRemoteUserId?.(null);
+        // Keep the existing remote tracks bound to the video element while
+        // the peer is absent. ICE restart can reuse an established transceiver
+        // without firing ontrack again; deleting the MediaStream here makes
+        // a successfully reconnected peer permanently appear as black video.
+        // The remotePeerAbsent overlay hides any stale frame until rejoin.
       });
     },
     [
@@ -1207,6 +1405,8 @@ export function useTelemedicineCall(
       reconnectingIceRef.current = false;
       videoSuspendedByPolicyRef.current = false;
       roomPeerCountRef.current = 1;
+      remotePeerDepartedRef.current = false;
+      setRemotePeerAbsent(false);
       try {
         screenShareTrackRef.current?.stop();
       } catch {
@@ -1215,6 +1415,10 @@ export function useTelemedicineCall(
       screenShareTrackRef.current = null;
       setScreenSharing(false);
       capturedVideoTrackRef.current = null;
+      videoSenderRef.current = null;
+      cameraStreamRef.current = null;
+      frameWatchdogRef.current = { lastFrames: null, stagnantSince: null };
+      forceCameraRecoveryRef.current = false;
       metricsSamplesRef.current = 0;
       poorNetworkStreakRef.current = 0;
       goodNetworkStreakRef.current = 0;
@@ -1271,7 +1475,7 @@ export function useTelemedicineCall(
     }
     setScreenSharing(false);
     const pc = pcRef.current;
-    const videoSender = pc?.getSenders().find((s) => s.track?.kind === "video");
+    const videoSender = pc ? resolveRetainedVideoSender(pc.getSenders(), videoSenderRef.current) : null;
     if (!videoSender) return;
     const cam = capturedVideoTrackRef.current;
     try {
@@ -1292,7 +1496,7 @@ export function useTelemedicineCall(
     }
     const pc = pcRef.current;
     if (!pc) return;
-    const videoSender = pc.getSenders().find((s) => s.track?.kind === "video");
+    const videoSender = resolveRetainedVideoSender(pc.getSenders(), videoSenderRef.current);
     if (!videoSender) return;
     try {
       const dm = await navigator.mediaDevices.getDisplayMedia({
@@ -1356,6 +1560,8 @@ export function useTelemedicineCall(
     endCall({ reason: "start_reset" });
     remoteIdRef.current = null;
     roomPeerCountRef.current = 1;
+    remotePeerDepartedRef.current = false;
+    setRemotePeerAbsent(false);
     iceRestartCountRef.current = 0;
     reconnectAttemptsRef.current = 0;
     lastIceRestartAtMsRef.current = null;
@@ -1446,6 +1652,8 @@ export function useTelemedicineCall(
       const stream =
         await navigator.mediaDevices.getUserMedia(mediaConstraints);
       logLocalGetUserMediaOk(stream, logVideo);
+      cameraStreamRef.current = stream;
+      frameWatchdogRef.current = { lastFrames: null, stagnantSince: null };
       setLocalStream(stream);
 
       capturedVideoTrackRef.current = stream.getVideoTracks()[0] ?? null;
@@ -1459,6 +1667,10 @@ export function useTelemedicineCall(
         } catch {
           /* ignore */
         }
+        initialVideo.addEventListener("mute", () => {
+          // Safari may not fire ended. A hidden page waits for visibility.
+          void recoverCamera();
+        });
         initialVideo.addEventListener(
           "ended",
           () => {
@@ -1491,7 +1703,7 @@ export function useTelemedicineCall(
         pc.addTrack(track, stream);
       }
       for (const track of stream.getVideoTracks()) {
-        pc.addTrack(track, stream);
+        videoSenderRef.current = pc.addTrack(track, stream);
       }
 
       await prioritizeAudioOverVideo(pc, videoTierRef.current);
@@ -1604,7 +1816,7 @@ export function useTelemedicineCall(
 
       stopStatsRef.current = createAdaptiveVideoMonitor(
         pc,
-        () => pc.getSenders().find((s) => s.track?.kind === "video"),
+        () => resolveRetainedVideoSender(pc.getSenders(), videoSenderRef.current) ?? undefined,
         {
           intervalMs: 2500,
           onTierChange: (tier) => {
@@ -1646,9 +1858,7 @@ export function useTelemedicineCall(
               goodNetworkStreakRef.current = 0;
             }
 
-            const videoSender = pc
-              .getSenders()
-              .find((s) => s.track?.kind === "video");
+            const videoSender = resolveRetainedVideoSender(pc.getSenders(), videoSenderRef.current);
 
             if (
               poorNetworkStreakRef.current >= 2 &&
@@ -1661,7 +1871,8 @@ export function useTelemedicineCall(
               try {
                 await videoSender.replaceTrack(null);
               } catch {
-                /* ignore */
+                videoSuspendedByPolicyRef.current = false;
+                setVideoSuspendedForNetwork(false);
               }
             }
 
@@ -1671,14 +1882,15 @@ export function useTelemedicineCall(
               capturedVideoTrackRef.current &&
               videoSender
             ) {
-              videoSuspendedByPolicyRef.current = false;
-              setVideoSuspendedForNetwork(false);
               goodNetworkStreakRef.current = 0;
               try {
                 await videoSender.replaceTrack(capturedVideoTrackRef.current);
+                videoSuspendedByPolicyRef.current = false;
+                setVideoSuspendedForNetwork(false);
                 await prioritizeAudioOverVideo(pc, videoTierRef.current);
               } catch {
-                /* ignore */
+                videoSuspendedByPolicyRef.current = true;
+                setVideoSuspendedForNetwork(true);
               }
             }
 
@@ -1737,6 +1949,49 @@ export function useTelemedicineCall(
     wirePeerConnection,
   ]);
 
+  // Outbound frames monitor: an iOS track may remain live/unmuted yet stop
+  // delivering frames. Observe actual RTP frames (not UI "connected" state).
+  useEffect(() => {
+    let cancelled = false;
+    const poll = async () => {
+      const pc = pcRef.current;
+      const track = capturedVideoTrackRef.current;
+      if (!pc || !track || frameWatchdogBusyRef.current) return;
+      const eligible = document.visibilityState === "visible" &&
+        pc.connectionState === "connected" &&
+        !videoSuspendedByPolicyRef.current && !screenShareTrackRef.current &&
+        track.enabled && track.readyState === "live";
+      if (!eligible) {
+        frameWatchdogRef.current = { lastFrames: null, stagnantSince: null };
+        return;
+      }
+      frameWatchdogBusyRef.current = true;
+      try {
+        const reports = await pc.getStats();
+        if (cancelled || pc !== pcRef.current) return;
+        let frames: number | null = null;
+        reports.forEach((report) => {
+          if (report.type === "outbound-rtp" && report.kind === "video" &&
+              typeof report.framesSent === "number") frames = report.framesSent;
+        });
+        if (frames === null) return; // Unsupported browser: do not guess.
+        const result = updateVideoFrameWatchdog(frameWatchdogRef.current, frames, Date.now(), 8000);
+        frameWatchdogRef.current = result.state;
+        if (result.stalled && !recoveringCameraRef.current &&
+            Date.now() - lastCameraRecoverAtMsRef.current >= 2500) {
+          forceCameraRecoveryRef.current = true;
+          await recoverCamera();
+        }
+      } catch {
+        // Missing stats must never disrupt an otherwise valid consultation.
+      } finally {
+        frameWatchdogBusyRef.current = false;
+      }
+    };
+    const id = window.setInterval(() => { void poll(); }, 2500);
+    return () => { cancelled = true; window.clearInterval(id); };
+  }, [recoverCamera]);
+
   useEffect(() => {
     const onVisibility = () => {
       if (
@@ -1775,6 +2030,7 @@ export function useTelemedicineCall(
   return {
     localStream,
     remoteStream,
+    remotePeerAbsent,
     connectionState,
     iceConnectionState,
     videoTier,

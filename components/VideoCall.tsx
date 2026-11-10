@@ -30,6 +30,7 @@ import {
   Settings,
 } from "lucide-react";
 import { getBackendOrigin } from "@/lib/api-base";
+import { updateVideoFrameWatchdog } from "@/lib/webrtc-frame-watchdog";
 import { useAuth } from "@/lib/context/AuthContext";
 import { logger } from "@/lib/logger";
 import { getLogger } from "@/lib/logger";
@@ -105,6 +106,9 @@ export const VideoCall = forwardRef<VideoCallRecordingHandle, VideoCallProps>(
     ref,
   ) {
     const { user, loading } = useAuth();
+    // Guest access uses its own consultation authorization: staff auth refreshes
+    // must not tear down an active patient's WebRTC connection.
+    const sessionGate = guestCall ? "guest" : loading ? "loading" : user?.id ?? "anonymous";
     const localVideoRef = useRef<HTMLVideoElement>(null);
     const remoteVideoRef = useRef<HTMLVideoElement>(null);
     const remoteStreamRef = useRef<MediaStream | null>(null);
@@ -121,6 +125,7 @@ export const VideoCall = forwardRef<VideoCallRecordingHandle, VideoCallProps>(
     const [camOn, setCamOn] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [mediaReady, setMediaReady] = useState(false);
+    const [remoteVideoStalled, setRemoteVideoStalled] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
     const [chatPanelOpen, setChatPanelOpen] = useState(false);
     const [devicesOpen, setDevicesOpen] = useState(false);
@@ -133,6 +138,7 @@ export const VideoCall = forwardRef<VideoCallRecordingHandle, VideoCallProps>(
     const {
       localStream,
       remoteStream,
+      remotePeerAbsent,
       connectionQuality,
       connectionState,
       iceConnectionState,
@@ -219,7 +225,7 @@ export const VideoCall = forwardRef<VideoCallRecordingHandle, VideoCallProps>(
         endCall({ reason: "effect_cleanup" });
       };
       // eslint-disable-next-line react-hooks/exhaustive-deps -- startCall/endCall dependen de muchos refs internos del hook
-    }, [consultationId, guestCall, loading, user]);
+    }, [consultationId, guestCall, sessionGate]);
 
     useEffect(() => {
       if (localStream) {
@@ -428,6 +434,35 @@ export const VideoCall = forwardRef<VideoCallRecordingHandle, VideoCallProps>(
       (peerDisplayName?.trim()
         ? `Teleconsulta · ${peerDisplayName.trim()}`
         : "Teleconsulta");
+
+    // A live MediaStreamTrack does not prove that the remote video is rendering.
+    useEffect(() => {
+      let status = { lastFrames: null as number | null, stagnantSince: null as number | null };
+      setRemoteVideoStalled(false);
+      if (!remoteStream || remotePeerAbsent || connectionState !== "connected") return;
+      const id = window.setInterval(() => {
+        const el = remoteVideoRef.current;
+        const videoTrack = remoteStream.getVideoTracks()[0];
+        if (!el || !videoTrack || document.visibilityState !== "visible" ||
+            connectionState !== "connected" || el.paused || el.seeking) {
+          status = { lastFrames: null, stagnantSince: null };
+          setRemoteVideoStalled(false);
+          return;
+        }
+        // Decode counters measure actual rendered-frame progress. Playback time
+        // alone can advance while a video is frozen and must not be trusted.
+        const quality = el.getVideoPlaybackQuality?.();
+        const webkitFrames = (el as HTMLVideoElement & {
+          webkitDecodedFrameCount?: number;
+        }).webkitDecodedFrameCount;
+        const sample = quality?.totalVideoFrames ?? webkitFrames;
+        if (typeof sample !== "number") return;
+        const result = updateVideoFrameWatchdog(status, sample, Date.now(), 10000);
+        status = result.state;
+        setRemoteVideoStalled(result.stalled);
+      }, 2500);
+      return () => window.clearInterval(id);
+    }, [remoteStream, remotePeerAbsent, connectionState]);
 
     const hasRemoteLive = useMemo(
       () =>
@@ -658,8 +693,8 @@ export const VideoCall = forwardRef<VideoCallRecordingHandle, VideoCallProps>(
         role="dialog"
         aria-label={displayTitle}
       >
-        <header className="flex shrink-0 items-center justify-between gap-3 border-b border-hd-border-subtle bg-hd-surface-chrome px-4 py-3 pt-[max(env(safe-area-inset-top),12px)] shadow-hd-1">
-          <div className="flex min-w-0 items-center gap-3">
+        <header className="flex shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-hd-border-subtle bg-hd-surface-chrome px-4 pb-3 pt-[max(env(safe-area-inset-top),12px)] shadow-hd-1">
+          <div className="flex min-w-0 max-w-full items-center gap-3">
             <BrandLogo markOnly markSize={28} className="shrink-0" />
             <Link
               href={callChrome.backHref}
@@ -668,7 +703,7 @@ export const VideoCall = forwardRef<VideoCallRecordingHandle, VideoCallProps>(
               ← {callChrome.backLabel}
             </Link>
           </div>
-          <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
+          <div className="flex min-w-0 w-full items-center justify-between gap-2 sm:w-auto sm:flex-1 sm:justify-end">
             <h1
               className="m-0 min-w-0 truncate text-right text-[15px] font-semibold text-primaryDark"
               style={{ fontFamily: "Montserrat, sans-serif" }}
@@ -676,10 +711,16 @@ export const VideoCall = forwardRef<VideoCallRecordingHandle, VideoCallProps>(
               {displayTitle}
             </h1>
             <div className="pointer-events-none shrink-0">
-              <ConnectionQualityBadge
-                quality={connectionQuality}
-                showWhenIdle
-              />
+              {remotePeerAbsent ? (
+                <span role="status" className="inline-flex items-center rounded-full border border-amber-400/50 bg-amber-50 px-3 py-1 text-sm font-semibold text-amber-900">
+                  Participante ausente
+                </span>
+              ) : (
+                <ConnectionQualityBadge
+                  quality={connectionQuality}
+                  showWhenIdle
+                />
+              )}
             </div>
             {isDev ? (
               <button
@@ -723,9 +764,17 @@ export const VideoCall = forwardRef<VideoCallRecordingHandle, VideoCallProps>(
                 playsInline
                 className="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover"
               />
-              {!remoteStream ? (
+              {remotePeerAbsent ? (
+                <div className="pointer-events-none absolute inset-0 z-[1] flex items-center justify-center bg-black/75 px-4 text-center text-white" role="status">
+                  El otro participante salió o perdió la conexión. Esperando su regreso seguro…
+                </div>
+              ) : !remoteStream ? (
                 <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-gray-400">
                   <span>Esperando al otro participante...</span>
+                </div>
+              ) : remoteVideoStalled ? (
+                <div className="pointer-events-none absolute inset-0 z-[1] flex items-center justify-center bg-black/70 px-4 text-center text-white" role="status">
+                  Video remoto interrumpido. El audio puede continuar mientras se recupera la imagen.
                 </div>
               ) : !hasRemoteLive ? (
                 <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-gray-400">
