@@ -2,6 +2,7 @@
 
 import { resolveRetainedVideoSender } from "@/lib/webrtc-video-sender";
 import { updateVideoFrameWatchdog } from "@/lib/webrtc-frame-watchdog";
+import { decideCallRecovery } from "@/lib/webrtc-reliability-core";
 import { calculatePacketLossDelta, type PacketCounters } from "@/lib/webrtc-network-deltas";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -497,6 +498,12 @@ export function useTelemedicineCall(
   const videoTierRef = useRef<AdaptationTier>(0);
   const remoteIdRef = useRef<string | null>(null);
   const roomPeerCountRef = useRef(1);
+  const roomJoinedRef = useRef(false);
+  const degradedSinceMsRef = useRef<number | null>(null);
+  const rebuildsRef = useRef(0);
+  const lastRebuildMsRef = useRef<number | null>(null);
+  const rebuildInProgressRef = useRef(false);
+  const startCallForRecoveryRef = useRef<(() => Promise<void>) | null>(null);
   // After a peer leaves, the old SDP cannot be reused as an initial offer.
   const remotePeerDepartedRef = useRef(false);
   const [remotePeerAbsent, setRemotePeerAbsent] = useState(false);
@@ -750,6 +757,7 @@ export function useTelemedicineCall(
           requestId: joinTraceIdRef.current,
         });
         if (s === "failed") {
+          degradedSinceMsRef.current ??= Date.now();
           lastIceFailureReasonRef.current = "connection_failed";
           scheduleIceRestartDebounced();
         }
@@ -782,6 +790,7 @@ export function useTelemedicineCall(
         }
 
         if (s === "connected" || s === "completed") {
+          degradedSinceMsRef.current = null;
           // W2 — avoid poison reconnect_success on first connect.
           const reportSuccess = shouldReportReconnectSuccess({
             wasReconnecting: reconnectingIceRef.current,
@@ -814,6 +823,7 @@ export function useTelemedicineCall(
         }
 
         if (s === "failed" || s === "disconnected") {
+          degradedSinceMsRef.current ??= Date.now();
           lastDisconnectAtMsRef.current =
             s === "disconnected"
               ? (lastDisconnectAtMsRef.current ?? Date.now())
@@ -1124,6 +1134,12 @@ export function useTelemedicineCall(
       socket.off("peer-left");
       socket.off("peer-ice-state");
       socket.off("room-state");
+      socket.on("disconnect", () => {
+        if (socketRef.current !== socket) return;
+        roomJoinedRef.current = false;
+        roomPeerCountRef.current = 1;
+        setConnectionQuality("reconnecting");
+      });
 
       // Socket.IO creates a NEW server-side socket on reconnect. Nest removes
       // the former socket's room membership on disconnect: restarting ICE
@@ -1134,6 +1150,7 @@ export function useTelemedicineCall(
         if (socketRef.current !== socket || pcRef.current !== pc ||
             !socket.connected || roomRejoinInProgress) return;
         roomRejoinInProgress = true;
+        roomJoinedRef.current = false;
         lastIceFailureReasonRef.current = "socket_reconnected";
         setConnectionQuality("reconnecting");
         logVideo.info("webrtc_socket_reconnected", {
@@ -1176,6 +1193,7 @@ export function useTelemedicineCall(
                 return;
               }
               roomRejoinInProgress = false;
+              roomJoinedRef.current = true;
               logVideo.info("webrtc_room_rejoined", {
                 event: "webrtc_room_rejoined",
                 consultationId,
@@ -1407,6 +1425,8 @@ export function useTelemedicineCall(
       reconnectingIceRef.current = false;
       videoSuspendedByPolicyRef.current = false;
       roomPeerCountRef.current = 1;
+      roomJoinedRef.current = false;
+      degradedSinceMsRef.current = null;
       remotePeerDepartedRef.current = false;
       setRemotePeerAbsent(false);
       try {
@@ -1793,6 +1813,7 @@ export function useTelemedicineCall(
       // F2-07 / W2: un reintento con backoff ante timeout o rechazo soft (sala).
       try {
         await emitJoinConsultation(0);
+        roomJoinedRef.current = true;
       } catch (firstErr) {
         const msg =
           firstErr instanceof Error
@@ -1814,6 +1835,7 @@ export function useTelemedicineCall(
         });
         await new Promise((r) => setTimeout(r, delayMs));
         await emitJoinConsultation(1);
+        roomJoinedRef.current = true;
       }
 
       stopStatsRef.current = createAdaptiveVideoMonitor(
@@ -1950,6 +1972,67 @@ export function useTelemedicineCall(
     socketPath,
     wirePeerConnection,
   ]);
+
+  // Authenticated recovery supervisor. A fresh call always re-verifies
+  // consultation access with the backend; external sockets are excluded.
+  useEffect(() => {
+    startCallForRecoveryRef.current = startCall;
+    return () => { startCallForRecoveryRef.current = null; };
+  }, [startCall]);
+
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      if (rebuildInProgressRef.current) return;
+      const pc = pcRef.current;
+      const socket = socketRef.current;
+      if (!pc || !socket) return;
+      const nowMs = Date.now();
+      const degraded = pc.iceConnectionState === "disconnected" ||
+        pc.iceConnectionState === "failed" ||
+        pc.connectionState === "disconnected" ||
+        pc.connectionState === "failed";
+      if (degraded) degradedSinceMsRef.current ??= nowMs;
+      else degradedSinceMsRef.current = null;
+      const action = decideCallRecovery({
+        nowMs,
+        socketConnected: socket.connected,
+        roomJoined: roomJoinedRef.current,
+        remotePeerPresent: roomPeerCountRef.current > 1 && !remotePeerDepartedRef.current,
+        iceState: pc.iceConnectionState,
+        connectionState: pc.connectionState,
+        degradedSinceMs: degradedSinceMsRef.current,
+        iceRestarts: iceRestartCountRef.current,
+        lastIceRestartMs: lastIceRestartAtMsRef.current,
+        rebuilds: rebuildsRef.current,
+        lastRebuildMs: lastRebuildMsRef.current,
+        isInitiator: isInitiator && !externalSocket,
+        pageVisible: document.visibilityState === "visible",
+      });
+      if (action === "ice-restart") {
+        void runIceRestart();
+      } else if (action === "rebuild") {
+        const restart = startCallForRecoveryRef.current;
+        if (!restart) return;
+        rebuildInProgressRef.current = true;
+        rebuildsRef.current += 1;
+        lastRebuildMsRef.current = nowMs;
+        lastIceFailureReasonRef.current = "transport_rebuild";
+        logVideo.warn("webrtc_transport_rebuild", {
+          event: "webrtc_transport_rebuild",
+          reason: "sustained_ice_failure",
+          attempt: rebuildsRef.current,
+        });
+        void restart().catch((error) => {
+          reportWebrtcFailure("webrtc_reconnect_failed", error, {
+            backendOrigin,
+            consultationId,
+            reason: "transport_rebuild_failed",
+          });
+        }).finally(() => { rebuildInProgressRef.current = false; });
+      }
+    }, 2000);
+    return () => window.clearInterval(id);
+  }, [backendOrigin, consultationId, externalSocket, isInitiator, runIceRestart]);
 
   // Outbound frames monitor: an iOS track may remain live/unmuted yet stop
   // delivering frames. Observe actual RTP frames (not UI "connected" state).
