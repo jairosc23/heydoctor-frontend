@@ -8,14 +8,14 @@ describe("interval-based RTP loss", () => {
       lossRatio: 0, sentDelta: 0, lostDelta: 0, reset: true,
     });
   });
-  it("detects 20% loss even after thousands of previously sent packets", () => {
+  it("detects 25% loss from 20 lost of 80 transmitted packets", () => {
     const result = calculatePacketLossDelta(
       { sent: 10000, lost: 500 },
       { sent: 10080, lost: 520 },
     );
     assert.equal(result.sentDelta, 80);
     assert.equal(result.lostDelta, 20);
-    assert.equal(result.lossRatio, 0.2);
+    assert.equal(result.lossRatio, 0.25);
     assert.equal(result.reset, false);
   });
   it("does not divide by zero when no RTP packets were transmitted", () => {
