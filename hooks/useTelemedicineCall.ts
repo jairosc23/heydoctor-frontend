@@ -526,8 +526,6 @@ export function useTelemedicineCall(
   const screenShareTrackRef = useRef<MediaStreamTrack | null>(null);
   const videoSuspendedByPolicyRef = useRef(false);
   const metricsSamplesRef = useRef(0);
-  const poorNetworkStreakRef = useRef(0);
-  const goodNetworkStreakRef = useRef(0);
   const lastQualityInputsRef = useRef<
     Parameters<typeof deriveConnectionQuality>[0] | null
   >(null);
@@ -1446,8 +1444,6 @@ export function useTelemedicineCall(
       frameWatchdogRef.current = { lastFrames: null, stagnantSince: null };
       forceCameraRecoveryRef.current = false;
       metricsSamplesRef.current = 0;
-      poorNetworkStreakRef.current = 0;
-      goodNetworkStreakRef.current = 0;
       lastQualityInputsRef.current = null;
       iceConnectionStateRef.current = null;
       lastIceRestartAtMsRef.current = null;
@@ -1505,9 +1501,7 @@ export function useTelemedicineCall(
     if (!videoSender) return;
     const cam = capturedVideoTrackRef.current;
     try {
-      if (videoSuspendedByPolicyRef.current) {
-        await videoSender.replaceTrack(null);
-      } else if (cam) {
+      if (cam) {
         await videoSender.replaceTrack(cam);
         if (pc) await prioritizeAudioOverVideo(pc, videoTierRef.current);
       }
@@ -1721,8 +1715,6 @@ export function useTelemedicineCall(
       videoSuspendedByPolicyRef.current = false;
       setVideoSuspendedForNetwork(false);
       metricsSamplesRef.current = 0;
-      poorNetworkStreakRef.current = 0;
-      goodNetworkStreakRef.current = 0;
       setConnectionQuality("good");
 
       for (const track of stream.getAudioTracks()) {
@@ -1865,62 +1857,12 @@ export function useTelemedicineCall(
             lastQualityInputsRef.current = qualityInputs;
             setConnectionQuality(deriveConnectionQuality(qualityInputs));
 
-            const lowBitrate =
-              snap.outboundBitrateBps !== undefined &&
-              snap.outboundBitrateBps > 0 &&
-              snap.outboundBitrateBps < 100_000;
-
-            if (lossRatio > 0.12 || lowBitrate) {
-              poorNetworkStreakRef.current += 1;
-              goodNetworkStreakRef.current = 0;
-            } else {
-              poorNetworkStreakRef.current = 0;
-            }
-
-            if (
-              lossRatio < 0.02 &&
-              (snap.roundTripTime === undefined || snap.roundTripTime < 280)
-            ) {
-              goodNetworkStreakRef.current += 1;
-            } else {
-              goodNetworkStreakRef.current = 0;
-            }
-
-            const videoSender = resolveRetainedVideoSender(pc.getSenders(), videoSenderRef.current);
-
-            if (
-              poorNetworkStreakRef.current >= 2 &&
-              !videoSuspendedByPolicyRef.current &&
-              capturedVideoTrackRef.current &&
-              videoSender
-            ) {
-              videoSuspendedByPolicyRef.current = true;
-              setVideoSuspendedForNetwork(true);
-              try {
-                await videoSender.replaceTrack(null);
-              } catch {
-                videoSuspendedByPolicyRef.current = false;
-                setVideoSuspendedForNetwork(false);
-              }
-            }
-
-            if (
-              goodNetworkStreakRef.current >= 4 &&
-              videoSuspendedByPolicyRef.current &&
-              capturedVideoTrackRef.current &&
-              videoSender
-            ) {
-              goodNetworkStreakRef.current = 0;
-              try {
-                await videoSender.replaceTrack(capturedVideoTrackRef.current);
-                videoSuspendedByPolicyRef.current = false;
-                setVideoSuspendedForNetwork(false);
-                await prioritizeAudioOverVideo(pc, videoTierRef.current);
-              } catch {
-                videoSuspendedByPolicyRef.current = true;
-                setVideoSuspendedForNetwork(true);
-              }
-            }
+            // M4 Premium: one adaptation controller owns network pressure.
+            // The RTP monitor lowers bitrate, frame rate and resolution while
+            // retaining the live camera sender track. Previous code detached
+            // the track after two poor samples, then waited for outbound RTP
+            // quality to recover while no video RTP was being sent (deadlock).
+            // Never turn a congested video stream into a permanently black pane.
 
             if (sendCallMetricsToBackend) {
               metricsSamplesRef.current += 1;
