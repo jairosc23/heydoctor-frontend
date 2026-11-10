@@ -600,7 +600,7 @@ export function useTelemedicineCall(
     // A remote WebView can disappear before answering the previous offer.
     // Roll back that stale local offer so a returning peer receives a fresh
     // negotiation; otherwise the ICE restart silently returns forever.
-    if (pc.signalingState === "have-local-offer" && roomPeerCountRef.current > 1) {
+    if (pc.signalingState === "have-local-offer" && socketRef.current?.connected && remoteIdRef.current) {
       try {
         await pc.setLocalDescription({ type: "rollback" });
       } catch (error) {
@@ -1251,6 +1251,7 @@ export function useTelemedicineCall(
 
       socket.on("peer-joined", async ({ userId }: { userId: string }) => {
         const returningPeer = remotePeerDepartedRef.current;
+        roomPeerCountRef.current = Math.max(2, roomPeerCountRef.current);
         setRemotePeerAbsent(false);
         remoteIdRef.current = userId;
         onRemoteUserId?.(userId);
