@@ -597,7 +597,22 @@ export function useTelemedicineCall(
     const pc = pcRef.current;
     if (!pc || makingOfferRef.current) return;
     if (iceRestartInitiatorOnly && !isInitiator) return;
-    if (pc.signalingState !== "stable") return;
+    // A remote WebView can disappear before answering the previous offer.
+    // Roll back that stale local offer so a returning peer receives a fresh
+    // negotiation; otherwise the ICE restart silently returns forever.
+    if (pc.signalingState === "have-local-offer" && roomPeerCountRef.current > 1) {
+      try {
+        await pc.setLocalDescription({ type: "rollback" });
+      } catch (error) {
+        logVideo.warn("webrtc_stale_offer_rollback_failed", {
+          event: "webrtc_stale_offer_rollback_failed",
+          consultationId,
+          errorName: error instanceof Error ? error.name : "unknown",
+        });
+        return;
+      }
+    }
+    if (pcRef.current !== pc || pc.signalingState !== "stable") return;
 
     const nowMs = Date.now();
     if (
@@ -771,6 +786,9 @@ export function useTelemedicineCall(
             reconnectAttempts: reconnectAttemptsRef.current,
           });
           reconnectingIceRef.current = false;
+          // A successfully restored transport starts a new bounded recovery
+          // window, instead of exhausting retries for the lifetime of a call.
+          iceRestartCountRef.current = 0;
           if (reportSuccess) {
             void reportWebrtcResilienceMetric("reconnect_success", {
               backendOrigin,
@@ -1363,9 +1381,11 @@ export function useTelemedicineCall(
         roomPeerCountRef.current = 1;
         remoteIdRef.current = null;
         onRemoteUserId?.(null);
-        // Do not display media from a peer that no longer occupies the room.
-        remoteStreamRef.current = null;
-        setRemoteStream(null);
+        // Keep the existing remote tracks bound to the video element while
+        // the peer is absent. ICE restart can reuse an established transceiver
+        // without firing ontrack again; deleting the MediaStream here makes
+        // a successfully reconnected peer permanently appear as black video.
+        // The remotePeerAbsent overlay hides any stale frame until rejoin.
       });
     },
     [
