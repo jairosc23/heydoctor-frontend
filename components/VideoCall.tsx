@@ -106,6 +106,9 @@ export const VideoCall = forwardRef<VideoCallRecordingHandle, VideoCallProps>(
     ref,
   ) {
     const { user, loading } = useAuth();
+    // Guest access uses its own consultation authorization: staff auth refreshes
+    // must not tear down an active patient's WebRTC connection.
+    const sessionGate = guestCall ? "guest" : loading ? "loading" : user?.id ?? "anonymous";
     const localVideoRef = useRef<HTMLVideoElement>(null);
     const remoteVideoRef = useRef<HTMLVideoElement>(null);
     const remoteStreamRef = useRef<MediaStream | null>(null);
@@ -222,7 +225,7 @@ export const VideoCall = forwardRef<VideoCallRecordingHandle, VideoCallProps>(
         endCall({ reason: "effect_cleanup" });
       };
       // eslint-disable-next-line react-hooks/exhaustive-deps -- startCall/endCall dependen de muchos refs internos del hook
-    }, [consultationId, guestCall, loading, user]);
+    }, [consultationId, guestCall, sessionGate]);
 
     useEffect(() => {
       if (localStream) {
