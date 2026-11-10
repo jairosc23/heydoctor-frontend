@@ -342,6 +342,8 @@ export function createAdaptiveVideoMonitor(
         options?.onTierChange?.(tier);
       } else if (
         !downgrade &&
+        !delta.reset &&
+        delta.sentDelta > 0 &&
         lossRatio < 0.02 &&
         (rtt === undefined || rtt < 200) &&
         (outBr === undefined || outBr > 600_000)
