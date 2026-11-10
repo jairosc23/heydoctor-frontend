@@ -2,6 +2,7 @@
 
 import { resolveRetainedVideoSender } from "@/lib/webrtc-video-sender";
 import { updateVideoFrameWatchdog } from "@/lib/webrtc-frame-watchdog";
+import { calculatePacketLossDelta, type PacketCounters } from "@/lib/webrtc-network-deltas";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -284,7 +285,7 @@ export function createAdaptiveVideoMonitor(
 ): () => void {
   const intervalMs = options?.intervalMs ?? 2500;
   let tier: AdaptationTier = 0;
-  let prevLost = 0;
+  let previousCounters: PacketCounters | null = null;
   let stableCycles = 0;
   let timer: ReturnType<typeof setInterval> | null = null;
   let bitrateAcc = { lastBytes: 0, lastTs: 0 };
@@ -295,7 +296,9 @@ export function createAdaptiveVideoMonitor(
       const snap = parseOutboundVideoStats(report);
       const lost = snap.packetsLost ?? 0;
       const sent = snap.packetsSent ?? 0;
-      const deltaLost = lost - prevLost;
+      const delta = calculatePacketLossDelta(previousCounters, { lost, sent });
+      previousCounters = { lost, sent };
+      const deltaLost = delta.lostDelta;
       const rtt = snap.roundTripTime;
       const outBr = snap.availableOutgoingBitrate;
       const bytes = snap.bytesSent ?? 0;
@@ -309,10 +312,7 @@ export function createAdaptiveVideoMonitor(
       }
       bitrateAcc = { lastBytes: bytes, lastTs: Date.now() };
 
-      prevLost = lost;
-
-      const lossRatio =
-        sent + deltaLost > 0 ? deltaLost / (sent + deltaLost + 1) : 0;
+      const lossRatio = delta.lossRatio;
 
       const fullSnap: NetworkStatsSample & {
         outboundBitrateBps?: number;
