@@ -16,7 +16,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, qa/m4-media-quality-engine-20261109]
   pull_request:
     branches: [main]
   workflow_dispatch:
