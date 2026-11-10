@@ -605,6 +605,10 @@ export function useTelemedicineCall(
   const runIceRestart = useCallback(async () => {
     const pc = pcRef.current;
     if (!pc || makingOfferRef.current) return;
+    // Never send an ICE offer before the backend confirms room admission.
+    // This also fences legacy timer paths during Socket.IO reconnect.
+    if (!socketRef.current?.connected || !roomJoinedRef.current ||
+        (roomPeerCountRef.current <= 1 && !remoteIdRef.current)) return;
     if (iceRestartInitiatorOnly && !isInitiator) return;
     // A remote WebView can disappear before answering the previous offer.
     // Roll back that stale local offer so a returning peer receives a fresh
