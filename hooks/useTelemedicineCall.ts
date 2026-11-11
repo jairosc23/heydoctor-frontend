@@ -185,15 +185,18 @@ export type NetworkStatsSample = {
   roundTripTime?: number;
   availableOutgoingBitrate?: number;
   bytesSent?: number;
+  /** False means no trustworthy remote loss counter was provided; not zero loss. */
+  lossCounterAvailable?: boolean;
 };
 
-function parseOutboundVideoStats(
+export function parseOutboundVideoStats(
   report: RTCStatsReport,
 ): Partial<NetworkStatsSample> {
   let packetsLost = 0;
   let packetsSent = 0;
   let jitter = 0;
   let bytesSent = 0;
+  let lossCounterAvailable = false;
   let outboundVideoId: string | undefined;
 
   report.forEach((s) => {
@@ -205,7 +208,10 @@ function parseOutboundVideoStats(
         bytesSent?: number;
         jitter?: number;
       };
-      if (typeof o.packetsLost === "number") packetsLost = o.packetsLost;
+      if (typeof o.packetsLost === "number" && Number.isFinite(o.packetsLost)) {
+        packetsLost = o.packetsLost;
+        lossCounterAvailable = true;
+      }
       if (typeof o.packetsSent === "number") packetsSent = o.packetsSent;
       if (typeof o.bytesSent === "number") bytesSent = o.bytesSent;
       if ("jitter" in o && typeof o.jitter === "number") jitter = o.jitter;
@@ -231,7 +237,10 @@ function parseOutboundVideoStats(
           jitter?: number;
           roundTripTime?: number;
         };
-        if (typeof r.packetsLost === "number") packetsLost = r.packetsLost;
+        if (typeof r.packetsLost === "number" && Number.isFinite(r.packetsLost)) {
+          packetsLost = r.packetsLost;
+          lossCounterAvailable = true;
+        }
         if (typeof r.jitter === "number") jitter = r.jitter;
         if (typeof r.roundTripTime === "number") {
           roundTripTime = r.roundTripTime * 1000;
@@ -261,6 +270,7 @@ function parseOutboundVideoStats(
     timestamp: Date.now(),
     packetsLost,
     packetsSent,
+    lossCounterAvailable,
     jitter,
     roundTripTime,
     availableOutgoingBitrate,
@@ -297,8 +307,14 @@ export function createAdaptiveVideoMonitor(
       const snap = parseOutboundVideoStats(report);
       const lost = snap.packetsLost ?? 0;
       const sent = snap.packetsSent ?? 0;
-      const delta = calculatePacketLossDelta(previousCounters, { lost, sent });
-      previousCounters = { lost, sent };
+      // Missing remote loss statistics must not be reported as confirmed
+      // zero-loss connectivity or silently qualify a video quality upgrade.
+      const hasLossCounter = snap.lossCounterAvailable === true;
+      const delta = calculatePacketLossDelta(
+        hasLossCounter ? previousCounters : null,
+        { lost, sent },
+      );
+      previousCounters = hasLossCounter ? { lost, sent } : null;
       const deltaLost = delta.lostDelta;
       const rtt = snap.roundTripTime;
       const outBr = snap.availableOutgoingBitrate;
@@ -321,6 +337,7 @@ export function createAdaptiveVideoMonitor(
         timestamp: snap.timestamp ?? Date.now(),
         packetsLost: lost,
         packetsSent: sent,
+        lossCounterAvailable: hasLossCounter,
         jitter: snap.jitter ?? 0,
         roundTripTime: snap.roundTripTime,
         availableOutgoingBitrate: snap.availableOutgoingBitrate,
