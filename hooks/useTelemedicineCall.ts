@@ -1253,6 +1253,16 @@ export function useTelemedicineCall(
         },
       );
 
+      // The receiver has evidence of stalled inbound video even if ICE stays
+      // connected. Only the designated offer owner initiates recovery.
+      socket.on("peer-video-recovery-request", () => {
+        if (!isInitiator || !socketRef.current?.connected ||
+            !roomJoinedRef.current || remotePeerDepartedRef.current ||
+            (roomPeerCountRef.current <= 1 && !remoteIdRef.current)) return;
+        lastIceFailureReasonRef.current = "peer_inbound_video_stalled";
+        scheduleIceRestartDebounced();
+      });
+
       socket.on(
         "room-state",
         ({
@@ -2051,6 +2061,12 @@ export function useTelemedicineCall(
             (lastRebuildMsRef.current === null || nowMs - lastRebuildMsRef.current >= 60_000),
         });
         inboundRecoveryRef.current = recovery.state;
+        if (recovery.action === "ice-restart" && !permitted) {
+          // The patient/answerer cannot create a competing SDP offer. Notify
+          // the physician/offer owner through the authenticated room instead.
+          socket.emit("video-recovery-request", { consultationId });
+          return;
+        }
         if (!permitted || makingOfferRef.current || rebuildInProgressRef.current) return;
         if (recovery.action === "ice-restart") {
           lastIceFailureReasonRef.current = "inbound_video_frames_stalled";
