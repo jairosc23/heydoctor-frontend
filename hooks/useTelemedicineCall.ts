@@ -2,6 +2,10 @@
 
 import { resolveRetainedVideoSender } from "@/lib/webrtc-video-sender";
 import { updateVideoFrameWatchdog } from "@/lib/webrtc-frame-watchdog";
+import {
+  assessInboundVideoRecovery,
+  INITIAL_INBOUND_RECOVERY_STATE,
+} from "@/lib/webrtc-inbound-recovery";
 import { decideCallRecovery } from "@/lib/webrtc-reliability-core";
 import { calculatePacketLossDelta, type PacketCounters } from "@/lib/webrtc-network-deltas";
 
@@ -539,6 +543,8 @@ export function useTelemedicineCall(
   const recoveringCameraRef = useRef(false);
   const frameWatchdogRef = useRef<{ lastFrames: number | null; stagnantSince: number | null }>({ lastFrames: null, stagnantSince: null });
   const frameWatchdogBusyRef = useRef(false);
+  const inboundRecoveryRef = useRef(INITIAL_INBOUND_RECOVERY_STATE);
+  const inboundRecoveryBusyRef = useRef(false);
   const forceCameraRecoveryRef = useRef(false);
   const screenShareTrackRef = useRef<MediaStreamTrack | null>(null);
   const videoSuspendedByPolicyRef = useRef(false);
@@ -1247,6 +1253,41 @@ export function useTelemedicineCall(
         },
       );
 
+      // The receiver has evidence of stalled inbound video even if ICE stays
+      // connected. Only the designated offer owner initiates recovery.
+      socket.on("peer-video-recovery-request", ({ phase }: {
+        phase?: "ice-restart" | "rebuild";
+      }) => {
+        if (!isInitiator || !socketRef.current?.connected ||
+            !roomJoinedRef.current || remotePeerDepartedRef.current ||
+            (roomPeerCountRef.current <= 1 && !remoteIdRef.current)) return;
+        lastIceFailureReasonRef.current = "peer_inbound_video_stalled";
+        if (phase === "ice-restart") {
+          scheduleIceRestartDebounced();
+          return;
+        }
+        if (phase !== "rebuild" || rebuildInProgressRef.current) return;
+        const nowMs = Date.now();
+        if (rebuildsRef.current >= 2 ||
+            (lastRebuildMsRef.current !== null &&
+             nowMs - lastRebuildMsRef.current < 60_000)) return;
+        const restart = startCallForRecoveryRef.current;
+        if (!restart) return;
+        rebuildInProgressRef.current = true;
+        rebuildsRef.current += 1;
+        lastRebuildMsRef.current = nowMs;
+        logVideo.warn("webrtc_peer_video_rebuild", {
+          event: "webrtc_peer_video_rebuild",
+          reason: "peer_confirmed_decoded_frame_stall",
+          attempt: rebuildsRef.current,
+        });
+        void restart().catch((error) => {
+          reportWebrtcFailure("webrtc_reconnect_failed", error, {
+            backendOrigin, consultationId, reason: "peer_video_rebuild_failed",
+          });
+        }).finally(() => { rebuildInProgressRef.current = false; });
+      });
+
       socket.on(
         "room-state",
         ({
@@ -1435,6 +1476,7 @@ export function useTelemedicineCall(
       onError,
       onRemoteUserId,
       scheduleIceRestartDebounced,
+      backendOrigin,
     ],
   );
 
@@ -1459,6 +1501,7 @@ export function useTelemedicineCall(
       videoSenderRef.current = null;
       cameraStreamRef.current = null;
       frameWatchdogRef.current = { lastFrames: null, stagnantSince: null };
+      inboundRecoveryRef.current = INITIAL_INBOUND_RECOVERY_STATE;
       forceCameraRecoveryRef.current = false;
       metricsSamplesRef.current = 0;
       lastQualityInputsRef.current = null;
@@ -1995,6 +2038,101 @@ export function useTelemedicineCall(
       }
     }, 2000);
     return () => window.clearInterval(id);
+  }, [backendOrigin, consultationId, externalSocket, isInitiator, runIceRestart]);
+
+  // Receiver-side recovery: audio and ICE can remain connected while the
+  // incoming video has stopped decoding. Observe actual inbound RTP progress.
+  // The existing initiator is the only offer/restart owner (no SDP glare).
+  useEffect(() => {
+    let cancelled = false;
+    const inspectInbound = async () => {
+      const pc = pcRef.current;
+      const socket = socketRef.current;
+      if (!pc || inboundRecoveryBusyRef.current) return;
+      const eligible = document.visibilityState === "visible" &&
+        pc.connectionState === "connected" &&
+        (pc.iceConnectionState === "connected" || pc.iceConnectionState === "completed") &&
+        socket?.connected === true && roomJoinedRef.current &&
+        !remotePeerDepartedRef.current &&
+        (roomPeerCountRef.current > 1 || !!remoteIdRef.current) &&
+        !!remoteStreamRef.current?.getVideoTracks().some(
+          (track) => track.readyState === "live" && !track.muted,
+        );
+      if (!eligible) {
+        inboundRecoveryRef.current = INITIAL_INBOUND_RECOVERY_STATE;
+        return;
+      }
+      inboundRecoveryBusyRef.current = true;
+      try {
+        const reports = await pc.getStats();
+        if (cancelled || pcRef.current !== pc) return;
+        let frames: number | null = null;
+        reports.forEach((report) => {
+          if (report.type === "inbound-rtp" && report.kind === "video" &&
+              typeof report.framesDecoded === "number" &&
+              Number.isFinite(report.framesDecoded)) {
+            frames = Math.max(frames ?? 0, report.framesDecoded);
+          }
+        });
+        // Unsupported counters provide no basis for action.
+        if (frames === null) return;
+        const nowMs = Date.now();
+        const permitted = isInitiator && !externalSocket;
+        const recovery = assessInboundVideoRecovery(inboundRecoveryRef.current, {
+          framesDecoded: frames,
+          nowMs,
+          eligible: true,
+          canRebuild: !permitted || (!rebuildInProgressRef.current &&
+            rebuildsRef.current < 2 &&
+            (lastRebuildMsRef.current === null || nowMs - lastRebuildMsRef.current >= 60_000)),
+        });
+        inboundRecoveryRef.current = recovery.state;
+        if (recovery.action === "ice-restart" && !permitted) {
+          // The patient/answerer cannot create a competing SDP offer. Notify
+          // the physician/offer owner through the authenticated room instead.
+          socket.emit("video-recovery-request", {
+            consultationId, phase: "ice-restart",
+          });
+          return;
+        }
+        if (recovery.action === "rebuild" && !permitted) {
+          socket.emit("video-recovery-request", {
+            consultationId, phase: "rebuild",
+          });
+          return;
+        }
+        if (!permitted || makingOfferRef.current || rebuildInProgressRef.current) return;
+        if (recovery.action === "ice-restart") {
+          lastIceFailureReasonRef.current = "inbound_video_frames_stalled";
+          void runIceRestart();
+        } else if (recovery.action === "rebuild") {
+          const restart = startCallForRecoveryRef.current;
+          if (!restart) return;
+          rebuildInProgressRef.current = true;
+          rebuildsRef.current += 1;
+          lastRebuildMsRef.current = nowMs;
+          lastIceFailureReasonRef.current = "inbound_video_rebuild";
+          logVideo.warn("webrtc_inbound_video_rebuild", {
+            event: "webrtc_inbound_video_rebuild",
+            reason: "confirmed_decoded_frame_stall",
+            attempt: rebuildsRef.current,
+          });
+          void restart().catch((error) => {
+            reportWebrtcFailure("webrtc_reconnect_failed", error, {
+              backendOrigin,
+              consultationId,
+              reason: "inbound_video_rebuild_failed",
+            });
+          }).finally(() => { rebuildInProgressRef.current = false; });
+        }
+      } catch {
+        // A stats failure must not interrupt a healthy call.
+      } finally {
+        inboundRecoveryBusyRef.current = false;
+      }
+    };
+    const id = window.setInterval(() => { void inspectInbound(); }, 2500);
+    return () => { cancelled = true; window.clearInterval(id); };
   }, [backendOrigin, consultationId, externalSocket, isInitiator, runIceRestart]);
 
   // Outbound frames monitor: an iOS track may remain live/unmuted yet stop

@@ -435,33 +435,69 @@ export const VideoCall = forwardRef<VideoCallRecordingHandle, VideoCallProps>(
         ? `Teleconsulta · ${peerDisplayName.trim()}`
         : "Teleconsulta");
 
-    // A live MediaStreamTrack does not prove that the remote video is rendering.
+    // A live track and an ICE "connected" state do not prove that the remote
+    // picture is advancing. On WebKit, getVideoPlaybackQuality can report a
+    // permanent zero even while WKWebView is presenting live frames.
     useEffect(() => {
       let status = { lastFrames: null as number | null, stagnantSince: null as number | null };
+      let lastPresentedAt: number | null = null;
+      let frameCallbackId: number | null = null;
+      let cancelled = false;
       setRemoteVideoStalled(false);
       if (!remoteStream || remotePeerAbsent || connectionState !== "connected") return;
+
+      const el = remoteVideoRef.current;
+      const usesPresentedFrames = !!el?.requestVideoFrameCallback;
+      if (el && usesPresentedFrames) {
+        const observePresentedFrame: VideoFrameRequestCallback = () => {
+          if (cancelled) return;
+          lastPresentedAt = Date.now();
+          setRemoteVideoStalled(false);
+          frameCallbackId = el.requestVideoFrameCallback(observePresentedFrame);
+        };
+        frameCallbackId = el.requestVideoFrameCallback(observePresentedFrame);
+      }
+
       const id = window.setInterval(() => {
-        const el = remoteVideoRef.current;
-        const videoTrack = remoteStream.getVideoTracks()[0];
-        if (!el || !videoTrack || document.visibilityState !== "visible" ||
-            connectionState !== "connected" || el.paused || el.seeking) {
+        const video = remoteVideoRef.current;
+        const track = remoteStream.getVideoTracks()[0];
+        if (!video || !track || track.readyState !== "live" ||
+            document.visibilityState !== "visible" ||
+            connectionState !== "connected" || video.paused || video.seeking) {
+          status = { lastFrames: null, stagnantSince: null };
+          lastPresentedAt = null;
+          setRemoteVideoStalled(false);
+          return;
+        }
+        if (usesPresentedFrames) {
+          // Do not declare an interruption before the first observed frame.
+          setRemoteVideoStalled(lastPresentedAt !== null && Date.now() - lastPresentedAt >= 10000);
+          return;
+        }
+        // Legacy fallback: zero/unsupported decode counters are NOT evidence
+        // that a moving video has stalled; never issue a false interruption.
+        const qualityFrames = video.getVideoPlaybackQuality?.().totalVideoFrames;
+        const webkitFrames = (video as HTMLVideoElement & {
+          webkitDecodedFrameCount?: number;
+        }).webkitDecodedFrameCount;
+        const sample = Math.max(
+          typeof qualityFrames === "number" && Number.isFinite(qualityFrames) ? qualityFrames : 0,
+          typeof webkitFrames === "number" && Number.isFinite(webkitFrames) ? webkitFrames : 0,
+        );
+        if (sample <= 0) {
           status = { lastFrames: null, stagnantSince: null };
           setRemoteVideoStalled(false);
           return;
         }
-        // Decode counters measure actual rendered-frame progress. Playback time
-        // alone can advance while a video is frozen and must not be trusted.
-        const quality = el.getVideoPlaybackQuality?.();
-        const webkitFrames = (el as HTMLVideoElement & {
-          webkitDecodedFrameCount?: number;
-        }).webkitDecodedFrameCount;
-        const sample = quality?.totalVideoFrames ?? webkitFrames;
-        if (typeof sample !== "number") return;
         const result = updateVideoFrameWatchdog(status, sample, Date.now(), 10000);
         status = result.state;
         setRemoteVideoStalled(result.stalled);
       }, 2500);
-      return () => window.clearInterval(id);
+      return () => {
+        cancelled = true;
+        window.clearInterval(id);
+        if (el && frameCallbackId !== null) el.cancelVideoFrameCallback(frameCallbackId);
+      };
     }, [remoteStream, remotePeerAbsent, connectionState]);
 
     const hasRemoteLive = useMemo(
