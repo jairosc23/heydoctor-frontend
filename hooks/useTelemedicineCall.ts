@@ -543,6 +543,7 @@ export function useTelemedicineCall(
   const recoveringCameraRef = useRef(false);
   const frameWatchdogRef = useRef<{ lastFrames: number | null; stagnantSince: number | null }>({ lastFrames: null, stagnantSince: null });
   const inboundRecoveryRef = useRef(INITIAL_INBOUND_RECOVERY_STATE);
+  const pendingPeerVideoRecoveryRef = useRef<"ice-restart" | "rebuild" | null>(null);
   const forceCameraRecoveryRef = useRef(false);
   const screenShareTrackRef = useRef<MediaStreamTrack | null>(null);
   const videoSuspendedByPolicyRef = useRef(false);
@@ -1256,34 +1257,15 @@ export function useTelemedicineCall(
       socket.on("peer-video-recovery-request", ({ phase }: {
         phase?: "ice-restart" | "rebuild";
       }) => {
-        if (!isInitiator || !socketRef.current?.connected ||
+        if (!isInitiator || socketRef.current !== socket ||
             !roomJoinedRef.current || remotePeerDepartedRef.current ||
             (roomPeerCountRef.current <= 1 && !remoteIdRef.current)) return;
-        lastIceFailureReasonRef.current = "peer_inbound_video_stalled";
-        if (phase === "ice-restart") {
-          scheduleIceRestartDebounced();
-          return;
-        }
-        if (phase !== "rebuild" || rebuildInProgressRef.current) return;
-        const nowMs = Date.now();
-        if (rebuildsRef.current >= 2 ||
-            (lastRebuildMsRef.current !== null &&
-             nowMs - lastRebuildMsRef.current < 60_000)) return;
-        const restart = startCallForRecoveryRef.current;
-        if (!restart) return;
-        rebuildInProgressRef.current = true;
-        rebuildsRef.current += 1;
-        lastRebuildMsRef.current = nowMs;
-        logVideo.warn("webrtc_peer_video_rebuild", {
-          event: "webrtc_peer_video_rebuild",
-          reason: "peer_confirmed_decoded_frame_stall",
-          attempt: rebuildsRef.current,
-        });
-        void restart().catch((error) => {
-          reportWebrtcFailure("webrtc_reconnect_failed", error, {
-            backendOrigin, consultationId, reason: "peer_video_rebuild_failed",
-          });
-        }).finally(() => { rebuildInProgressRef.current = false; });
+        if (phase !== "ice-restart" && phase !== "rebuild") return;
+        // One supervisor owns the escalation: event handlers never rebuild
+        // or generate SDP offers on their own.
+        pendingPeerVideoRecoveryRef.current =
+          phase === "rebuild" ? "rebuild" :
+          pendingPeerVideoRecoveryRef.current ?? "ice-restart";
       });
 
       socket.on(
@@ -1500,6 +1482,7 @@ export function useTelemedicineCall(
       cameraStreamRef.current = null;
       frameWatchdogRef.current = { lastFrames: null, stagnantSince: null };
       inboundRecoveryRef.current = INITIAL_INBOUND_RECOVERY_STATE;
+      pendingPeerVideoRecoveryRef.current = null;
       forceCameraRecoveryRef.current = false;
       metricsSamplesRef.current = 0;
       lastQualityInputsRef.current = null;
@@ -2054,6 +2037,18 @@ export function useTelemedicineCall(
         if (pc.connectionState !== "connected" ||
             (pc.iceConnectionState !== "connected" &&
              pc.iceConnectionState !== "completed")) return;
+
+        const peerRequest = pendingPeerVideoRecoveryRef.current;
+        if (peerRequest && canOffer && !makingOfferRef.current) {
+          pendingPeerVideoRecoveryRef.current = null;
+          if (peerRequest === "ice-restart") {
+            lastIceFailureReasonRef.current = "peer_inbound_video_stalled";
+            void runIceRestart();
+            return;
+          }
+          rebuildSession("peer_confirmed_decoded_frame_stall", nowMs);
+          return;
+        }
 
         // One getStats snapshot drives both directions. Never interpret
         // unsupported or zero counters as proof of lost video.
