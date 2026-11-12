@@ -1255,12 +1255,37 @@ export function useTelemedicineCall(
 
       // The receiver has evidence of stalled inbound video even if ICE stays
       // connected. Only the designated offer owner initiates recovery.
-      socket.on("peer-video-recovery-request", () => {
+      socket.on("peer-video-recovery-request", ({ phase }: {
+        phase?: "ice-restart" | "rebuild";
+      }) => {
         if (!isInitiator || !socketRef.current?.connected ||
             !roomJoinedRef.current || remotePeerDepartedRef.current ||
             (roomPeerCountRef.current <= 1 && !remoteIdRef.current)) return;
         lastIceFailureReasonRef.current = "peer_inbound_video_stalled";
-        scheduleIceRestartDebounced();
+        if (phase === "ice-restart") {
+          scheduleIceRestartDebounced();
+          return;
+        }
+        if (phase !== "rebuild" || rebuildInProgressRef.current) return;
+        const nowMs = Date.now();
+        if (rebuildsRef.current >= 2 ||
+            (lastRebuildMsRef.current !== null &&
+             nowMs - lastRebuildMsRef.current < 60_000)) return;
+        const restart = startCallForRecoveryRef.current;
+        if (!restart) return;
+        rebuildInProgressRef.current = true;
+        rebuildsRef.current += 1;
+        lastRebuildMsRef.current = nowMs;
+        logVideo.warn("webrtc_peer_video_rebuild", {
+          event: "webrtc_peer_video_rebuild",
+          reason: "peer_confirmed_decoded_frame_stall",
+          attempt: rebuildsRef.current,
+        });
+        void restart().catch((error) => {
+          reportWebrtcFailure("webrtc_reconnect_failed", error, {
+            backendOrigin, consultationId, reason: "peer_video_rebuild_failed",
+          });
+        }).finally(() => { rebuildInProgressRef.current = false; });
       });
 
       socket.on(
@@ -1451,6 +1476,7 @@ export function useTelemedicineCall(
       onError,
       onRemoteUserId,
       scheduleIceRestartDebounced,
+      backendOrigin,
     ],
   );
 
@@ -2056,15 +2082,23 @@ export function useTelemedicineCall(
           framesDecoded: frames,
           nowMs,
           eligible: true,
-          canRebuild: permitted && !rebuildInProgressRef.current &&
+          canRebuild: !permitted || (!rebuildInProgressRef.current &&
             rebuildsRef.current < 2 &&
-            (lastRebuildMsRef.current === null || nowMs - lastRebuildMsRef.current >= 60_000),
+            (lastRebuildMsRef.current === null || nowMs - lastRebuildMsRef.current >= 60_000)),
         });
         inboundRecoveryRef.current = recovery.state;
         if (recovery.action === "ice-restart" && !permitted) {
           // The patient/answerer cannot create a competing SDP offer. Notify
           // the physician/offer owner through the authenticated room instead.
-          socket.emit("video-recovery-request", { consultationId });
+          socket.emit("video-recovery-request", {
+            consultationId, phase: "ice-restart",
+          });
+          return;
+        }
+        if (recovery.action === "rebuild" && !permitted) {
+          socket.emit("video-recovery-request", {
+            consultationId, phase: "rebuild",
+          });
           return;
         }
         if (!permitted || makingOfferRef.current || rebuildInProgressRef.current) return;
