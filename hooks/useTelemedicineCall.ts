@@ -1157,6 +1157,7 @@ export function useTelemedicineCall(
       socket.off("peer-joined");
       socket.off("peer-left");
       socket.off("peer-ice-state");
+      socket.off("peer-video-recovery-request");
       socket.off("room-state");
       socket.on("disconnect", () => {
         if (socketRef.current !== socket) return;
