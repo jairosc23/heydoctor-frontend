@@ -36,6 +36,9 @@ describe("M4 unified audiovisual recovery architecture", () => {
     assert.match(supervisor, /if \(!canOffer\) \{\s*socket\.emit\("video-recovery-request"/);
     assert.match(supervisor, /lastIceFailureReasonRef\.current = "inbound_video_frames_stalled"/);
     assert.match(supervisor, /rebuildSession\("confirmed_decoded_frame_stall", nowMs\)/);
+    assert.match(supervisor, /pendingPeerVideoRecoveryRef\.current =/);
+    assert.match(supervisor, /const peerRequest = pendingPeerVideoRecoveryRef\.current/);
+    assert.match(supervisor, /rebuildSession\("peer_confirmed_decoded_frame_stall", nowMs\)/);
   });
 
   it("keeps full reconstruction capped and checks session authority", () => {
