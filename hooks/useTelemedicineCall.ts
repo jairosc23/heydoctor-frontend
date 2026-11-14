@@ -12,6 +12,9 @@ import { calculatePacketLossDelta, type PacketCounters } from "@/lib/webrtc-netw
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   deriveConnectionQuality,
+  advanceQualityState,
+  INITIAL_QUALITY_STATE,
+  type QualityState,
   type ConnectionQuality,
 } from "@/lib/webrtc-connection-quality";
 import { fetchWebrtcIceServers } from "@/lib/fetch-webrtc-ice-servers";
@@ -551,6 +554,7 @@ export function useTelemedicineCall(
   const lastQualityInputsRef = useRef<
     Parameters<typeof deriveConnectionQuality>[0] | null
   >(null);
+  const qualityStateRef = useRef<QualityState>(INITIAL_QUALITY_STATE);
 
   const reconnectAttemptsRef = useRef(0);
   const iceRestartCountRef = useRef(0);
@@ -1487,6 +1491,7 @@ export function useTelemedicineCall(
       forceCameraRecoveryRef.current = false;
       metricsSamplesRef.current = 0;
       lastQualityInputsRef.current = null;
+      qualityStateRef.current = INITIAL_QUALITY_STATE;
       iceConnectionStateRef.current = null;
       lastIceRestartAtMsRef.current = null;
       setConnectionQuality(null);
@@ -1897,7 +1902,11 @@ export function useTelemedicineCall(
               videoSuspendedForNetwork: videoSuspendedByPolicyRef.current,
             };
             lastQualityInputsRef.current = qualityInputs;
-            setConnectionQuality(deriveConnectionQuality(qualityInputs));
+            qualityStateRef.current = advanceQualityState(
+              qualityStateRef.current,
+              deriveConnectionQuality(qualityInputs),
+            );
+            setConnectionQuality(qualityStateRef.current.visible);
 
             // M4 Premium: one adaptation controller owns network pressure.
             // The RTP monitor lowers bitrate, frame rate and resolution while

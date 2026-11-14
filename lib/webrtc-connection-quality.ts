@@ -54,3 +54,49 @@ export function deriveConnectionQuality(params: {
 
   return 'good';
 }
+
+
+/**
+ * Presentation-only quality stabilizer. Does not modify transport, bitrate, ICE,
+ * or media tracks. Critical loss of connectivity is signalled immediately.
+ * Two consecutive 2.5s samples avoid an unstable badge during route handover.
+ */
+export type QualityState = Readonly<{
+  visible: ConnectionQuality;
+  candidate: ConnectionQuality | null;
+  samples: number;
+}>;
+
+export const INITIAL_QUALITY_STATE: QualityState = {
+  visible: "good",
+  candidate: null,
+  samples: 0,
+};
+
+export function advanceQualityState(
+  previous: QualityState,
+  observed: ConnectionQuality,
+): QualityState {
+  // Never hide an actual disconnection or explicit reconnect attempt.
+  if (observed === "failed" || observed === "reconnecting") {
+    return { visible: observed, candidate: null, samples: 0 };
+  }
+
+  // Do not mask a severe, sustained network impairment behind "Conectado".
+  if (observed === "poor" && previous.visible === "good") {
+    return { visible: "poor", candidate: null, samples: 0 };
+  }
+
+  if (previous.visible === observed) {
+    return { visible: observed, candidate: null, samples: 0 };
+  }
+
+  const samples = previous.candidate === observed ? previous.samples + 1 : 1;
+  // Quality recovers only after independent, consistent samples; a transient
+  // low-rate adaptation must not trigger false connected/weak oscillations.
+  if (samples >= 2) {
+    return { visible: observed, candidate: null, samples: 0 };
+  }
+
+  return { ...previous, candidate: observed, samples };
+}

@@ -16,7 +16,7 @@ name: CI
 
 on:
   push:
-    branches: [main, qa/m4-media-quality-engine-20261109, qa/m4-enterprise-reliability-core-20261110, qa/m4-premium-continuous-video-20261110, qa/m4-integrated-reliability-gate-20261110, qa/m4-rendered-frame-fidelity-20261111, qa/m4-unified-media-supervisor-20261112]
+    branches: [main, qa/m4-media-quality-engine-20261109, qa/m4-enterprise-reliability-core-20261110, qa/m4-premium-continuous-video-20261110, qa/m4-integrated-reliability-gate-20261110, qa/m4-rendered-frame-fidelity-20261111, qa/m4-unified-media-supervisor-20261112, qa/m4-premium-quality-hysteresis-20261114]
   pull_request:
     branches: [main]
   workflow_dispatch:
