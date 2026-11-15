@@ -351,11 +351,16 @@ export function AppointmentFormModal({
                 type="button"
                 data-testid="agenda-open-consultation"
                 onClick={() => {
+                  if (!isAdmin) {
+                    openEncounterMutation.mutate();
+                    return;
+                  }
                   const cid = appointment.consultationId!.trim();
                   if (!cid) return;
                   onClose();
                   router.push(`/panel/consultas/${cid}`);
                 }}
+                disabled={openEncounterMutation.isPending}
               >
                 Abrir ficha clínica
               </Button>
