@@ -64,6 +64,7 @@ export type WebrtcResilienceMetric =
   | 'media_recovery_failures';
 
 type WebrtcResilienceMetricContext = WebrtcFailureContext & {
+  guestChannel?: boolean;
   count?: number;
 };
 
@@ -89,6 +90,7 @@ export async function reportWebrtcResilienceMetric(
   const payload: SendCallMetricsInput = {
     backendOrigin: context.backendOrigin,
     consultationId: context.consultationId,
+    guestChannel: context.guestChannel === true,
     eventType,
     eventCount: context.count ?? 1,
     clientTraceId: context.requestId ?? undefined,
