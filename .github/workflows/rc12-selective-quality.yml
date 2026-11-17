@@ -1,0 +1,38 @@
+# RC12 — isolated quality gate for a production-baseline selective candidate.
+# No staging/production deployment, secrets, E2E dispatch or protected branch edits.
+name: RC12 selective quality
+on:
+  push:
+    branches:
+      - release/rc12-selective-web-p0-20261117
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rc12-selective-quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: rc12-quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install locked dependencies
+        run: npm ci
+      - name: TypeScript and lint
+        run: npm run lint && npm run typecheck
+      - name: Build
+        run: npm run build
+      - name: Unit tests
+        run: npm test
+      - name: Component tests
+        run: npm run test:component
