@@ -140,6 +140,16 @@ export async function fetchConsultation(id: string): Promise<NestConsultation> {
   return unwrapConsultation(raw);
 }
 
+/** Open or reuse the clinical encounter linked to a confirmed appointment. */
+export async function openAppointmentConsultation(
+  appointmentId: string,
+): Promise<NestConsultation> {
+  const raw = await heydoctorApi.post<
+    NestConsultation | { data: NestConsultation }
+  >(`${BASE}/from-appointment/${encodeURIComponent(appointmentId)}`, {});
+  return unwrapConsultation(raw);
+}
+
 export async function createConsultation(dto: CreateConsultationDto) {
   const reason = (
     dto.chiefComplaint?.trim() ||
