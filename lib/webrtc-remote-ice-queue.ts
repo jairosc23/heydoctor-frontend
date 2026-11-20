@@ -32,11 +32,18 @@ export class RemoteIceCandidateQueue {
 
   drain(remoteDescription: RTCSessionDescriptionInit | null): RTCIceCandidateInit[] {
     if (!remoteDescription) return [];
-    const queued = this.pending;
-    this.pending = [];
-    return queued.filter((candidate) =>
-      matchesRemoteIceGeneration(candidate, remoteDescription),
-    );
+    const ready: RTCIceCandidateInit[] = [];
+    const waiting: RTCIceCandidateInit[] = [];
+    for (const candidate of this.pending) {
+      if (matchesRemoteIceGeneration(candidate, remoteDescription)) {
+        ready.push(candidate);
+      } else {
+        // Preserve next-generation candidates until a matching ICE restart SDP.
+        waiting.push(candidate);
+      }
+    }
+    this.pending = waiting;
+    return ready;
   }
 
   clear(): void {
