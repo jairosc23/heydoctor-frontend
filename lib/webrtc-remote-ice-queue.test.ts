@@ -20,6 +20,8 @@ test("queues candidates arriving before SDP and drains only the matching generat
   assert.equal(queue.drain(null).length, 0);
   assert.equal(queue.size, 2);
   assert.deepEqual(queue.drain(remote), [candidate("newgen")]);
+  assert.equal(queue.size, 1);
+  assert.deepEqual(queue.drain({ type: "offer", sdp: "v=0\r\na=ice-ufrag:oldgen\r\n" }), [candidate("oldgen")]);
   assert.equal(queue.size, 0);
 });
 
