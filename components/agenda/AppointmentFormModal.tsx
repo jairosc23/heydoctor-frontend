@@ -12,6 +12,7 @@ import {
 import { displayStatus } from "@/lib/agenda/appointment-display";
 import { useAuth } from "@/lib/context/AuthContext";
 import { getApiErrorMessage } from "@/lib/heydoctor-api";
+import { openAppointmentConsultation } from "@/lib/services/consultations";
 import { APPOINTMENTS_LIST_ROOT } from "@/lib/queries/query-keys";
 import {
   useAppointmentsListQuery,
@@ -180,6 +181,47 @@ export function AppointmentFormModal({
     onError: (e) => setError(getApiErrorMessage(e)),
   });
 
+  const openEncounterMutation = useMutation({
+    mutationFn: async () => {
+      if (!appointment?.id) throw new Error("La cita no está disponible");
+      return openAppointmentConsultation(appointment.id);
+    },
+    onSuccess: async (consultation) => {
+      await invalidate();
+      onClose();
+      router.push(`/panel/consultas/${consultation.id}`);
+    },
+    onError: (e) => setError(getApiErrorMessage(e)),
+  });
+
+  // Physician and patient access the same encounter room from their own
+  // authenticated agendas. Public checkout remains enforced by the backend.
+  const joinTeleconsultationMutation = useMutation({
+    mutationFn: async () => {
+      if (!appointment?.id) throw new Error("La cita no está disponible");
+      return openAppointmentConsultation(appointment.id);
+    },
+    onSuccess: async (consultation) => {
+      await invalidate();
+      onClose();
+      router.push(`/panel/consultas/${consultation.id}/teleconsulta`);
+    },
+    onError: (e) => setError(getApiErrorMessage(e)),
+  });
+
+  const canStartTeleconsultation =
+    Boolean(appointment?.id) &&
+    user?.role === "doctor" &&
+    ["CONFIRMED", "IN_PROGRESS"].includes(
+      appointment ? displayStatus(appointment) : "",
+    );
+
+  const canOpenUnlinkedEncounter =
+    Boolean(appointment?.id) &&
+    !appointment?.consultationId &&
+    !isAdmin &&
+    displayStatus(appointment!) === "CONFIRMED";
+
   const cancelMutation = useMutation({
     mutationFn: async () => {
       if (!appointment?.id) return;
@@ -331,13 +373,42 @@ export function AppointmentFormModal({
                 type="button"
                 data-testid="agenda-open-consultation"
                 onClick={() => {
+                  if (!isAdmin) {
+                    openEncounterMutation.mutate();
+                    return;
+                  }
                   const cid = appointment.consultationId!.trim();
                   if (!cid) return;
                   onClose();
                   router.push(`/panel/consultas/${cid}`);
                 }}
+                disabled={openEncounterMutation.isPending}
               >
                 Abrir ficha clínica
+              </Button>
+            ) : null}
+            {canOpenUnlinkedEncounter ? (
+              <Button
+                type="button"
+                data-testid="agenda-create-consultation"
+                onClick={() => openEncounterMutation.mutate()}
+                disabled={openEncounterMutation.isPending}
+              >
+                {openEncounterMutation.isPending
+                  ? "Abriendo ficha…"
+                  : "Abrir ficha clínica"}
+              </Button>
+            ) : null}
+            {canStartTeleconsultation ? (
+              <Button
+                type="button"
+                data-testid="agenda-join-teleconsultation"
+                disabled={joinTeleconsultationMutation.isPending}
+                onClick={() => joinTeleconsultationMutation.mutate()}
+              >
+                {joinTeleconsultationMutation.isPending
+                  ? "Preparando sala…"
+                  : "Entrar a teleconsulta"}
               </Button>
             ) : null}
             <Button

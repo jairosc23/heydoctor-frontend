@@ -18,7 +18,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+    branches: [main, release/m10-security-web-prod-20261103]
   workflow_dispatch:
     inputs:
       e2e_base_url:

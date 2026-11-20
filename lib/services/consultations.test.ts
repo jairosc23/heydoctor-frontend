@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { buildUpdateConsultationBody, unwrapConsultation } from "./consultations";
+import { buildGuestInvitationUrl, buildUpdateConsultationBody, unwrapConsultation } from "./consultations";
 
 describe("buildUpdateConsultationBody", () => {
   it("maps chiefComplaint to reason and treatmentPlan to treatment", () => {
@@ -67,5 +67,22 @@ describe("unwrapConsultation", () => {
     };
     assert.equal(unwrapConsultation(raw).id, "c1");
     assert.equal(unwrapConsultation(raw).doctorSignature, "iVBOR");
+  });
+});
+
+describe("RC18 physician guest invitation links", () => {
+  const invitation = {
+    consultationId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    bookingToken: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+    expiresAt: "2030-01-01T00:00:00.000Z",
+  };
+  it("puts only the booking token in the URL fragment", () => {
+    const url = buildGuestInvitationUrl("https://qa.example.org", invitation);
+    assert.equal(url, "https://qa.example.org/teleconsulta/invitado#bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb");
+    assert.ok(!url.includes(invitation.consultationId));
+  });
+  it("rejects invalid origin and booking token", () => {
+    assert.throws(() => buildGuestInvitationUrl("http://qa.example.org", invitation));
+    assert.throws(() => buildGuestInvitationUrl("https://qa.example.org", { ...invitation, bookingToken: "invalid" }));
   });
 });
