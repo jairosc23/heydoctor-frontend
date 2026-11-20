@@ -130,6 +130,35 @@ test.describe("Clinical P0 — workspace oficial (Action WS + Smart WS ON)", () 
     expect(headerOwnsTopLayer).toBe(true);
   });
 
+  test("RC18 Copilot no se superpone al camino Signature-Ready en desktop", async ({
+    doctorPage: page,
+  }) => {
+    const consultationId = getConsultationId("E2E_CONSULTATION_HTA");
+    test.skip(!consultationId, "Requiere E2E_CONSULTATION_HTA");
+
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await gotoConsultation(page, consultationId!);
+
+    const rail = page.locator(
+      '[data-testid="clinical-navigation-rail"][data-orientation="vertical"]:visible',
+    );
+    const copilot = page.getByTestId("heydoctor-copilot-workspace");
+    await expect(rail).toBeVisible();
+    await expect(copilot).toBeVisible({ timeout: 15_000 });
+
+    const railBounds = await rail.boundingBox();
+    const copilotBounds = await copilot.boundingBox();
+    expect(railBounds).not.toBeNull();
+    expect(copilotBounds).not.toBeNull();
+    // The drawer must start after the rail column, regardless of z-index.
+    expect(copilotBounds!.x).toBeGreaterThanOrEqual(
+      railBounds!.x + railBounds!.width - 1,
+    );
+    expect(copilotBounds!.x + copilotBounds!.width).toBeLessThanOrEqual(
+      1440 + 1,
+    );
+  });
+
   test("P0-1 HTA seguimiento — Memory → SOAP → Receta → Firma → PDF", async ({
     doctorPage: page,
   }) => {

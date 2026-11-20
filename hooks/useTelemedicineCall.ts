@@ -30,6 +30,7 @@ import {
 } from "@/lib/webrtc-observability";
 import { computeWebrtcReconnectDelay } from "@/lib/webrtc-backoff";
 import { mergeRemoteTrackEvent } from "@/lib/webrtc-remote-stream";
+import { RemoteIceCandidateQueue, matchesRemoteIceGeneration } from "@/lib/webrtc-remote-ice-queue";
 import { shouldInitiatorCreateOffer } from "@/lib/webrtc-negotiation-offer";
 import {
   canScheduleIceRestart,
@@ -484,6 +485,7 @@ export function useTelemedicineCall(
   );
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
+  const pendingRemoteIceRef = useRef(new RemoteIceCandidateQueue());
   const socketRef = useRef<Socket | null>(null);
   const ownSocketRef = useRef(false);
   const stopStatsRef = useRef<(() => void) | null>(null);
@@ -1118,6 +1120,13 @@ export function useTelemedicineCall(
                 ]).catch(() => undefined);
               }
               await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+              for (const pending of pendingRemoteIceRef.current.drain(pc.remoteDescription)) {
+                try {
+                  await pc.addIceCandidate(new RTCIceCandidate(pending));
+                } catch {
+                  // Ignore candidates that the browser rejects after generation changes.
+                }
+              }
               logVideo.info("webrtc_set_remote_description", {
                 event: "webrtc_set_remote_description",
                 consultationId,
@@ -1156,6 +1165,13 @@ export function useTelemedicineCall(
           try {
             if (pc.signalingState === "have-local-offer") {
               await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+              for (const pending of pendingRemoteIceRef.current.drain(pc.remoteDescription)) {
+                try {
+                  await pc.addIceCandidate(new RTCIceCandidate(pending));
+                } catch {
+                  // Ignore candidates that the browser rejects after generation changes.
+                }
+              }
               logVideo.info("webrtc_set_remote_description", {
                 event: "webrtc_set_remote_description",
                 consultationId,
@@ -1177,9 +1193,12 @@ export function useTelemedicineCall(
           fromUserId: string;
         }) => {
           try {
-            if (candidate && pc.remoteDescription) {
-              await pc.addIceCandidate(new RTCIceCandidate(candidate));
+            if (!candidate) return;
+            if (!pc.remoteDescription || !matchesRemoteIceGeneration(candidate, pc.remoteDescription)) {
+              pendingRemoteIceRef.current.enqueue(candidate);
+              return;
             }
+            await pc.addIceCandidate(new RTCIceCandidate(candidate));
           } catch {
             /* ignore stale candidates */
           }
@@ -1230,6 +1249,7 @@ export function useTelemedicineCall(
         /* ignore */
       }
       pcRef.current = null;
+      pendingRemoteIceRef.current.clear();
       remoteStreamRef.current = null;
       setRemoteStream(null);
 
