@@ -1,6 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  resolveCopilotRailGeometry,
+  type CopilotRailGeometry,
+} from "@/lib/clinical-workspace/copilot-rail-geometry";
 import { useDoctorDna } from "@/hooks/useDoctorDna";
 import { EMPTY_PATIENT_CLINICAL_MEMORY } from "@/hooks/usePatientClinicalMemory";
 import { buildClinicalMemoryView } from "@/lib/clinical-memory";
@@ -347,6 +351,40 @@ export function ClinicalCopilotDrawer({
   const [activeSection, setActiveSection] =
     useState<HeyDoctorCopilotSectionId>(HEYDOCTOR_COPILOT_DEFAULT_SECTION);
 
+  const [railGeometry, setRailGeometry] = useState<CopilotRailGeometry | null>(null);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    const rail = document.querySelector<HTMLElement>(
+      '[data-testid="clinical-navigation-rail"][data-orientation="vertical"]',
+    );
+    if (!rail) return;
+
+    const update = () => {
+      const rect = rail.getBoundingClientRect();
+      const next =
+        rect.width > 0 && rect.height > 0
+          ? resolveCopilotRailGeometry(rect.right, window.innerWidth)
+          : null;
+      setRailGeometry((previous) =>
+        previous?.left === next?.left && previous?.width === next?.width
+          ? previous
+          : next,
+      );
+    };
+
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(rail);
+    window.addEventListener("resize", update);
+    window.visualViewport?.addEventListener("resize", update);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", update);
+      window.visualViewport?.removeEventListener("resize", update);
+    };
+  }, [open]);
+
   const onCloseRef = useRef(onClose);
   useEffect(() => {
     onCloseRef.current = onClose;
@@ -394,6 +432,7 @@ export function ClinicalCopilotDrawer({
         )}
         style={{
           ["--workspace-sidebar-w" as string]: `${viewport.sidebarWidth}px`,
+          ...(railGeometry ? { left: railGeometry.left, width: railGeometry.width } : {}),
         }}
         data-overlay-layer="drawers"
       >
