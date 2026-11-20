@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Button from "@/components/ui/Button";
+import { ShareConsultationDialog } from "@/components/clinical/ShareConsultationDialog";
 import {
   calendarStatusLabel,
   collectClinicDoctorOptions,
@@ -85,6 +86,7 @@ export function AppointmentFormModal({
   const [calendarStatus, setCalendarStatus] =
     useState<CalendarAppointmentStatus>("SCHEDULED");
   const [error, setError] = useState<string | null>(null);
+  const [invitationOpen, setInvitationOpen] = useState(false);
 
   const isNewAdminAppointment = !appointment && isAdmin;
   const doctorsLoading =
@@ -193,6 +195,13 @@ export function AppointmentFormModal({
     },
     onError: (e) => setError(getApiErrorMessage(e)),
   });
+
+  const canInvite =
+    Boolean(appointment?.id) &&
+    !isAdmin &&
+    ["CONFIRMED", "IN_PROGRESS"].includes(
+      appointment ? displayStatus(appointment) : "",
+    );
 
   const canOpenUnlinkedEncounter =
     Boolean(appointment?.id) &&
@@ -377,6 +386,15 @@ export function AppointmentFormModal({
                   : "Abrir ficha clínica"}
               </Button>
             ) : null}
+            {canInvite ? (
+              <Button
+                type="button"
+                data-testid="agenda-invite-patient"
+                onClick={() => setInvitationOpen(true)}
+              >
+                Invitar paciente
+              </Button>
+            ) : null}
             <Button
               type="submit"
               disabled={
@@ -403,6 +421,15 @@ export function AppointmentFormModal({
             )}
           </div>
         </form>
+        {appointment?.id ? (
+          <ShareConsultationDialog
+            appointmentId={appointment.id}
+            consultationId={appointment.consultationId ?? ""}
+            patientName={patientLabel(appointment)}
+            open={invitationOpen}
+            onClose={() => setInvitationOpen(false)}
+          />
+        ) : null}
       </div>
     </div>
   );
