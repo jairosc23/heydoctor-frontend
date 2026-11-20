@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Button from "@/components/ui/Button";
-import { ShareConsultationDialog } from "@/components/clinical/ShareConsultationDialog";
 import {
   calendarStatusLabel,
   collectClinicDoctorOptions,
@@ -86,7 +85,6 @@ export function AppointmentFormModal({
   const [calendarStatus, setCalendarStatus] =
     useState<CalendarAppointmentStatus>("SCHEDULED");
   const [error, setError] = useState<string | null>(null);
-  const [invitationOpen, setInvitationOpen] = useState(false);
 
   const isNewAdminAppointment = !appointment && isAdmin;
   const doctorsLoading =
@@ -196,9 +194,24 @@ export function AppointmentFormModal({
     onError: (e) => setError(getApiErrorMessage(e)),
   });
 
-  const canInvite =
+  // Physician and patient access the same encounter room from their own
+  // authenticated agendas. Public checkout remains enforced by the backend.
+  const joinTeleconsultationMutation = useMutation({
+    mutationFn: async () => {
+      if (!appointment?.id) throw new Error("La cita no está disponible");
+      return openAppointmentConsultation(appointment.id);
+    },
+    onSuccess: async (consultation) => {
+      await invalidate();
+      onClose();
+      router.push(`/panel/consultas/${consultation.id}/teleconsulta`);
+    },
+    onError: (e) => setError(getApiErrorMessage(e)),
+  });
+
+  const canStartTeleconsultation =
     Boolean(appointment?.id) &&
-    !isAdmin &&
+    user?.role === "doctor" &&
     ["CONFIRMED", "IN_PROGRESS"].includes(
       appointment ? displayStatus(appointment) : "",
     );
@@ -386,13 +399,16 @@ export function AppointmentFormModal({
                   : "Abrir ficha clínica"}
               </Button>
             ) : null}
-            {canInvite ? (
+            {canStartTeleconsultation ? (
               <Button
                 type="button"
-                data-testid="agenda-invite-patient"
-                onClick={() => setInvitationOpen(true)}
+                data-testid="agenda-join-teleconsultation"
+                disabled={joinTeleconsultationMutation.isPending}
+                onClick={() => joinTeleconsultationMutation.mutate()}
               >
-                Invitar paciente
+                {joinTeleconsultationMutation.isPending
+                  ? "Preparando sala…"
+                  : "Entrar a teleconsulta"}
               </Button>
             ) : null}
             <Button
@@ -421,15 +437,6 @@ export function AppointmentFormModal({
             )}
           </div>
         </form>
-        {appointment?.id ? (
-          <ShareConsultationDialog
-            appointmentId={appointment.id}
-            consultationId={appointment.consultationId ?? ""}
-            patientName={patientLabel(appointment)}
-            open={invitationOpen}
-            onClose={() => setInvitationOpen(false)}
-          />
-        ) : null}
       </div>
     </div>
   );
