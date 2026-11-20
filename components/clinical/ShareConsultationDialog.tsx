@@ -6,61 +6,88 @@ import QRCode from "qrcode";
 import { WhatsappIcon } from "@/components/WhatsappIcon";
 import { CLINICAL_OVERLAY_CLASS } from "@/lib/clinical-overlay-contract";
 import { clinicalWorkspaceKernel } from "@/lib/clinical-workspace/kernel";
+import {
+  buildGuestInvitationUrl,
+  issueAppointmentGuestInvitation,
+  issueConsultationGuestInvitation,
+} from "@/lib/services/consultations";
 
 const QR_SIZE = 220;
 
 interface ShareConsultationDialogProps {
   consultationId: string;
+  appointmentId?: string;
   open: boolean;
   patientName?: string;
   onClose: () => void;
 }
 
-/**
- * Resuelve la URL pública para que el paciente abra la teleconsulta. Prefiere
- * `NEXT_PUBLIC_APP_URL` (producción canónica, p.ej. `https://app.heydoctor.health`)
- * y cae a `window.location.origin` si no está configurada o si estamos en SSR
- * (que no debería ocurrir dentro de este componente, pero es defensivo).
- */
+/** The guest invite always opens on the exact frontend origin in use. */
 function resolveShareBaseUrl(): string {
-  const fromEnv = process.env.NEXT_PUBLIC_APP_URL?.trim();
-  if (fromEnv) {
-    return fromEnv.replace(/\/+$/, "");
-  }
-  if (typeof window !== "undefined" && window.location?.origin) {
-    return window.location.origin;
-  }
-  return "";
+  return typeof window !== "undefined" ? window.location.origin : "";
 }
 
 /**
  * Diálogo para compartir el enlace de la teleconsulta con el paciente.
  *
- * - Calcula la URL pública del cliente sin depender de un endpoint backend:
- *   `${window.location.origin}/teleconsulta/{consultationId}`.
- * - Genera el QR localmente con `qrcode` (ya en deps).
+ * - Solicita una invitación autorizada al backend usando la sesión médica.
+ * - Usa token opaco exclusivamente en fragmento URL, nunca el ID clínico.
+ * - Genera QR localmente solo después de la autorización.
  * - Ofrece botones para copiar enlace y abrir WhatsApp Web/App con el mensaje
  *   prerellenado. Si el QR falla, mostramos el enlace plano como fallback.
  */
 export function ShareConsultationDialog({
   consultationId,
+  appointmentId,
   open,
   patientName,
   onClose,
 }: ShareConsultationDialogProps) {
   const [shareUrl, setShareUrl] = useState<string>("");
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [qrError, setQrError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!open) return;
-    const base = resolveShareBaseUrl();
-    setShareUrl(`${base}/teleconsulta/${consultationId}`);
-    if (process.env.NODE_ENV === "development") {
-      console.debug("[heydoctor][share] base url", { base, consultationId });
-    }
-  }, [open, consultationId]);
+    let cancelled = false;
+    setShareUrl("");
+    setQrDataUrl(null);
+    setInviteError(null);
+    setCopied(false);
+    setInviteLoading(true);
+
+    const request = appointmentId
+      ? issueAppointmentGuestInvitation(appointmentId)
+      : consultationId
+        ? issueConsultationGuestInvitation(consultationId)
+        : Promise.reject(new Error("No hay una cita vinculada"));
+
+    void request
+      .then((invitation) => {
+        if (cancelled) return;
+        if (new Date(invitation.expiresAt).getTime() <= Date.now()) {
+          throw new Error("La invitación ha caducado");
+        }
+        setShareUrl(buildGuestInvitationUrl(resolveShareBaseUrl(), invitation));
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setInviteError(
+            "No fue posible autorizar la invitación. Verifica que la cita esté confirmada y vinculada a este médico.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setInviteLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, consultationId, appointmentId]);
 
   useEffect(() => {
     if (!open || !shareUrl) return;
@@ -124,6 +151,7 @@ export function ShareConsultationDialog({
   const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
 
   const handleCopy = async () => {
+    if (!shareUrl) return;
     try {
       await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
@@ -175,6 +203,12 @@ export function ShareConsultationDialog({
           su teléfono o computador.
         </p>
 
+        {inviteLoading ? (
+          <p role="status">Preparando invitación segura…</p>
+        ) : inviteError ? (
+          <p role="alert" className="text-red-700">{inviteError}</p>
+        ) : shareUrl ? (
+          <>
         <div style={qrContainerStyle}>
           {qrDataUrl ? (
             <Image
@@ -238,8 +272,10 @@ export function ShareConsultationDialog({
           </a>
         </div>
 
+          </>
+        ) : null}
         <p style={hintStyle}>
-          El paciente debe iniciar sesión en HeyDoctor para acceder a la sala.
+          El paciente ingresará por un enlace temporal autorizado. No compartas el enlace públicamente.
         </p>
       </div>
     </div>
