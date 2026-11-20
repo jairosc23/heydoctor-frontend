@@ -139,11 +139,26 @@ body {
 }
 
 /*
- * RC18 clinical workspace geometry: Copilot is an independent fixed drawer.
- * On desktop its left edge must follow the Signature-Ready rail, not the
- * sidebar; otherwise the rail (higher navigation layer) obscures the drawer.
- * Keep mobile/tablet geometry and the existing layer order unchanged.
+ * RC18: the client measures the actual Signature-Ready rail and supplies
+ * fixed drawer geometry on desktop. These rules are safe initial fallbacks
+ * while the rail mounts and for smaller viewports with horizontal navigation.
+ * Avoid competing Tailwind left utilities on this element.
  */
+.clinical-overlay-copilot-panel {
+  left: 0;
+  width: min(36rem, 100vw);
+}
+
+@media (min-width: 768px) {
+  .clinical-overlay-copilot-panel {
+    left: var(--workspace-sidebar-w, var(--hd-sidebar-w, 16rem));
+    width: min(
+      36rem,
+      calc(100vw - var(--workspace-sidebar-w, var(--hd-sidebar-w, 16rem)))
+    );
+  }
+}
+
 @media (min-width: 1280px) {
   .clinical-overlay-copilot-panel {
     left: calc(
