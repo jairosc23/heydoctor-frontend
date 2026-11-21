@@ -69,6 +69,14 @@ async function main() {
   const browser = await chromium.launch();
   const context = await browser.newContext(); // No tracing, recordings, storage state or credentials on disk.
   const page = await context.newPage();
+  const authHttp: { path: string; status: number }[] = [];
+  report.authHttp = authHttp;
+  page.on("response", (r) => {
+    const path = new URL(r.url()).pathname;
+    if (/\/(?:hd-api|api)\/auth\/(?:csrf|login|me)$/.test(path)) {
+      authHttp.push({ path, status: r.status() });
+    }
+  });
   let member: Socket | undefined;
   let outsider: Socket | undefined;
   try {
@@ -80,9 +88,11 @@ async function main() {
       { timeout: 45000 },
     );
     await loginAsDoctor(page);
+    phase = "login_http";
     const response = await loginResponse;
     check(response.status() === 200, "login_http");
     const login = await response.json();
+    phase = "login_payload";
     const token = login.access_token;
     check(
       typeof token === "string" &&
@@ -268,6 +278,7 @@ async function main() {
     results.existing_appointment_unchanged = "PASS";
     report.result = "PASS";
   } finally {
+    report.finalPagePath = new URL(page.url()).pathname;
     outsider?.disconnect();
     member?.disconnect();
     await context.close();
@@ -276,9 +287,17 @@ async function main() {
 }
 
 main()
-  .catch(() => {
+  .catch((error: unknown) => {
     report.result = "BLOCKED";
     report.blockedPhase = phase;
+    const message = error instanceof Error ? error.message : "";
+    report.reason = /^[a-z_]+$/.test(message)
+      ? message
+      : message.includes("Navegación del panel")
+        ? "staff_navigation_not_visible"
+        : message.includes("toHaveURL")
+          ? "staff_navigation_url"
+          : "unclassified_sanitized_error";
     process.exitCode = 1;
   })
   .finally(() => {
