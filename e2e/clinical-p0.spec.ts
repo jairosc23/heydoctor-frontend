@@ -324,41 +324,57 @@ test.describe("Clinical P0 — workspace oficial (Action WS + Smart WS ON)", () 
       response.request().method() === "POST" &&
       /\/(payments|payku)\/create-payment-session$/.test(new URL(response.url()).pathname),
     );
-    await confirmPay.click();
-    const checkoutResponse = await checkoutResponsePromise;
-    expect(new URL(checkoutResponse.url()).pathname).toBe(
-      "/hd-api/payments/create-payment-session",
-    );
-    expect(checkoutResponse.ok(), "Canonical consultation checkout must succeed").toBe(true);
-    const checkout = await checkoutResponse.json() as { paymentId: string; paymentUrl: string };
-    expect(checkout.paymentId).toMatch(/^[0-9a-f-]{36}$/i);
-    const checkoutUrl = new URL(checkout.paymentUrl);
-    expect(checkoutUrl.protocol).toBe("https:");
-    expect(checkoutUrl.hostname).toBe("checkout.stripe.com");
-    expect(checkoutUrl.pathname).toMatch(/\/cs_test_/);
+    const checkoutPromise = checkoutResponsePromise.then(async (response) => {
+      expect(new URL(response.url()).pathname).toBe("/hd-api/payments/create-payment-session");
+      expect(response.ok(), "Canonical consultation checkout must succeed").toBe(true);
+      const session = await response.json() as { paymentId: string; paymentUrl: string };
+      expect(session.paymentId).toMatch(/^[0-9a-f-]{36}$/i);
+      const url = new URL(session.paymentUrl);
+      expect(url.protocol).toBe("https:");
+      expect(url.hostname).toBe("checkout.stripe.com");
+      expect(url.pathname).toMatch(/\/cs_test_/);
+      return session;
+    });
 
     // No mock, forged return parameter, API confirmation or auto-charge driver.
     // Complete hosted Checkout only in the separately authorized Test run.
     // An uncompleted checkout is a FAILURE, never a successful skipped scenario.
-    const [paidResponse] = await Promise.all([
-      page.waitForResponse((response) =>
-        response.request().method() === "GET" &&
-        new URL(response.url()).pathname ===
-          `/hd-api/payments/consultation/${consultationId}/payment-status`,
+    // Arm BOTH observers before confirming checkout. The return screen reads
+    // the exact owned payment row, not the consultation-wide aggregate.
+    const [checkout, paidResponse] = await Promise.all([
+      checkoutPromise,
+      page.waitForResponse(async (response) => {
+        if (response.request().method() !== "GET" ||
+          !/\/hd-api\/payments\/intents\/[0-9a-f-]+$/i.test(new URL(response.url()).pathname)) return false;
+        const session = await checkoutPromise;
+        if (new URL(response.url()).pathname !== `/hd-api/payments/intents/${session.paymentId}`) return false;
+        // Surface HTTP errors; pending is not success and may be explicitly refreshed.
+        return !response.ok() || (await response.json()).status === "paid";
+      },
         { timeout: 60_000 },
       ),
       page.waitForURL((url) =>
         url.origin === "https://heydoctor-frontend-rc17-qa-qa-isolated.up.railway.app" &&
-        url.pathname === "/payments/return" && url.hash === `#${checkout.paymentId}`,
-        { timeout: 60_000 },
+        url.pathname === "/payments/return" && /^#[0-9a-f-]{36}$/i.test(url.hash),
+        { timeout: 60_000, waitUntil: "domcontentloaded" },
       ),
+      confirmPay.click(),
     ]);
+    expect(new URL(page.url()).hash).toBe(`#${checkout.paymentId}`);
     expect(paidResponse.ok()).toBe(true);
-    expect(await paidResponse.json()).toMatchObject({ isPaid: true, hasPending: false });
+    expect(await paidResponse.json()).toMatchObject({ paymentId: checkout.paymentId, status: "paid" });
 
     // Reload the encounter through the real application; the redirect is not
     // the payment SSOT. Webhook delivery/replay evidence remains a release gate.
-    await gotoConsultation(page, consultationId!);
+    const [consultationResponse] = await Promise.all([
+      page.waitForResponse((response) => response.request().method() === "GET" &&
+        new URL(response.url()).pathname === `/hd-api/consultations/${consultationId}`),
+      gotoConsultation(page, consultationId!),
+    ]);
+    expect(consultationResponse.ok()).toBe(true);
+    const persistedConsultation = await consultationResponse.json();
+    expect(persistedConsultation.id).toBe(consultationId);
+    expect(String(persistedConsultation.status).toLowerCase()).toBe("locked");
 
     await expect(page.getByText(/bloqueada|locked|pagada/i)).toBeVisible({
       timeout: 30_000,

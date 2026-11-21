@@ -63,6 +63,14 @@ Backend references (all at the pinned SHA):
 
 ## Scope of this draft
 
+Follow-up integration is developed separately from the certified frontend base.
+The backend already supports `GET /payments/intents/:paymentId` for the shared
+Payment row (including Checkout), authenticated by clinic and owner/admin. P0-4
+now observes that exact transaction response. Checkout, return and response
+observers are armed before Confirmar pago and awaited together; after returning,
+the test also requires the authenticated consultation GET to report LOCKED.
+No new sleeps, retries, transaction driver or payment authorization are added.
+
 Only P0-4 is reconciled: explicit Stripe checkout/return contracts, persisted
 payment-status response, required clinical lock assertions and no successful skip.
 It fails before checkout unless `E2E_STRIPE_TEST_PAYMENT_AUTHORIZED=1` is explicitly
