@@ -10,7 +10,7 @@ export const QA = Object.freeze({
   backendSha: "35216b4f2670c1e585452b793c7f613c1a37ef9a",
   app: "https://heydoctor-frontend-rc17-qa-qa-isolated.up.railway.app",
   api: "https://heydoctor-backend-rc17-qa-qa-isolated.up.railway.app",
-  account: "acct_1U9vSWF0JO4ODWl1",
+  historicalAccount: "acct_1U9vSWF0JO4ODWl1",
   clinic: "70ba993c-636b-4f2e-a43f-d0810ee77094",
   amount: 15000,
 });
@@ -43,6 +43,9 @@ export function authorize(env) {
   requireCheck(env.RC12_AUTHORIZE_TEST_CHECKOUT === "STRIPE_TEST_ONLY_15000_CLP", "authorization");
   requireCheck(env.E2E_BASE_URL === QA.app, "qa_origin");
   requireCheck(/^[0-9a-f]{40}$/.test(env.GITHUB_SHA || ""), "exact_sha");
+  requireCheck(env.RC12_APPROVED_CANDIDATE_SHA === env.GITHUB_SHA, "approved_candidate_sha");
+  requireCheck(/^acct_[A-Za-z0-9]+$/.test(env.STRIPE_QA_ISOLATED_ACCOUNT_ID || "") &&
+    env.STRIPE_QA_ISOLATED_ACCOUNT_ID !== QA.historicalAccount, "isolated_test_context_required");
   requireCheck(/^sk_test_[A-Za-z0-9]+$/.test(env.STRIPE_QA_TEST_SECRET_KEY || ""), "test_key_required");
   requireCheck(/^whsec_[A-Za-z0-9]+$/.test(env.STRIPE_QA_WEBHOOK_SECRET || ""), "signing_secret_required");
   requireCheck(/^we_[A-Za-z0-9]+$/.test(env.STRIPE_QA_WEBHOOK_ID || ""), "destination_required");
@@ -77,7 +80,7 @@ export function verifyEvidence(env, backend, frontend, account, balance, endpoin
   requireCheck(backend.flags && backend.db && backend.redis && backend.amount === QA.amount, "runtime_isolation");
   requireCheck(backend.frontend === QA.app && backend.backend === QA.api &&
     frontend.app === QA.app && frontend.edge === true && frontend.api?.replace(/\/api\/?$/, "") === QA.api, "runtime_origins");
-  requireCheck(account.id === QA.account && balance.livemode === false, "stripe_test_account");
+  requireCheck(account.id === env.STRIPE_QA_ISOLATED_ACCOUNT_ID && balance.livemode === false, "stripe_test_account");
   requireCheck(Array.isArray(endpoints.data) && endpoints.has_more === false, "destinations_complete");
   const active = endpoints.data.filter((e) => e.status === "enabled");
   requireCheck(active.length === 1, "exclusive_destination");

@@ -19,13 +19,22 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with: { persist-credentials: false }
       - uses: actions/setup-node@v4
         with: { node-version: '22', cache: npm }
       - run: npm ci
+      - name: Reject unapproved financial candidate before accessing environment secrets
+        if: inputs.authorization == 'STRIPE_TEST_ONLY_15000_CLP'
+        env:
+          APPROVED_SHA: ${{ vars.RC12_APPROVED_CANDIDATE_SHA }}
+        run: |
+          node -e 'if(!/^[0-9a-f]{40}$/.test(process.env.APPROVED_SHA||"")||process.env.APPROVED_SHA!==process.env.GITHUB_SHA)throw new Error("RC12_BLOCKED:approved_candidate_sha")'
       - run: npm run typecheck
       - run: npm run lint
       - run: node --test scripts/rc12-stripe-preflight.test.mjs
       - run: node --import tsx --test scripts/rc12-stripe-executor.test.ts
+      - run: node --import tsx --test lib/payments/return-contract.test.ts
+      - run: npx vitest run test/components/payments/clinical-payment-return.test.tsx test/components/encounter/encounter-closure-signature.test.tsx
       - run: npm run build
         env:
           NEXT_PUBLIC_HEYDOCTOR_API_URL: https://heydoctor-backend-rc17-qa-qa-isolated.up.railway.app
@@ -33,10 +42,15 @@ jobs:
   stripe-test:
     if: github.event_name == 'workflow_dispatch' && inputs.authorization == 'STRIPE_TEST_ONLY_15000_CLP'
     needs: offline-quality
+    environment:
+      name: rc12-stripe-qa
+      deployment: false
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
       RC12_AUTHORIZE_TEST_CHECKOUT: ${{ inputs.authorization }}
+      RC12_APPROVED_CANDIDATE_SHA: ${{ vars.RC12_APPROVED_CANDIDATE_SHA }}
+      STRIPE_QA_ISOLATED_ACCOUNT_ID: ${{ vars.STRIPE_QA_ISOLATED_ACCOUNT_ID }}
       E2E_BASE_URL: https://heydoctor-frontend-rc17-qa-qa-isolated.up.railway.app
       E2E_STRICT: '1'
       STRIPE_QA_WEBHOOK_ID: ${{ vars.STRIPE_QA_WEBHOOK_ID }}
@@ -44,6 +58,7 @@ jobs:
       RAILWAY_AGENT_SESSION: rc12-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@v4
+        with: { persist-credentials: false }
       - uses: actions/setup-node@v4
         with: { node-version: '22', cache: npm }
       - run: npm ci

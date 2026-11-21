@@ -7,6 +7,7 @@ import { paymentState, clinicalState, observeThenAct } from "./rc12-stripe-state
 // Offline contract fixtures ONLY. No real keys, SSH, provider API or payment.
 const env = { RC12_AUTHORIZE_TEST_CHECKOUT: "STRIPE_TEST_ONLY_15000_CLP", E2E_BASE_URL: QA.app,
   GITHUB_SHA: "a".repeat(40), STRIPE_QA_TEST_SECRET_KEY: "sk_test_OFFLINE",
+  RC12_APPROVED_CANDIDATE_SHA: "a".repeat(40), STRIPE_QA_ISOLATED_ACCOUNT_ID: "acct_RC18OFFLINE",
   STRIPE_QA_WEBHOOK_SECRET: "whsec_OFFLINE", STRIPE_QA_WEBHOOK_ID: "we_OFFLINE",
   E2E_DOCTOR_EMAIL: "rc18.doctor@heydoctor.invalid", E2E_DOCTOR_PASSWORD: "OFFLINE_ONLY",
   E2E_CONSULTATION_PAYMENT: "aaaaaaaa-1111-4111-8111-111111111111" };
@@ -18,7 +19,7 @@ const frontend = { ...base, service: QA.frontend, sha: env.GITHUB_SHA, app: QA.a
 const endpoints = { has_more: false, data: [{ id: "we_OFFLINE", status: "enabled", livemode: false,
   url: `${QA.api}/api/payments/webhook/stripe`, enabled_events: ["checkout.session.completed", "payment_intent.succeeded"] }] };
 const evidence = (b = backend, f = frontend, balance = { livemode: false }, e = endpoints) =>
-  verifyEvidence(env, b, f, { id: QA.account }, balance, e);
+  verifyEvidence(env, b, f, { id: env.STRIPE_QA_ISOLATED_ACCOUNT_ID }, balance, e);
 const id = "aaaaaaaa-1111-4111-8111-111111111111";
 const session = { id: "cs_test_OFFLINE", livemode: false, mode: "payment", client_reference_id: id,
   metadata: { paymentId: id, clinicId: QA.clinic, channel: "consultation" }, amount_total: 15000, currency: "clp",
@@ -27,9 +28,14 @@ const session = { id: "cs_test_OFFLINE", livemode: false, mode: "payment", clien
 test("explicit authorization, exact QA origin and Test key are mandatory", () => {
   for (const patch of [{ RC12_AUTHORIZE_TEST_CHECKOUT: "" }, { STRIPE_QA_TEST_SECRET_KEY: "sk_live_OFFLINE" },
     { E2E_BASE_URL: "https://app.heydoctor.health" }, { GITHUB_SHA: "" }, { STRIPE_QA_WEBHOOK_SECRET: "" },
+    { RC12_APPROVED_CANDIDATE_SHA: "b".repeat(40) }, { STRIPE_QA_ISOLATED_ACCOUNT_ID: "" },
     { E2E_DOCTOR_PASSWORD: "" }, { E2E_DOCTOR_EMAIL: "real@example.com" }, { E2E_CONSULTATION_PAYMENT: "" }]) {
     assert.throws(() => authorize({ ...env, ...patch }));
   }
+});
+test("historical Test account cannot be repurposed or share RC18 events", () => {
+  assert.throws(() => authorize({ ...env, STRIPE_QA_ISOLATED_ACCOUNT_ID: QA.historicalAccount }), /isolated_test_context_required/);
+  assert.throws(() => verifyEvidence(env, backend, frontend, { id: QA.historicalAccount }, { livemode: false }, endpoints), /stripe_test_account/);
 });
 test("independent proof pairs effective runtime keys and exact SHA", () => {
   assert.equal(evidence().testMode, true);
