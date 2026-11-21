@@ -11,7 +11,7 @@ test.beforeAll(async () => {
   // Local HTTP only; no app/QA/provider credentials or external service.
   server = createServer((req, res) => {
     if (req.url === "/login") {
-      res.setHeader("Content-Type", "text/html");
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
       res.end(`<form><label>Correo<input name="email"></label><label>Contraseña<input type="password"></label><button>Ingresar</button></form>
         <script>document.querySelector('form').onsubmit=async(e)=>{e.preventDefault();await fetch('/api/auth/login',{method:'POST'});location.assign('/panel');}</script>`);
     } else if (req.url === "/api/auth/login" && req.method === "POST") {
@@ -25,7 +25,7 @@ test.beforeAll(async () => {
       if (!req.headers.cookie?.includes("offline_session=synthetic")) {
         res.writeHead(302, { Location: "/login" }); res.end(); return;
       }
-      res.setHeader("Content-Type", "text/html");
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
       // A nonessential pending resource must not block authenticated UI readiness.
       res.end('<nav aria-label="Navegación del panel">Agenda</nav><img src="/pending-resource">');
     } else if (req.url === "/pending-resource") {
