@@ -7,7 +7,7 @@ export const QA = Object.freeze({
   environment: "df0bcfe1-7d25-4b71-982c-351623d99012",
   backend: "d2e8820a-f849-4ba8-a51e-e4d833d9fb99",
   frontend: "7dcdb503-2412-41f0-b339-17174df4aadb",
-  backendSha: "35216b4f2670c1e585452b793c7f613c1a37ef9a",
+  backendSha: "3e5e5ccf086517a84725625939d1e31db67c3f1d",
   app: "https://heydoctor-frontend-rc17-qa-qa-isolated.up.railway.app",
   api: "https://heydoctor-backend-rc17-qa-qa-isolated.up.railway.app",
   historicalAccount: "acct_1U9vSWF0JO4ODWl1",

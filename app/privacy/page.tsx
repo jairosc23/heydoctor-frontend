@@ -20,7 +20,7 @@ export default function PrivacyPage() {
         <p><strong>Datos de cuenta:</strong> nombre, correo electrónico, contraseña (hash cifrado), rol.</p>
         <p><strong>Datos clínicos:</strong> motivo de consulta, diagnóstico, tratamiento, notas clínicas, firma digital del profesional, grabaciones de teleconsulta (cuando aplique).</p>
         <p><strong>Datos de consentimiento:</strong> fecha de aceptación, versión del documento, dirección IP, user-agent del navegador.</p>
-        <p><strong>Datos de pago:</strong> identificador de transacción, monto, estado. No almacenamos datos de tarjeta; los pagos son procesados por Payku.</p>
+        <p><strong>Datos de pago:</strong> identificador de transacción, monto, estado. No almacenamos datos de tarjeta; la integración clínica utiliza Stripe y su habilitación depende del entorno. El prelanzamiento privado de QA utiliza datos sintéticos, sin cobros reales.</p>
         <p><strong>Datos técnicos:</strong> dirección IP, navegador, sistema operativo, registros de auditoría (audit logs) de acciones en la plataforma.</p>
       </Section>
 
@@ -59,8 +59,8 @@ export default function PrivacyPage() {
         <p><strong>No vendemos ni compartimos sus datos con terceros para fines publicitarios.</strong></p>
         <p>Podemos compartir datos con:</p>
         <ul>
-          <li><strong>Proveedores de pago</strong> (Payku) para procesar transacciones</li>
-          <li><strong>Proveedores de infraestructura</strong> (Railway, DigitalOcean) para hosting</li>
+          <li><strong>Proveedor de pagos</strong> (Stripe), cuando el servicio esté habilitado y autorizado</li>
+          <li><strong>Proveedores de infraestructura</strong> (Google Cloud, Railway y DigitalOcean), según el servicio y el entorno</li>
           <li><strong>Autoridades</strong> cuando sea requerido por ley o resolución judicial</li>
         </ul>
       </Section>
@@ -115,8 +115,8 @@ export default function PrivacyPage() {
 
       <Section id="transferencias" title="11. Transferencias Internacionales">
         <p>
-          Sus datos pueden ser procesados en servidores ubicados fuera de Chile (Railway,
-          DigitalOcean). Estas transferencias se realizan bajo cláusulas contractuales que
+          Sus datos pueden ser procesados en servidores ubicados fuera de Chile (Google Cloud, Railway
+          y DigitalOcean). Estas transferencias se realizan bajo cláusulas contractuales que
           garantizan un nivel adecuado de protección conforme a la normativa aplicable.
         </p>
       </Section>

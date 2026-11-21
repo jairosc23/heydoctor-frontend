@@ -51,14 +51,11 @@ export async function loginAsDoctor(page: Page): Promise<void> {
   await emailField.fill(email);
   await passwordField.fill(password);
 
-  await Promise.all([
-    page.waitForURL((url) => !url.pathname.includes("/login"), {
-      timeout: 45_000,
-    }),
-    submit.click(),
-  ]);
-
-  await expect(page).not.toHaveURL(/\/login/);
+  await submit.click();
+  // URL assertions observe the final staff destination without waiting for the
+  // obsolete intermediate document load (/panel can redirect to /dashboard).
+  await expect(page).toHaveURL(AUTHENTICATED_STAFF_PATH, { timeout: 45_000 });
+  await expect(page.getByRole("navigation", { name: "Navegación del panel" })).toBeVisible();
 }
 
 /** Re-auth helper when a test detects session loss mid-flow. */

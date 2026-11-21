@@ -1,0 +1,46 @@
+name: PRE23 offline release closure
+on:
+  push:
+    branches: [qa/pre23-release-closure-20261121]
+permissions:
+  contents: read
+jobs:
+  offline-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0, persist-credentials: false }
+      - uses: actions/setup-node@v4
+        with: { node-version: '22', cache: npm }
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Reproduce old auth load wait then restore candidate helper
+        shell: bash
+        run: |
+          cp e2e/helpers/auth.ts "$RUNNER_TEMP/pre23-auth-fixed.ts"
+          trap 'cp "$RUNNER_TEMP/pre23-auth-fixed.ts" e2e/helpers/auth.ts' EXIT
+          git show 509dd8ff2b439c8ceaeeef0a88428027962b8905:e2e/helpers/auth.ts > e2e/helpers/auth.ts
+          set +e
+          npx playwright test --config e2e/pre23-offline.config.ts > "$RUNNER_TEMP/pre23-auth-baseline.log" 2>&1
+          result=$?
+          set -e
+          cat "$RUNNER_TEMP/pre23-auth-baseline.log"
+          test "$result" -ne 0
+          grep -q 'waitForURL' "$RUNNER_TEMP/pre23-auth-baseline.log"
+          grep -q '2 failed' "$RUNNER_TEMP/pre23-auth-baseline.log"
+          grep -q '"authenticated":true' "$RUNNER_TEMP/pre23-auth-baseline.log"
+          echo "Baseline navigation-load defect reproduced in both local cases."
+      - name: Authenticate through local redirect chain with pending document resource
+        run: npx playwright test --config e2e/pre23-offline.config.ts
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: node --test scripts/rc12-stripe-preflight.test.mjs
+      - run: node --import tsx --test scripts/rc12-stripe-executor.test.ts lib/payments/return-contract.test.ts
+      - run: npm test
+      - run: npx vitest run
+      - name: Build candidate without QA secrets
+        run: npm run build
+        env:
+          NEXT_PUBLIC_HEYDOCTOR_API_URL: https://heydoctor-backend-rc17-qa-qa-isolated.up.railway.app
+          NEXT_TELEMETRY_DISABLED: '1'
