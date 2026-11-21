@@ -38,14 +38,8 @@ jobs:
     env:
       RC12_AUTHORIZE_TEST_CHECKOUT: ${{ inputs.authorization }}
       E2E_BASE_URL: https://heydoctor-frontend-rc17-qa-qa-isolated.up.railway.app
-      E2E_DOCTOR_EMAIL: ${{ secrets.E2E_DOCTOR_EMAIL }}
-      E2E_DOCTOR_PASSWORD: ${{ secrets.E2E_DOCTOR_PASSWORD }}
-      E2E_CONSULTATION_PAYMENT: ${{ secrets.E2E_CONSULTATION_PAYMENT }}
       E2E_STRICT: '1'
-      STRIPE_QA_TEST_SECRET_KEY: ${{ secrets.STRIPE_QA_TEST_SECRET_KEY }}
-      STRIPE_QA_WEBHOOK_SECRET: ${{ secrets.STRIPE_QA_WEBHOOK_SECRET }}
       STRIPE_QA_WEBHOOK_ID: ${{ vars.STRIPE_QA_WEBHOOK_ID }}
-      RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN_QA }}
       RAILWAY_CALLER: skill:use-railway@1.3.5
       RAILWAY_AGENT_SESSION: rc12-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
@@ -57,9 +51,23 @@ jobs:
         run: npm install --no-save --package-lock=false @railway/cli@5.75.0
       - name: Verify effective runtime, key pairing and exclusive Test destination (GET only)
         run: node scripts/rc12-stripe-preflight.mjs
+        env:
+          E2E_DOCTOR_EMAIL: ${{ secrets.E2E_DOCTOR_EMAIL }}
+          E2E_DOCTOR_PASSWORD: ${{ secrets.E2E_DOCTOR_PASSWORD }}
+          E2E_CONSULTATION_PAYMENT: ${{ secrets.E2E_CONSULTATION_PAYMENT }}
+          STRIPE_QA_TEST_SECRET_KEY: ${{ secrets.STRIPE_QA_TEST_SECRET_KEY }}
+          STRIPE_QA_WEBHOOK_SECRET: ${{ secrets.STRIPE_QA_WEBHOOK_SECRET }}
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN_QA }}
       - run: npx playwright install --with-deps chromium
       - name: Exactly one P0-4; zero retries; preflight repeated before financial UI
         run: npx playwright test --config e2e/stripe-p0.config.ts
+        env:
+          E2E_DOCTOR_EMAIL: ${{ secrets.E2E_DOCTOR_EMAIL }}
+          E2E_DOCTOR_PASSWORD: ${{ secrets.E2E_DOCTOR_PASSWORD }}
+          E2E_CONSULTATION_PAYMENT: ${{ secrets.E2E_CONSULTATION_PAYMENT }}
+          STRIPE_QA_TEST_SECRET_KEY: ${{ secrets.STRIPE_QA_TEST_SECRET_KEY }}
+          STRIPE_QA_WEBHOOK_SECRET: ${{ secrets.STRIPE_QA_WEBHOOK_SECRET }}
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN_QA }}
       - name: Reject skipped or missing mandatory coverage
         run: |
           node --input-type=module - <<'JS'
@@ -69,11 +77,25 @@ jobs:
             throw new Error('RC12_BLOCKED:mandatory_coverage');
           }
           JS
+      - name: Produce credential-free summary (never upload raw diagnostics)
+        if: always()
+        run: |
+          node --input-type=module - <<'JS'
+          import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+          const path = 'test-results/rc12-stripe.xml';
+          if (existsSync(path)) {
+            const xml = readFileSync(path, 'utf8');
+            const skipped = /<skipped(?:\s|\/|>)/.test(xml);
+            const failed = /<(?:failure|error)(?:\s|\/|>)/.test(xml) || (xml.match(/<testcase\s/g) || []).length !== 1;
+            const outcome = skipped ? '<skipped message="Mandatory scenario skipped"/>' : failed ? '<failure message="RC12 execution failed; no raw diagnostics published"/>' : '';
+            writeFileSync('test-results/rc12-stripe-sanitized.xml', `<testsuite name="RC12 Stripe" tests="1" failures="${Number(failed)}" skipped="${Number(skipped)}"><testcase name="P0-4">${outcome}</testcase></testsuite>`, { mode: 0o600 });
+          }
+          JS
       - name: Sanitized results only (no trace, video, screenshot, secrets or checkout URLs)
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: rc12-stripe-${{ github.run_id }}
-          path: test-results/rc12-stripe.xml
+          path: test-results/rc12-stripe-sanitized.xml
           if-no-files-found: ignore
           retention-days: 7

@@ -79,6 +79,9 @@ Do not copy keys into files, command arguments, logs, screenshots or PRs.
 | Evidence privacy | No trace/video/screenshots; only sanitized result/JUnit, no secrets or checkout URLs |
 | Actual webhook/replay certificate | NOT RUN; a local PASS cannot close RC12 |
 
+Secrets are scoped to the preflight/execution steps, never dependency
+installation. Only a credential-free static JUnit summary is uploaded; raw diagnostics and the raw report are not artifacts.
+
 ## Offline validation and final evidence
 
 `node --test scripts/rc12-stripe-preflight.test.mjs` uses explicit OFFLINE fixture
