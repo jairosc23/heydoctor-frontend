@@ -18,7 +18,7 @@ test.beforeAll(async () => {
         <script>document.querySelector('form').onsubmit=async(e)=>{e.preventDefault();await fetch('/api/auth/login',{method:'POST'});location.assign('/panel');}</script>`);
     } else if (req.url === "/api/auth/login" && req.method === "POST") {
       logins++;
-      res.setHeader("Set-Cookie", "offline_session=synthetic; HttpOnly; SameSite=Lax");
+      res.setHeader("Set-Cookie", "offline_session=synthetic; Path=/; HttpOnly; SameSite=Lax");
       res.end("{}");
     } else if (req.url === "/panel") {
       res.writeHead(302, { Location: destination });

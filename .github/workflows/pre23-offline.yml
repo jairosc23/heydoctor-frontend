@@ -29,6 +29,7 @@ jobs:
           test "$result" -ne 0
           grep -q 'waitForURL' "$RUNNER_TEMP/pre23-auth-baseline.log"
           grep -q '2 failed' "$RUNNER_TEMP/pre23-auth-baseline.log"
+          grep -q '"authenticated":true' "$RUNNER_TEMP/pre23-auth-baseline.log"
           echo "Baseline navigation-load defect reproduced in both local cases."
       - name: Authenticate through local redirect chain with pending document resource
         run: npx playwright test --config e2e/pre23-offline.config.ts
