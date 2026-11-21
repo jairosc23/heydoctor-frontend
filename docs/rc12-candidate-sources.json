@@ -1,0 +1,13 @@
+{
+  "baselineFrontend": "c307f54574bb3925b7cb0b2115a14e8bce7afe74",
+  "baselineBackend": "35216b4f2670c1e585452b793c7f613c1a37ef9a",
+  "sources": [
+    { "pr": 140, "sha": "9e21f934e57dafed1afa72543ea3a3fc18e25813" },
+    { "pr": 141, "sha": "423a799f39ac869fcaf428b9287a23c2081f64d8" },
+    { "pr": 142, "sha": "b054cb43edebdeb46636ca6f512f82917b6e9844" }
+  ],
+  "composition": "PR142 tree plus PR141 patch; no source PR merged",
+  "runtimeIdentityRule": "GITHUB_SHA == RC12_APPROVED_CANDIDATE_SHA == frontend RAILWAY_GIT_COMMIT_SHA",
+  "historicalStripeAccountExcluded": "acct_1U9vSWF0JO4ODWl1",
+  "state": "OFFLINE_CANDIDATE_ONLY"
+}

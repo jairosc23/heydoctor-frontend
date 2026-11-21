@@ -32,7 +32,9 @@ fixture can skip; the workflow additionally rejects missing/skipped JUnit covera
 
 Independent Stripe GETs verify the account, Test balance mode and complete webhook
 destination inventory. Exactly one enabled Test destination must match QA and the
-configured endpoint ID. Existing legacy staging destinations block this gate.
+configured endpoint ID in an explicitly approved isolated Test context. The historical
+account is rejected; its existing staging webhook must remain untouched. See
+`rc12-candidate-gates.md` for the combined candidate controls.
 No endpoint is created/edited and no test event/replay is sent by the preflight.
 Matching runtime/CI signing-secret fingerprints prove configuration consistency,
 not actual signature verification: genuine delivery evidence remains mandatory.
@@ -58,11 +60,15 @@ There is no SQL, fabricated webhook, client lock, fixed sleep or financial retry
 - `STRIPE_QA_TEST_SECRET_KEY`: protected existing Test key reference, never Live.
 - `STRIPE_QA_WEBHOOK_SECRET`: protected matching QA signing-secret reference.
 - Repository variable `STRIPE_QA_WEBHOOK_ID`: the approved QA destination ID.
-- `RAILWAY_API_TOKEN_QA`: legitimate existing SSH-capable account/workspace access.
-  Do not grant new permissions or create a token just to satisfy a failed gate.
+- `STRIPE_QA_ISOLATED_ACCOUNT_ID`: verified distinct sandbox account identity.
+- `RC12_APPROVED_CANDIDATE_SHA`: owner-approved immutable combined candidate SHA.
+- `RAILWAY_API_TOKEN_QA`: existing SSH-capable identity restricted to QA, without
+  production access. Scope/support must be verified; otherwise BLOCKED. Do not
+  grant broader permissions or create credentials to bypass a failed gate.
 
-The current QA guard rejecting Stripe keys and the legacy webhook destination
-remain known blockers until specifically authorized configuration work is completed.
+The current QA guard rejecting Stripe keys and the absence of proven isolated
+Test configuration remain blockers. Do not change the historical webhook to
+resolve them. Separate authorization is required for any QA configuration work.
 Do not copy keys into files, command arguments, logs, screenshots or PRs.
 
 ## Security matrix
@@ -93,7 +99,8 @@ output, pending/outbox states and observers armed before even an immediate respo
 `node --import tsx --test scripts/rc12-stripe-executor.test.ts` calls both actual
 executor entry points with no authorization and asserts zero browser interactions.
 TypeScript, repository lint and build are also offline application checks.
-Validated locally: 12/12 offline tests, TypeScript, repository lint, optimized
+Historical executor validation before candidate integration: 12/12 offline tests,
+TypeScript, repository lint, optimized
 build, workflow YAML and discovery of exactly one P0-4: PASS. PR #141 applies
 without conflicts to this stacked executor. The unchanged Next.js 16.4.3 baseline
 still emits its previously documented security advisory; no upgrade or protection
