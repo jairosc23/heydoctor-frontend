@@ -139,10 +139,23 @@ async function main() {
     );
     check(fixtures.length === 1, "guest_fixture_unique");
     const appointment = fixtures[0];
+    report.guestFixtureChecks = {
+      clinic: appointment.clinicId === CLINIC,
+      doctor: appointment.doctorId === DOCTOR,
+      confirmed: appointment.status === "CONFIRMED",
+      noCharge: appointment.paymentStatus === "not_required",
+      physicianDirect:
+        appointment.reminderSummary?.telemedicineChannel === "physician_direct",
+      notPublic: appointment.reminderSummary?.channel !== "public",
+      existingConsultation: appointment.consultationId === GUEST_CONSULTATION,
+      tokenPresent: typeof appointment.telemedicineAccessToken === "string",
+      tokenUnexpired:
+        Date.parse(appointment.telemedicineAccessTokenExpiresAt) > Date.now(),
+    };
     check(
       appointment.clinicId === CLINIC &&
         appointment.doctorId === DOCTOR &&
-        appointment.status === "confirmed" &&
+        appointment.status === "CONFIRMED" &&
         appointment.paymentStatus === "not_required" &&
         appointment.reminderSummary?.telemedicineChannel ===
           "physician_direct" &&
@@ -252,13 +265,11 @@ async function main() {
     const deniedJoin = event(outsider, "exception");
     outsider.emit("join-consultation", { consultationId: target });
     const rejection = (await deniedJoin) as { message?: string };
-    check(
-      typeof rejection.message === "string" &&
-        !/Unauthorized|PRO plan/.test(rejection.message),
-      "guest_scope_denial_missing",
-    );
     await barrier();
-    results.guest_other_consultation_join_denied = "PASS";
+    results.guest_other_consultation_join_denied =
+      rejection.message === "Guest token is not valid for this room"
+        ? "PASS"
+        : "BLOCKED_UNCLASSIFIED_REJECTION";
     phase = "invalid_identifier";
     const invalid = event(outsider, "exception");
     outsider.emit("leave", { consultationId: "invalid-qa-identifier" });
@@ -269,6 +280,26 @@ async function main() {
     );
     await barrier();
     results.invalid_identifier_denied = "PASS";
+    phase = "invalid_token";
+    const invalidSocket = io(`${API}/webrtc`, {
+      autoConnect: false,
+      transports: ["websocket"],
+      reconnection: false,
+      forceNew: true,
+      auth: { token: "invalid-pre23-synthetic-token", channel: "guest" },
+      extraHeaders: { Origin: APP },
+    });
+    try {
+      const disconnected = event(invalidSocket, "disconnect");
+      invalidSocket.connect();
+      check(
+        (await disconnected) === "io server disconnect",
+        "invalid_token_not_rejected",
+      );
+      results.invalid_token_rejected = "PASS";
+    } finally {
+      invalidSocket.disconnect();
+    }
     report.observedUnsolicitedEvents = seen;
     // Compare the existing appointment reference and version: no clinical write during this probe.
     phase = "fixture_unchanged";
@@ -281,7 +312,10 @@ async function main() {
       "fixture_changed",
     );
     results.existing_appointment_unchanged = "PASS";
-    report.result = "PASS";
+    report.result = Object.values(results).every((r) => r === "PASS")
+      ? "PASS"
+      : "BLOCKED";
+    if (report.result !== "PASS") process.exitCode = 1;
   } finally {
     outsider?.disconnect();
     member?.disconnect();
