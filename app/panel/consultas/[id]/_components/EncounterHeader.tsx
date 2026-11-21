@@ -299,7 +299,7 @@ export function EncounterHeader({
             Cancelar
           </button>
           <span className="w-full text-[10px] text-slate-500">
-            {URGENCY_AVAILABLE_NOW} — Redirección a Payku.
+            {URGENCY_AVAILABLE_NOW} — Pago seguro con Stripe.
           </span>
         </div>
       ) : null}
