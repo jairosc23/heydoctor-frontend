@@ -39,6 +39,15 @@ import {
   intervalVideoLossRatio,
   shouldExitPremiumVideo,
 } from "@/lib/webrtc-premium-video-profile";
+import {
+  UHD_STABLE_SAMPLES,
+  UHD_VIDEO_BITRATE_BPS,
+  cameraCanOfferUhd,
+  requestVerifiedUhdCapture,
+  restoreBaselineCapture,
+  uhdMustDowngrade,
+  uhdNetworkEligible,
+} from "@/lib/webrtc-uhd-video-profile";
 import { shouldInitiatorCreateOffer } from "@/lib/webrtc-negotiation-offer";
 import {
   canScheduleIceRestart,
@@ -282,6 +291,8 @@ export function createAdaptiveVideoMonitor(
   getVideoSender: () => RTCRtpSender | undefined,
   options?: {
     intervalMs?: number;
+    getCameraTrack?: () => MediaStreamTrack | null;
+    onUhdChange?: (enabled: boolean, resolution: { width?: number; height?: number }) => void;
     onTierChange?: (tier: AdaptationTier) => void;
     onStatsSample?: (payload: {
       snap: NetworkStatsSample & { outboundBitrateBps?: number };
@@ -296,13 +307,27 @@ export function createAdaptiveVideoMonitor(
   let stableCycles = 0;
   let premiumStableCycles = 0;
   let premiumEnabled = false;
+  let uhdEnabled = false;
+  let uhdStableCycles = 0;
+  let uhdUnsupported = false;
+  let uhdTrack: MediaStreamTrack | null = null;
+  let busy = false;
   let timer: ReturnType<typeof setInterval> | null = null;
   let bitrateAcc = { lastBytes: 0, lastTs: 0 };
 
   const tick = async () => {
+    if (busy) return;
+    busy = true;
     try {
       const report = await pc.getStats();
       const snap = parseOutboundVideoStats(report);
+      let cpuLimited = false;
+      report.forEach((stat) => {
+        if (stat.type === "outbound-rtp" && "kind" in stat && stat.kind === "video" &&
+            "qualityLimitationReason" in stat && stat.qualityLimitationReason === "cpu") {
+          cpuLimited = true;
+        }
+      });
       const lost = snap.packetsLost ?? 0;
       const sent = snap.packetsSent ?? 0;
       const deltaLost = Math.max(0, lost - prevLost);
@@ -335,7 +360,7 @@ export function createAdaptiveVideoMonitor(
         availableOutgoingBitrateBps: outBr,
         packetsSentInInterval: intervalSent,
       };
-      if (tier === 0) {
+      if (tier === 0 && !uhdEnabled) {
         if (premiumEnabled && shouldExitPremiumVideo(premiumSample)) {
           premiumEnabled = false;
           premiumStableCycles = 0;
@@ -347,6 +372,61 @@ export function createAdaptiveVideoMonitor(
           if (premiumStableCycles >= PREMIUM_REQUIRED_STABLE_SAMPLES) {
             await applyVideoTier(getVideoSender(), tier, PREMIUM_VIDEO_BITRATE_BPS);
             premiumEnabled = true;
+          }
+        }
+      }
+
+      const cameraTrack = options?.getCameraTrack?.() ?? null;
+      const sender = getVideoSender();
+      const uhdSample = {
+        lossRatio,
+        rttMs: rtt,
+        availableOutgoingBitrateBps: outBr,
+        packetsSentInInterval: intervalSent,
+        cpuLimited,
+      };
+      // 4K is a verified capability, not a blind constraint request. Do not
+      // interfere with screen sharing, audio, ICE, or established 720p calls.
+      if (uhdEnabled && (
+        tier !== 0 ||
+        !uhdTrack ||
+        uhdTrack.readyState !== "live" ||
+        sender?.track !== uhdTrack ||
+        uhdMustDowngrade(uhdSample)
+      )) {
+        try {
+          if (uhdTrack?.readyState === "live") await restoreBaselineCapture(uhdTrack);
+          await applyVideoTier(sender, tier);
+        } finally {
+          uhdEnabled = false;
+          uhdTrack = null;
+          uhdStableCycles = 0;
+          options?.onUhdChange?.(false, cameraTrack?.getSettings?.() ?? {});
+        }
+      } else if (!uhdEnabled && tier === 0 && !uhdUnsupported &&
+                 cameraTrack?.readyState === "live" && sender?.track === cameraTrack) {
+        if (!cameraCanOfferUhd(cameraTrack)) {
+          uhdUnsupported = true;
+        } else {
+          uhdStableCycles = uhdNetworkEligible(uhdSample) ? uhdStableCycles + 1 : 0;
+          if (uhdStableCycles >= UHD_STABLE_SAMPLES) {
+            const verified = await requestVerifiedUhdCapture(cameraTrack);
+            if (verified) {
+              try {
+                await applyVideoTier(sender, 0, UHD_VIDEO_BITRATE_BPS);
+                uhdEnabled = true;
+                uhdTrack = cameraTrack;
+                premiumEnabled = false;
+                premiumStableCycles = 0;
+                options?.onUhdChange?.(true, cameraTrack.getSettings());
+              } catch {
+                await restoreBaselineCapture(cameraTrack).catch(() => {});
+                uhdUnsupported = true;
+              }
+            } else {
+              uhdUnsupported = true;
+            }
+            uhdStableCycles = 0;
           }
         }
       }
@@ -373,6 +453,12 @@ export function createAdaptiveVideoMonitor(
         downgrade = true;
 
       if (downgrade && tier < 2) {
+        if (uhdEnabled && uhdTrack?.readyState === "live") {
+          await restoreBaselineCapture(uhdTrack).catch(() => {});
+          uhdEnabled = false;
+          uhdTrack = null;
+          options?.onUhdChange?.(false, {});
+        }
         tier = (tier + 1) as AdaptationTier;
         stableCycles = 0;
         premiumEnabled = false;
@@ -396,7 +482,9 @@ export function createAdaptiveVideoMonitor(
         stableCycles = 0;
       }
     } catch {
-      /* ignore */
+      /* Browser may reject camera/encoding transitions; leave current call intact. */
+    } finally {
+      busy = false;
     }
   };
 
@@ -1668,6 +1756,16 @@ export function useTelemedicineCall(
         () => pc.getSenders().find((s) => s.track?.kind === "video"),
         {
           intervalMs: 2500,
+          getCameraTrack: () => capturedVideoTrackRef.current,
+          onUhdChange: (enabled, resolution) => {
+            logVideo.info("webrtc_uhd_adaptive", {
+              event: "webrtc_uhd_adaptive",
+              consultationId,
+              enabled,
+              actualWidth: resolution.width ?? null,
+              actualHeight: resolution.height ?? null,
+            });
+          },
           onTierChange: (tier) => {
             setVideoTier(tier);
             onVideoTierChange?.(tier);
