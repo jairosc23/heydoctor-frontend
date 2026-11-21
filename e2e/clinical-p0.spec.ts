@@ -7,6 +7,7 @@
  * En CI / E2E_STRICT faltan UUIDs → error explícito (no skip silencioso).
  */
 import { test, expect, configureP0Suite } from "./fixtures/p0";
+import { runStripeP0 } from "./helpers/stripe-p0";
 import { CLINICAL_OVERLAY_Z } from "../lib/clinical-overlay-contract";
 import { getConsultationId } from "./helpers/env";
 import {
@@ -290,100 +291,13 @@ test.describe("Clinical P0 — workspace oficial (Action WS + Smart WS ON)", () 
     await expect(page.getByTestId("clinical-module-sheet")).toBeVisible();
   });
 
-  test("P0-4 Pago — firma → Stripe → webhook → lock", async ({ doctorPage: page }) => {
+  test("P0-4 Pago — firma → Stripe → webhook → lock", async ({ doctorPage: page }, testInfo) => {
     const consultationId = getConsultationId("E2E_CONSULTATION_PAYMENT");
     expect(consultationId, "Requiere E2E_CONSULTATION_PAYMENT").toBeTruthy();
-
-    // Fail closed before any checkout mutation. This opt-in is authorization,
-    // NOT proof of Test Mode: the independent safety evidence below is mandatory.
-    expect(
-      process.env.E2E_STRIPE_TEST_PAYMENT_AUTHORIZED,
-      "BLOCKED: authorize the isolated Stripe Test run only after completing docs/rc12-stripe-payment-contract.md",
-    ).toBe("1");
-    expect(new URL(page.url()).origin).toBe(
-      "https://heydoctor-frontend-rc17-qa-qa-isolated.up.railway.app",
-    );
-
-    await gotoConsultation(page, consultationId!);
-
-    // Debe estar signed antes de pagar (canPay ambiguo en completed — validar signed)
-    await expect(page.getByTestId("encounter-signed-confirmation")).toBeVisible();
-    await expect(page.getByTestId("encounter-signed-confirmation")).toHaveAttribute(
-      "role",
-      "status",
-    );
-
-    const payButton = page.getByTestId("encounter-pay-trigger");
-    await expect(payButton).toBeVisible();
-    await payButton.click();
-
-    const confirmPay = page.getByTestId("encounter-payment-panel")
-      .getByRole("button", { name: "Confirmar pago", exact: true });
-    await expect(confirmPay).toBeVisible();
-    const checkoutResponsePromise = page.waitForResponse((response) =>
-      response.request().method() === "POST" &&
-      /\/(payments|payku)\/create-payment-session$/.test(new URL(response.url()).pathname),
-    );
-    const checkoutPromise = checkoutResponsePromise.then(async (response) => {
-      expect(new URL(response.url()).pathname).toBe("/hd-api/payments/create-payment-session");
-      expect(response.ok(), "Canonical consultation checkout must succeed").toBe(true);
-      const session = await response.json() as { paymentId: string; paymentUrl: string };
-      expect(session.paymentId).toMatch(/^[0-9a-f-]{36}$/i);
-      const url = new URL(session.paymentUrl);
-      expect(url.protocol).toBe("https:");
-      expect(url.hostname).toBe("checkout.stripe.com");
-      expect(url.pathname).toMatch(/\/cs_test_/);
-      return session;
+    const evidence = await runStripeP0(page, consultationId!);
+    await testInfo.attach("rc12-stripe-result", {
+      body: JSON.stringify(evidence), contentType: "application/json",
     });
-
-    // No mock, forged return parameter, API confirmation or auto-charge driver.
-    // Complete hosted Checkout only in the separately authorized Test run.
-    // An uncompleted checkout is a FAILURE, never a successful skipped scenario.
-    // Arm BOTH observers before confirming checkout. The return screen reads
-    // the exact owned payment row, not the consultation-wide aggregate.
-    const [checkout, paidResponse] = await Promise.all([
-      checkoutPromise,
-      page.waitForResponse(async (response) => {
-        if (response.request().method() !== "GET" ||
-          !/\/hd-api\/payments\/intents\/[0-9a-f-]+$/i.test(new URL(response.url()).pathname)) return false;
-        const session = await checkoutPromise;
-        if (new URL(response.url()).pathname !== `/hd-api/payments/intents/${session.paymentId}`) return false;
-        // Surface HTTP errors; pending is not success and may be explicitly refreshed.
-        return !response.ok() || (await response.json()).status === "paid";
-      },
-        { timeout: 60_000 },
-      ),
-      page.waitForURL((url) =>
-        url.origin === "https://heydoctor-frontend-rc17-qa-qa-isolated.up.railway.app" &&
-        url.pathname === "/payments/return" && /^#[0-9a-f-]{36}$/i.test(url.hash),
-        { timeout: 60_000, waitUntil: "domcontentloaded" },
-      ),
-      confirmPay.click(),
-    ]);
-    expect(new URL(page.url()).hash).toBe(`#${checkout.paymentId}`);
-    expect(paidResponse.ok()).toBe(true);
-    expect(await paidResponse.json()).toMatchObject({ paymentId: checkout.paymentId, status: "paid" });
-
-    // Reload the encounter through the real application; the redirect is not
-    // the payment SSOT. Webhook delivery/replay evidence remains a release gate.
-    const [consultationResponse] = await Promise.all([
-      page.waitForResponse((response) => response.request().method() === "GET" &&
-        new URL(response.url()).pathname === `/hd-api/consultations/${consultationId}`),
-      gotoConsultation(page, consultationId!),
-    ]);
-    expect(consultationResponse.ok()).toBe(true);
-    const persistedConsultation = await consultationResponse.json();
-    expect(persistedConsultation.id).toBe(consultationId);
-    expect(String(persistedConsultation.status).toLowerCase()).toBe("locked");
-
-    await expect(page.getByText(/bloqueada|locked|pagada/i)).toBeVisible({
-      timeout: 30_000,
-    });
-
-    const treatment = page.locator("#soap-treatment");
-    await expect(treatment).toBeVisible();
-    await expect(treatment).toBeDisabled();
-    await expect(payButton).toHaveCount(0);
   });
 });
 
