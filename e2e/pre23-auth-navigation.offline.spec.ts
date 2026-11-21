@@ -6,10 +6,12 @@ let server: Server;
 let origin: string;
 let destination = "/dashboard";
 let logins = 0;
+let requestStates: { path: string; authenticated: boolean }[] = [];
 
 test.beforeAll(async () => {
   // Local HTTP only; no app/QA/provider credentials or external service.
   server = createServer((req, res) => {
+    requestStates.push({ path: req.url ?? "", authenticated: Boolean(req.headers.cookie?.includes("offline_session=synthetic")) });
     if (req.url === "/login") {
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       res.end(`<form><label>Correo<input name="email"></label><label>Contraseña<input type="password"></label><button>Ingresar</button></form>
@@ -41,6 +43,12 @@ test.beforeAll(async () => {
   process.env.E2E_BASE_URL = origin;
   process.env.E2E_DOCTOR_EMAIL = "offline.synthetic@heydoctor.invalid";
   process.env.E2E_DOCTOR_PASSWORD = "OFFLINE_ONLY_NOT_A_CREDENTIAL";
+});
+
+test.afterEach(async ({ page }, info) => {
+  if (info.status !== info.expectedStatus) {
+    console.log("OFFLINE_HTTP_DIAGNOSTIC", JSON.stringify({ logins, requestStates, path: new URL(page.url()).pathname }));
+  }
 });
 
 test.afterAll(async () => {
