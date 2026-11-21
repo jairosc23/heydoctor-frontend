@@ -1,0 +1,31 @@
+name: PRE23 isolated runtime room negatives
+on:
+  push:
+    branches: [qa/pre23-runtime-proof-20261121]
+permissions:
+  contents: read
+jobs:
+  room-negatives:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@v4
+        with: { node-version: "22", cache: npm }
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Existing synthetic identities only; no AV, booking, payment or clinical writes
+        run: node --import tsx scripts/pre23-runtime-room.ts
+        env:
+          E2E_BASE_URL: https://heydoctor-frontend-rc17-qa-qa-isolated.up.railway.app
+          E2E_DOCTOR_EMAIL: ${{ secrets.E2E_DOCTOR_EMAIL }}
+          E2E_DOCTOR_PASSWORD: ${{ secrets.E2E_DOCTOR_PASSWORD }}
+          E2E_CONSULTATION_HTA: ${{ secrets.E2E_CONSULTATION_HTA }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pre23-runtime-room-sanitized
+          path: pre23-runtime-room-result.json
+          if-no-files-found: error
+          retention-days: 14
