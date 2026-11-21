@@ -80,8 +80,10 @@ export default function TermsPage() {
 
       <Section id="pagos" title="7. Pagos y Facturación">
         <p>
-          Los pagos por consultas se procesan a través de proveedores de pago externos
-          autorizados (actualmente Payku). <strong>HeyDoctor no almacena datos de tarjetas
+          La integración clínica de pagos utiliza Stripe. Durante el prelanzamiento privado
+          de QA no se realizan cobros reales. Las pruebas financieras requieren autorización
+          específica y un entorno Stripe Test aislado. La disponibilidad de cobros comerciales
+          está sujeta a habilitación expresa y a las condiciones del proveedor. <strong>HeyDoctor no almacena datos de tarjetas
           de crédito ni débito.</strong> Las tarifas se muestran antes de confirmar cada
           consulta y son definitivas salvo política de reembolso aplicable.
         </p>
