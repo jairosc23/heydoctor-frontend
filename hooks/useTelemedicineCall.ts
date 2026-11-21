@@ -30,6 +30,24 @@ import {
 } from "@/lib/webrtc-observability";
 import { computeWebrtcReconnectDelay } from "@/lib/webrtc-backoff";
 import { mergeRemoteTrackEvent } from "@/lib/webrtc-remote-stream";
+import { RemoteIceCandidateQueue, matchesRemoteIceGeneration } from "@/lib/webrtc-remote-ice-queue";
+import {
+  BASELINE_VIDEO_BITRATE_BPS,
+  PREMIUM_VIDEO_BITRATE_BPS,
+  PREMIUM_REQUIRED_STABLE_SAMPLES,
+  hasPremiumVideoHeadroom,
+  intervalVideoLossRatio,
+  shouldExitPremiumVideo,
+} from "@/lib/webrtc-premium-video-profile";
+import {
+  UHD_STABLE_SAMPLES,
+  UHD_VIDEO_BITRATE_BPS,
+  cameraCanOfferUhd,
+  requestVerifiedUhdCapture,
+  restoreBaselineCapture,
+  uhdMustDowngrade,
+  uhdNetworkEligible,
+} from "@/lib/webrtc-uhd-video-profile";
 import { shouldInitiatorCreateOffer } from "@/lib/webrtc-negotiation-offer";
 import {
   canScheduleIceRestart,
@@ -115,7 +133,7 @@ const VIDEO_TIERS: Array<{
   maxFramerate: number;
   scaleResolutionDownBy: number;
 }> = [
-  { maxBitrate: 1_400_000, maxFramerate: 30, scaleResolutionDownBy: 1 },
+  { maxBitrate: BASELINE_VIDEO_BITRATE_BPS, maxFramerate: 30, scaleResolutionDownBy: 1 },
   { maxBitrate: 550_000, maxFramerate: 24, scaleResolutionDownBy: 1.5 },
   { maxBitrate: 280_000, maxFramerate: 15, scaleResolutionDownBy: 2 },
 ];
@@ -125,6 +143,7 @@ const AUDIO_FLOOR_BITRATE = 32_000;
 async function applyVideoTier(
   videoSender: RTCRtpSender | undefined,
   tier: AdaptationTier,
+  premiumBitrateBps?: number,
 ): Promise<void> {
   if (!videoSender) return;
   const params = videoSender.getParameters();
@@ -135,7 +154,7 @@ async function applyVideoTier(
   const t = VIDEO_TIERS[tier];
   const next = params.encodings.map((enc) => ({
     ...enc,
-    maxBitrate: t.maxBitrate,
+    maxBitrate: tier === 0 && premiumBitrateBps ? premiumBitrateBps : t.maxBitrate,
     maxFramerate: t.maxFramerate,
     scaleResolutionDownBy: t.scaleResolutionDownBy,
   }));
@@ -272,6 +291,8 @@ export function createAdaptiveVideoMonitor(
   getVideoSender: () => RTCRtpSender | undefined,
   options?: {
     intervalMs?: number;
+    getCameraTrack?: () => MediaStreamTrack | null;
+    onUhdChange?: (enabled: boolean, resolution: { width?: number; height?: number }) => void;
     onTierChange?: (tier: AdaptationTier) => void;
     onStatsSample?: (payload: {
       snap: NetworkStatsSample & { outboundBitrateBps?: number };
@@ -282,17 +303,39 @@ export function createAdaptiveVideoMonitor(
   const intervalMs = options?.intervalMs ?? 2500;
   let tier: AdaptationTier = 0;
   let prevLost = 0;
+  let prevSent: number | null = null;
   let stableCycles = 0;
+  let premiumStableCycles = 0;
+  let premiumEnabled = false;
+  let uhdEnabled = false;
+  let uhdStableCycles = 0;
+  let uhdUnsupported = false;
+  let uhdTrack: MediaStreamTrack | null = null;
+  let busy = false;
   let timer: ReturnType<typeof setInterval> | null = null;
   let bitrateAcc = { lastBytes: 0, lastTs: 0 };
 
   const tick = async () => {
+    if (busy) return;
+    busy = true;
     try {
       const report = await pc.getStats();
       const snap = parseOutboundVideoStats(report);
+      let cpuLimited = false;
+      report.forEach((stat) => {
+        if (stat.type === "outbound-rtp" && "kind" in stat && stat.kind === "video" &&
+            "qualityLimitationReason" in stat && stat.qualityLimitationReason === "cpu") {
+          cpuLimited = true;
+        }
+      });
       const lost = snap.packetsLost ?? 0;
       const sent = snap.packetsSent ?? 0;
-      const deltaLost = lost - prevLost;
+      const deltaLost = Math.max(0, lost - prevLost);
+      const intervalSent = prevSent === null ? 0 : Math.max(0, sent - prevSent);
+      const lossRatio = intervalVideoLossRatio(
+        prevSent === null ? null : { lost: prevLost, sent: prevSent },
+        { lost, sent },
+      );
       const rtt = snap.roundTripTime;
       const outBr = snap.availableOutgoingBitrate;
       const bytes = snap.bytesSent ?? 0;
@@ -307,9 +350,86 @@ export function createAdaptiveVideoMonitor(
       bitrateAcc = { lastBytes: bytes, lastTs: Date.now() };
 
       prevLost = lost;
+      prevSent = sent;
 
-      const lossRatio =
-        sent + deltaLost > 0 ? deltaLost / (sent + deltaLost + 1) : 0;
+      // Only stable, measured transport headroom permits the premium image envelope.
+      // Initial calls remain on the validated RC18 720p/1.4Mbps profile.
+      const premiumSample = {
+        intervalLossRatio: lossRatio,
+        rttMs: rtt,
+        availableOutgoingBitrateBps: outBr,
+        packetsSentInInterval: intervalSent,
+      };
+      if (tier === 0 && !uhdEnabled) {
+        if (premiumEnabled && shouldExitPremiumVideo(premiumSample)) {
+          premiumEnabled = false;
+          premiumStableCycles = 0;
+          await applyVideoTier(getVideoSender(), tier);
+        } else if (!premiumEnabled) {
+          premiumStableCycles = hasPremiumVideoHeadroom(premiumSample)
+            ? premiumStableCycles + 1
+            : 0;
+          if (premiumStableCycles >= PREMIUM_REQUIRED_STABLE_SAMPLES) {
+            await applyVideoTier(getVideoSender(), tier, PREMIUM_VIDEO_BITRATE_BPS);
+            premiumEnabled = true;
+          }
+        }
+      }
+
+      const cameraTrack = options?.getCameraTrack?.() ?? null;
+      const sender = getVideoSender();
+      const uhdSample = {
+        lossRatio,
+        rttMs: rtt,
+        availableOutgoingBitrateBps: outBr,
+        packetsSentInInterval: intervalSent,
+        cpuLimited,
+      };
+      // 4K is a verified capability, not a blind constraint request. Do not
+      // interfere with screen sharing, audio, ICE, or established 720p calls.
+      if (uhdEnabled && (
+        tier !== 0 ||
+        !uhdTrack ||
+        uhdTrack.readyState !== "live" ||
+        sender?.track !== uhdTrack ||
+        uhdMustDowngrade(uhdSample)
+      )) {
+        try {
+          if (uhdTrack?.readyState === "live") await restoreBaselineCapture(uhdTrack);
+          await applyVideoTier(sender, tier);
+        } finally {
+          uhdEnabled = false;
+          uhdTrack = null;
+          uhdStableCycles = 0;
+          options?.onUhdChange?.(false, cameraTrack?.getSettings?.() ?? {});
+        }
+      } else if (!uhdEnabled && tier === 0 && !uhdUnsupported &&
+                 cameraTrack?.readyState === "live" && sender?.track === cameraTrack) {
+        if (!cameraCanOfferUhd(cameraTrack)) {
+          uhdUnsupported = true;
+        } else {
+          uhdStableCycles = uhdNetworkEligible(uhdSample) ? uhdStableCycles + 1 : 0;
+          if (uhdStableCycles >= UHD_STABLE_SAMPLES) {
+            const verified = await requestVerifiedUhdCapture(cameraTrack);
+            if (verified) {
+              try {
+                await applyVideoTier(sender, 0, UHD_VIDEO_BITRATE_BPS);
+                uhdEnabled = true;
+                uhdTrack = cameraTrack;
+                premiumEnabled = false;
+                premiumStableCycles = 0;
+                options?.onUhdChange?.(true, cameraTrack.getSettings());
+              } catch {
+                await restoreBaselineCapture(cameraTrack).catch(() => {});
+                uhdUnsupported = true;
+              }
+            } else {
+              uhdUnsupported = true;
+            }
+            uhdStableCycles = 0;
+          }
+        }
+      }
 
       const fullSnap: NetworkStatsSample & {
         outboundBitrateBps?: number;
@@ -333,8 +453,16 @@ export function createAdaptiveVideoMonitor(
         downgrade = true;
 
       if (downgrade && tier < 2) {
+        if (uhdEnabled && uhdTrack?.readyState === "live") {
+          await restoreBaselineCapture(uhdTrack).catch(() => {});
+          uhdEnabled = false;
+          uhdTrack = null;
+          options?.onUhdChange?.(false, {});
+        }
         tier = (tier + 1) as AdaptationTier;
         stableCycles = 0;
+        premiumEnabled = false;
+        premiumStableCycles = 0;
         await applyVideoTier(getVideoSender(), tier);
         options?.onTierChange?.(tier);
       } else if (
@@ -354,7 +482,9 @@ export function createAdaptiveVideoMonitor(
         stableCycles = 0;
       }
     } catch {
-      /* ignore */
+      /* Browser may reject camera/encoding transitions; leave current call intact. */
+    } finally {
+      busy = false;
     }
   };
 
@@ -484,6 +614,7 @@ export function useTelemedicineCall(
   );
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
+  const pendingRemoteIceRef = useRef(new RemoteIceCandidateQueue());
   const socketRef = useRef<Socket | null>(null);
   const ownSocketRef = useRef(false);
   const stopStatsRef = useRef<(() => void) | null>(null);
@@ -1118,6 +1249,13 @@ export function useTelemedicineCall(
                 ]).catch(() => undefined);
               }
               await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+              for (const pending of pendingRemoteIceRef.current.drain(pc.remoteDescription)) {
+                try {
+                  await pc.addIceCandidate(new RTCIceCandidate(pending));
+                } catch {
+                  // Ignore candidates that the browser rejects after generation changes.
+                }
+              }
               logVideo.info("webrtc_set_remote_description", {
                 event: "webrtc_set_remote_description",
                 consultationId,
@@ -1156,6 +1294,13 @@ export function useTelemedicineCall(
           try {
             if (pc.signalingState === "have-local-offer") {
               await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+              for (const pending of pendingRemoteIceRef.current.drain(pc.remoteDescription)) {
+                try {
+                  await pc.addIceCandidate(new RTCIceCandidate(pending));
+                } catch {
+                  // Ignore candidates that the browser rejects after generation changes.
+                }
+              }
               logVideo.info("webrtc_set_remote_description", {
                 event: "webrtc_set_remote_description",
                 consultationId,
@@ -1177,9 +1322,12 @@ export function useTelemedicineCall(
           fromUserId: string;
         }) => {
           try {
-            if (candidate && pc.remoteDescription) {
-              await pc.addIceCandidate(new RTCIceCandidate(candidate));
+            if (!candidate) return;
+            if (!pc.remoteDescription || !matchesRemoteIceGeneration(candidate, pc.remoteDescription)) {
+              pendingRemoteIceRef.current.enqueue(candidate);
+              return;
             }
+            await pc.addIceCandidate(new RTCIceCandidate(candidate));
           } catch {
             /* ignore stale candidates */
           }
@@ -1230,6 +1378,7 @@ export function useTelemedicineCall(
         /* ignore */
       }
       pcRef.current = null;
+      pendingRemoteIceRef.current.clear();
       remoteStreamRef.current = null;
       setRemoteStream(null);
 
@@ -1607,6 +1756,16 @@ export function useTelemedicineCall(
         () => pc.getSenders().find((s) => s.track?.kind === "video"),
         {
           intervalMs: 2500,
+          getCameraTrack: () => capturedVideoTrackRef.current,
+          onUhdChange: (enabled, resolution) => {
+            logVideo.info("webrtc_uhd_adaptive", {
+              event: "webrtc_uhd_adaptive",
+              consultationId,
+              enabled,
+              actualWidth: resolution.width ?? null,
+              actualHeight: resolution.height ?? null,
+            });
+          },
           onTierChange: (tier) => {
             setVideoTier(tier);
             onVideoTierChange?.(tier);

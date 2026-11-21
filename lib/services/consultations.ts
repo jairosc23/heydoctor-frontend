@@ -140,6 +140,59 @@ export async function fetchConsultation(id: string): Promise<NestConsultation> {
   return unwrapConsultation(raw);
 }
 
+/** Open or reuse the clinical encounter linked to a confirmed appointment. */
+export async function openAppointmentConsultation(
+  appointmentId: string,
+): Promise<NestConsultation> {
+  const raw = await heydoctorApi.post<
+    NestConsultation | { data: NestConsultation }
+  >(`${BASE}/from-appointment/${encodeURIComponent(appointmentId)}`, {});
+  return unwrapConsultation(raw);
+}
+
+export interface PhysicianGuestInvitation {
+  consultationId: string;
+  bookingToken: string;
+  expiresAt: string;
+}
+
+/**
+ * Only the authenticated physician can issue an opaque invitation for a
+ * confirmed, clinic-bound appointment. Never use a consultation ID as proof.
+ */
+export async function issueAppointmentGuestInvitation(
+  appointmentId: string,
+): Promise<PhysicianGuestInvitation> {
+  return heydoctorApi.post<PhysicianGuestInvitation>(
+    `${BASE}/from-appointment/${encodeURIComponent(appointmentId)}/invitation`,
+    {},
+  );
+}
+
+export async function issueConsultationGuestInvitation(
+  consultationId: string,
+): Promise<PhysicianGuestInvitation> {
+  return heydoctorApi.post<PhysicianGuestInvitation>(
+    `${BASE}/${encodeURIComponent(consultationId)}/invitation`,
+    {},
+  );
+}
+
+export function buildGuestInvitationUrl(
+  origin: string,
+  invitation: PhysicianGuestInvitation,
+): string {
+  if (
+    !/^https:\/\/[^\s/?#]+$/i.test(origin) ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      invitation.bookingToken,
+    )
+  ) {
+    throw new Error("Invitación inválida");
+  }
+  return `${origin.replace(/\/$/, "")}/teleconsulta/invitado#${invitation.bookingToken}`;
+}
+
 export async function createConsultation(dto: CreateConsultationDto) {
   const reason = (
     dto.chiefComplaint?.trim() ||
