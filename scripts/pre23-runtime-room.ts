@@ -1,7 +1,6 @@
-import { chromium } from "@playwright/test";
+import { request } from "@playwright/test";
 import { io, type Socket } from "socket.io-client";
 import { writeFileSync } from "node:fs";
-import { loginAsDoctor } from "../e2e/helpers/auth";
 
 const APP = "https://heydoctor-frontend-rc17-qa-qa-isolated.up.railway.app";
 const API = "https://heydoctor-backend-rc17-qa-qa-isolated.up.railway.app";
@@ -14,6 +13,9 @@ const report: Record<string, unknown> = {
   startedAt: new Date().toISOString(),
   tests: {},
   result: "BLOCKED",
+  scope: "socket_authorization_only_not_public_or_staff_ui_certification",
+  uiDiagnosticRun:
+    "https://github.com/jairosc23/heydoctor-frontend/actions/runs/44957675448",
 };
 const results = report.tests as Record<string, string>;
 let phase = "configuration";
@@ -66,30 +68,33 @@ async function main() {
     target && /^[a-f0-9-]{36}$/.test(target) && target !== GUEST_CONSULTATION,
     "distinct_room",
   );
-  const browser = await chromium.launch();
-  const context = await browser.newContext(); // No tracing, recordings, storage state or credentials on disk.
-  const page = await context.newPage();
+  const context = await request.newContext({
+    baseURL: API,
+    extraHTTPHeaders: { Origin: APP },
+  });
   const authHttp: { path: string; status: number }[] = [];
   report.authHttp = authHttp;
-  page.on("response", (r) => {
-    const path = new URL(r.url()).pathname;
-    if (/\/(?:hd-api|api)\/auth\/(?:csrf|login|me)$/.test(path)) {
-      authHttp.push({ path, status: r.status() });
-    }
-  });
   let member: Socket | undefined;
   let outsider: Socket | undefined;
   try {
     phase = "synthetic_login";
-    const loginResponse = page.waitForResponse(
-      (r) =>
-        /\/auth\/login$/.test(new URL(r.url()).pathname) &&
-        r.request().method() === "POST",
-      { timeout: 45000 },
+    const csrf = await context.get("/api/auth/csrf");
+    authHttp.push({ path: "/api/auth/csrf", status: csrf.status() });
+    check(csrf.ok(), "csrf_http");
+    const csrfToken = (await csrf.json()).csrfToken;
+    check(
+      typeof csrfToken === "string" && csrfToken.length > 0,
+      "csrf_contract",
     );
-    await loginAsDoctor(page);
+    const response = await context.post("/api/auth/login", {
+      headers: { "x-csrf-token": csrfToken },
+      data: {
+        email: process.env.E2E_DOCTOR_EMAIL,
+        password: process.env.E2E_DOCTOR_PASSWORD,
+      },
+    });
     phase = "login_http";
-    const response = await loginResponse;
+    authHttp.push({ path: "/api/auth/login", status: response.status() });
     check(response.status() === 200, "login_http");
     const login = await response.json();
     phase = "login_payload";
@@ -278,11 +283,9 @@ async function main() {
     results.existing_appointment_unchanged = "PASS";
     report.result = "PASS";
   } finally {
-    report.finalPagePath = new URL(page.url()).pathname;
     outsider?.disconnect();
     member?.disconnect();
-    await context.close();
-    await browser.close();
+    await context.dispose();
   }
 }
 

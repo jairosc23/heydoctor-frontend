@@ -14,7 +14,6 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: "22", cache: npm }
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
       - name: Existing synthetic identities only; no AV, booking, payment or clinical writes
         run: node --import tsx scripts/pre23-runtime-room.ts
         env:
