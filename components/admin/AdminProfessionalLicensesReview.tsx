@@ -86,7 +86,9 @@ export function AdminProfessionalLicensesReview() {
       ) {
         throw new Error("La respuesta no confirmó una verificación válida.");
       }
-      setNotice("Licencia verificada. Se confirmó el estado y el administrador responsable.");
+      setNotice(
+        "Licencia verificada. Se confirmó el estado y el administrador responsable.",
+      );
       await load();
     } catch (err) {
       setError(
@@ -138,8 +140,16 @@ export function AdminProfessionalLicensesReview() {
           Actualizar
         </button>
       </div>
-      {error && <p role="alert" className="mb-3 text-sm text-red-700">{error}</p>}
-      {notice && <p role="status" className="mb-3 text-sm text-primary">{notice}</p>}
+      {error && (
+        <p role="alert" className="mb-3 text-sm text-red-700">
+          {error}
+        </p>
+      )}
+      {notice && (
+        <p role="status" className="mb-3 text-sm text-primary">
+          {notice}
+        </p>
+      )}
       {loading ? (
         <p className="text-sm text-primaryDark/70">Cargando licencias…</p>
       ) : licenses.length === 0 ? (
@@ -158,7 +168,9 @@ export function AdminProfessionalLicensesReview() {
                 <p className="m-0 font-semibold">
                   {row.jurisdictionCode} · {row.authority}
                 </p>
-                <p className="mt-1 mb-0 break-words">Registro: {row.licenseNumber}</p>
+                <p className="mt-1 mb-0 break-words">
+                  Registro: {row.licenseNumber}
+                </p>
                 <p className="mt-1 mb-0 text-xs text-primaryDark/70">
                   Perfil: {row.doctorProfileId} · {STATUS_LABEL[row.status]}
                   {row.expiresAt ? ` · Vence ${row.expiresAt.slice(0, 10)}` : ""}
@@ -171,7 +183,9 @@ export function AdminProfessionalLicensesReview() {
                   disabled={verifyingId !== null}
                   className="rounded-lg border-0 bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
                 >
-                  {verifyingId === row.id ? "Verificando…" : "Verificar credencial"}
+                  {verifyingId === row.id
+                    ? "Verificando…"
+                    : "Verificar credencial"}
                 </button>
               )}
             </li>
