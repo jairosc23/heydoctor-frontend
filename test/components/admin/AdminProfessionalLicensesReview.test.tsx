@@ -54,7 +54,9 @@ describe("RC19 admin professional license review", () => {
     const confirmation = vi.spyOn(window, "confirm").mockReturnValue(true);
     const { user } = renderWithProviders(<AdminProfessionalLicensesReview />);
     await screen.findByText(/SYNTHETIC-RC19-001/);
-    await user.click(screen.getByRole("button", { name: "Verificar credencial" }));
+    await user.click(
+      screen.getByRole("button", { name: "Verificar credencial" }),
+    );
     expect(confirmation).toHaveBeenCalledOnce();
     expect(verify).toHaveBeenCalledWith(license.id);
     expect(
@@ -66,14 +68,18 @@ describe("RC19 admin professional license review", () => {
     vi.spyOn(window, "confirm").mockReturnValue(false);
     const { user } = renderWithProviders(<AdminProfessionalLicensesReview />);
     await screen.findByText(/SYNTHETIC-RC19-001/);
-    await user.click(screen.getByRole("button", { name: "Verificar credencial" }));
+    await user.click(
+      screen.getByRole("button", { name: "Verificar credencial" }),
+    );
     expect(verify).not.toHaveBeenCalled();
   });
 
   it("never queries or verifies when the session is not an admin", () => {
     useAuth.mockReturnValue({ user: { role: "doctor", sub: "doctor" } });
     renderWithProviders(<AdminProfessionalLicensesReview />);
-    expect(screen.getByRole("alert")).toHaveTextContent("Solo un administrador");
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Solo un administrador",
+    );
     expect(listClinic).not.toHaveBeenCalled();
     expect(verify).not.toHaveBeenCalled();
   });
