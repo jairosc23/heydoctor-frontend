@@ -29,5 +29,9 @@ jobs:
         run: npx vitest run test/components/admin/AdminProfessionalLicensesReview.test.tsx
       - name: TypeScript typecheck
         run: npm run typecheck
+      - name: Prettier differences for review
+        run: |
+          npx prettier components/admin/AdminProfessionalLicensesReview.tsx > /tmp/rc19-prettier.tsx
+          diff -u components/admin/AdminProfessionalLicensesReview.tsx /tmp/rc19-prettier.tsx || true
       - name: Prettier targeted files
         run: npx prettier --check components/admin/AdminProfessionalLicensesReview.tsx test/components/admin/AdminProfessionalLicensesReview.test.tsx app/panel/admin/page.tsx
