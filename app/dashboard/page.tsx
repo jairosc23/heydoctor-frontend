@@ -2,6 +2,7 @@
 
 import PanelLayout from "@/components/PanelLayout";
 import DashboardCard from "@/components/ui/DashboardCard";
+import Link from "next/link";
 import { useAuth } from "@/lib/context/AuthContext";
 import { useDashboardStats } from "@/lib/hooks/use-dashboard-stats";
 
@@ -73,6 +74,16 @@ export default function DashboardPage() {
             />
           ))}
         </div>
+
+        {(user?.role === "doctor" || user?.role === "admin") && (
+          <div className="rounded-xl border border-primary/20 p-4">
+            <h2 className="text-lg font-bold text-primaryDark">Seguridad de la cuenta</h2>
+            <p className="mt-1 text-sm text-primaryDark/70">Administra tus códigos de recuperación de autenticación en dos pasos.</p>
+            <Link href="/panel/security/recovery-codes" className="mt-2 inline-block font-semibold text-primary underline">
+              Regenerar códigos de recuperación
+            </Link>
+          </div>
+        )}
 
         <h2
           className="mt-10 text-xl font-bold text-primary"

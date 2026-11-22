@@ -1,0 +1,37 @@
+name: PRE23 QA MFA Recovery Web
+on:
+  push:
+    branches:
+      - qa/pre23-mfa-recovery-rotation-20261122
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: pre23-qa-mfa-web-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  frontend-ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Recovery route and API client security checks
+        run: |
+          grep -q 'rotateMfaBackupCodes' lib/mfa-recovery-rotation.ts
+          grep -q 'cache: "no-store"' lib/mfa-recovery-rotation.ts
+          grep -q 'getApiCsrfToken' lib/mfa-recovery-rotation.ts
+          grep -q 'getAccessToken' lib/mfa-recovery-rotation.ts
+          grep -q 'role === "doctor"' app/panel/security/recovery-codes/page.tsx
+          test -z "${DATABASE_URL:-}"
+          test -z "${RAILWAY_PROJECT_ID:-}"
+      - name: Build web
+        env:
+          NEXT_PUBLIC_HEYDOCTOR_API_URL: https://qa-backend.example.invalid
+        run: npm run build
