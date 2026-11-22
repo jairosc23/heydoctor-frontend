@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import PanelLayout from "@/components/PanelLayout";
 import { useAuth } from "@/lib/context/AuthContext";
@@ -21,7 +21,7 @@ export default function RecoveryCodesPage() {
   }, []);
 
   const staff = user?.role === "doctor" || user?.role === "admin";
-  async function submit(event: React.FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!staff || busy || codes || !/^\d{6}$/.test(totp)) return;
     setError("");
