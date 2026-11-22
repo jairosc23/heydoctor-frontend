@@ -127,8 +127,8 @@ export function AdminProfessionalLicensesReview() {
           </h2>
           <p className="mt-2 text-sm text-primaryDark/70">
             Solo se muestran credenciales de la clínica autenticada. El médico
-            registra su licencia desde Perfil profesional; el administrador
-            la verifica tras contrastarla con la autoridad competente.
+            registra su licencia desde Perfil profesional; el administrador la
+            verifica tras contrastarla con la autoridad competente.
           </p>
         </div>
         <button
@@ -173,7 +173,9 @@ export function AdminProfessionalLicensesReview() {
                 </p>
                 <p className="mt-1 mb-0 text-xs text-primaryDark/70">
                   Perfil: {row.doctorProfileId} · {STATUS_LABEL[row.status]}
-                  {row.expiresAt ? ` · Vence ${row.expiresAt.slice(0, 10)}` : ""}
+                  {row.expiresAt
+                    ? ` · Vence ${row.expiresAt.slice(0, 10)}`
+                    : ""}
                 </p>
               </div>
               {row.status === "unverified" && (
