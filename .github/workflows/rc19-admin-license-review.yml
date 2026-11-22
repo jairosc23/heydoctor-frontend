@@ -1,0 +1,37 @@
+name: RC19 Admin License Review QA
+on:
+  push:
+    branches:
+      - qa/rc19-admin-license-review-20261122
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: rc19-admin-license-review-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  admin-license-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Offline-only safety assertion
+        run: |
+          test -z "${DATABASE_URL:-}"
+          test -z "${RAILWAY_PROJECT_ID:-}"
+          test -z "${STRIPE_SECRET_KEY:-}"
+      - name: RC19 admin license review UI tests
+        run: npx vitest run test/components/admin/AdminProfessionalLicensesReview.test.tsx
+      - name: TypeScript typecheck
+        run: npm run typecheck
+      - name: Prettier differences for review
+        run: |
+          npx prettier components/admin/AdminProfessionalLicensesReview.tsx > /tmp/rc19-prettier.tsx
+          diff -u components/admin/AdminProfessionalLicensesReview.tsx /tmp/rc19-prettier.tsx || true
+      - name: Prettier targeted files
+        run: npx prettier --check components/admin/AdminProfessionalLicensesReview.tsx test/components/admin/AdminProfessionalLicensesReview.test.tsx app/panel/admin/page.tsx

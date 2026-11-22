@@ -2,6 +2,7 @@
 
 import MetricsDashboard from "@/components/admin/MetricsDashboard";
 import DoctorApplicationsManager from "@/components/admin/DoctorApplicationsManager";
+import { AdminProfessionalLicensesReview } from "@/components/admin/AdminProfessionalLicensesReview";
 
 const FONT_HEADING = "Montserrat, sans-serif";
 
@@ -16,6 +17,8 @@ export default function AdminPage() {
       </h1>
 
       <MetricsDashboard />
+
+      <AdminProfessionalLicensesReview />
 
       <div>
         <DoctorApplicationsManager />
