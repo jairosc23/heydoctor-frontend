@@ -28,5 +28,11 @@ jobs:
         run: node --import tsx --test lib/patient-growth/discovery-rc20.test.ts
       - name: TypeScript
         run: npm run typecheck
+      - name: Inspect formatting delta
+        run: |
+          for path in lib/patient-growth/discovery.ts lib/patient-growth/discovery-rc20.test.ts components/patient-growth/doctor-discovery-card.tsx; do
+            npx prettier "$path" > /tmp/rc20-prettier.tmp
+            diff -u "$path" /tmp/rc20-prettier.tmp || true
+          done
       - name: Formatting check
         run: npx prettier --check lib/patient-growth/discovery.ts lib/patient-growth/discovery-rc20.test.ts components/patient-growth/doctor-discovery-card.tsx
