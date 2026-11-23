@@ -7,9 +7,17 @@ import { PatientGrowthHeader } from "@/components/patient-growth/patient-growth-
 import { DoctorDiscoveryCard } from "@/components/patient-growth/doctor-discovery-card";
 import Container from "@/components/ui/Container";
 import Button from "@/components/ui/Button";
-import { HdEmptyState, HdErrorState, HdSkeleton } from "@/components/ui/HdFeedback";
+import {
+  HdEmptyState,
+  HdErrorState,
+  HdSkeleton,
+} from "@/components/ui/HdFeedback";
 import Input from "@/components/ui/Input";
 import { defaultAvailabilityWindow } from "@/lib/patient-growth/discovery";
+import {
+  discoveryCountryOptions,
+  hasDiscoveryCountry,
+} from "@/lib/patient-growth/discovery-country-catalog";
 import {
   adminLevelLabel,
   buildMedicosQuery,
@@ -47,11 +55,13 @@ export function MedicosClient({
   const [query, setQuery] = useState(initialQuery);
   const [specialty, setSpecialty] = useState(initialSpecialty);
   const [patientCountry, setPatientCountry] = useState(initialCountry);
-  const [patientSubdivision, setPatientSubdivision] = useState(initialSubdivision);
+  const [patientSubdivision, setPatientSubdivision] =
+    useState(initialSubdivision);
   const [appliedQuery, setAppliedQuery] = useState(initialQuery);
   const [appliedSpecialty, setAppliedSpecialty] = useState(initialSpecialty);
   const [appliedCountry, setAppliedCountry] = useState(initialCountry);
-  const [appliedSubdivision, setAppliedSubdivision] = useState(initialSubdivision);
+  const [appliedSubdivision, setAppliedSubdivision] =
+    useState(initialSubdivision);
   const [specialties, setSpecialties] = useState<PublicSpecialty[]>([]);
   const [jurisdictions, setJurisdictions] = useState<PublicJurisdiction[]>([]);
   const [doctors, setDoctors] = useState<PublicAvailabilityDoctor[]>([]);
@@ -63,6 +73,7 @@ export function MedicosClient({
     (row) => row.countryCode === patientCountry,
   );
   const subdivisionChoices = selectedJurisdiction?.subdivisions ?? [];
+
   const hideSubdivision = isNationalCoverage(subdivisionChoices);
 
   const jurisdictionReconciled = useRef(false);
@@ -76,7 +87,7 @@ export function MedicosClient({
         jurisdictionReconciled.current = true;
         setJurisdictions(rows);
         const current = rows.find((row) => row.countryCode === initialCountry);
-        if (initialCountry && !current) {
+        if (initialCountry && !hasDiscoveryCountry(initialCountry)) {
           setPatientCountry("");
           setPatientSubdivision("");
           setAppliedCountry("");
@@ -114,7 +125,13 @@ export function MedicosClient({
     return () => {
       cancelled = true;
     };
-  }, [initialCountry, initialQuery, initialSpecialty, initialSubdivision, router]);
+  }, [
+    initialCountry,
+    initialQuery,
+    initialSpecialty,
+    initialSubdivision,
+    router,
+  ]);
 
   useEffect(() => {
     let cancelled = false;
@@ -185,7 +202,14 @@ export function MedicosClient({
     return () => {
       cancelled = true;
     };
-  }, [appliedQuery, appliedSpecialty, appliedCountry, appliedSubdivision, windowRange.from, windowRange.to]);
+  }, [
+    appliedQuery,
+    appliedSpecialty,
+    appliedCountry,
+    appliedSubdivision,
+    windowRange.from,
+    windowRange.to,
+  ]);
 
   function applyFilters(
     nextQuery = query,
@@ -264,9 +288,9 @@ export function MedicosClient({
                   required
                 >
                   <option value="">Selecciona un país</option>
-                  {jurisdictions.map((row) => (
-                    <option key={row.countryCode} value={row.countryCode}>
-                      {countryDisplayName(row.countryCode)}
+                  {discoveryCountryOptions().map((row) => (
+                    <option key={row.value} value={row.value}>
+                      {row.label}
                     </option>
                   ))}
                 </select>
@@ -287,7 +311,9 @@ export function MedicosClient({
                     disabled={!patientCountry}
                   >
                     <option value="">
-                      {patientCountry ? "Sin especificar" : "Selecciona un país"}
+                      {patientCountry
+                        ? "Sin especificar"
+                        : "Selecciona un país"}
                     </option>
                     {subdivisionChoices.map((code) => (
                       <option key={code} value={code}>
@@ -374,13 +400,18 @@ export function MedicosClient({
 
           {!loading && !loadError && !/^[A-Z]{2}$/.test(appliedCountry) ? (
             <HdEmptyState title="Elige el país de atención">
-              El listado muestra solo países donde hay un profesional público
-              con licencia verificada.
+              Selecciona tu país para consultar médicos habilitados. Los países
+              sin cobertura profesional verificada mostrarán un estado vacío.
             </HdEmptyState>
           ) : null}
 
-          {!loading && !loadError && /^[A-Z]{2}$/.test(appliedCountry) && doctors.length === 0 ? (
+          {!loading &&
+          !loadError &&
+          /^[A-Z]{2}$/.test(appliedCountry) &&
+          doctors.length === 0 ? (
             <HdEmptyState title="No hay médicos con ese filtro">
+              Aún no hay médicos disponibles para la jurisdicción seleccionada y
+              estos filtros. No es posible reservar sin una licencia vigente.
               <Button
                 type="button"
                 variant="secondary"
