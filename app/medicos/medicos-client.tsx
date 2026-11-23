@@ -10,6 +10,7 @@ import Button from "@/components/ui/Button";
 import { HdEmptyState, HdErrorState, HdSkeleton } from "@/components/ui/HdFeedback";
 import Input from "@/components/ui/Input";
 import { defaultAvailabilityWindow } from "@/lib/patient-growth/discovery";
+import { COUNTRY_OPTIONS } from "@/lib/global-address-engine/countries";
 import {
   adminLevelLabel,
   buildMedicosQuery,
@@ -63,6 +64,7 @@ export function MedicosClient({
     (row) => row.countryCode === patientCountry,
   );
   const subdivisionChoices = selectedJurisdiction?.subdivisions ?? [];
+
   const hideSubdivision = isNationalCoverage(subdivisionChoices);
 
   const jurisdictionReconciled = useRef(false);
@@ -76,7 +78,7 @@ export function MedicosClient({
         jurisdictionReconciled.current = true;
         setJurisdictions(rows);
         const current = rows.find((row) => row.countryCode === initialCountry);
-        if (initialCountry && !current) {
+        if (initialCountry && !COUNTRY_OPTIONS.some((country) => country.code === initialCountry && /^[A-Z]{2}$/.test(country.code))) {
           setPatientCountry("");
           setPatientSubdivision("");
           setAppliedCountry("");
@@ -264,11 +266,13 @@ export function MedicosClient({
                   required
                 >
                   <option value="">Selecciona un país</option>
-                  {jurisdictions.map((row) => (
-                    <option key={row.countryCode} value={row.countryCode}>
-                      {countryDisplayName(row.countryCode)}
-                    </option>
-                  ))}
+                  {COUNTRY_OPTIONS.filter((row) => /^[A-Z]{2}$/.test(row.code)).map(
+                    (row) => (
+                      <option key={row.code} value={row.code}>
+                        {row.name.es}
+                      </option>
+                    ),
+                  )}
                 </select>
               </label>
               {hideSubdivision ? null : (
@@ -374,13 +378,15 @@ export function MedicosClient({
 
           {!loading && !loadError && !/^[A-Z]{2}$/.test(appliedCountry) ? (
             <HdEmptyState title="Elige el país de atención">
-              El listado muestra solo países donde hay un profesional público
-              con licencia verificada.
+              Selecciona tu país para consultar médicos habilitados. Los países
+              sin cobertura profesional verificada mostrarán un estado vacío.
             </HdEmptyState>
           ) : null}
 
           {!loading && !loadError && /^[A-Z]{2}$/.test(appliedCountry) && doctors.length === 0 ? (
             <HdEmptyState title="No hay médicos con ese filtro">
+              Aún no hay médicos disponibles para la jurisdicción seleccionada
+              y estos filtros. No es posible reservar sin una licencia vigente.
               <Button
                 type="button"
                 variant="secondary"
