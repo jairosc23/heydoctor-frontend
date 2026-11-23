@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Button from "@/components/ui/Button";
 import {
   doctorInitials,
@@ -17,7 +20,12 @@ export function DoctorDiscoveryCard({
   doctor: PublicAvailabilityDoctor;
 }) {
   const profileHref = `/dr/${encodeURIComponent(doctor.slug)}`;
-  const nextLabel = futurePublicSlot(doctor.nextSlot)
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 30_000);
+    return () => clearInterval(timer);
+  }, []);
+  const nextLabel = futurePublicSlot(doctor.nextSlot, now)
     ? formatPublicSlot(doctor.nextSlot!.startsAt, doctor.clinicTimezone)
     : null;
 
