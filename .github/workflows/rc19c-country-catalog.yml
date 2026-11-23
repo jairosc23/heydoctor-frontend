@@ -29,5 +29,11 @@ jobs:
         run: node --import tsx --test lib/patient-growth/discovery-country-catalog.test.ts lib/patient-growth/jurisdiction-ui.test.ts lib/services/public-discovery.test.ts
       - name: TypeScript
         run: npm run typecheck
+      - name: Inspect formatting delta
+        run: |
+          for path in app/medicos/medicos-client.tsx lib/patient-growth/discovery-country-catalog.ts lib/patient-growth/discovery-country-catalog.test.ts; do
+            npx prettier "$path" > /tmp/rc19c-prettier.tmp
+            diff -u "$path" /tmp/rc19c-prettier.tmp || true
+          done
       - name: Check formatting
         run: npx prettier --check app/medicos/medicos-client.tsx lib/patient-growth/discovery-country-catalog.ts lib/patient-growth/discovery-country-catalog.test.ts
