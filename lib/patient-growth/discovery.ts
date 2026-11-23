@@ -2,9 +2,12 @@ export function defaultAvailabilityWindow(days = 7): {
   from: string;
   to: string;
 } {
-  // Absolute UTC instants avoid a local-midnight window that includes elapsed slots.
+  // Keep the calendar slot grid aligned; expired slots are removed by the API
+  // and guarded again at render time.
   const from = new Date();
-  const to = new Date(from.getTime() + days * 86_400_000);
+  from.setHours(0, 0, 0, 0);
+  const to = new Date(from);
+  to.setDate(to.getDate() + days);
   return { from: from.toISOString(), to: to.toISOString() };
 }
 
