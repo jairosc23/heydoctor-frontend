@@ -2,6 +2,7 @@ import Button from "@/components/ui/Button";
 import {
   doctorInitials,
   formatPublicSlot,
+  futurePublicSlot,
 } from "@/lib/patient-growth/discovery";
 import type { PublicAvailabilityDoctor } from "@/lib/services/public-discovery";
 
@@ -16,8 +17,8 @@ export function DoctorDiscoveryCard({
   doctor: PublicAvailabilityDoctor;
 }) {
   const profileHref = `/dr/${encodeURIComponent(doctor.slug)}`;
-  const nextLabel = doctor.nextSlot
-    ? formatPublicSlot(doctor.nextSlot.startsAt, doctor.clinicTimezone)
+  const nextLabel = futurePublicSlot(doctor.nextSlot)
+    ? formatPublicSlot(doctor.nextSlot!.startsAt, doctor.clinicTimezone)
     : null;
 
   return (
@@ -66,9 +67,7 @@ export function DoctorDiscoveryCard({
       <p className="mt-3 text-sm font-medium text-primaryDark">
         {nextLabel
           ? `Próximo horario: ${nextLabel}`
-          : doctor.openSlotCount === 0
-            ? "Sin horarios públicos en los próximos 7 días"
-            : `${doctor.openSlotCount} horarios disponibles`}
+          : "Sin próximo horario confirmado; consulta disponibilidad actualizada"}
       </p>
       <div className="mt-4 flex flex-col gap-2 sm:flex-row">
         <Button
