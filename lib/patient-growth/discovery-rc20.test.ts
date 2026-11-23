@@ -34,10 +34,7 @@ describe("RC20 future-only public discovery", () => {
       false,
     );
     assert.equal(
-      futurePublicSlot(
-        slot("invalid", "2026-11-23T18:30:00.000Z"),
-        now,
-      ),
+      futurePublicSlot(slot("invalid", "2026-11-23T18:30:00.000Z"), now),
       false,
     );
     assert.equal(
