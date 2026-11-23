@@ -3,9 +3,9 @@ import type { PublicJurisdiction } from "@/lib/services/public-discovery";
 
 /** Countries are the platform catalog, not the verified-provider coverage set. */
 export function discoveryCountryOptions() {
-  return COUNTRY_OPTIONS.filter((country) => /^[A-Z]{2}$/.test(country.code)).map(
-    (country) => ({ value: country.code, label: country.name.es }),
-  );
+  return COUNTRY_OPTIONS.filter((country) =>
+    /^[A-Z]{2}$/.test(country.code),
+  ).map((country) => ({ value: country.code, label: country.name.es }));
 }
 
 export function hasDiscoveryCountry(code: string): boolean {
