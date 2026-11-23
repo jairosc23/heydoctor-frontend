@@ -20,23 +20,38 @@ describe("RC20 future-only public discovery", () => {
     const now = new Date("2026-11-23T17:00:00.000Z");
     const slot = (startsAt: string, endsAt: string) => ({ startsAt, endsAt });
     assert.equal(
-      futurePublicSlot(slot("2026-11-23T12:00:00.000Z", "2026-11-23T12:30:00.000Z"), now),
+      futurePublicSlot(
+        slot("2026-11-23T12:00:00.000Z", "2026-11-23T12:30:00.000Z"),
+        now,
+      ),
       false,
     );
     assert.equal(
-      futurePublicSlot(slot("2026-11-23T17:00:00.000Z", "2026-11-23T17:30:00.000Z"), now),
+      futurePublicSlot(
+        slot("2026-11-23T17:00:00.000Z", "2026-11-23T17:30:00.000Z"),
+        now,
+      ),
       false,
     );
     assert.equal(
-      futurePublicSlot(slot("invalid", "2026-11-23T18:30:00.000Z"), now),
+      futurePublicSlot(
+        slot("invalid", "2026-11-23T18:30:00.000Z"),
+        now,
+      ),
       false,
     );
     assert.equal(
-      futurePublicSlot(slot("2026-11-23T19:00:00.000Z", "2026-11-23T18:30:00.000Z"), now),
+      futurePublicSlot(
+        slot("2026-11-23T19:00:00.000Z", "2026-11-23T18:30:00.000Z"),
+        now,
+      ),
       false,
     );
     assert.equal(
-      futurePublicSlot(slot("2026-11-23T18:00:00.000Z", "2026-11-23T18:30:00.000Z"), now),
+      futurePublicSlot(
+        slot("2026-11-23T18:00:00.000Z", "2026-11-23T18:30:00.000Z"),
+        now,
+      ),
       true,
     );
     assert.equal(futurePublicSlot(null, now), false);
@@ -46,14 +61,20 @@ describe("RC20 future-only public discovery", () => {
     const now = new Date("2026-09-06T03:30:00.000Z");
     assert.equal(
       futurePublicSlot(
-        { startsAt: "2026-09-06T02:59:00.000Z", endsAt: "2026-09-06T03:29:00.000Z" },
+        {
+          startsAt: "2026-09-06T02:59:00.000Z",
+          endsAt: "2026-09-06T03:29:00.000Z",
+        },
         now,
       ),
       false,
     );
     assert.equal(
       futurePublicSlot(
-        { startsAt: "2026-09-06T04:30:00.000Z", endsAt: "2026-09-06T05:00:00.000Z" },
+        {
+          startsAt: "2026-09-06T04:30:00.000Z",
+          endsAt: "2026-09-06T05:00:00.000Z",
+        },
         now,
       ),
       true,
