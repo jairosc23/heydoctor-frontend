@@ -1,9 +1,19 @@
 export function defaultAvailabilityWindow(days = 7): { from: string; to: string } {
+  // Absolute UTC instants avoid a local-midnight window that includes elapsed slots.
   const from = new Date();
-  from.setHours(0, 0, 0, 0);
-  const to = new Date(from);
-  to.setDate(to.getDate() + days);
+  const to = new Date(from.getTime() + days * 86_400_000);
   return { from: from.toISOString(), to: to.toISOString() };
+}
+
+/** Always compare absolute instants; IANA timezone is only for display. */
+export function futurePublicSlot(
+  slot: { startsAt: string; endsAt: string } | null,
+  now: Date = new Date(),
+): boolean {
+  if (!slot) return false;
+  const start = Date.parse(slot.startsAt);
+  const end = Date.parse(slot.endsAt);
+  return Number.isFinite(start) && Number.isFinite(end) && start > now.getTime() && end > start;
 }
 
 export function formatPublicSlot(iso: string, timeZone?: string | null): string {
