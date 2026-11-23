@@ -1,0 +1,32 @@
+name: RC20 Future-only Public Discovery UI QA
+on:
+  push:
+    branches:
+      - qa/rc20-future-only-discovery-20261123
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: rc20-discovery-ui-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  future-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - name: Offline safety
+        run: |
+          test -z "${DATABASE_URL:-}"
+          test -z "${RAILWAY_PROJECT_ID:-}"
+      - name: Clock, future slots and Chile DST tests
+        run: node --import tsx --test lib/patient-growth/discovery-rc20.test.ts
+      - name: TypeScript
+        run: npm run typecheck
+      - name: Formatting check
+        run: npx prettier --check lib/patient-growth/discovery.ts lib/patient-growth/discovery-rc20.test.ts components/patient-growth/doctor-discovery-card.tsx
