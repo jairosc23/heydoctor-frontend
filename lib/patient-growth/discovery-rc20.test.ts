@@ -7,13 +7,19 @@ import {
 } from "./discovery";
 
 describe("RC20 future-only public discovery", () => {
-  it("starts the 7-day discovery range at the current instant, never midnight", () => {
-    const before = Date.now();
+  it("preserves calendar boundaries so appointment slots stay on their grid", () => {
+    const before = new Date();
     const { from, to } = defaultAvailabilityWindow(7);
-    const after = Date.now();
-    assert.ok(Date.parse(from) >= before);
-    assert.ok(Date.parse(from) <= after);
-    assert.equal(Date.parse(to) - Date.parse(from), 7 * 86_400_000);
+    const after = new Date();
+    assert.equal(new Date(from).getHours(), 0);
+    assert.equal(new Date(from).getMinutes(), 0);
+    assert.equal(new Date(from).getSeconds(), 0);
+    assert.ok(Date.parse(from) <= before.getTime());
+    assert.ok(Date.parse(to) > after.getTime());
+    const calendarEnd = new Date(from);
+    calendarEnd.setDate(calendarEnd.getDate() + 7);
+    assert.equal(Date.parse(to), calendarEnd.getTime());
+    assert.equal(new Date(to).getHours(), 0);
   });
 
   it("does not announce expired, starting-now, malformed or reversed slots", () => {
