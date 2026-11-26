@@ -1,10 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import Button from "@/components/ui/Button";
-import { collectClinicDoctorOptions } from "@/lib/agenda/appointment-display";
 import {
   DAY_OF_WEEK_OPTIONS,
   emptyAvailabilityRuleForm,
@@ -16,10 +15,6 @@ import { formatMinutesAsClock } from "@/lib/agenda/availability-summary";
 import { useAuth } from "@/lib/context/AuthContext";
 import { getApiErrorMessage } from "@/lib/heydoctor-api";
 import {
-  useAppointmentsListQuery,
-  useConsultationsListQuery,
-} from "@/lib/hooks/use-panel-list-queries";
-import {
   createAvailabilityRule,
   deleteAvailabilityRule,
   updateAvailabilityRule,
@@ -28,6 +23,7 @@ import {
 import { cn } from "@/lib/utils";
 
 type Props = {
+  doctorOptions: { id: string; label: string }[];
   rules: DoctorAvailabilityRule[] | undefined;
   isLoading: boolean;
   isError: boolean;
@@ -35,6 +31,7 @@ type Props = {
 };
 
 export function AgendaAvailabilityRulesPanel({
+  doctorOptions,
   rules,
   isLoading,
   isError,
@@ -49,41 +46,6 @@ export function AgendaAvailabilityRulesPanel({
     emptyAvailabilityRuleForm(),
   );
   const [formErrors, setFormErrors] = useState<string[]>([]);
-
-  /** F2-09: select reduce re-renders — solo campos usados por doctor selector. */
-  const { data: appointmentDoctorRows } = useAppointmentsListQuery(
-    { limit: 200 },
-    {
-      enabled: isAdmin,
-      select: (res) =>
-        (res?.data ?? []).map((a) => ({
-          doctorId: a.doctorId,
-          doctor: a.doctor
-            ? {
-                id: a.doctor.id,
-                name: a.doctor.name,
-                email: a.doctor.email,
-              }
-            : undefined,
-        })),
-    },
-  );
-  const { data: consultationsData } = useConsultationsListQuery(
-    { limit: 100 },
-    { enabled: isAdmin },
-  );
-  const doctorOptions = useMemo(
-    () =>
-      collectClinicDoctorOptions(
-        (appointmentDoctorRows ?? []) as Parameters<
-          typeof collectClinicDoctorOptions
-        >[0],
-        (consultationsData?.data ?? [])
-          .filter((c) => Boolean(c.doctorId))
-          .map((c) => ({ id: c.doctorId as string, label: undefined })),
-      ),
-    [appointmentDoctorRows, consultationsData?.data],
-  );
 
   const invalidate = async () => {
     await queryClient.invalidateQueries({
