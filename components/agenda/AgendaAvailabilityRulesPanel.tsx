@@ -187,8 +187,8 @@ export function AgendaAvailabilityRulesPanel({
         </p>
       ) : !rules?.length ? (
         <p className="text-sm text-slate-500 dark:text-slate-400">
-          Sin reglas. El backend usa horario fallback 07:00–21:00 hasta que
-          cree reglas activas.
+          Sin reglas de disponibilidad. No se publican cupos hasta configurar
+          horarios médicos vigentes.
         </p>
       ) : (
         <ul className="divide-y divide-slate-100 dark:divide-slate-800">
