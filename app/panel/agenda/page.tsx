@@ -21,7 +21,7 @@ import { AgendaWorkspaceNav } from "@/components/agenda/AgendaWorkspaceNav";
 import { AppointmentFormModal } from "@/components/agenda/AppointmentFormModal";
 import Button from "@/components/ui/Button";
 import { buildAgendaDashboardMetrics } from "@/lib/agenda/agenda-dashboard-metrics";
-import { collectClinicDoctorOptions } from "@/lib/agenda/appointment-display";
+import { useClinicDoctorOptions } from "@/lib/hooks/use-clinic-doctors";
 import type { AgendaWorkspaceTab } from "@/lib/agenda/agenda-workspace";
 import {
   type AgendaView,
@@ -35,10 +35,7 @@ import {
   useDoctorTimezoneQuery,
   useResolvedClinicTimezone,
 } from "@/lib/hooks/use-clinic-timezone";
-import {
-  useAppointmentsListQuery,
-  useConsultationsListQuery,
-} from "@/lib/hooks/use-panel-list-queries";
+import { useAppointmentsListQuery } from "@/lib/hooks/use-panel-list-queries";
 import {
   useReminderPoliciesQuery,
   useRemindersQuery,
@@ -81,10 +78,8 @@ export default function AgendaPage() {
 
   const range = useMemo(() => getRangeForView(anchor, view), [anchor, view]);
 
-  const { data: consultationsData } = useConsultationsListQuery(
-    { limit: 100 },
-    { enabled: isAdmin },
-  );
+  const clinicDoctorsQuery = useClinicDoctorOptions();
+  const doctorOptions = clinicDoctorsQuery.data ?? [];
 
   // W3 — BE @Max(100); align FE to contract (was 500 → validation 400).
   const appointmentFilters = useMemo(
@@ -99,15 +94,6 @@ export default function AgendaPage() {
 
   const { data, isLoading, isFetching, isError, refetch } =
     useAppointmentsListQuery(appointmentFilters);
-
-  /**
-   * F2-09: second list only when admin filtered by doctor — otherwise the
-   * primary list already covers the clinic range (avoids duplicate GET).
-   */
-  const { data: clinicAppointmentsData } = useAppointmentsListQuery(
-    { from: range.from, to: range.to, limit: 100 },
-    { enabled: isAdmin && Boolean(doctorFilter) },
-  );
 
   // W3 — gate heavy panels by workspace tab (calendar = appointments-only).
   const needAvailability =
@@ -179,17 +165,6 @@ export default function AgendaPage() {
   const blocksBadge = needBlocks ? blocksActiveCount : "—";
   const waitlistBadge = needWaitlist ? waitlistActiveCount : "—";
   const remindersBadge = needReminders ? reminderPendingCount : "—";
-
-  const doctorOptions = useMemo(
-    () =>
-      collectClinicDoctorOptions(
-        clinicAppointmentsData?.data ?? appointments,
-        (consultationsData?.data ?? [])
-          .filter((c) => Boolean(c.doctorId))
-          .map((c) => ({ id: c.doctorId as string, label: undefined })),
-      ),
-    [clinicAppointmentsData?.data, appointments, consultationsData?.data],
-  );
 
   const slotRangeLabel = availability.data?.slotRange
     ? `${formatInClinic(availability.data.slotRange.from, timeZone, "d MMM HH:mm")} – ${formatInClinic(availability.data.slotRange.to, timeZone, "d MMM HH:mm")}`
@@ -457,13 +432,16 @@ export default function AgendaPage() {
                 value={doctorFilter}
                 onChange={(e) => setDoctorFilter(e.target.value)}
               >
-                <option value="">Seleccionar médico…</option>
+                <option value="">{clinicDoctorsQuery.isLoading ? "Cargando médicos…" : "Seleccionar médico…"}</option>
                 {doctorOptions.map((d) => (
                   <option key={d.id} value={d.id}>
                     {d.label}
                   </option>
                 ))}
               </select>
+              {clinicDoctorsQuery.isError ? (
+                <span className="mt-1 block text-rose-700" role="alert">No se pudo cargar el directorio de la clínica.</span>
+              ) : null}
             </label>
           ) : null}
           <label className="text-xs font-medium text-slate-600 dark:text-slate-300">
@@ -619,6 +597,7 @@ export default function AgendaPage() {
               }
             >
               <AgendaAvailabilityRulesPanel
+                doctorOptions={doctorOptions}
                 rules={availability.data?.rules}
                 isLoading={availability.isLoading}
                 isError={availability.isError}
