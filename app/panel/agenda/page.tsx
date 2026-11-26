@@ -432,7 +432,11 @@ export default function AgendaPage() {
                 value={doctorFilter}
                 onChange={(e) => setDoctorFilter(e.target.value)}
               >
-                <option value="">{clinicDoctorsQuery.isLoading ? "Cargando médicos…" : "Seleccionar médico…"}</option>
+                <option value="">
+                  {clinicDoctorsQuery.isLoading
+                    ? "Cargando médicos…"
+                    : "Seleccionar médico…"}
+                </option>
                 {doctorOptions.map((d) => (
                   <option key={d.id} value={d.id}>
                     {d.label}
