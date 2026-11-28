@@ -1,30 +1,13 @@
 import * as Sentry from "@sentry/nextjs";
-import { sanitizeSentryEvent } from "@/lib/sentry-privacy-gate";
+import { getQaSentryOptions } from "@/lib/sentry-qa-options";
+import { withSentryPrivacyGate } from "@/lib/sentry-privacy-transport";
 
-const dsn =
-  process.env.SENTRY_DSN?.trim() ?? process.env.NEXT_PUBLIC_SENTRY_DSN?.trim();
-
-function releaseId(): string | undefined {
-  return (
-    process.env.SENTRY_RELEASE?.trim() ||
-    process.env.VERCEL_GIT_COMMIT_SHA?.trim() ||
-    undefined
-  );
-}
-
-if (dsn) {
+const options = getQaSentryOptions(process.env);
+if (options) {
   Sentry.init({
-    dsn,
-    environment: process.env.SENTRY_ENVIRONMENT ?? process.env.NODE_ENV,
-    release: releaseId(),
-    // RC37-V: disable traces until scrubbers cover all event classes.
-    tracesSampleRate: 0,
-    sendDefaultPii: false,
-    beforeBreadcrumb() {
-      return null;
-    },
-    beforeSend(event) {
-      return sanitizeSentryEvent(event);
-    },
+    ...options,
+    transport: (
+      transportOptions: Parameters<typeof Sentry.makeNodeTransport>[0],
+    ) => withSentryPrivacyGate(Sentry.makeNodeTransport(transportOptions)),
   });
 }

@@ -22,13 +22,23 @@ test("RC37-V drops all PHI and auth context including arbitrary fields", () => {
   };
   const output = sanitizeSentryEvent(sensitive as never);
   const serialized = JSON.stringify(output);
-  for (const forbidden of [secret, "patient-name-private", "private@example.test",
-    "diagnosis", "clinical breadcrumb", "token=", "Bearer"]) {
+  for (const forbidden of [
+    secret,
+    "patient-name-private",
+    "private@example.test",
+    "diagnosis",
+    "clinical breadcrumb",
+    "token=",
+    "Bearer",
+  ]) {
     assert.equal(serialized.includes(forbidden), false, `leaked ${forbidden}`);
   }
   assert.equal(output.event_id, "a".repeat(32));
   assert.equal(output.message, "HeyDoctor QA sanitized diagnostic event");
-  assert.equal(Object.keys(output).sort().join(","), "event_id,fingerprint,level,message,tags,timestamp");
+  assert.equal(
+    Object.keys(output).sort().join(","),
+    "event_id,fingerprint,level,message,tags,timestamp",
+  );
 });
 
 test("RC37-V does not trust malformed event ids, timestamps or levels", () => {
